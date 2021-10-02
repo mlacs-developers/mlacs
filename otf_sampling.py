@@ -9,6 +9,7 @@ from ase.io import read as ase_read, write as ase_write, Trajectory
 
 from otf_mlacs.mlip.mlip_manager import MLIPManager
 from otf_mlacs.utilities.log import MLACS_Log
+from otf_mlacs.utilities import create_random_structures
 
 
 class OtfMLAS:
@@ -42,10 +43,9 @@ class OtfMLAS:
                  calc,
                  mlip=None,
                  neq=10,
-                 nt=1000,
-                 nt_eq=250,
                  prefix_output="Trajectory",
                  confs_init=None,
+                 std_init=0.1
                 ):
         
         self.atoms     = atoms
@@ -54,15 +54,12 @@ class OtfMLAS:
             self.mlip = MLIPManager(atoms)
         else:
             self.mlip = mlip
-        self.nt        = nt
-        self.nt_eq     = nt_eq
         self.neq       = neq
 
         self.state = state
 
         self.prefix_output = prefix_output
         self.rng           = np.random.default_rng()
-
 
         if os.path.isfile(self.prefix_output + ".traj"):
             # Previous simulation found, need to reinitialize everything in memory
@@ -82,8 +79,8 @@ class OtfMLAS:
             
             if os.path.isfile("potential.dat"):
                 potentials    = np.loadtxt("potential.dat")
-                self.vtrue    = potentials[:,1]
-                self.vmlip    = potentials[:,2]
+                self.vtrue    = np.atleast_2d(potentials)[:,1]
+                self.vmlip    = np.atleast_2d(potentials)[:,2]
         else:
             # No previous step
             restart = False
@@ -91,11 +88,13 @@ class OtfMLAS:
             self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
             self.vtrue       = np.array([])
             self.vmlip       = np.array([])
+            self.state.initialize_momenta(self.atoms)
 
 
         if self.step == 0:
             self.confs_init = confs_init
             self.nconfs_init = 1
+            self.std_init = std_init
 
         # Start the log
         self.log = MLACS_Log(self.prefix_output + ".log", restart)
@@ -131,12 +130,12 @@ class OtfMLAS:
            true potential computation for each state
         """
         if self.step < self.neq:
-            nsteps = self.nt_eq
+            eq   = True
             msg  = "Equilibration step\n"
             msg += "\n"
             self.log.logger_log.info(msg)
         else:
-            nsteps = self.nt
+            eq = False
 
         msg = "Training new MLIP potential\n"
         self.log.logger_log.info(msg)
@@ -145,15 +144,11 @@ class OtfMLAS:
 
         atoms_mlip = self.atoms.copy()
 
-        if self.step == 1:
-            #momenta = self.state.initialize_momenta()
-            momenta = np.zeros((len(atoms_mlip),3))
-        else:
-            momenta = self.atoms.get_momenta()
+        momenta = self.atoms.get_momenta()
         atoms_mlip.set_momenta(momenta)
 
         # Run the actual MLMD
-        atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.calc, nsteps)
+        atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.calc, eq)
 
         # Clean the MLIP to liberate procs
         self.mlip.calc.clean()
@@ -193,6 +188,7 @@ class OtfMLAS:
         msg = "Computing energy with true potential on initial configuration"
         self.log.logger_log.info(msg)
 
+        self.atoms.calc = self.true_calc
         v_init     = self.atoms.get_potential_energy()
         self.mlip.update_matrices(self.atoms)
 
@@ -201,15 +197,24 @@ class OtfMLAS:
         msg = "Computing energy with true potential on initial training configurations"
         self.log.logger_log.info(msg)
 
+        if self.confs_init is None:
+            confs_init = create_random_structures(supercell, self.std_init, 1)
+        elif isinstance(self.confs_init, (int, float)):
+            confs_init = create_random_structures(self.atoms, self.std_init, self.confs_init)
+        elif isinstance(self.confs_init, list):
+            confs_init = self.confs_init
+        nconfs_init = len(confs_init)
+
+
         init_traj = Trajectory("Training_configurations.traj", mode="w")
-        for iconf in range(self.nconfs_init):
-            msg = "Configuration {:} / {:}".format(iconf+1, self.nconfs_init)
+        for i, conf in enumerate(confs_init):
+            msg = "Configuration {:} / {:}".format(i+1, nconfs_init)
             self.log.logger_log.info(msg)
 
-            atoms_rattled = self.atoms.copy()
-            atoms_rattled.rattle(0.1, rng=self.rng)
-            atoms_rattled.calc = self.atoms.calc
-            atoms_rattled.get_potential_energy()
+            conf.calc = self.true_calc
+            conf.rattle(0.1, rng=self.rng)
+            conf.calc = self.atoms.calc
+            conf.get_potential_energy()
          
-            self.mlip.update_matrices(atoms_rattled)
-            init_traj.write(atoms_rattled)
+            self.mlip.update_matrices(conf)
+            init_traj.write(conf)

@@ -1,6 +1,5 @@
 """
 """
-
 import numpy as np
 
 from ase.io import Trajectory
@@ -17,31 +16,27 @@ class StateManager:
     """
     def __init__(self,
                  temperature,
-                 dynamics=None,
                  pressure=None,
                  dt=1.5*fs,
-                 nsteps=5000,
+                 nsteps=1000,
+                 nsteps_eq=250,
                  dyn_parameters=None,
-                 nthrow=2500,
-                 verbose=True
+                 logfile=None,
+                 trajfname=None
                 ):
 
-        self.temperature = temperature
-        self.pressure    = pressure
-        self.dt          = dt
-        self.nsteps      = nsteps
-
-        if dynamics is None:
-            self.dynamics = Langevin
-            if dyn_parameters is None:
-                dyn_parameters = {'friction': 0.01}
-        else:
-            self.dynamics = dynamics
+        self.temperature    = temperature
+        self.pressure       = pressure
+        self.dt             = dt
+        self.nsteps         = nsteps
+        self.nsteps_eq      = nsteps_eq
         self.dyn_parameters = dyn_parameters
+        self.logfile        = logfile
+        self.trajfname      = trajfname
 
 
 #========================================================================================================================#
-    def run_dynamics(self, supercell, calc, nsteps=None, logfile=None, trajfname=None):
+    def run_dynamics(self, supercell, calc, eq=False, logfile=None, trajfname=None):
         """
         Run the dynamics for the state, during nsteps
         """
@@ -64,3 +59,11 @@ class StateManager:
         dyn.run(nsteps)
 
         return dyn.atoms
+
+
+#========================================================================================================================#
+    def get_initial_momenta(self, atoms):
+        """
+        """
+        momenta = np.zeros((len(atoms), 3))
+        atoms.set_momenta(momenta)

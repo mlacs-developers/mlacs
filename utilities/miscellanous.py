@@ -49,3 +49,13 @@ def get_elements_Z_and_masses(supercell):
         un_Z.append(Z[idx])
         un_masses.append(masses[iel])
     return un_elements, un_Z, un_masses
+
+
+def create_random_structures(atoms, std, nconfs):
+    rng = np.random.default_rng()
+    confs = []
+    for i in range(nconfs):
+        iatoms = atoms.copy()
+        iatoms.rattle(stdev=std)
+        confs.append(iatoms)
+    return confs
