@@ -2,7 +2,6 @@
 Class for On-The-Fly Machine-Learning Assisted Sampling
 """
 import os
-import shutil
 
 import numpy as np
 from ase.io import read as ase_read, write as ase_write, Trajectory
@@ -27,15 +26,12 @@ class OtfMLACS:
     mlip: MLIPManager object
     neq: int
         The number of step equilibration steps
-    nt: int
-        Number of steps for the NVT Molecular Dynamics steps with the MLIP
-    nt_eq: int
-        Number of steps for the NVT Molecular Dynamics steps with the MLIP during equilibration
-    nconfs_init: int
-        Number of configuirations used to train a preliminary MLIP
-        The configurations are created by rattling the first structure
+    confs_init: int or list of atoms
+        if int: Number of configuirations used to train a preliminary MLIP
+                The configurations are created by rattling the first structure
+        else: The atoms that are to be computed in order to create the initial training configurations
     prefix_output: str
-        Prefix of the output of the simulation
+        Prefix for the output files of the simulation
     """
     def __init__(self,
                  atoms,
@@ -51,7 +47,7 @@ class OtfMLACS:
         self.atoms     = atoms
         self.true_calc = calc
         if mlip is None:
-            self.mlip = MLIPManager(atoms)
+            self.mlip = MLIPManager(atoms) # Default MLIP Manager
         else:
             self.mlip = mlip
         self.neq       = neq
@@ -61,6 +57,7 @@ class OtfMLACS:
         self.prefix_output = prefix_output
         self.rng           = np.random.default_rng()
 
+        # Initialize everything
         if os.path.isfile(self.prefix_output + ".traj"):
             # Previous simulation found, need to reinitialize everything in memory
             restart = True
@@ -69,6 +66,7 @@ class OtfMLACS:
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
 
+            # Get trajectory and create the matrices for the fitting
             self.traj = Trajectory(self.prefix_output + ".traj", mode="a")
             if os.path.isfile("Training_configurations.traj"):
                 train_traj = Trajectory("Training_configurations.traj", mode="r")
@@ -78,10 +76,13 @@ class OtfMLACS:
             prev_traj = Trajectory(self.prefix_output + ".traj", mode="r")
             for conf in prev_traj:
                 self.mlip.update_matrices(conf)
+
+            # Update current atoms and step
             self.atoms = prev_traj[-1]
             self.step  = len(prev_traj)
             del prev_traj
             
+            # Update the potential file to compare predicted and true potential
             if os.path.isfile("potential.dat"):
                 potentials    = np.loadtxt("potential.dat")
                 self.vtrue    = np.atleast_2d(potentials)[:,1]
@@ -94,6 +95,7 @@ class OtfMLACS:
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
 
+            # Everything at 0
             self.step = 0
             self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
             self.vtrue       = np.array([])
@@ -101,11 +103,13 @@ class OtfMLACS:
             self.state.initialize_momenta(self.atoms)
 
 
+        # If initial step, initialize everything in order to train an initial MLIP
         if self.step == 0:
             self.confs_init = confs_init
             self.nconfs_init = 1
             self.std_init = std_init
 
+        # If first launch of the simulation, print the starting atoms in the log
         if not restart:
             self.log.write_input_atoms(self.atoms)
         
@@ -113,7 +117,7 @@ class OtfMLACS:
 #===================================================================================================================================================#
     def run(self, nsteps=100):
         """
-        Run the algorithm
+        Run the algorithm until nsteps
         """
         while self.step < nsteps:
             self.log.init_new_step(self.step)
@@ -132,9 +136,10 @@ class OtfMLACS:
 
         One step consist in:
            fit of the MLIP
-           nsteps of MLMD for each state
-           true potential computation for each state
+           nsteps of MLMD
+           true potential computation
         """
+        # Check if this is an equilibration or normal step
         if self.step < self.neq:
             eq   = True
             msg  = "Equilibration step\n"
@@ -148,8 +153,10 @@ class OtfMLACS:
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
 
+        # Copy atoms to have a MLIP one
         atoms_mlip = self.atoms.copy()
 
+        # Ensure the momenta is right before the MLMD
         momenta = self.atoms.get_momenta()
         atoms_mlip.set_momenta(momenta)
 
@@ -160,7 +167,7 @@ class OtfMLACS:
         self.mlip.calc.clean()
 
         # Prepare atoms object to compute the energy with the true potential
-        atoms_true      = atoms_mlip.copy()
+        atoms_true      = atoms_mlip.copy() # copy to avoid disasters
         atoms_true.calc = self.true_calc
 
         msg  = "Computing energy with the True potential\n"
@@ -174,10 +181,11 @@ class OtfMLACS:
         # Update the matrices for the MLIP fit
         self.mlip.update_matrices(atoms_true)
 
+        # Update the true and mlip potential energy arrays
         self.vtrue = np.append(self.vtrue, Vn_true)
         self.vmlip = np.append(self.vmlip, Vn_mlip)
 
-        # Add new configuration to trajectory and update potential to have a measure of accuracy
+        # Add new configuration to trajectory and save potential arrays to have a measure of accuracy
         self.traj.write(atoms_true)
         idx           = np.arange(1, len(self.vmlip)+1)
         all_potential = np.vstack((idx, self.vtrue, self.vmlip)).T
@@ -190,19 +198,25 @@ class OtfMLACS:
 #===================================================================================================================================================#
     def run_initial_step(self):
         """
+        Run the initial step, where no MLIP or configurations are available
+
+        consist in
+            Compute potential energy for the initial positions
+            Compute potential for nconfs_init training configurations
         """
         msg = "Computing energy with true potential on initial configuration"
         self.log.logger_log.info(msg)
 
+        # Compute potential energy, update fitting matrices and write the configuration to the trajectory
         self.atoms.calc = self.true_calc
         v_init     = self.atoms.get_potential_energy()
         self.mlip.update_matrices(self.atoms)
-
         self.traj.write(self.atoms)
 
         msg = "Computing energy with true potential on initial training configurations"
         self.log.logger_log.info(msg)
 
+        # Check number of training configurations and create them if needed
         if self.confs_init is None:
             confs_init = create_random_structures(self.atoms, self.std_init, 1)
         elif isinstance(self.confs_init, (int, float)):
@@ -210,7 +224,6 @@ class OtfMLACS:
         elif isinstance(self.confs_init, list):
             confs_init = self.confs_init
         nconfs_init = len(confs_init)
-
 
         init_traj = Trajectory("Training_configurations.traj", mode="w")
         for i, conf in enumerate(confs_init):
@@ -224,3 +237,5 @@ class OtfMLACS:
          
             self.mlip.update_matrices(conf)
             init_traj.write(conf)
+        # We dont need the initial configurations anymore
+        del self.confs_init

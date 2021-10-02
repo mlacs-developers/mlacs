@@ -12,11 +12,9 @@ from ase.md.langevin import Langevin
 #========================================================================================================================#
 class StateManager:
     """
-    Class managing a state being simulated
+    Parent Class managing the state being simulated
     """
     def __init__(self,
-                 temperature,
-                 pressure=None,
                  dt=1.5*fs,
                  nsteps=1000,
                  nsteps_eq=250,
@@ -25,8 +23,6 @@ class StateManager:
                  trajfname=None
                 ):
 
-        self.temperature    = temperature
-        self.pressure       = pressure
         self.dt             = dt
         self.nsteps         = nsteps
         self.nsteps_eq      = nsteps_eq
@@ -38,39 +34,24 @@ class StateManager:
 #========================================================================================================================#
     def run_dynamics(self, supercell, calc, eq=False, logfile=None, trajfname=None):
         """
-        Run the dynamics for the state, during nsteps
+        Run the dynamics for the state, during nsteps then return the last atoms of the simulation
         """
-        atoms      = supercell.copy()
-        atoms.calc = calc
-
-        if nsteps is None:
-            nsteps = self.nsteps
-        else:
-            nsteps = nsteps
-
-        trajectory = None
-        if trajfname is not None:
-            trajectory = Trajectory(trajfname, mode="r", atoms=atoms)
-        
-        if self.dyn_parameters is None:
-            dyn = self.dynamics(atoms=atoms, timestep=self.dt, temperature_K=self.temperature, trajectory=trajectory, logfile=logfile)
-        else:
-            dyn = self.dynamics(atoms=atoms, timestep=self.dt, temperature_K=self.temperature, trajectory=trajectory, logfile=logfile, **self.dyn_parameters)
-        dyn.run(nsteps)
-
-        return dyn.atoms
+        raise NotImplementedError(msg)
 
 
 #========================================================================================================================#
     def get_initial_momenta(self, atoms):
         """
+        Setup the momenta during initialization of the simulation
         """
-        momenta = np.zeros((len(atoms), 3))
-        atoms.set_momenta(momenta)
+        if not atoms.has("momenta"):
+            momenta = np.zeros((len(atoms), 3))
+            atoms.set_momenta(momenta)
 
 
 #========================================================================================================================#
     def log_recap_state(self):
         """
+        Function to return a string describing the state for the log
         """
         return ""
