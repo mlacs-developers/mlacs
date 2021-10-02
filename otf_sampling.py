@@ -12,7 +12,7 @@ from otf_mlacs.utilities.log import MLACS_Log
 from otf_mlacs.utilities import create_random_structures
 
 
-class OtfMLAS:
+class OtfMLACS:
     """
     On-the-fly Machine-Learning Assisted Sampling
 
@@ -64,6 +64,11 @@ class OtfMLAS:
         if os.path.isfile(self.prefix_output + ".traj"):
             # Previous simulation found, need to reinitialize everything in memory
             restart = True
+            self.log = MLACS_Log(self.prefix_output + ".log", restart)
+            self.log.recap_mlip(self.mlip.get_mlip_dict())
+            msg = self.state.log_recap_state()
+            self.log.logger_log.info(msg)
+
             self.traj = Trajectory(self.prefix_output + ".traj", mode="a")
             if os.path.isfile("Training_configurations.traj"):
                 train_traj = Trajectory("Training_configurations.traj", mode="r")
@@ -84,6 +89,11 @@ class OtfMLAS:
         else:
             # No previous step
             restart = False
+            self.log = MLACS_Log(self.prefix_output + ".log", restart)
+            self.log.recap_mlip(self.mlip.get_mlip_dict())
+            msg = self.state.log_recap_state()
+            self.log.logger_log.info(msg)
+
             self.step = 0
             self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
             self.vtrue       = np.array([])
@@ -96,10 +106,6 @@ class OtfMLAS:
             self.nconfs_init = 1
             self.std_init = std_init
 
-        # Start the log
-        self.log = MLACS_Log(self.prefix_output + ".log", restart)
-        self.log.recap_mlip(self.mlip.get_mlip_dict())
-        #self.log.recap_params()
         if not restart:
             self.log.write_input_atoms(self.atoms)
         
@@ -198,7 +204,7 @@ class OtfMLAS:
         self.log.logger_log.info(msg)
 
         if self.confs_init is None:
-            confs_init = create_random_structures(supercell, self.std_init, 1)
+            confs_init = create_random_structures(self.atoms, self.std_init, 1)
         elif isinstance(self.confs_init, (int, float)):
             confs_init = create_random_structures(self.atoms, self.std_init, self.confs_init)
         elif isinstance(self.confs_init, list):

@@ -1,3 +1,3 @@
-from otf_mlacs.otf_sampling import OtfMLAS
+from otf_mlacs.otf_sampling import OtfMLACS
 
-__all__ = ['OtfMLAS']
+__all__ = ['OtfMLACS']

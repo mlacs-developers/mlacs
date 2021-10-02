@@ -82,3 +82,17 @@ class LangevinState(StateManager):
         else:
             momenta = np.zeros((len(atoms), 3))
             atoms.set_momenta(momenta)
+
+
+#========================================================================================================================#
+    def log_recap_state(self):
+        """
+        """
+        msg  = "Simulated state:\n"
+        msg += "NVT ensemble witht the Langevin thermostat\n"
+        msg += "parameters:\n"
+        msg += "timestep     {:} fs\n".format(self.dt / fs)
+        for key in self.dyn_parameters.keys():
+            msg += key + "     {:}\n".format(self.dyn_parameters[key])
+        msg += "\n"
+        return msg

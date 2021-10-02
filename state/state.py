@@ -67,3 +67,10 @@ class StateManager:
         """
         momenta = np.zeros((len(atoms), 3))
         atoms.set_momenta(momenta)
+
+
+#========================================================================================================================#
+    def log_recap_state(self):
+        """
+        """
+        return ""
