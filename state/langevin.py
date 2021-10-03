@@ -20,26 +20,28 @@ class LangevinState(StateManager):
     """
     def __init__(self,
                  temperature,
+                 friction=0.01,
                  dt=1.5*fs,
                  nsteps=1000,
-                 nsteps_eq=250,
-                 dyn_parameters=default_langevin,
+                 nsteps_eq=100,
+                 fixcm=True,
                  logfile=None,
                  trajfname=None,
                  rng=None,
-                 init_momenta=True
+                 init_momenta=None
                 ):
         
         StateManager.__init__(self,
                               dt,
                               nsteps,
                               nsteps_eq,
-                              dyn_parameters,
+                              fixcm,
                               logfile,
                               trajfname
                              )
 
         self.temperature = temperature
+        self.friction    = friction
         if rng is None:
             self.rng = np.random.default_rng()
         else:
@@ -59,10 +61,7 @@ class LangevinState(StateManager):
         else:
             nsteps = self.nsteps
 
-        if self.dyn_parameters is not None:
-            dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, rng=self.rng, **self.dyn_parameters)
-        else:
-            dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, rng=self.rng)
+        dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm)
 
         if self.trajfname is not None:
             trajectory = Trajectory(trajfname, mode="r", atoms=atoms)
@@ -93,7 +92,6 @@ class LangevinState(StateManager):
         msg += "NVT ensemble witht the Langevin thermostat\n"
         msg += "parameters:\n"
         msg += "timestep     {:} fs\n".format(self.dt / fs)
-        for key in self.dyn_parameters.keys():
-            msg += key + "     {:}\n".format(self.dyn_parameters[key])
+        msg += "friction     {:}\n".format(self.friction)
         msg += "\n"
         return msg

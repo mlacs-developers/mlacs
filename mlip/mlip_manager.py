@@ -38,6 +38,7 @@ class MLIPManager:
         elements, Z, masses = get_elements_Z_and_masses(atoms)
         self.lammps_interface = LammpsMlipInterface(elements,
                                                     masses,
+                                                    Z,
                                                     rcut,
                                                     model,
                                                     style,

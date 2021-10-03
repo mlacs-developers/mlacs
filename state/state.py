@@ -17,8 +17,8 @@ class StateManager:
     def __init__(self,
                  dt=1.5*fs,
                  nsteps=1000,
-                 nsteps_eq=250,
-                 dyn_parameters=None,
+                 nsteps_eq=100,
+                 fixcm=True,
                  logfile=None,
                  trajfname=None
                 ):
@@ -26,10 +26,11 @@ class StateManager:
         self.dt             = dt
         self.nsteps         = nsteps
         self.nsteps_eq      = nsteps_eq
-        self.dyn_parameters = dyn_parameters
+        self.fixcm          = fixcm
         self.logfile        = logfile
         self.trajfname      = trajfname
 
+        self.isnpt          = False
         self.islammps       = False
 
 

@@ -45,6 +45,7 @@ class LammpsMlipInterface:
     def __init__(self, 
                  elements, 
                  masses, 
+                 Z,
                  rcut=5.0, 
                  model="linear", 
                  style="snap",
@@ -63,6 +64,7 @@ class LammpsMlipInterface:
         # Store parameters
         self.elements = np.array(elements)
         self.masses   = masses
+        self.Z        = Z
         self.rcut     = rcut
         self.model    = model
         self.style    = style
@@ -79,7 +81,8 @@ class LammpsMlipInterface:
         else:
             self.radelems = radelems
         if welems == None:
-            self.welems = np.array(self.masses) / np.sum(self.masses)
+            #self.welems = np.array(self.masses) / np.sum(self.masses)
+            self.welems = np.array(self.Z) / np.sum(self.Z)
         else:
             self.welems = welems
 
@@ -325,7 +328,7 @@ class LammpsMlipInterface:
             pair_coeff += " " + el
         pair_coeff = [pair_coeff]
         pwd = os.getcwd()
-        calc       = LAMMPS()
+        calc       = LAMMPS(keep_alive=False)
         calc.set(pair_style=pair_style, pair_coeff=pair_coeff)
         return calc
 

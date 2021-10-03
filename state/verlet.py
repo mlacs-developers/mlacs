@@ -16,7 +16,8 @@ class VerletState(StateManager):
     def __init__(self,
                  dt=1.5*fs,
                  nsteps=1000,
-                 nsteps_eq=250,
+                 nsteps_eq=100,
+                 fixcm=True,
                  logfile=None,
                  trajfname=None,
                  init_momenta=None
@@ -26,7 +27,7 @@ class VerletState(StateManager):
                               dt,
                               nsteps,
                               nsteps_eq,
-                              None,
+                              fixcm,
                               logfile,
                               trajfname
                              )
