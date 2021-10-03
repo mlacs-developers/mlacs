@@ -331,6 +331,22 @@ class LammpsMlipInterface:
 
 
 #========================================================================================================================#
+    def get_pair_coeff_and_style(self):
+        """
+        """
+        cwd = os.getcwd()
+
+        if self.style == "snap":
+            style = "sna"
+        elif self.style == "so3":
+            style = "so3"
+        pair_style = "mliap model " + self.model + " " + cwd + "/MLIP.mliap.model  descriptor " + style + " " + cwd + "/MLIP.mliap.descriptor"
+
+        pair_coeff = "* * " + " ".join(self.elements)
+        return pair_style, pair_coeff
+
+
+#========================================================================================================================#
     def get_mlip_dict(self):
         """
         Return a dictionnary with the parameters of the MLIP potential

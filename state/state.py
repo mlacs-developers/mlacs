@@ -30,6 +30,8 @@ class StateManager:
         self.logfile        = logfile
         self.trajfname      = trajfname
 
+        self.islammps       = False
+
 
 #========================================================================================================================#
     def run_dynamics(self, supercell, calc, eq=False, logfile=None, trajfname=None):
@@ -40,7 +42,7 @@ class StateManager:
 
 
 #========================================================================================================================#
-    def get_initial_momenta(self, atoms):
+    def initialize_momenta(self, atoms):
         """
         Setup the momenta during initialization of the simulation
         """

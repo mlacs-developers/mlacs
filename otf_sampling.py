@@ -161,10 +161,14 @@ class OtfMLACS:
         atoms_mlip.set_momenta(momenta)
 
         # Run the actual MLMD
-        atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.calc, eq)
+        if self.state.islammps:
+            atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, eq)
+            atoms_mlip.calc = self.mlip.calc
+        else:
+            atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.calc, eq)
 
         # Clean the MLIP to liberate procs
-        self.mlip.calc.clean()
+        #self.mlip.calc.clean()
 
         # Prepare atoms object to compute the energy with the true potential
         atoms_true      = atoms_mlip.copy() # copy to avoid disasters

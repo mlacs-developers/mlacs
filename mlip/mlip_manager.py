@@ -62,6 +62,8 @@ class MLIPManager:
         self.ymatrix_forces = np.array([])
         self.ymatrix_stress = np.array([])
 
+        self.pair_style, self.pair_coeff = self.lammps_interface.get_pair_coeff_and_style()
+
 
 #===================================================================================================================================================#
     def update_matrices(self, atoms):

@@ -7,8 +7,11 @@ from ase.parallel import world, DummyMPI
 
 class PathIntegralLangevin(PathIntegralMolecularDynamics):
     """
-    """
+    Langevin thermostat for path integral molecular dynamics
 
+    from A simple and accurate algorithm for path integral molecular dynamics with the Langevin thermostat
+         J.Liu, D.Li and Liu,X  J. Chem. Phys 145 024103 (2016)
+    """
     def __init__(self, qpolymer, timestep, temperature=None, friction=None,
                  fixcm=True, *, trajectory=None, logfile=None, loginterval=1, rng=None,
                  append_trajectory=False):
@@ -52,9 +55,9 @@ class PathIntegralLangevin(PathIntegralMolecularDynamics):
     def updatevars(self):
         """
         """
-        dt = self.dt
-        kBT = self.kBT
-        fr = self.fr
+        dt     = self.dt
+        kBT    = self.kBT
+        fr     = self.fr
         masses = self.masses
 
 
@@ -62,8 +65,8 @@ class PathIntegralLangevin(PathIntegralMolecularDynamics):
         """
         """
         qpolymer = self.qpolymer
-        natoms = qpolymer.natoms
-        nbeads = qpolymer.nbeads
+        natoms   = qpolymer.natoms
+        nbeads   = qpolymer.nbeads
 
         if forces is None:
             forces = qpolymer.get_forces(md=True)
