@@ -83,8 +83,8 @@ class OtfMLACS:
             del prev_traj
             
             # Update the potential file to compare predicted and true potential
-            if os.path.isfile("potential.dat"):
-                potentials    = np.loadtxt("potential.dat")
+            if os.path.isfile(self.prefix_output + "_potential.dat"):
+                potentials    = np.loadtxt(self.prefix_output + "_potential.dat")
                 self.vtrue    = np.atleast_2d(potentials)[:,1]
                 self.vmlip    = np.atleast_2d(potentials)[:,2]
         else:
@@ -193,7 +193,7 @@ class OtfMLACS:
         self.traj.write(atoms_true)
         idx           = np.arange(1, len(self.vmlip)+1)
         all_potential = np.vstack((idx, self.vtrue, self.vmlip)).T
-        np.savetxt("potential.dat", all_potential, fmt="%d " + 2 * " %15.20f", header="Step - Vtrue - Vmlip")
+        np.savetxt(self.prefix_output + "_potential.dat", all_potential, fmt="%d " + 2 * " %15.20f", header="Step - Vtrue - Vmlip")
 
         # Update atoms
         self.atoms = atoms_true

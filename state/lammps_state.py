@@ -26,7 +26,9 @@ class LammpsState(StateManager):
                  nsteps_eq=100,
                  fixcm=True,
                  logfile=None,
-                 trajfname=None,
+                 trajfile=None,
+                 loginterval=1,
+                 trajinterval=1,
                  rng=None,
                  init_momenta=None,
                  workdir=None
@@ -38,7 +40,9 @@ class LammpsState(StateManager):
                               nsteps_eq,
                               fixcm,
                               logfile,
-                              trajfname
+                              trajfile,
+                              loginterval,
+                              trajinterval
                              )
 
         # Construct the working directory to run the LAMMPS MLDMD simulations
@@ -102,3 +106,44 @@ class LammpsState(StateManager):
         Write the LAMMPS input for the MD simulation
         """
         raise NotImplementedError
+
+
+#========================================================================================================================#
+    def get_log_in(self):
+        """
+        """
+        input_string  = "# Logging\n"
+        input_string += "variable    t equal step\n"
+        input_string += "variable    mytemp equal temp\n"
+        input_string += "variable    mype equal pe\n"
+        input_string += "variable    myke equal ke\n"
+        input_string += "variable    myetot equal etotal\n"
+        input_string += "variable    mypress equal press/10000\n"
+        input_string += "variable    mypxx equal pxx/10000\n"
+        input_string += "variable    mypyy equal pyy/10000\n"
+        input_string += "variable    mypzz equal pzz/10000\n"
+        input_string += "variable    mypxy equal pxy/10000\n"
+        input_string += "variable    mypxz equal pxz/10000\n"
+        input_string += "variable    mypyz equal pyz/10000\n"
+
+#       input_string += 'variable  allvar "$t ${{mytemp}} ${{mype}}"'
+        
+
+#       input_string += "thermo_style  custom step temp  pe ke etotal vol pxx pyy pzz pxy pxz pyz\n"
+
+        input_string += 'fix mythermofile all print {0} "$t ${{myetot}}  ${{mype}} ${{myke}} ${{mytemp}}  ${{mypress}} ${{mypxx}} ${{mypyy}} ${{mypzz}} ${{mypxy}} ${{mypxz}} ${{mypyz}}" append {1} title "# Step  Etot  Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'.format(self.loginterval, self.logfile)
+        input_string += "\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_traj_in(self, elem):
+        """
+        """
+        input_string  = "# Dumping\n"
+        input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + self.workdir + "{0} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfile)
+        input_string += "dump_modify dum1 append yes\n" # Don't overwrite file
+        input_string += "dump_modify dum1 element " # Add element type
+        input_string += " ".join([p for p in elem])
+        input_string += "\n"
+        return input_string

@@ -23,7 +23,9 @@ class NVTLammpsState(LammpsState):
                  nsteps_eq=100,
                  fixcm=True,
                  logfile=None,
-                 trajfname=None,
+                 trajfile=None,
+                 loginterval=1,
+                 trajinterval=1,
                  rng=None,
                  init_momenta=None,
                  workdir=None
@@ -35,7 +37,9 @@ class NVTLammpsState(LammpsState):
                              nsteps_eq,
                              fixcm,
                              logfile,
-                             trajfname,
+                             trajfile,
+                             loginterval,
+                             trajinterval,
                              rng,
                              init_momenta,
                              workdir
@@ -86,18 +90,9 @@ class NVTLammpsState(LammpsState):
             input_string += "fix    2  all recenter INIT INIT INIT"
 
         if self.logfile is not None:
-            input_string += "# Logging\n"
-            input_string += "variable    t equal step\n"
-            input_string += "variable    mytemp equal temp\n"
-            input_string += 'fix mythermofile all print 1 "$t  ${{mytemp}}" file {0}\n'.format(self.logfile)
-            input_string += "\n"
-
-        if self.trajfname is not None:
-            input_string += "# Dumping\n"
-            input_string += "dump dum1 all custom 5 " + self.workdir + "{0} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfname)
-            input_string += "dump_modify dum1 element " # Add element type
-            input_string += " ".join([p for p in elem])
-            input_string += "\n"
+            input_string += self.get_log_in()
+        if self.trajfile is not None:
+            input_string += self.get_traj_in(elem)
 
 
         input_string += "# Dump last step\n"

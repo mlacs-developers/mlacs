@@ -19,7 +19,9 @@ class VerletState(StateManager):
                  nsteps_eq=100,
                  fixcm=True,
                  logfile=None,
-                 trajfname=None,
+                 trajfile=None,
+                 loginterval=1,
+                 trajinterval=1,
                  init_momenta=None
                 ):
 
@@ -29,7 +31,9 @@ class VerletState(StateManager):
                               nsteps_eq,
                               fixcm,
                               logfile,
-                              trajfname
+                              trajfile,
+                              loginterval,
+                              trajinterval
                              )
         self.init_momenta = init_momenta
 
@@ -49,8 +53,8 @@ class VerletState(StateManager):
 
         dyn = VelocityVerlet(atoms, self.dt)
 
-        if self.trajfname is not None:
-            trajectory = Trajectory(trajfname, mode="r", atoms=atoms)
+        if self.trajfile is not None:
+            trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
             dyn.attach(trajectory.write)
 
         if self.logfile is not None:

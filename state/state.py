@@ -20,7 +20,9 @@ class StateManager:
                  nsteps_eq=100,
                  fixcm=True,
                  logfile=None,
-                 trajfname=None
+                 trajfile=None,
+                 loginterval=1,
+                 trajinterval=1
                 ):
 
         self.dt             = dt
@@ -28,14 +30,16 @@ class StateManager:
         self.nsteps_eq      = nsteps_eq
         self.fixcm          = fixcm
         self.logfile        = logfile
-        self.trajfname      = trajfname
+        self.trajfile       = trajfile
+        self.loginterval    = loginterval
+        self.trajinterval   = trajinterval
 
         self.isnpt          = False
         self.islammps       = False
 
 
 #========================================================================================================================#
-    def run_dynamics(self, supercell, calc, eq=False, logfile=None, trajfname=None):
+    def run_dynamics(self, supercell, calc, eq=False, logfile=None, trajfile=None):
         """
         Run the dynamics for the state, during nsteps then return the last atoms of the simulation
         """

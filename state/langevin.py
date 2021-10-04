@@ -26,7 +26,9 @@ class LangevinState(StateManager):
                  nsteps_eq=100,
                  fixcm=True,
                  logfile=None,
-                 trajfname=None,
+                 trajfile=None,
+                 loginterval=1,
+                 trajinterval=1,
                  rng=None,
                  init_momenta=None
                 ):
@@ -37,7 +39,9 @@ class LangevinState(StateManager):
                               nsteps_eq,
                               fixcm,
                               logfile,
-                              trajfname
+                              trajfile,
+                              loginterval,
+                              trajinterval
                              )
 
         self.temperature = temperature
@@ -63,12 +67,12 @@ class LangevinState(StateManager):
 
         dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm)
 
-        if self.trajfname is not None:
-            trajectory = Trajectory(trajfname, mode="r", atoms=atoms)
-            dyn.attach(trajectory.write)
+        if self.trajfile is not None:
+            trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
+            dyn.attach(trajectory.write, interval=self.trajinterval)
 
         if self.logfile is not None:
-            dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True))
+            dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True), interval=self.loginterval)
 
         dyn.run(nsteps)
         return dyn.atoms
