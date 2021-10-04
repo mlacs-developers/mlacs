@@ -27,8 +27,9 @@ class LangevinState(StateManager):
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 loginterval=1,
-                 trajinterval=1,
+                 interval=50,
+                 loginterval=50,
+                 trajinterval=50,
                  rng=None,
                  init_momenta=None
                 ):
