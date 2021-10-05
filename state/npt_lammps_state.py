@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 
 from ase.units import fs
@@ -7,7 +5,6 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from otf_mlacs.state import LammpsState
 from otf_mlacs.utilities import get_elements_Z_and_masses
-
 
 
 #========================================================================================================================#

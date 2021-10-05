@@ -1,56 +1,29 @@
 """
 """
-
-import os
-import shutil
-
 import numpy as np
 
 from ase.units import GPa
 
 from otf_mlacs.utilities import get_elements_Z_and_masses
-from otf_mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
 
 
 #===================================================================================================================================================#
 #===================================================================================================================================================#
-class MLIPManager:
+class MlipManager:
     """
+
     """
     def __init__(self,
                  atoms,
                  rcut=5.0,
-                 model="linear",
-                 style="snap",
-                 twojmax=8,
-                 lmax=3,
-                 nmax=5,
-                 alpha=2.0,
-                 chemflag=0,
-                 radelems=None,
-                 welems=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
                 ):
 
-        elements, Z, masses = get_elements_Z_and_masses(atoms)
-        self.lammps_interface = LammpsMlipInterface(elements,
-                                                    masses,
-                                                    Z,
-                                                    rcut,
-                                                    model,
-                                                    style,
-                                                    twojmax,
-                                                    lmax,
-                                                    nmax,
-                                                    alpha,
-                                                    chemflag,
-                                                    radelems,
-                                                    welems)
-
-        self.ncolumns = self.lammps_interface.ncolumns
+        self.elements, self.Z, self.masses = get_elements_Z_and_masses(atoms)
+        self.rcut = rcut
 
         self.energy_coefficient = energy_coefficient
         self.forces_coefficient = forces_coefficient
@@ -63,15 +36,13 @@ class MLIPManager:
         self.ymatrix_forces = np.array([])
         self.ymatrix_stress = np.array([])
 
-        self.pair_style, self.pair_coeff = self.lammps_interface.get_pair_coeff_and_style()
-
 
 #===================================================================================================================================================#
     def update_matrices(self, atoms):
         """
         """
         natoms = len(atoms)
-        descriptor, data = self.lammps_interface.compute_fit_matrix(atoms)
+        descriptor, data = self.compute_fit_matrix(atoms)
         if len(self.amatrix_energy) == 0:
             self.amatrix_energy = descriptor[0] / natoms
             self.amatrix_forces = descriptor[1:1+3*natoms]
@@ -101,18 +72,18 @@ class MLIPManager:
                                     self.stress_coefficient * self.ymatrix_stress))
 
         # Good ol' Ordinary Linear Least-Square fit
-        coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
+        self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
 
-        self.lammps_interface.write_mlip_coeff(coefficients)
-        self.calc = self.lammps_interface.load_mlip()
+        self.write_mlip()
+        self.init_calc()
 
         # Prepare some data to check accuracy of the fit
         e_true = self.ymatrix_energy
-        e_mlip = np.einsum('i,ki->k', coefficients, self.amatrix_energy)
+        e_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_energy)
         f_true = self.ymatrix_forces
-        f_mlip = np.einsum('i,ki->k', coefficients, self.amatrix_forces)
+        f_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_forces)
         s_true = self.ymatrix_stress / GPa
-        s_mlip = np.einsum('i,ki->k', coefficients, self.amatrix_stress) / GPa
+        s_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_stress) / GPa
 
         # Compute RMSE and MAE
         rmse_energy = np.sqrt(np.mean((e_true - e_mlip)**2))

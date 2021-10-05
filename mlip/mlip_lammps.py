@@ -1,0 +1,85 @@
+"""
+"""
+from otf_mlacs.mlip.mlip_manager import MlipManager
+from otf_mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
+
+
+
+#===================================================================================================================================================#
+#===================================================================================================================================================#
+class LammpsMlip(MlipManager):
+    """
+    """
+    def __init__(self,
+                 atoms,
+                 rcut=5.0,
+                 model="linear",
+                 style="snap",
+                 twojmax=8,
+                 lmax=3,
+                 nmax=5,
+                 alpha=2.0,
+                 chemflag=0,
+                 radelems=None,
+                 welems=None,
+                 energy_coefficient=1.0,
+                 forces_coefficient=1.0,
+                 stress_coefficient=0.0,
+                ):
+
+        MlipManager.__init__(self,
+                             atoms,
+                             rcut,
+                             energy_coefficient,
+                             forces_coefficient,
+                             stress_coefficient
+                            )
+
+        self.lammps_interface = LammpsMlipInterface(self.elements,
+                                                    self.masses,
+                                                    self.Z,
+                                                    self.rcut,
+                                                    model,
+                                                    style,
+                                                    twojmax,
+                                                    lmax,
+                                                    nmax,
+                                                    alpha,
+                                                    chemflag,
+                                                    radelems,
+                                                    welems)
+
+        self.ncolumns = self.lammps_interface.ncolumns
+
+        self.pair_style, self.pair_coeff = self.lammps_interface.get_pair_coeff_and_style()
+
+
+#===================================================================================================================================================#
+    def compute_fit_matrix(self, atoms):
+        """
+        """
+        return self.lammps_interface.compute_fit_matrix(atoms)
+
+
+#===================================================================================================================================================#
+    def write_mlip(self):
+        """
+        """
+        self.lammps_interface.write_mlip_coeff(self.coefficients)
+
+
+
+#===================================================================================================================================================#
+    def init_calc(self):
+        """
+        """
+        self.calc = self.lammps_interface.load_mlip()
+
+
+#===================================================================================================================================================#
+    def get_mlip_dict(self):
+        mlip_dict = self.lammps_interface.get_mlip_dict()
+        mlip_dict['energy_coefficient'] = self.energy_coefficient
+        mlip_dict['forces_coefficient'] = self.forces_coefficient
+        mlip_dict['stress_coefficient'] = self.stress_coefficient
+        return mlip_dict

@@ -297,15 +297,9 @@ class LammpsMlipInterface:
         
         data_bispectrum = np.loadtxt("descriptor.out", skiprows=4)[:,1:-1]
         
-#       data_bispectrum        = data[:,:-1]
         data_bispectrum[-6:]  /= atoms.get_volume()
 
         amatrix[:] = data_bispectrum
-
-        # Add the B0 coefficient for the linear fit
-        #symb = atoms.get_chemical_symbols()
-        #for n in range(len(self.elements)):
-        #    amatrix[0, n] = symb.count(self.elements[n])
 
         self.cleanup()
 

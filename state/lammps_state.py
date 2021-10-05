@@ -121,17 +121,16 @@ class LammpsState(StateManager):
         input_string += "variable    myke equal ke\n"
         input_string += "variable    myetot equal etotal\n"
         input_string += "variable    mypress equal press/10000\n"
-        input_string += "variable    mypxx equal pxx/10000\n"
-        input_string += "variable    mypyy equal pyy/10000\n"
-        input_string += "variable    mypzz equal pzz/10000\n"
-        input_string += "variable    mypxy equal pxy/10000\n"
-        input_string += "variable    mypxz equal pxz/10000\n"
-        input_string += "variable    mypyz equal pyz/10000\n"
-
-#       input_string += 'variable  allvar "$t ${{mytemp}} ${{mype}}"'
-        
-
-#       input_string += "thermo_style  custom step temp  pe ke etotal vol pxx pyy pzz pxy pxz pyz\n"
+        input_string += "variable    mylx  equal lx\n"
+        input_string += "variable    myly  equal ly\n"
+        input_string += "variable    mylz  equal lz\n"
+        input_string += "variable    vol   equal (lx*ly*lz)\n"
+        input_string += "variable    mypxx equal pxx/(vol*10000)\n"
+        input_string += "variable    mypyy equal pyy/(vol*10000)\n"
+        input_string += "variable    mypzz equal pzz/(vol*10000)\n"
+        input_string += "variable    mypxy equal pxy/(vol*10000)\n"
+        input_string += "variable    mypxz equal pxz/(vol*10000)\n"
+        input_string += "variable    mypyz equal pyz/(vol*10000)\n"
 
         input_string += 'fix mythermofile all print {0} "$t ${{myetot}}  ${{mype}} ${{myke}} ${{mytemp}}  ${{mypress}} ${{mypxx}} ${{mypyy}} ${{mypzz}} ${{mypxy}} ${{mypxz}} ${{mypyz}}" append {1} title "# Step  Etot  Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'.format(self.loginterval, self.logfile)
         input_string += "\n"

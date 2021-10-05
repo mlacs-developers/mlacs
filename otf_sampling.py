@@ -4,9 +4,9 @@ Class for On-The-Fly Machine-Learning Assisted Sampling
 import os
 
 import numpy as np
-from ase.io import read as ase_read, write as ase_write, Trajectory
+from ase.io import read as ase_read, Trajectory
 
-from otf_mlacs.mlip.mlip_manager import MLIPManager
+from otf_mlacs.mlip import LammpsMlip
 from otf_mlacs.utilities.log import MLACS_Log
 from otf_mlacs.utilities import create_random_structures
 
@@ -47,7 +47,7 @@ class OtfMLACS:
         self.atoms     = atoms
         self.true_calc = calc
         if mlip is None:
-            self.mlip = MLIPManager(atoms) # Default MLIP Manager
+            self.mlip = LammpsMlip(atoms) # Default MLIP Manager
         else:
             self.mlip = mlip
         self.neq       = neq
