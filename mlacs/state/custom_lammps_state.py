@@ -3,21 +3,16 @@ import numpy as np
 from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from otf_mlacs.state import LammpsState
-from otf_mlacs.utilities import get_elements_Z_and_masses
-
+from mlacs.state import LammpsState
+from mlacs.utilities import get_elements_Z_and_masses
 
 #========================================================================================================================#
 #========================================================================================================================#
-class NPTLammpsState(LammpsState):
+class CustomLammpsState(LammpsState):
     """
     """
     def __init__(self,
-                 temperature,
-                 pressure,
-                 ptype="iso",
-                 dtemp=None,
-                 dpres=None,
+                 custom_input,
                  dt=1.5*fs,
                  nsteps=1000,
                  nsteps_eq=100,
@@ -46,28 +41,15 @@ class NPTLammpsState(LammpsState):
                              init_momenta,
                              workdir
                             )
-
-        self.temperature = temperature
-        self.pressure    = pressure
-        self.ptype       = ptype
-        self.dtemp       = dtemp
-        self.dpres       = dpres
+                     
+        self.custom_input = custom_input
 
 
 #========================================================================================================================#
     def write_lammps_input(self, atoms, pair_style, pair_coeff, nsteps):
         """
-        Write the LAMMPS input for the MD simulation
         """
         elem, Z, masses = get_elements_Z_and_masses(atoms)
-
-        dtemp = self.dtemp
-        if self.dtemp is None:
-            dtemp = "$(100*dt)"
-
-        dpres = self.dpres
-        if self.dpres is None:
-            dpres = "$(1000*dt)"
 
         input_string  = "# LAMMPS input file to run a MLMD simulation\n"
         input_string += "units      metal\n"
@@ -82,8 +64,6 @@ class NPTLammpsState(LammpsState):
             input_string += "mass  " + str(i + 1) + "  " + str(mass) + "\n"
         input_string += "\n"
 
-        #input_string += "velocity  all create {0}  {1}\n".format(self.temperature, self.rng.integers(999999))
-
 
         input_string += "# Interactions\n"
         input_string += "pair_style    {0}\n".format(pair_style)
@@ -93,9 +73,7 @@ class NPTLammpsState(LammpsState):
         input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
         input_string += "\n"
 
-        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, dtemp, self.ptype, self.pressure, dpres)
-        if self.fixcm:
-            input_string += "fix    2  all recenter INIT INIT INIT"
+        input_string += self.custom_input
 
         if self.logfile is not None:
             input_string += self.get_log_in()
@@ -122,7 +100,4 @@ class NPTLammpsState(LammpsState):
     def initialize_momenta(self, atoms):
         """
         """
-        if self.init_momenta is None:
-            MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
-        else:
-            atoms.set_momenta(self.init_momenta)
+        pass

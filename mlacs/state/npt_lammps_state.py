@@ -3,19 +3,21 @@ import numpy as np
 from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from otf_mlacs.state import LammpsState
-from otf_mlacs.utilities import get_elements_Z_and_masses
-
+from mlacs.state import LammpsState
+from mlacs.utilities import get_elements_Z_and_masses
 
 
 #========================================================================================================================#
 #========================================================================================================================#
-class NVTLammpsState(LammpsState):
+class NPTLammpsState(LammpsState):
     """
     """
     def __init__(self,
                  temperature,
+                 pressure,
+                 ptype="iso",
                  dtemp=None,
+                 dpres=None,
                  dt=1.5*fs,
                  nsteps=1000,
                  nsteps_eq=100,
@@ -46,7 +48,10 @@ class NVTLammpsState(LammpsState):
                             )
 
         self.temperature = temperature
+        self.pressure    = pressure
+        self.ptype       = ptype
         self.dtemp       = dtemp
+        self.dpres       = dpres
 
 
 #========================================================================================================================#
@@ -57,8 +62,12 @@ class NVTLammpsState(LammpsState):
         elem, Z, masses = get_elements_Z_and_masses(atoms)
 
         dtemp = self.dtemp
-        if dtemp is None:
+        if self.dtemp is None:
             dtemp = "$(100*dt)"
+
+        dpres = self.dpres
+        if self.dpres is None:
+            dpres = "$(1000*dt)"
 
         input_string  = "# LAMMPS input file to run a MLMD simulation\n"
         input_string += "units      metal\n"
@@ -84,8 +93,7 @@ class NVTLammpsState(LammpsState):
         input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
         input_string += "\n"
 
-        input_string += "fix    1  all nvt temp {0} {0}  {1}\n".format(self.temperature, dtemp)
-
+        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, dtemp, self.ptype, self.pressure, dpres)
         if self.fixcm:
             input_string += "fix    2  all recenter INIT INIT INIT"
 

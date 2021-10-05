@@ -6,9 +6,9 @@ import os
 import numpy as np
 from ase.io import read as ase_read, Trajectory
 
-from otf_mlacs.mlip import LammpsMlip
-from otf_mlacs.utilities.log import MLACS_Log
-from otf_mlacs.utilities import create_random_structures
+from mlacs.mlip import LammpsMlip
+from mlacs.utilities.log import MLACS_Log
+from mlacs.utilities import create_random_structures
 
 
 class OtfMLACS:

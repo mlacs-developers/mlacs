@@ -5,7 +5,7 @@ from ase.units import fs
 from ase.md.verlet import VelocityVerlet
 from ase.md import MDLogger
 
-from otf_mlacs.state import StateManager
+from mlacs.state import StateManager
 
 
 #========================================================================================================================#

@@ -1,6 +1,6 @@
 import numpy as np
 
-from otf_mlacs.path_integral.pimd import PathIntegralDynamics
+from mlacs.path_integral.pimd import PathIntegralDynamics
 from ase import units
 from ase.parallel import world, DummyMPI
 

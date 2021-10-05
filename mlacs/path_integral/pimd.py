@@ -2,8 +2,8 @@
 import warnings
 import numpy as np
 
-from otf_mlacs.path_integral.pid import PathIntegralDynamics
-from otf_mlacs.path_integral.logger import PIMDLogger
+from mlacs.path_integral.pid import PathIntegralDynamics
+from mlacs.path_integral.logger import PIMDLogger
 
 
 class PathIntegralMolecularDynamics(PathIntegralDynamics):

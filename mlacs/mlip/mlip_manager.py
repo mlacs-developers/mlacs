@@ -4,7 +4,7 @@ import numpy as np
 
 from ase.units import GPa
 
-from otf_mlacs.utilities import get_elements_Z_and_masses
+from mlacs.utilities import get_elements_Z_and_masses
 
 
 
