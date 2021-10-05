@@ -41,7 +41,7 @@ class OtfMLACS:
                  neq=10,
                  prefix_output="Trajectory",
                  confs_init=None,
-                 std_init=0.1
+                 std_init=0.05
                 ):
         
         self.atoms     = atoms
