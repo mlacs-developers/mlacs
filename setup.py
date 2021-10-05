@@ -12,7 +12,7 @@ install_requires = ["numpy>=1.17.0",
 
 if __name__ == "__main__":
     setup(
-          name="MLACS",
+          name="mlacs",
           version=version,
           author="Aloïs Castellano",
           author_email="alois.castellano@cea.fr",
