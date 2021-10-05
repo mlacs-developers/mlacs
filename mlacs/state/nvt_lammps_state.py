@@ -3,19 +3,18 @@ import numpy as np
 from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from otf_mlacs.state import LammpsState
-from otf_mlacs.utilities import get_elements_Z_and_masses
+from mlacs.state import LammpsState
+from mlacs.utilities import get_elements_Z_and_masses
 
 
 
 #========================================================================================================================#
 #========================================================================================================================#
-class LangevinLammpsState(LammpsState):
+class NVTLammpsState(LammpsState):
     """
     """
     def __init__(self,
                  temperature,
-                 gjf=True,
                  dtemp=None,
                  dt=1.5*fs,
                  nsteps=1000,
@@ -38,6 +37,7 @@ class LangevinLammpsState(LammpsState):
                              fixcm,
                              logfile,
                              trajfile,
+                             interval,
                              loginterval,
                              trajinterval,
                              rng,
@@ -47,7 +47,6 @@ class LangevinLammpsState(LammpsState):
 
         self.temperature = temperature
         self.dtemp       = dtemp
-        self.gjf         = gjf
 
 
 #========================================================================================================================#
@@ -59,7 +58,7 @@ class LangevinLammpsState(LammpsState):
 
         dtemp = self.dtemp
         if dtemp is None:
-            dtemp = 1
+            dtemp = "$(100*dt)"
 
         input_string  = "# LAMMPS input file to run a MLMD simulation\n"
         input_string += "units      metal\n"
@@ -85,14 +84,10 @@ class LangevinLammpsState(LammpsState):
         input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
         input_string += "\n"
 
-        if self.gjf:
-            input_string += "fix    1  all langevin {0} {0}  {1:15.10f} {2}  gjf vhalf\n".format(self.temperature, dtemp, self.rng.integers(99999))
-        else:
-            input_string += "fix    1  all langevin {0} {0}  {1:15.10f}  {2}\n".format(self.temperature, dtemp, self.rng.integers(99999))
-        input_string += "fix    2  all nve\n"
+        input_string += "fix    1  all nvt temp {0} {0}  {1}\n".format(self.temperature, dtemp)
 
         if self.fixcm:
-            input_string += "fix    3  all recenter INIT INIT INIT"
+            input_string += "fix    2  all recenter INIT INIT INIT"
 
         if self.logfile is not None:
             input_string += self.get_log_in()

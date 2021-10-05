@@ -6,7 +6,7 @@ from ase.md.langevin import Langevin
 from ase.md import MDLogger
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from otf_mlacs.state import StateManager
+from mlacs.state import StateManager
 
 default_langevin = {'friction': 0.01}
 

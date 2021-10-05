@@ -9,8 +9,8 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from otf_mlacs.state import StateManager
-from otf_mlacs.utilities import get_elements_Z_and_masses
+from mlacs.state import StateManager
+from mlacs.utilities import get_elements_Z_and_masses
 
 
 default_lammps = {}

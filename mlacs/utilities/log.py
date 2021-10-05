@@ -1,9 +1,7 @@
 import os
-import sys
 import logging
 import datetime
-import shutil
-from otf_mlacs.version import __version__
+from mlacs.version import __version__
 
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 

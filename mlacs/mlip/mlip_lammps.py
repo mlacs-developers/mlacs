@@ -1,7 +1,7 @@
 """
 """
-from otf_mlacs.mlip.mlip_manager import MlipManager
-from otf_mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
+from mlacs.mlip.mlip_manager import MlipManager
+from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
 
 
