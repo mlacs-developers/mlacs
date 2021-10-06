@@ -17,6 +17,7 @@ def compute_pdf(configurations, temperature=None, weights=None, fname=None, **kw
 
     Parameters
     ----------
+
     configurations: list of ase atoms object
 
     Optional

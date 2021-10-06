@@ -13,22 +13,26 @@ from mlacs.utilities import create_random_structures
 
 class OtfMLACS:
     """
-    On-the-fly Machine-Learning Assisted Sampling
-
     A Learn on-the-fly Molecular Dynamics constructed in order to sample an approximate distribution
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
+
     atoms: ase atoms object
-         the atom object on which the simulation is run. The atoms has to have a calculator attached
+        the atom object on which the simulation is run. The atoms has to have a calculator attached
     state: StateManager object
+        Object determining the state to be sampled
     calc: ase calculator
+        Potential energy of the systme to be approximated
     mlip: MLIPManager object
+        Object managing the MLIP to approximate the real distribution
+        Default is a LammpsMlip object with a 5.0 angstrom rcut, a snap descriptor
+        with 8 2jmax
     neq: int
         The number of step equilibration steps
     confs_init: int or list of atoms
         if int: Number of configuirations used to train a preliminary MLIP
-                The configurations are created by rattling the first structure
+        The configurations are created by rattling the first structure
         else: The atoms that are to be computed in order to create the initial training configurations
     prefix_output: str
         Prefix for the output files of the simulation
@@ -117,7 +121,7 @@ class OtfMLACS:
 #===================================================================================================================================================#
     def run(self, nsteps=100):
         """
-        Run the algorithm until nsteps
+        Run the algorithm for nsteps
         """
         while self.step < nsteps:
             self.log.init_new_step(self.step)

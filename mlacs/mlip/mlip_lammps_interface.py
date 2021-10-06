@@ -14,33 +14,37 @@ from ase.units import GPa
 class LammpsMlipInterface:
     """
     Class to interface the ML-IAP package of LAMMPS, in order to create linear or quadratic MLIP
-    parameters:
-       elements: list
-    list of elements in the fitting
-       masses: list
-    masses of the elements in the fitting
-       rcut: float
-    cutoff radius for the MLIP
-       model: string
-    linear or quadratic, denote the model used for the MLIP
-       style: string
-    snap or so3, denote the descriptor used for the MLIP
-       twojmax: int
-    twojmax parameters, used for the SNAP descriptor
-       lmax: int
-    angular momentum used for the SO3 descriptor
-       nmax: int
-    number of radial basis for the SO3 descriptor
-       alpha: int
-    gaussian factor for the radial basis in the SO3 descriptor
-       chemflag: int
-    1 to enable the explicitely multi-element variation of SNAP
-       radelems: list of float
-    factor to multiply the rcut params to compute interaction. One parameter per elements
-    If None, is put to the default value of 0.5
-       welems: list of float
-    weights factor to enhance the sensibility of different species in the descriptors.
-    if None, weights factor of element n is put to mass_n / sum(all_masses)
+
+
+    Parameters
+    ----------
+
+    elements: list
+        list of elements in the fitting
+    masses: list
+        masses of the elements in the fitting
+    rcut: float
+        cutoff radius for the MLIP
+    model: string
+        linear or quadratic, denote the model used for the MLIP
+    style: string
+        snap or so3, denote the descriptor used for the MLIP
+    twojmax: int
+        twojmax parameters, used for the SNAP descriptor
+    lmax: int
+        angular momentum used for the SO3 descriptor
+    nmax: int
+        number of radial basis for the SO3 descriptor
+    alpha: int
+        gaussian factor for the radial basis in the SO3 descriptor
+    chemflag: int
+        1 to enable the explicitely multi-element variation of SNAP
+    radelems: list of float
+        factor to multiply the rcut params to compute interaction. One parameter per elements
+        If None, is put to the default value of 0.5
+    welems: list of float
+        weights factor to enhance the sensibility of different species in the descriptors.
+        if None, weights factor of element n is put to mass_n / sum(all_masses)
     """
     def __init__(self, 
                  elements, 

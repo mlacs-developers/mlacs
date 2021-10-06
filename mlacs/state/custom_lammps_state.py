@@ -10,6 +10,41 @@ from mlacs.utilities import get_elements_Z_and_masses
 #========================================================================================================================#
 class CustomLammpsState(LammpsState):
     """
+    State Class for running a user-designed simulation using the LAMMPS code
+
+    Parameters
+    ----------
+
+    custom_input : str
+        input used in the LAMMPS input file to generate the MLMD dynamic
+    dt : float
+        Timestep, in fs
+    nsteps : int
+        Number of MLMD steps for production runs
+    nsteps_eq : int
+        Number of MLMD steps for equilibration runs
+    fixcm : bool
+        Fix position and momentum center of mass
+    logfile : str
+        Name of the file for logging the MLMD trajectory
+    trajfile : str
+        Name of the file for saving the MLMD trajectory
+    interval : int
+        Number of steps between log and traj writing. Override
+        loginterval and trajinterval
+    loginterval : int
+        Number of steps between MLMD logging
+    trajinterval : int
+        Number of steps between MLMD traj writing
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to numpy.random.default_rng()
+    init_momenta : array (optional)
+        If None, velocities are initialized with a Maxwell Boltzmann distribution
+        N * 3 velocities for the initial configuration
+    workdir : str (optional)
+        Working directory for the LAMMPS MLMD simulations. If none, a LammpsMLMD
+        directory is created
     """
     def __init__(self,
                  custom_input,

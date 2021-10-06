@@ -12,11 +12,51 @@ from mlacs.utilities import get_elements_Z_and_masses
 #========================================================================================================================#
 class LangevinLammpsState(LammpsState):
     """
+    State Class for running a Langevin simulation as implemented in LAMMPS
+
+    Parameters
+    ----------
+
+    temperature : float
+        Temperature of the simulation, in Kelvin
+    gjf : bool
+        If true, the 2half GJF integrator is used.
+        Else, the standard Velocity-Verlet Langevin integrator is used
+    damp : float (optional)
+        Damping parameter
+    dt : float
+        Timestep, in fs
+    nsteps : int
+        Number of MLMD steps for production runs
+    nsteps_eq : int
+        Number of MLMD steps for equilibration runs
+    fixcm : bool
+        Fix position and momentum center of mass
+    logfile : str
+        Name of the file for logging the MLMD trajectory
+    trajfile : str
+        Name of the file for saving the MLMD trajectory
+    interval : int
+        Number of steps between log and traj writing. Override
+        loginterval and trajinterval
+    loginterval : int
+        Number of steps between MLMD logging
+    trajinterval : int
+        Number of steps between MLMD traj writing
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to numpy.random.default_rng()
+    init_momenta : array (optional)
+        If None, velocities are initialized with a Maxwell Boltzmann distribution
+        N * 3 velocities for the initial configuration
+    workdir : str (optional)
+        Working directory for the LAMMPS MLMD simulations. If none, a LammpsMLMD
+        directory is created
     """
     def __init__(self,
                  temperature,
                  gjf=True,
-                 dtemp=None,
+                 damp=None,
                  dt=1.5*fs,
                  nsteps=1000,
                  nsteps_eq=100,
@@ -46,7 +86,7 @@ class LangevinLammpsState(LammpsState):
                             )
 
         self.temperature = temperature
-        self.dtemp       = dtemp
+        self.damp        = damp
         self.gjf         = gjf
 
 
@@ -57,9 +97,9 @@ class LangevinLammpsState(LammpsState):
         """
         elem, Z, masses = get_elements_Z_and_masses(atoms)
 
-        dtemp = self.dtemp
-        if dtemp is None:
-            dtemp = 1
+        damp = self.damp
+        if damp is None:
+            damp = 1
 
         input_string  = "# LAMMPS input file to run a MLMD simulation\n"
         input_string += "units      metal\n"
@@ -86,9 +126,9 @@ class LangevinLammpsState(LammpsState):
         input_string += "\n"
 
         if self.gjf:
-            input_string += "fix    1  all langevin {0} {0}  {1:15.10f} {2}  gjf vhalf\n".format(self.temperature, dtemp, self.rng.integers(99999))
+            input_string += "fix    1  all langevin {0} {0}  {1:15.10f} {2}  gjf vhalf\n".format(self.temperature, damp, self.rng.integers(99999))
         else:
-            input_string += "fix    1  all langevin {0} {0}  {1:15.10f}  {2}\n".format(self.temperature, dtemp, self.rng.integers(99999))
+            input_string += "fix    1  all langevin {0} {0}  {1:15.10f}  {2}\n".format(self.temperature, damp, self.rng.integers(99999))
         input_string += "fix    2  all nve\n"
 
         if self.fixcm:
