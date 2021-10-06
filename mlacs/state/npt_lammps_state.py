@@ -11,12 +11,56 @@ from mlacs.utilities import get_elements_Z_and_masses
 #========================================================================================================================#
 class NPTLammpsState(LammpsState):
     """
+    State Class for running a NPT simulation as implemented in LAMMPS
+
+    Parameters
+    ----------
+
+    temperature : float
+        Temperature of the simulation, in Kelvin
+    pressure : float
+        Pressure for the simulation, in GPa
+    ptype : 'iso' or 'aniso'
+        Type of external strain tensor to manage the
+        deformation of the cell
+    damp : float (optional)
+        Damping parameter
+    dpres : float (optional)
+        Damping parameter for the barostat
+    dt : float
+        Timestep, in fs
+    nsteps : int
+        Number of MLMD steps for production runs
+    nsteps_eq : int
+        Number of MLMD steps for equilibration runs
+    fixcm : bool
+        Fix position and momentum center of mass
+    logfile : str
+        Name of the file for logging the MLMD trajectory
+    trajfile : str
+        Name of the file for saving the MLMD trajectory
+    interval : int
+        Number of steps between log and traj writing. Override
+        loginterval and trajinterval
+    loginterval : int
+        Number of steps between MLMD logging
+    trajinterval : int
+        Number of steps between MLMD traj writing
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to numpy.random.default_rng()
+    init_momenta : array (optional)
+        If None, velocities are initialized with a Maxwell Boltzmann distribution
+        N * 3 velocities for the initial configuration
+    workdir : str (optional)
+        Working directory for the LAMMPS MLMD simulations. If none, a LammpsMLMD
+        directory is created
     """
     def __init__(self,
                  temperature,
                  pressure,
                  ptype="iso",
-                 dtemp=None,
+                 damp=None,
                  dpres=None,
                  dt=1.5*fs,
                  nsteps=1000,
@@ -50,7 +94,7 @@ class NPTLammpsState(LammpsState):
         self.temperature = temperature
         self.pressure    = pressure
         self.ptype       = ptype
-        self.dtemp       = dtemp
+        self.damp        = damp
         self.dpres       = dpres
 
 
@@ -61,9 +105,9 @@ class NPTLammpsState(LammpsState):
         """
         elem, Z, masses = get_elements_Z_and_masses(atoms)
 
-        dtemp = self.dtemp
-        if self.dtemp is None:
-            dtemp = "$(100*dt)"
+        damp  = self.damp
+        if self.damp is None:
+            damp = "$(100*dt)"
 
         dpres = self.dpres
         if self.dpres is None:
@@ -93,7 +137,7 @@ class NPTLammpsState(LammpsState):
         input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
         input_string += "\n"
 
-        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, dtemp, self.ptype, self.pressure, dpres)
+        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure, dpres)
         if self.fixcm:
             input_string += "fix    2  all recenter INIT INIT INIT"
 

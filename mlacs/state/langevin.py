@@ -16,7 +16,38 @@ class LangevinState(StateManager):
     """
     State Class for running a Langevin simulation as implemented in ASE
 
-    the parameters in dyn_parameters is the friction
+    Parameters
+    ----------
+
+    temperature : float
+        Temperature of the simulation, in Kelvin
+    friction : float
+        Friction coefficient of the thermostat
+    dt : float
+        Timestep, in fs
+    nsteps : int
+        Number of MLMD steps for production runs
+    nsteps_eq : int
+        Number of MLMD steps for equilibration runs
+    fixcm : bool
+        Fix position and momentum center of mass
+    logfile : str
+        Name of the file for logging the MLMD trajectory
+    trajfile : str
+        Name of the file for saving the MLMD trajectory
+    interval : int
+        Number of steps between log and traj writing. Override
+        loginterval and trajinterval
+    loginterval : int
+        Number of steps between MLMD logging
+    trajinterval : int
+        Number of steps between MLMD traj writing
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to numpy.random.default_rng()
+    init_momenta : array (optional)
+        If None, velocities are initialized with a Maxwell Boltzmann distribution
+        N * 3 velocities for the initial configuration
     """
     def __init__(self,
                  temperature,

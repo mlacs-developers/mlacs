@@ -19,6 +19,7 @@ default_lammps = {}
 #========================================================================================================================#
 class LammpsState(StateManager):
     """
+    Parent Class for the Lammps States
     """
     def __init__(self,
                  dt=1.5*fs,

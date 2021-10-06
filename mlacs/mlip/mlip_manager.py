@@ -12,7 +12,7 @@ from mlacs.utilities import get_elements_Z_and_masses
 #===================================================================================================================================================#
 class MlipManager:
     """
-
+    Parent Class for the management of Machine-Learning Interatomic Potential
     """
     def __init__(self,
                  atoms,
