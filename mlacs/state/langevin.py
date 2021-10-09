@@ -76,13 +76,12 @@ class LangevinState(StateManager):
                               trajinterval
                              )
 
-        self.temperature = temperature
-        self.friction    = friction
-        if rng is None:
-            self.rng = np.random.default_rng()
-        else:
-            self.rng = rng
+        self.temperature  = temperature
+        self.friction     = friction
         self.init_momenta = init_momenta
+        self.rng          = rng
+        if self.rng is None:
+            self.rng = np.random.default_rng()
 
 
 #========================================================================================================================#
@@ -97,7 +96,7 @@ class LangevinState(StateManager):
         else:
             nsteps = self.nsteps
 
-        dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm)
+        dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm, rng=self.rng)
 
         if self.trajfile is not None:
             trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)

@@ -18,7 +18,7 @@ class OtfMLACS:
     Parameters
     ----------
 
-    atoms: ase atoms object
+    atoms: :class:`ase.Atoms`
         the atom object on which the simulation is run. The atoms has to have a calculator attached
     state: StateManager object
         Object determining the state to be sampled
@@ -91,6 +91,9 @@ class OtfMLACS:
                 potentials    = np.loadtxt(self.prefix_output + "_potential.dat")
                 self.vtrue    = np.atleast_2d(potentials)[:,1]
                 self.vmlip    = np.atleast_2d(potentials)[:,2]
+            else:
+                self.vtrue       = np.array([])
+                self.vmlip       = np.array([])
         else:
             # No previous step
             restart = False
@@ -233,17 +236,26 @@ class OtfMLACS:
             confs_init = self.confs_init
         nconfs_init = len(confs_init)
 
-        init_traj = Trajectory("Training_configurations.traj", mode="w")
-        for i, conf in enumerate(confs_init):
-            msg = "Configuration {:} / {:}".format(i+1, nconfs_init)
+        if os.path.isfile("Training_configurations.traj"):
+            msg  = "Training configurations found\n"
+            msg += "Adding them to the training data"
             self.log.logger_log.info(msg)
 
-            conf.calc = self.true_calc
-            conf.rattle(0.1, rng=self.rng)
-            conf.calc = self.atoms.calc
-            conf.get_potential_energy()
+            confs_init = ase_read("Training_configurations.traj",index=":")
+            for conf in confs_init:
+                self.mlip.update_matrices(conf)
+        else:
+            init_traj = Trajectory("Training_configurations.traj", mode="w")
+            for i, conf in enumerate(confs_init):
+                msg = "Configuration {:} / {:}".format(i+1, nconfs_init)
+                self.log.logger_log.info(msg)
          
-            self.mlip.update_matrices(conf)
-            init_traj.write(conf)
-        # We dont need the initial configurations anymore
-        del self.confs_init
+                conf.calc = self.true_calc
+                conf.rattle(0.1, rng=self.rng)
+                conf.calc = self.atoms.calc
+                conf.get_potential_energy()
+             
+                self.mlip.update_matrices(conf)
+                init_traj.write(conf)
+            # We dont need the initial configurations anymore
+            del self.confs_init

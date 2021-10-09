@@ -63,7 +63,6 @@ class MlipManager:
     def train_mlip(self):
         """
         """
-
         amatrix        = np.vstack((self.energy_coefficient * self.amatrix_energy, \
                                     self.forces_coefficient * self.amatrix_forces, \
                                     self.stress_coefficient * self.amatrix_stress))

@@ -66,7 +66,7 @@ class LammpsMlip(MlipManager):
                              rcut,
                              energy_coefficient,
                              forces_coefficient,
-                             stress_coefficient
+                             stress_coefficient,
                             )
 
         self.lammps_interface = LammpsMlipInterface(self.elements,
