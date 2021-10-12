@@ -23,22 +23,27 @@ class OtfMLACS:
 
     atoms: :class:`ase.Atoms`
         the atom object on which the simulation is run. The atoms has to have a calculator attached
-    state: StateManager object
+    state: :class:`StateManager`  
         Object determining the state to be sampled
-    calc: ase calculator or :class:`CalcManager`
-        Potential energy of the systme to be approximated
-    mlip: MLIPManager object
+    calc: :class:`ase.calculators` or :class:`CalcManager`
+        Class controlling the potential energy of the systme to be approximated.
+        If a :class:`ase.calculators` is attached, the :class:`CalcManager` is 
+        automatically created.
+    mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
-        Default is a LammpsMlip object with a 5.0 angstrom rcut, a snap descriptor
+        Default is a LammpsMlip object with a 5.0 angstrom rcut and a snap descriptor
         with 8 2jmax
-    neq: int
-        The number of step equilibration steps
-    confs_init: int or list of atoms
+    neq: int (optional)
+        The number of step equilibration steps. Default 10.
+    prefix_output: str (optional)
+        Prefix for the output files of the simulation. Default "Trajectory".
+    confs_init: int or list of :class:`ase.Atoms`  (optional)
         if int: Number of configuirations used to train a preliminary MLIP
         The configurations are created by rattling the first structure
-        else: The atoms that are to be computed in order to create the initial training configurations
-    prefix_output: str
-        Prefix for the output files of the simulation
+        if list of atoms: The atoms that are to be computed in order to create the initial training configurations
+        Default 1.
+    std_init: float (optional)
+        Variance of the displacement when creating initial configurations. Default 0.05 angs^2
     """
     def __init__(self,
                  atoms,
@@ -77,9 +82,11 @@ class OtfMLACS:
             # Previous simulation found, need to reinitialize everything in memory
             restart = True
             self.log = MLACS_Log(self.prefix_output + ".log", restart)
-            self.log.recap_mlip(self.mlip.get_mlip_dict())
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
+            msg = self.calc.log_recap_state()
+            self.log.logger_log.info(msg)
+            self.log.recap_mlip(self.mlip.get_mlip_dict())
 
             msg = "Adding previous configurations to the training data"
             self.log.logger_log.info(msg)
@@ -120,9 +127,11 @@ class OtfMLACS:
             # No previous step
             restart = False
             self.log = MLACS_Log(self.prefix_output + ".log", restart)
-            self.log.recap_mlip(self.mlip.get_mlip_dict())
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
+            msg = self.calc.log_recap_state()
+            self.log.logger_log.info(msg)
+            self.log.recap_mlip(self.mlip.get_mlip_dict())
 
             # Everything at 0
             self.step = 0
@@ -194,9 +203,6 @@ class OtfMLACS:
             atoms_mlip.calc = self.mlip.calc
         else:
             atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.calc, eq)
-
-        # Clean the MLIP to liberate procs
-        #self.mlip.calc.clean()
 
         msg  = "Computing energy with the True potential\n"
         msg += "\n"

@@ -8,8 +8,6 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import StateManager
 
-default_langevin = {'friction': 0.01}
-
 #========================================================================================================================#
 #========================================================================================================================#
 class LangevinState(StateManager):
@@ -21,33 +19,38 @@ class LangevinState(StateManager):
 
     temperature : float
         Temperature of the simulation, in Kelvin
-    friction : float
-        Friction coefficient of the thermostat
-    dt : float
-        Timestep, in fs
-    nsteps : int
-        Number of MLMD steps for production runs
-    nsteps_eq : int
-        Number of MLMD steps for equilibration runs
-    fixcm : bool
-        Fix position and momentum center of mass
-    logfile : str
-        Name of the file for logging the MLMD trajectory
-    trajfile : str
-        Name of the file for saving the MLMD trajectory
-    interval : int
+    friction : float (optional)
+        Friction coefficient of the thermostat. Default 0.01.
+    dt : float (optional)
+        Timestep, in fs. Default 1.5 fs.
+    nsteps : int (optional)
+        Number of MLMD steps for production runs. Default 1000 steps.
+    nsteps_eq : int (optional)
+        Number of MLMD steps for equilibration runs. Default 100 steps.
+    fixcm : bool (optional)
+        Fix position and momentum center of mass. Default True.
+    logfile : str (optional)
+        Name of the file for logging the MLMD trajectory.
+        If none, no log file is created. Default None.
+    trajfile : str (optional)
+        Name of the file for saving the MLMD trajectory.
+        If none, no traj file is created. Default None.
+    interval : int (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval
-    loginterval : int
-        Number of steps between MLMD logging
-    trajinterval : int
-        Number of steps between MLMD traj writing
+        loginterval and trajinterval. Default 50
+    loginterval : int (optional)
+        Number of steps between MLMD logging. Default 50.
+    trajinterval : int (optional)
+        Number of steps between MLMD traj writing. Default 50.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to numpy.random.default_rng()
     init_momenta : array (optional)
         If None, velocities are initialized with a Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
+    workdir : str (optional)
+        Working directory for the LAMMPS MLMD simulations. If none, a LammpsMLMD
+        directory is created
     """
     def __init__(self,
                  temperature,
@@ -123,7 +126,7 @@ class LangevinState(StateManager):
     def log_recap_state(self):
         """
         """
-        msg  = "Simulated state:\n"
+        msg  = "Simulated state :\n"
         msg += "NVT Langevin dynamics as implemented in ASE\n"
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)

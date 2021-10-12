@@ -13,36 +13,40 @@ class LammpsMlip(MlipManager):
 
     Parameters
     ----------
-
-    atoms : ase.atoms object
+    atoms : :class:`ase.atoms`
         Should contains the same elements as the main simulation
-    rcut : float
-        Cutoff radius, in angstrom
-    model : 'linear' or 'quadratic'
-        Model of the MLIP. Quadratic increase accuracy at the cost of an exponential augmentation of the number of coefficients
-    style : 'snap'
-        Style of the descriptor. 'snap' is based on the extension of the atomic environment on the 4-sphere
-    twojmax : int
-        Parameter 2jmax of the snap descriptor
-    lmax : int
-        Parameter lmax of radial part of the so3 descriptor
-    nmax : int
-        Parameter nmax of the angular part of the so3 descriptor
-    alpha : float
-        Parameter of the gaussian smoothing of the so3 descriptor
-    chemflag : 0 or 1
-        If 0, the standard descriptor is used. If 1, the explicitely multi-elements is used
+    rcut : float (optional)
+        Cutoff radius, in angstrom. Default 5.0.
+    model : 'linear' or 'quadratic' (optional)
+        Model of the MLIP. Quadratic increase accuracy at the cost of an exponential augmentation of the number of coefficients.
+        Default 'linear'.
+    style : 'snap' (optional)
+        Style of the descriptor. 'snap' is based on the extension of the atomic environment on the 4-sphere.
+        Default 'snap'.
+    twojmax : int (optiona)
+        Parameter 2jmax of the snap descriptor. Default 8.
+    lmax : int (optional)
+        Parameter lmax of radial part of the so3 descriptor. Default 3.
+    nmax : int (optional)
+        Parameter nmax of the angular part of the so3 descriptor. Default 5.
+    alpha : float (optional)
+        Parameter of the gaussian smoothing of the so3 descriptor. Default 2.0.
+    chemflag : 0 or 1 (optional)
+        If 0, the standard descriptor is used. If 1, the explicitely multi-elements is used. Default 0.
     radelems : list (optional)
-        Cutoff scaling factor for each elements. If None, 0.5 for each elements.
+        Cutoff scaling factor for each elements. If None, 0.5 for each elements. Default None.
     welems : list (optional)
         List of the weight of each atomic type in the descriptor. If None, the weight is given by
         :math: ̀\\frac{Z_i}{\\sum_i Z_i} ̀
-    energy_coefficient : float
-        Parameter controlling the importance of energy in the fitting of the MLIP
-    forces_coefficient : float
-        Parameter controlling the importance of forces in the fitting of the MLIP
-    stress_coefficient : float
-        Parameter controlling the importance of stress in the fitting of the MLIP
+    nthrow: int (optional)
+        Number of initial configuration to throw as the simulation runs (Counting the training configurations).
+        Default 10.
+    energy_coefficient : float (optional)
+        Parameter controlling the importance of energy in the fitting of the MLIP. Default 1.0.
+    forces_coefficient : float (optional)
+        Parameter controlling the importance of forces in the fitting of the MLIP. Default 1.0.
+    stress_coefficient : float (optional)
+        Parameter controlling the importance of stress in the fitting of the MLIP. Default 0.0.
     """
     def __init__(self,
                  atoms,

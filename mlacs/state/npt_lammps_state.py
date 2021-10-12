@@ -20,32 +20,36 @@ class NPTLammpsState(LammpsState):
         Temperature of the simulation, in Kelvin
     pressure : float
         Pressure for the simulation, in GPa
-    ptype : 'iso' or 'aniso'
+    ptype : 'iso' or 'aniso' (optional)
         Type of external strain tensor to manage the
-        deformation of the cell
+        deformation of the cell. Default 'iso'.
     damp : float (optional)
-        Damping parameter
+        Damping parameter. If None a damping parameter of 100 timestep is used.
+        Default None.
     pdamp : float (optional)
-        Damping parameter for the barostat
-    dt : float
-        Timestep, in fs
-    nsteps : int
-        Number of MLMD steps for production runs
-    nsteps_eq : int
-        Number of MLMD steps for equilibration runs
-    fixcm : bool
-        Fix position and momentum center of mass
-    logfile : str
-        Name of the file for logging the MLMD trajectory
-    trajfile : str
-        Name of the file for saving the MLMD trajectory
-    interval : int
+        Damping parameter for the barostat. Default 1000 timestep is used.
+        Default None.
+    dt : float (optional)
+        Timestep, in fs. Default 1.5 fs.
+    nsteps : int (optional)
+        Number of MLMD steps for production runs. Default 1000 steps.
+    nsteps_eq : int (optional)
+        Number of MLMD steps for equilibration runs. Default 100 steps.
+    fixcm : bool (optional)
+        Fix position and momentum center of mass. Default True.
+    logfile : str (optional)
+        Name of the file for logging the MLMD trajectory.
+        If none, no log file is created. Default None.
+    trajfile : str (optional)
+        Name of the file for saving the MLMD trajectory.
+        If none, no traj file is created. Default None.
+    interval : int (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval
-    loginterval : int
-        Number of steps between MLMD logging
-    trajinterval : int
-        Number of steps between MLMD traj writing
+        loginterval and trajinterval. Default 50
+    loginterval : int (optional)
+        Number of steps between MLMD logging. Default 50.
+    trajinterval : int (optional)
+        Number of steps between MLMD traj writing. Default 50.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to numpy.random.default_rng()
@@ -184,9 +188,9 @@ class NPTLammpsState(LammpsState):
         if pdamp is None:
             pdamp = 1000 * self.dt / fs
 
-        msg  = "Simulated state:\n"
+        msg  = "Simulated state :\n"
         msg += "NPT dynamics as implemented in LAMMPS\n"
-        msg += "Temperature (Kelvin)                     {0}\n".format(self.temperature)
+        msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Pressure (GPa)                           {0}\n".format(self.pressure)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)

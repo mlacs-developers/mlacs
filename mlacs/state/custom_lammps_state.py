@@ -14,28 +14,29 @@ class CustomLammpsState(LammpsState):
 
     Parameters
     ----------
-
     custom_input : str
-        input used in the LAMMPS input file to generate the MLMD dynamic
-    dt : float
-        Timestep, in fs
-    nsteps : int
-        Number of MLMD steps for production runs
-    nsteps_eq : int
-        Number of MLMD steps for equilibration runs
-    fixcm : bool
-        Fix position and momentum center of mass
-    logfile : str
-        Name of the file for logging the MLMD trajectory
-    trajfile : str
-        Name of the file for saving the MLMD trajectory
-    interval : int
+        input included in the LAMMPS input file to generate the MLMD dynamic.
+    dt : float (optional)
+        Timestep, in fs. Default 1.5 fs.
+    nsteps : int (optional)
+        Number of MLMD steps for production runs. Default 1000 steps.
+    nsteps_eq : int (optional)
+        Number of MLMD steps for equilibration runs. Default 100 steps.
+    fixcm : bool (optional)
+        Fix position and momentum center of mass. Default True.
+    logfile : str (optional)
+        Name of the file for logging the MLMD trajectory.
+        If none, no log file is created. Default None.
+    trajfile : str (optional)
+        Name of the file for saving the MLMD trajectory.
+        If none, no traj file is created. Default None.
+    interval : int (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval
-    loginterval : int
-        Number of steps between MLMD logging
-    trajinterval : int
-        Number of steps between MLMD traj writing
+        loginterval and trajinterval. Default 50
+    loginterval : int (optional)
+        Number of steps between MLMD logging. Default 50.
+    trajinterval : int (optional)
+        Number of steps between MLMD traj writing. Default 50.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to numpy.random.default_rng()

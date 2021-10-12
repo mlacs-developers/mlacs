@@ -10,3 +10,4 @@ User interface
    state
    mlip
    otf_mlacs
+   calc
