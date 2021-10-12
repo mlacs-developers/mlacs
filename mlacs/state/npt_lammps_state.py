@@ -25,7 +25,7 @@ class NPTLammpsState(LammpsState):
         deformation of the cell
     damp : float (optional)
         Damping parameter
-    dpres : float (optional)
+    pdamp : float (optional)
         Damping parameter for the barostat
     dt : float
         Timestep, in fs
@@ -61,7 +61,7 @@ class NPTLammpsState(LammpsState):
                  pressure,
                  ptype="iso",
                  damp=None,
-                 dpres=None,
+                 pdamp=None,
                  dt=1.5*fs,
                  nsteps=1000,
                  nsteps_eq=100,
@@ -95,7 +95,7 @@ class NPTLammpsState(LammpsState):
         self.pressure    = pressure
         self.ptype       = ptype
         self.damp        = damp
-        self.dpres       = dpres
+        self.pdamp       = pdamp
 
 
 #========================================================================================================================#
@@ -109,9 +109,9 @@ class NPTLammpsState(LammpsState):
         if self.damp is None:
             damp = "$(100*dt)"
 
-        dpres = self.dpres
-        if self.dpres is None:
-            dpres = "$(1000*dt)"
+        pdamp = self.pdamp
+        if self.pdamp is None:
+            pdamp = "$(1000*dt)"
 
         input_string  = "# LAMMPS input file to run a MLMD simulation\n"
         input_string += "units      metal\n"
@@ -137,7 +137,7 @@ class NPTLammpsState(LammpsState):
         input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
         input_string += "\n"
 
-        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure, dpres)
+        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure, pdamp)
         if self.fixcm:
             input_string += "fix    2  all recenter INIT INIT INIT"
 
@@ -170,3 +170,28 @@ class NPTLammpsState(LammpsState):
             MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
+
+
+#========================================================================================================================#
+    def log_recap_state(self):
+        """
+        Function to return a string describing the state for the log
+        """
+        damp = self.damp
+        if damp is None:
+            damp = 100 * self.dt / fs
+        pdamp = self.pdamp
+        if pdamp is None:
+            pdamp = 1000 * self.dt / fs
+
+        msg  = "Simulated state:\n"
+        msg += "NPT dynamics as implemented in LAMMPS\n"
+        msg += "Temperature (Kelvin)                     {0}\n".format(self.temperature)
+        msg += "Pressure (GPa)                           {0}\n".format(self.pressure)
+        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
+        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Themostat damping parameter (in fs) :    {0}\n".format(damp)
+        msg += "Barostat damping parameter (in fs) :     {0}\n".format(pdamp)
+        msg += "\n"
+        return msg

@@ -108,8 +108,9 @@ class VerletState(StateManager):
         """
         """
         msg  = "Simulated state:\n"
-        msg += "NVE ensemble\n"
-        msg += "parameters:\n"
-        msg += "timestep     {:} fs\n".format(self.dt / fs)
+        msg += "NVE ensemble with the Velocity-Verlet integrator as implemented in ASE\n"
+        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
+        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
         msg += "\n"
         return msg

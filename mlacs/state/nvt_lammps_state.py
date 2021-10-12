@@ -20,7 +20,7 @@ class NVTLammpsState(LammpsState):
     temperature : float
         Temperature of the simulation, in Kelvin
     damp : float (optional)
-        Damping parameter
+        Damping parameter. If None, a damping parameter of a hundred time the timestep is used.
     dt : float
         Timestep, in fs
     nsteps : int
@@ -154,3 +154,23 @@ class NVTLammpsState(LammpsState):
             MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
+
+
+#========================================================================================================================#
+    def log_recap_state(self):
+        """
+        Function to return a string describing the state for the log
+        """
+        damp = None
+        if damp is None:
+            damp = 100 * self.dt / fs
+
+        msg  = "Simulated state:\n"
+        msg += "NVT dynamics as implemented in LAMMPS\n"
+        msg += "Temperature                              {0}\n".format(self.temperature)
+        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
+        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Damping parameter (in fs) :              {0}\n".format(damp)
+        msg += "\n"
+        return msg

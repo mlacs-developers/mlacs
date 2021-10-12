@@ -48,6 +48,8 @@ class MLACS_Log:
         msg += '===============================================================\n' 
         msg += '                 Restarting simulation\n'
         msg += '===============================================================\n' 
+        now = datetime.datetime.now()
+        msg += 'date: ' + now.strftime('%d-%m-%Y  %H:%M:%S')
         msg += '\n'
         msg += '\n'
         self.logger_log.info(msg)

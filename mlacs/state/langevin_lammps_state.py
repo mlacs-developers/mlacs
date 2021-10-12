@@ -78,6 +78,7 @@ class LangevinLammpsState(LammpsState):
                              fixcm,
                              logfile,
                              trajfile,
+                             interval,
                              loginterval,
                              trajinterval,
                              rng,
@@ -99,7 +100,7 @@ class LangevinLammpsState(LammpsState):
 
         damp = self.damp
         if damp is None:
-            damp = 1
+            damp = "$(100*dt)"
 
         input_string  = "# LAMMPS input file to run a MLMD simulation\n"
         input_string += "units      metal\n"
@@ -126,9 +127,9 @@ class LangevinLammpsState(LammpsState):
         input_string += "\n"
 
         if self.gjf:
-            input_string += "fix    1  all langevin {0} {0}  {1:15.10f} {2}  gjf vhalf\n".format(self.temperature, damp, self.rng.integers(99999))
+            input_string += "fix    1  all langevin {0} {0}  {1} {2}  gjf vhalf\n".format(self.temperature, damp, self.rng.integers(99999))
         else:
-            input_string += "fix    1  all langevin {0} {0}  {1:15.10f}  {2}\n".format(self.temperature, damp, self.rng.integers(99999))
+            input_string += "fix    1  all langevin {0} {0}  {1}  {2}\n".format(self.temperature, damp, self.rng.integers(99999))
         input_string += "fix    2  all nve\n"
 
         if self.fixcm:
@@ -163,3 +164,31 @@ class LangevinLammpsState(LammpsState):
             MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
+
+
+#========================================================================================================================#
+    def log_recap_state(self):
+        """
+        Function to return a string describing the state for the log
+        """
+        damp = None
+        if damp is None:
+            damp = 1 / fs
+        if self.gjf == True:
+            integrator = "2 half GJF"
+        else:
+            integraotr = "Velocity-verlet"
+
+        msg  = "Simulated state:\n"
+        msg += "NVT Langevin dynamics as implemented in LAMMPS\n"
+        msg += "Temperature                              {0}\n".format(self.temperature)
+        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
+        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Damping parameter (in fs) :              {0}\n".format(damp)
+        if self.gjf:
+            msg += "A 2 half GJF integrator is used\n"
+        else:
+            msg += "A velocity-Verlet integrator is used\n"
+        msg += "\n"
+        return msg

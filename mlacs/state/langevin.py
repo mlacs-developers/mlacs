@@ -124,9 +124,11 @@ class LangevinState(StateManager):
         """
         """
         msg  = "Simulated state:\n"
-        msg += "NVT ensemble witht the Langevin thermostat\n"
-        msg += "parameters:\n"
-        msg += "timestep     {:} fs\n".format(self.dt / fs)
-        msg += "friction     {:}\n".format(self.friction)
+        msg += "NVT Langevin dynamics as implemented in ASE\n"
+        msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
+        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
+        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Friction (in fs) :                       {:}\n".format(self.friction / fs)
         msg += "\n"
         return msg

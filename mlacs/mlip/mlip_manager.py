@@ -17,13 +17,15 @@ class MlipManager:
     def __init__(self,
                  atoms,
                  rcut=5.0,
+                 nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
                 ):
 
         self.elements, self.Z, self.masses = get_elements_Z_and_masses(atoms)
-        self.rcut = rcut
+        self.natoms = len(atoms)
+        self.rcut   = rcut
 
         self.energy_coefficient = energy_coefficient
         self.forces_coefficient = forces_coefficient
@@ -35,6 +37,9 @@ class MlipManager:
         self.ymatrix_energy = np.array([])
         self.ymatrix_forces = np.array([])
         self.ymatrix_stress = np.array([])
+
+        self.nthrow = nthrow
+        self.nconfs = 0
 
 
 #===================================================================================================================================================#
@@ -58,17 +63,26 @@ class MlipManager:
             self.ymatrix_forces = np.hstack((self.ymatrix_forces, data[1:1+3*natoms]))
             self.ymatrix_stress = np.hstack((self.ymatrix_stress, data[1+3*natoms:]))
 
+        self.nconfs += 1
+
 
 #===================================================================================================================================================#
     def train_mlip(self):
         """
         """
-        amatrix        = np.vstack((self.energy_coefficient * self.amatrix_energy, \
-                                    self.forces_coefficient * self.amatrix_forces, \
-                                    self.stress_coefficient * self.amatrix_stress))
-        ymatrix        = np.hstack((self.energy_coefficient * self.ymatrix_energy, \
-                                    self.forces_coefficient * self.ymatrix_forces, \
-                                    self.stress_coefficient * self.ymatrix_stress))
+        if self.nconfs < self.nthrow:
+            idx = 0
+        elif self.nconfs >= self.nthrow and self.nconfs < 2 * self.nthrow:
+            idx = self.nconfs - self.nthrow
+        else:
+            idx = self.nthrow
+
+        amatrix        = np.vstack((self.energy_coefficient * self.amatrix_energy[idx:], \
+                                    self.forces_coefficient * self.amatrix_forces[idx*3*self.natoms:], \
+                                    self.stress_coefficient * self.amatrix_stress[idx*6:]))
+        ymatrix        = np.hstack((self.energy_coefficient * self.ymatrix_energy[idx:], \
+                                    self.forces_coefficient * self.ymatrix_forces[idx*3*self.natoms:], \
+                                    self.stress_coefficient * self.ymatrix_stress[idx*6:]))
 
         # Good ol' Ordinary Linear Least-Square fit
         self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
@@ -77,12 +91,12 @@ class MlipManager:
         self.init_calc()
 
         # Prepare some data to check accuracy of the fit
-        e_true = self.ymatrix_energy
-        e_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_energy)
-        f_true = self.ymatrix_forces
-        f_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_forces)
-        s_true = self.ymatrix_stress / GPa
-        s_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_stress) / GPa
+        e_true = self.ymatrix_energy[idx:]
+        e_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_energy[idx:])
+        f_true = self.ymatrix_forces[idx*3*self.natoms:]
+        f_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_forces[idx*3*self.natoms:])
+        s_true = self.ymatrix_stress[idx*6:] / GPa
+        s_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_stress[idx*6:]) / GPa
 
         # Compute RMSE and MAE
         rmse_energy = np.sqrt(np.mean((e_true - e_mlip)**2))
@@ -94,7 +108,8 @@ class MlipManager:
         rmse_stress = np.sqrt(np.mean((s_true - s_mlip)**2))
         mae_stress  = np.mean(np.abs(s_true - s_mlip))
 
-        msg  = "number of configurations for training:  {:}\n".format(len(self.amatrix_energy))
+        # Prepare message to the log
+        msg  = "number of configurations for training:  {:}\n".format(len(self.amatrix_energy[idx:]))
         msg += "RMSE Energy    {:.4f} eV/at\n".format(rmse_energy)
         msg += "MAE Energy     {:.4f} eV/at\n".format(mae_energy)
         msg += "RMSE Forces    {:.4f} eV/angs\n".format(rmse_forces)

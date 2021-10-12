@@ -5,6 +5,7 @@ import os
 
 import numpy as np
 from ase.io import read as ase_read, Trajectory
+from ase.io.abinit import write_abinit_in
 
 from mlacs.mlip import LammpsMlip
 from mlacs.utilities.log import MLACS_Log
@@ -28,6 +29,10 @@ class OtfMLACS:
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsMlip object with a 5.0 angstrom rcut, a snap descriptor
         with 8 2jmax
+    magmoms: :class:`np.ndarray` 
+        N_at*b array for the magnetic moments of atoms.
+        If b=1, collinear magnetization.
+        if b=3, non-collinear magnetization.
     neq: int
         The number of step equilibration steps
     confs_init: int or list of atoms
@@ -42,6 +47,7 @@ class OtfMLACS:
                  state,
                  calc,
                  mlip=None,
+                 magmoms=None,
                  neq=10,
                  prefix_output="Trajectory",
                  confs_init=None,
@@ -60,6 +66,7 @@ class OtfMLACS:
 
         self.prefix_output = prefix_output
         self.rng           = np.random.default_rng()
+        self.magmoms       = magmoms
 
         # Initialize everything
         if os.path.isfile(self.prefix_output + ".traj"):
@@ -70,17 +77,28 @@ class OtfMLACS:
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
 
+            msg = "Adding previous configurations to the training data"
+            self.log.logger_log.info(msg)
             # Get trajectory and create the matrices for the fitting
             self.traj = Trajectory(self.prefix_output + ".traj", mode="a")
             if os.path.isfile("Training_configurations.traj"):
                 train_traj = Trajectory("Training_configurations.traj", mode="r")
-                for conf in train_traj:
+                msg = "{0} training configurations".format(len(train_traj))
+                self.log.logger_log.info(msg)
+                for i, conf in enumerate(train_traj):
+                    msg = "Configuration {:} / {:}".format(i+1, len(train_traj))
+                    self.log.logger_log.info(msg)
                     self.mlip.update_matrices(conf)
                 del train_traj
+                self.log.logger_log.info("\n")
             prev_traj = Trajectory(self.prefix_output + ".traj", mode="r")
-            for conf in prev_traj:
+            msg = "{0} trajectory configurations".format(len(prev_traj))
+            self.log.logger_log.info(msg)
+            for i, conf in enumerate(prev_traj):
+                msg = "Configuration {:} / {:}".format(i+1, len(prev_traj))
+                self.log.logger_log.info(msg)
                 self.mlip.update_matrices(conf)
-
+            self.log.logger_log.info("\n")
             # Update current atoms and step
             self.atoms = prev_traj[-1]
             self.step  = len(prev_traj)
@@ -181,6 +199,8 @@ class OtfMLACS:
         atoms_true      = atoms_mlip.copy() # copy to avoid disasters
         atoms_true.calc = self.true_calc
 
+        atoms_true.set_initial_magnetic_moments(self.magmoms)
+
         msg  = "Computing energy with the True potential\n"
         msg += "\n"
         self.log.logger_log.info(msg)
@@ -220,6 +240,7 @@ class OtfMLACS:
 
         # Compute potential energy, update fitting matrices and write the configuration to the trajectory
         self.atoms.calc = self.true_calc
+        self.atoms.set_initial_magnetic_moments(self.magmoms)
         v_init     = self.atoms.get_potential_energy()
         self.mlip.update_matrices(self.atoms)
         self.traj.write(self.atoms)
@@ -253,6 +274,7 @@ class OtfMLACS:
                 conf.calc = self.true_calc
                 conf.rattle(0.1, rng=self.rng)
                 conf.calc = self.atoms.calc
+                conf.set_initial_magnetic_moments(self.magmoms)
                 conf.get_potential_energy()
              
                 self.mlip.update_matrices(conf)
