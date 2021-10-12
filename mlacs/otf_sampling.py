@@ -6,8 +6,10 @@ import os
 import numpy as np
 from ase.io import read as ase_read, Trajectory
 from ase.io.abinit import write_abinit_in
+from ase.calculators.calculator import Calculator
 
 from mlacs.mlip import LammpsMlip
+from mlacs.calc import CalcManager
 from mlacs.utilities.log import MLACS_Log
 from mlacs.utilities import create_random_structures
 
@@ -23,7 +25,7 @@ class OtfMLACS:
         the atom object on which the simulation is run. The atoms has to have a calculator attached
     state: StateManager object
         Object determining the state to be sampled
-    calc: ase calculator
+    calc: ase calculator or :class:`CalcManager`
         Potential energy of the systme to be approximated
     mlip: MLIPManager object
         Object managing the MLIP to approximate the real distribution
@@ -47,7 +49,6 @@ class OtfMLACS:
                  state,
                  calc,
                  mlip=None,
-                 magmoms=None,
                  neq=10,
                  prefix_output="Trajectory",
                  confs_init=None,
@@ -56,6 +57,14 @@ class OtfMLACS:
         
         self.atoms     = atoms
         self.true_calc = calc
+        if isinstance(calc, Calculator):
+            self.calc = CalcManager(calc)
+        elif isinstance(calc, CalcManager):
+            self.calc = calc
+        else:
+            raise TypeError
+
+
         if mlip is None:
             self.mlip = LammpsMlip(atoms) # Default MLIP Manager
         else:
@@ -66,7 +75,6 @@ class OtfMLACS:
 
         self.prefix_output = prefix_output
         self.rng           = np.random.default_rng()
-        self.magmoms       = magmoms
 
         # Initialize everything
         if os.path.isfile(self.prefix_output + ".traj"):
@@ -122,7 +130,6 @@ class OtfMLACS:
 
             # Everything at 0
             self.step = 0
-            self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
             self.vtrue       = np.array([])
             self.vmlip       = np.array([])
             self.state.initialize_momenta(self.atoms)
@@ -195,15 +202,10 @@ class OtfMLACS:
         # Clean the MLIP to liberate procs
         #self.mlip.calc.clean()
 
-        # Prepare atoms object to compute the energy with the true potential
-        atoms_true      = atoms_mlip.copy() # copy to avoid disasters
-        atoms_true.calc = self.true_calc
-
-        atoms_true.set_initial_magnetic_moments(self.magmoms)
-
         msg  = "Computing energy with the True potential\n"
         msg += "\n"
         self.log.logger_log.info(msg)
+        atoms_true = self.calc.compute_true_potential(atoms_mlip.copy())
         # Compute the potential energy for the true potential
         Vn_true = atoms_true.get_potential_energy()
         # Compute the potential energy for the MLIP
@@ -239,11 +241,10 @@ class OtfMLACS:
         self.log.logger_log.info(msg)
 
         # Compute potential energy, update fitting matrices and write the configuration to the trajectory
-        self.atoms.calc = self.true_calc
-        self.atoms.set_initial_magnetic_moments(self.magmoms)
-        v_init     = self.atoms.get_potential_energy()
-        self.mlip.update_matrices(self.atoms)
-        self.traj.write(self.atoms)
+        atoms = self.calc.compute_true_potential(self.atoms.copy())
+        self.mlip.update_matrices(atoms)
+        self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
+        self.traj.write(atoms)
 
         msg = "Computing energy with true potential on initial training configurations"
         self.log.logger_log.info(msg)
@@ -270,12 +271,9 @@ class OtfMLACS:
             for i, conf in enumerate(confs_init):
                 msg = "Configuration {:} / {:}".format(i+1, nconfs_init)
                 self.log.logger_log.info(msg)
-         
-                conf.calc = self.true_calc
+
                 conf.rattle(0.1, rng=self.rng)
-                conf.calc = self.atoms.calc
-                conf.set_initial_magnetic_moments(self.magmoms)
-                conf.get_potential_energy()
+                conf = self.calc.compute_true_potential(conf)
              
                 self.mlip.update_matrices(conf)
                 init_traj.write(conf)
