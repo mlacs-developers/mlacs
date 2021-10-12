@@ -31,10 +31,6 @@ class OtfMLACS:
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsMlip object with a 5.0 angstrom rcut, a snap descriptor
         with 8 2jmax
-    magmoms: :class:`np.ndarray` 
-        N_at*b array for the magnetic moments of atoms.
-        If b=1, collinear magnetization.
-        if b=3, non-collinear magnetization.
     neq: int
         The number of step equilibration steps
     confs_init: int or list of atoms

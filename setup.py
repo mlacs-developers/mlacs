@@ -10,6 +10,8 @@ with open("mlacs/version.py") as f:
 install_requires = ["numpy>=1.17.0",
                     "ase>=3.22"]
 
+extra_requires = ["icet>=1.4"]
+
 if __name__ == "__main__":
     setup(
           name="mlacs",
@@ -19,5 +21,6 @@ if __name__ == "__main__":
           packages=["mlacs", "test"],
           description="Machine-Learning Assisted Canonical Sampling",
           long_description=long_description,
-          install_requires=install_requires
+          install_requires=install_requires,
+          extra_requires=extra_requires
          )
