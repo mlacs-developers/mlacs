@@ -13,6 +13,12 @@ from mlacs.calc import CalcManager
 from mlacs.utilities.log import MLACS_Log
 from mlacs.utilities import create_random_structures
 
+        
+class TruePotentialError(RuntimeError):
+    """
+    Error raised if the computation with the true potential has failed too many times
+    """
+
 
 class OtfMLACS:
     """
@@ -53,7 +59,9 @@ class OtfMLACS:
                  neq=10,
                  prefix_output="Trajectory",
                  confs_init=None,
-                 std_init=0.05
+                 std_init=0.05,
+                 tmax_msg=10,
+                 ntrymax=0
                 ):
         
         self.atoms     = atoms
@@ -76,6 +84,7 @@ class OtfMLACS:
 
         self.prefix_output = prefix_output
         self.rng           = np.random.default_rng()
+        self.tmax_msg      = tmax_msg
 
         # Initialize everything
         if os.path.isfile(self.prefix_output + ".traj"):
@@ -117,12 +126,12 @@ class OtfMLACS:
             
             # Update the potential file to compare predicted and true potential
             if os.path.isfile(self.prefix_output + "_potential.dat"):
-                potentials    = np.loadtxt(self.prefix_output + "_potential.dat")
-                self.vtrue    = np.atleast_2d(potentials)[:,1]
-                self.vmlip    = np.atleast_2d(potentials)[:,2]
+                potentials = np.loadtxt(self.prefix_output + "_potential.dat")
+                self.vtrue = np.atleast_2d(potentials)[:,1]
+                self.vmlip = np.atleast_2d(potentials)[:,2]
             else:
-                self.vtrue       = np.array([])
-                self.vmlip       = np.array([])
+                self.vtrue = np.array([])
+                self.vmlip = np.array([])
         else:
             # No previous step
             restart = False
@@ -149,6 +158,8 @@ class OtfMLACS:
         # If first launch of the simulation, print the starting atoms in the log
         if not restart:
             self.log.write_input_atoms(self.atoms)
+
+        self.ntrymax = ntrymax
         
 
 #===================================================================================================================================================#
@@ -156,14 +167,19 @@ class OtfMLACS:
         """
         Run the algorithm for nsteps
         """
+        # Initialize ntry in case of restarting calculation
+        self.ntry = 0
         while self.step < nsteps:
             self.log.init_new_step(self.step)
             if self.step == 0:
                 self.run_initial_step()
                 self.step += 1
             else:
-                self.run_step()
-                self.step += 1
+                step_done = self.run_step()
+                if not step_done:
+                    pass
+                else:
+                    self.step += 1
 
 
 #===================================================================================================================================================#
@@ -208,6 +224,22 @@ class OtfMLACS:
         msg += "\n"
         self.log.logger_log.info(msg)
         atoms_true = self.calc.compute_true_potential(atoms_mlip.copy())
+
+        # Handling of calculator error / non-convergence
+        if atoms_true is None:
+            msg  = "Calculation with the true potential resulted in error or didn't converge"
+            self.ntry += 1
+            self.log.logger_log.info(msg)
+            if self.ntry > self.ntrymax:
+                raise TruePotentialError(msg)
+            else:
+                msg = "Will restart the step, try {0}/{1}".format(self.ntry, self.ntrymax)
+                self.log.logger_log.info(msg)
+            return False
+
+        # If true potential passed, we need to restart the potential
+        self.ntry = 0
+
         # Compute the potential energy for the true potential
         Vn_true = atoms_true.get_potential_energy()
         # Compute the potential energy for the MLIP
@@ -228,6 +260,11 @@ class OtfMLACS:
 
         # Update atoms
         self.atoms = atoms_true
+        
+        if self.step > 1:
+            self.print_convergence()
+
+        return True
 
 
 #===================================================================================================================================================#
@@ -244,6 +281,9 @@ class OtfMLACS:
 
         # Compute potential energy, update fitting matrices and write the configuration to the trajectory
         atoms = self.calc.compute_true_potential(self.atoms.copy())
+        if atoms is None:
+            msg = "True potential calculation failed or didn't converge"
+            raise TruePotentialError(msg)
         self.mlip.update_matrices(atoms)
         self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
         self.traj.write(atoms)
@@ -276,8 +316,32 @@ class OtfMLACS:
 
                 conf.rattle(0.1, rng=self.rng)
                 conf = self.calc.compute_true_potential(conf)
+                if conf is None:
+                    msg = "True potential calculation failed or didn't converge"
+                    raise TruePotentialError(msg)
              
                 self.mlip.update_matrices(conf)
                 init_traj.write(conf)
             # We dont need the initial configurations anymore
             del self.confs_init
+
+
+
+#===================================================================================================================================================#
+    def print_convergence(self):
+        """
+        """
+        nconfs   = len(self.vtrue)
+        tmax_msg = self.tmax_msg
+        if nconfs < tmax_msg:
+            tmax_msg = nconfs - 1
+
+        msg = "T0,        <E> (eV/at),      <E^2> - <E^2> (eV^2/at)\n"
+        for i in range(0, tmax_msg):
+            mean = np.mean(self.vtrue[i:])
+            var  = np.var(self.vtrue[i:])
+            msg += "{0:3d}          {1:10.5f}         {2:10.5f}\n".format(i+1, mean, var)
+        self.log.logger_log.info(msg)
+
+        msg = "Conv: Step {0:3d} - Energy mean {1:10.5f} eV  - Energy variance {2:10.5f} eV^2\n".format(self.step, mean, var)
+        self.log.logger_log.info(msg)

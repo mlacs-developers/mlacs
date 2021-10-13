@@ -30,7 +30,10 @@ class CalcManager:
         """
         atoms.set_initial_magnetic_moments(self.magmoms)
         atoms.calc = self.calc
-        atoms.get_potential_energy()
+        try:
+            atoms.get_potential_energy()
+        except:
+            atoms = None
 
         return atoms
 
