@@ -45,7 +45,7 @@ class VerletState(StateManager):
         N * 3 velocities for the initial configuration
     """
     def __init__(self,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
@@ -83,7 +83,7 @@ class VerletState(StateManager):
         else:
             nsteps = self.nsteps
 
-        dyn = VelocityVerlet(atoms, self.dt)
+        dyn = VelocityVerlet(atoms, self.dt * fs)
 
         if self.trajfile is not None:
             trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
@@ -112,6 +112,6 @@ class VerletState(StateManager):
         msg += "NVE ensemble with the Velocity-Verlet integrator as implemented in ASE\n"
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
         msg += "\n"
         return msg

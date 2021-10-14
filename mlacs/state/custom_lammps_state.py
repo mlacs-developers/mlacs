@@ -1,6 +1,5 @@
 import numpy as np
 
-from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import LammpsState
@@ -49,7 +48,7 @@ class CustomLammpsState(LammpsState):
     """
     def __init__(self,
                  custom_input,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
@@ -106,7 +105,7 @@ class CustomLammpsState(LammpsState):
         input_string += "pair_coeff    {0}\n".format(pair_coeff)
         input_string += "\n"
 
-        input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
+        input_string += "timestep      {0}\n".format(self.dt/ 1000)
         input_string += "\n"
 
         input_string += self.custom_input

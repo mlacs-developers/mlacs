@@ -15,7 +15,7 @@ class StateManager:
     Parent Class managing the state being simulated
     """
     def __init__(self,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,

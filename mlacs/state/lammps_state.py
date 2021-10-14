@@ -6,7 +6,6 @@ import numpy as np
 from ase.io import Trajectory, read
 from ase.io.lammpsdata import read_lammps_data
 from ase.io.lammpsdata import write_lammps_data
-from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import StateManager
@@ -22,7 +21,7 @@ class LammpsState(StateManager):
     Parent Class for the Lammps States
     """
     def __init__(self,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,

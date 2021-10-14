@@ -60,7 +60,7 @@ class LangevinLammpsState(LammpsState):
                  temperature,
                  gjf=True,
                  damp=None,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
@@ -126,7 +126,7 @@ class LangevinLammpsState(LammpsState):
         input_string += "pair_coeff    {0}\n".format(pair_coeff)
         input_string += "\n"
 
-        input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
+        input_string += "timestep      {0}\n".format(self.dt/ 1000)
         input_string += "\n"
 
         if self.gjf:
@@ -187,7 +187,7 @@ class LangevinLammpsState(LammpsState):
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
         msg += "Damping parameter (in fs) :              {0}\n".format(damp)
         if self.gjf:
             msg += "A 2 half GJF integrator is used\n"

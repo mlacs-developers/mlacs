@@ -1,6 +1,5 @@
 import numpy as np
 
-from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import LammpsState
@@ -55,7 +54,7 @@ class NVTLammpsState(LammpsState):
     def __init__(self,
                  temperature,
                  damp=None,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
@@ -119,7 +118,7 @@ class NVTLammpsState(LammpsState):
         input_string += "pair_coeff    {0}\n".format(pair_coeff)
         input_string += "\n"
 
-        input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
+        input_string += "timestep      {0}\n".format(self.dt/ 1000)
         input_string += "\n"
 
         input_string += "fix    1  all nvt temp {0} {0}  {1}\n".format(self.temperature, damp)
@@ -165,14 +164,14 @@ class NVTLammpsState(LammpsState):
         """
         damp = None
         if damp is None:
-            damp = 100 * self.dt / fs
+            damp = 100 * self.dt
 
         msg  = "Simulated state :\n"
         msg += "NVT dynamics as implemented in LAMMPS\n"
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
         msg += "Damping parameter (in fs) :              {0}\n".format(damp)
         msg += "\n"
         return msg

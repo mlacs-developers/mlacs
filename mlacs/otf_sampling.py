@@ -336,11 +336,11 @@ class OtfMLACS:
         if nconfs < tmax_msg:
             tmax_msg = nconfs - 1
 
-        msg = "T0,        <E> (eV/at),      <E^2> - <E^2> (eV^2/at)\n"
+        msg = " t0        <E> (eV/at)        <E^2> - <E^2> (eV^2/at)\n"
         for i in range(0, tmax_msg):
             mean = np.mean(self.vtrue[i:])
             var  = np.var(self.vtrue[i:])
-            msg += "{0:3d}          {1:10.5f}         {2:10.5f}\n".format(i+1, mean, var)
+            msg += "{0:3d}        {1:10.5f}         {2:10.5f}\n".format(i+1, mean, var)
         self.log.logger_log.info(msg)
 
         msg = "Conv: Step {0:3d} - Energy mean {1:10.5f} eV  - Energy variance {2:10.5f} eV^2\n".format(self.step, mean, var)

@@ -1,6 +1,5 @@
 import numpy as np
 
-from ase.units import fs
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import LammpsState
@@ -66,7 +65,7 @@ class NPTLammpsState(LammpsState):
                  ptype="iso",
                  damp=None,
                  pdamp=None,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
@@ -138,10 +137,10 @@ class NPTLammpsState(LammpsState):
         input_string += "pair_coeff    {0}\n".format(pair_coeff)
         input_string += "\n"
 
-        input_string += "timestep      {0}\n".format(self.dt/ (fs * 1000))
+        input_string += "timestep      {0}\n".format(self.dt/ 1000)
         input_string += "\n"
 
-        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure, pdamp)
+        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure * 10000, pdamp)
         if self.fixcm:
             input_string += "fix    2  all recenter INIT INIT INIT"
 
@@ -183,10 +182,10 @@ class NPTLammpsState(LammpsState):
         """
         damp = self.damp
         if damp is None:
-            damp = 100 * self.dt / fs
+            damp = 100 * self.dt
         pdamp = self.pdamp
         if pdamp is None:
-            pdamp = 1000 * self.dt / fs
+            pdamp = 1000 * self.dt
 
         msg  = "Simulated state :\n"
         msg += "NPT dynamics as implemented in LAMMPS\n"
@@ -194,7 +193,7 @@ class NPTLammpsState(LammpsState):
         msg += "Pressure (GPa)                           {0}\n".format(self.pressure)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
         msg += "Themostat damping parameter (in fs) :    {0}\n".format(damp)
         msg += "Barostat damping parameter (in fs) :     {0}\n".format(pdamp)
         msg += "\n"

@@ -55,7 +55,7 @@ class LangevinState(StateManager):
     def __init__(self,
                  temperature,
                  friction=0.01,
-                 dt=1.5*fs,
+                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
@@ -99,7 +99,7 @@ class LangevinState(StateManager):
         else:
             nsteps = self.nsteps
 
-        dyn = Langevin(atoms, self.dt, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm, rng=self.rng)
+        dyn = Langevin(atoms, self.dt*fs, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm, rng=self.rng)
 
         if self.trajfile is not None:
             trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
@@ -131,7 +131,7 @@ class LangevinState(StateManager):
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt / fs)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
         msg += "Friction (in fs) :                       {:}\n".format(self.friction / fs)
         msg += "\n"
         return msg
