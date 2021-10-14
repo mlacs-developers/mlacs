@@ -2,8 +2,12 @@
 """
 from mlacs.calc import CalcManager
 
-from icet import ClusterSpace
-from icet.tools.structure_generation import generate_sqs_from_supercells
+try:
+    from icet import ClusterSpace
+    from icet.tools.structure_generation import generate_sqs_from_supercells
+except:
+    raise ImportError
+
 
 
 #===================================================================================================================================================#

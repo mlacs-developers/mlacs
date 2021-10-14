@@ -90,6 +90,8 @@ class OtfMLACS:
         if os.path.isfile(self.prefix_output + ".traj"):
             # Previous simulation found, need to reinitialize everything in memory
             restart = True
+
+            # Log restart, state, calculator and mlip
             self.log = MLACS_Log(self.prefix_output + ".log", restart)
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
@@ -97,10 +99,12 @@ class OtfMLACS:
             self.log.logger_log.info(msg)
             self.log.recap_mlip(self.mlip.get_mlip_dict())
 
+            # Get trajectory and create the matrices for the fitting
+
             msg = "Adding previous configurations to the training data"
             self.log.logger_log.info(msg)
-            # Get trajectory and create the matrices for the fitting
             self.traj = Trajectory(self.prefix_output + ".traj", mode="a")
+            # First the training configurations (to be sure that they are throwed by the mlip manager)
             if os.path.isfile("Training_configurations.traj"):
                 train_traj = Trajectory("Training_configurations.traj", mode="r")
                 msg = "{0} training configurations".format(len(train_traj))
@@ -111,6 +115,8 @@ class OtfMLACS:
                     self.mlip.update_matrices(conf)
                 del train_traj
                 self.log.logger_log.info("\n")
+
+            # The the real trajectory
             prev_traj = Trajectory(self.prefix_output + ".traj", mode="r")
             msg = "{0} trajectory configurations".format(len(prev_traj))
             self.log.logger_log.info(msg)
@@ -119,6 +125,7 @@ class OtfMLACS:
                 self.log.logger_log.info(msg)
                 self.mlip.update_matrices(conf)
             self.log.logger_log.info("\n")
+
             # Update current atoms and step
             self.atoms = prev_traj[-1]
             self.step  = len(prev_traj)
@@ -135,6 +142,8 @@ class OtfMLACS:
         else:
             # No previous step
             restart = False
+
+            # Log start, state, calculator and mlip
             self.log = MLACS_Log(self.prefix_output + ".log", restart)
             msg = self.state.log_recap_state()
             self.log.logger_log.info(msg)
@@ -142,7 +151,7 @@ class OtfMLACS:
             self.log.logger_log.info(msg)
             self.log.recap_mlip(self.mlip.get_mlip_dict())
 
-            # Everything at 0
+            # Initialize verything at 0 and momenta
             self.step = 0
             self.vtrue       = np.array([])
             self.vmlip       = np.array([])
@@ -240,9 +249,9 @@ class OtfMLACS:
         # If true potential passed, we need to restart the potential
         self.ntry = 0
 
-        # Compute the potential energy for the true potential
+        # Get the potential energy for the true potential
         Vn_true = atoms_true.get_potential_energy()
-        # Compute the potential energy for the MLIP
+        # Get the potential energy for the MLIP
         Vn_mlip = atoms_mlip.get_potential_energy()
 
         # Update the matrices for the MLIP fit
@@ -336,12 +345,9 @@ class OtfMLACS:
         if nconfs < tmax_msg:
             tmax_msg = nconfs - 1
 
-        msg = " t0        <E> (eV/at)        <E^2> - <E^2> (eV^2/at)\n"
+        msg = " t0        <E> (eV/at)\n"
         for i in range(0, tmax_msg):
             mean = np.mean(self.vtrue[i:])
-            var  = np.var(self.vtrue[i:])
-            msg += "{0:3d}        {1:10.5f}         {2:10.5f}\n".format(i+1, mean, var)
-        self.log.logger_log.info(msg)
-
-        msg = "Conv: Step {0:3d} - Energy mean {1:10.5f} eV  - Energy variance {2:10.5f} eV^2\n".format(self.step, mean, var)
+            msg += "{0:3d}        {1:10.5f}\n".format(i+1, mean)
+        msg += "Conv: Step {0:3d} - Energy mean {1:10.5f} eV\n".format(self.step, mean)
         self.log.logger_log.info(msg)

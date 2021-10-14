@@ -1,5 +1,4 @@
 from ase.io import write, Trajectory
-from ase.units import fs
 from ase.build import bulk
 from ase.calculators.emt import EMT
 from ase.md.langevin import Langevin
@@ -19,7 +18,7 @@ neq         = 5
 cell_size   = 2
 rcut        = 4.2
 twojmax     = 4
-dt          = 1.5 * fs
+dt          = 1.5 # fs
 friction    = 0.01
 
 
