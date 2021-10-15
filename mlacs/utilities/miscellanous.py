@@ -47,7 +47,7 @@ def get_elements_Z_and_masses(supercell):
     for iel in range(len(un_elements)):
         idx = elements.index(un_elements[iel])
         un_Z.append(Z[idx])
-        un_masses.append(masses[iel])
+        un_masses.append(masses[idx])
     return un_elements, un_Z, un_masses
 
 
