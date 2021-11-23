@@ -4,6 +4,7 @@ from ase.io import read
 from ase.units import Hartree, Bohr
 
 
+#========================================================================================================================#
 def extract_data_for_tdep(fname, nthrow=10):
     """
     Little function to extract ASCII data to be used by aTDEP
@@ -33,6 +34,7 @@ def extract_data_for_tdep(fname, nthrow=10):
 
 
 
+#========================================================================================================================#
 def get_elements_Z_and_masses(supercell):
     '''
     Get the unique chemical symbols and atomic numbers, for LAMMPS compatibility
