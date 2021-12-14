@@ -4,20 +4,18 @@ Class for On-The-Fly Machine-Learning Assisted Sampling
 import os
 
 import numpy as np
+
+from ase.atoms import Atoms
 from ase.io import read as ase_read, Trajectory
 from ase.io.abinit import write_abinit_in
 from ase.calculators.calculator import Calculator
+from ase.calculators.singlepoint import SinglePointCalculator
 
 from mlacs.mlip import LammpsMlip
 from mlacs.calc import CalcManager
+from mlacs.state import StateManager
 from mlacs.utilities.log import MLACS_Log
 from mlacs.utilities import create_random_structures
-
-        
-class TruePotentialError(RuntimeError):
-    """
-    Error raised if the computation with the true potential has failed too many times
-    """
 
 
 class OtfMLACS:
@@ -27,9 +25,9 @@ class OtfMLACS:
     Parameters
     ----------
 
-    atoms: :class:`ase.Atoms`
+    atoms: :class:`ase.Atoms` or :list: of `ase.Atoms`
         the atom object on which the simulation is run. The atoms has to have a calculator attached
-    state: :class:`StateManager`  
+    state: :class:`StateManager` or :list: of :class: `StateManager`
         Object determining the state to be sampled
     calc: :class:`ase.calculators` or :class:`CalcManager`
         Class controlling the potential energy of the systme to be approximated.
@@ -39,9 +37,9 @@ class OtfMLACS:
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsMlip object with a 5.0 angstrom rcut and a snap descriptor
         with 8 2jmax
-    neq: int (optional)
+    neq: :int: (optional) or list of :int:
         The number of step equilibration steps. Default 10.
-    prefix_output: str (optional)
+    prefix_output: :str: (optional) or list of :str:
         Prefix for the output files of the simulation. Default "Trajectory".
     confs_init: int or list of :class:`ase.Atoms`  (optional)
         if int: Number of configuirations used to train a preliminary MLIP
@@ -60,51 +58,110 @@ class OtfMLACS:
                  prefix_output="Trajectory",
                  confs_init=None,
                  std_init=0.05,
-                 tmax_msg=10,
                  ntrymax=0
                 ):
-        
-        self.atoms     = atoms
-        self.true_calc = calc
+        ##############
+        # Check inputs
+        ##############
+        # Create list of states
+        if isinstance(state, StateManager):
+            self.state = [state]
+        elif isinstance(state, list):
+            self.state  = state
+        else:
+            msg = "state should be a StateManager object or a list of StateManager objects"
+            raise TypeError(msg)
+        # We get the number of simulated state here
+        self.nstate = len(self.state)
+
+        # Create list of atoms
+        if isinstance(atoms, Atoms):
+            self.atoms = []
+            for istate in range(self.nstate):
+                self.atoms.append(atoms.copy())
+        elif isinstance(atoms, list):
+            assert len(atoms) == self.nstate
+            self.atoms = atoms
+        else:
+            msg = "atoms should be a ASE Atoms object or a list of ASE atoms objects"
+            raise TypeError(msg)
+
+        # Create calculator object 
         if isinstance(calc, Calculator):
             self.calc = CalcManager(calc)
         elif isinstance(calc, CalcManager):
             self.calc = calc
         else:
-            raise TypeError
-
-
+            msg = "calc should be a ase Calculator object or a CalcManager object"
+            raise TypeError(msg)
+    
+        # Create mlip object
         if mlip is None:
-            self.mlip = LammpsMlip(atoms) # Default MLIP Manager
+            self.mlip = LammpsMlip(self.atoms[0]) # Default MLIP Manager
         else:
             self.mlip = mlip
-        self.neq       = neq
 
-        self.state = state
+        # Create list of neq -> number of equilibration mlmd runs for each state
+        if isinstance(neq, int):
+            self.neq = [neq] * self.nstate
+        elif isinstance(neq, list):
+            assert len(neq) == self.nstate
+            self.neq = self.nstate
+        else:
+            msg = "neq should be an integer or a list of integers"
+            raise TypeError(msg)
 
-        self.prefix_output = prefix_output
-        self.rng           = np.random.default_rng()
-        self.tmax_msg      = tmax_msg
+        # Create prefix of output files
+        if isinstance(prefix_output, str):
+            self.prefix_output = []
+            if self.nstate > 1:
+                for i in range(self.nstate):
+                    self.prefix_output.append(prefix_output + "_{0}".format(i+1))
+            else: 
+                self.prefix_output.append(prefix_output)
+        elif isinstance(prefix_output, list):
+            assert len(prefix_output) == self.nstate
+            self.prefix_output = prefix_output
+        else:
+            msg = "prefix_output should be a string or a list of strings"
+            raise TypeError(msg)
 
+        # Miscellanous initialization
+        self.rng      = np.random.default_rng()
+        self.ntrymax  = ntrymax
+
+        #######################
         # Initialize everything
-        if os.path.isfile(self.prefix_output + ".traj"):
-            # Previous simulation found, need to reinitialize everything in memory
-            restart = True
+        #######################
+        # Check if trajectory file already exists
+        if os.path.isfile(self.prefix_output[0] + ".traj"):
+            self.launched = True
+        else:
+            self.launched = False
 
-            # Log restart, state, calculator and mlip
-            self.log = MLACS_Log(self.prefix_output + ".log", restart)
-            msg = self.state.log_recap_state()
-            self.log.logger_log.info(msg)
-            msg = self.calc.log_recap_state()
-            self.log.logger_log.info(msg)
-            self.log.recap_mlip(self.mlip.get_mlip_dict())
-
-            # Get trajectory and create the matrices for the fitting
-
+        self.log = MLACS_Log("MLACS.log", self.launched)
+        msg = ""
+        for istate in range(self.nstate):
+            msg += "State {0}/{1} :\n".format(istate+1, self.nstate)
+            msg += self.state[istate].log_recap_state()
+        self.log.logger_log.info(msg)
+        msg = self.calc.log_recap_state()
+        self.log.logger_log.info(msg)
+        self.log.recap_mlip(self.mlip.get_mlip_dict())
+            
+        # We initialize momenta and parameters for training configurations
+        if not self.launched:
+            for istate in range(self.nstate):
+                self.state[istate].initialize_momenta(self.atoms[istate])
+            self.confs_init  = confs_init
+            self.std_init    = std_init
+            self.nconfs = [0] * self.nstate
+        
+        # Reinitialize everything from the trajectories
+        # Compute fitting data - get trajectories - get current configurations
+        if self.launched:
             msg = "Adding previous configurations to the training data"
             self.log.logger_log.info(msg)
-            self.traj = Trajectory(self.prefix_output + ".traj", mode="a")
-            # First the training configurations (to be sure that they are throwed by the mlip manager)
             if os.path.isfile("Training_configurations.traj"):
                 train_traj = Trajectory("Training_configurations.traj", mode="r")
                 msg = "{0} training configurations".format(len(train_traj))
@@ -116,75 +173,50 @@ class OtfMLACS:
                 del train_traj
                 self.log.logger_log.info("\n")
 
-            # The the real trajectory
-            prev_traj = Trajectory(self.prefix_output + ".traj", mode="r")
-            msg = "{0} trajectory configurations".format(len(prev_traj))
+            prev_traj = []
+            lgth      = []
+            for istate in range(self.nstate):
+                prev_traj.append(Trajectory(self.prefix_output[istate] + ".traj", mode="r"))
+                lgth.append(len(prev_traj[istate]))
+            msg = "{0} configuration from trajectories".format(np.sum(lgth))
             self.log.logger_log.info(msg)
-            for i, conf in enumerate(prev_traj):
-                msg = "Configuration {:} / {:}".format(i+1, len(prev_traj))
-                self.log.logger_log.info(msg)
-                self.mlip.update_matrices(conf)
-            self.log.logger_log.info("\n")
+            lgth = np.max(lgth)
+            for iconf in range(lgth):
+                for istate in range(self.nstate):
+                    try:
+                        self.mlip.update_matrices(prev_traj[istate][iconf])
+                        msg = "Configuration {0} of state {1}/{2}".format(iconf, istate+1, self.nstate)
+                        self.log.logger_log.info(msg)
+                    except:
+                        pass
 
-            # Update current atoms and step
-            self.atoms = prev_traj[-1]
-            self.step  = len(prev_traj)
+            self.traj   = []
+            self.atoms  = []
+            self.nconfs = []
+            for istate in range(self.nstate):
+                self.traj.append(Trajectory(self.prefix_output[istate]+".traj", mode="a"))
+                self.atoms.append(prev_traj[istate][-1])
+                self.nconfs.append(len(prev_traj[istate]))
             del prev_traj
-            
-            # Update the potential file to compare predicted and true potential
-            if os.path.isfile(self.prefix_output + "_potential.dat"):
-                potentials = np.loadtxt(self.prefix_output + "_potential.dat")
-                self.vtrue = np.atleast_2d(potentials)[:,1]
-                self.vmlip = np.atleast_2d(potentials)[:,2]
-            else:
-                self.vtrue = np.array([])
-                self.vmlip = np.array([])
-        else:
-            # No previous step
-            restart = False
-
-            # Log start, state, calculator and mlip
-            self.log = MLACS_Log(self.prefix_output + ".log", restart)
-            msg = self.state.log_recap_state()
-            self.log.logger_log.info(msg)
-            msg = self.calc.log_recap_state()
-            self.log.logger_log.info(msg)
-            self.log.recap_mlip(self.mlip.get_mlip_dict())
-
-            # Initialize verything at 0 and momenta
-            self.step = 0
-            self.vtrue       = np.array([])
-            self.vmlip       = np.array([])
-            self.state.initialize_momenta(self.atoms)
-
-
-        # If initial step, initialize everything in order to train an initial MLIP
-        if self.step == 0:
-            self.confs_init = confs_init
-            self.nconfs_init = 1
-            self.std_init = std_init
-
-        # If first launch of the simulation, print the starting atoms in the log
-        if not restart:
-            self.log.write_input_atoms(self.atoms)
-
+                
+        self.step = 0
         self.ntrymax = ntrymax
-        
+
 
 #===================================================================================================================================================#
     def run(self, nsteps=100):
         """
         Run the algorithm for nsteps
         """
-        # Initialize ntry in case of restarting calculation
+        # Initialize ntry in case of failing computation
         self.ntry = 0
         while self.step < nsteps:
             self.log.init_new_step(self.step)
-            if self.step == 0:
-                self.run_initial_step()
+            if not self.launched:
+                self._run_initial_step()
                 self.step += 1
             else:
-                step_done = self.run_step()
+                step_done = self._run_step()
                 if not step_done:
                     pass
                 else:
@@ -192,7 +224,7 @@ class OtfMLACS:
 
 
 #===================================================================================================================================================#
-    def run_step(self):
+    def _run_step(self):
         """
         Run one step of the algorithm
 
@@ -201,83 +233,75 @@ class OtfMLACS:
            nsteps of MLMD
            true potential computation
         """
-        # Check if this is an equilibration or normal step
-        if self.step < self.neq:
-            eq   = True
-            msg  = "Equilibration step\n"
-            msg += "\n"
-            self.log.logger_log.info(msg)
-        else:
-            eq = False
+        # Check if this is an equilibration or normal step for the mlmd
+        
+        self.log.logger_log.info("")
+        eq = []
+        for istate in range(self.nstate):
+            if self.nconfs[istate] < self.neq[istate]:
+                eq.append(True)
+                msg   = "Equilibration step for state {0}".format(istate+1)
+                self.log.logger_log.info(msg)
+            else:
+                eq.append(False)
+                msg   = "Production step for state {0}".format(istate+1)
+                self.log.logger_log.info(msg)
+        self.log.logger_log.info("\n")
 
-        msg = "Training new MLIP potential\n"
+        # Training MLIP
+        msg = "Training new MLIP\n"
         self.log.logger_log.info(msg)
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
 
-        # Copy atoms to have a MLIP one
-        atoms_mlip = self.atoms.copy()
-
-        # Ensure the momenta is right before the MLMD
-        momenta = self.atoms.get_momenta()
-        atoms_mlip.set_momenta(momenta)
+        # Create MLIP atoms object
+        atoms_mlip = []
+        for istate in range(self.nstate):
+            atoms_mlip.append(self.atoms[istate].copy())
 
         # Run the actual MLMD
-        if self.state.islammps:
-            atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, eq)
-            atoms_mlip.calc = self.mlip.calc
-        else:
-            atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.calc, eq)
-
-        msg  = "Computing energy with the True potential\n"
-        msg += "\n"
+        msg = "Running MLMD"
         self.log.logger_log.info(msg)
-        atoms_true = self.calc.compute_true_potential(atoms_mlip.copy())
+        for istate in range(self.nstate):
+            msg = "State {0}/{1}".format(istate+1, self.nstate)
+            self.log.logger_log.info(msg)
+            if self.state[istate].islammps:
+                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.pair_style, self.mlip.pair_coeff, eq[istate])
+                atoms_mlip[istate].calc = self.mlip.calc
+            else:
+                atoms_mlip[istate] = self.state.run_dynamics(atoms_mlip[istate], self.mlip.calc, eq[istate])
+        self.log.logger_log.info("")
+                
+        # Computing energy with true potential
+        msg  = "Computing energy with the True potential\n"
+        self.log.logger_log.info(msg)
+        atoms_true = []
+        for istate in range(self.nstate):
+            atoms_true.append(self.calc.compute_true_potential(atoms_mlip[istate].copy()))
 
         # Handling of calculator error / non-convergence
-        if atoms_true is None:
-            msg  = "Calculation with the true potential resulted in error or didn't converge"
-            self.ntry += 1
-            self.log.logger_log.info(msg)
-            if self.ntry > self.ntrymax:
-                raise TruePotentialError(msg)
-            else:
-                msg = "Will restart the step, try {0}/{1}".format(self.ntry, self.ntrymax)
+        nerror = 0
+        for istate in range(self.nstate):
+            if atoms_true[istate] is None:
+                msg  = "For state {0}/{1} calculation with the true potential resulted in error or didn't converge".format(istate+1, self.nstate)
                 self.log.logger_log.info(msg)
+                nerror += 1
+        if nerror == self.nstate:
+            msg  = "All true potential calculations failed, restarting the step\n"
+            self.log.logger_log.info(msg)
             return False
 
-        # If true potential passed, we need to restart the potential
-        self.ntry = 0
-
-        # Get the potential energy for the true potential
-        Vn_true = atoms_true.get_potential_energy()
-        # Get the potential energy for the MLIP
-        Vn_mlip = atoms_mlip.get_potential_energy()
-
-        # Update the matrices for the MLIP fit
-        self.mlip.update_matrices(atoms_true)
-
-        # Update the true and mlip potential energy arrays
-        self.vtrue = np.append(self.vtrue, Vn_true)
-        self.vmlip = np.append(self.vmlip, Vn_mlip)
-
-        # Add new configuration to trajectory and save potential arrays to have a measure of accuracy
-        self.traj.write(atoms_true)
-        idx           = np.arange(1, len(self.vmlip)+1)
-        all_potential = np.vstack((idx, self.vtrue, self.vmlip)).T
-        np.savetxt(self.prefix_output + "_potential.dat", all_potential, fmt="%d " + 2 * " %15.20f", header="Step - Vtrue - Vmlip")
-
-        # Update atoms
-        self.atoms = atoms_true
-        
-        if self.step > 1:
-            self.print_convergence()
-
+        for istate in range(self.nstate):
+            if atoms_true[istate] is not None:
+                self.mlip.update_matrices(atoms_true[istate])
+                self.traj[istate].write(atoms_true[istate])
+                self.atoms[istate]   = atoms_true[istate]
+                self.nconfs[istate] += 1
         return True
 
 
 #===================================================================================================================================================#
-    def run_initial_step(self):
+    def _run_initial_step(self):
         """
         Run the initial step, where no MLIP or configurations are available
 
@@ -285,26 +309,54 @@ class OtfMLACS:
             Compute potential energy for the initial positions
             Compute potential for nconfs_init training configurations
         """
-        msg = "Computing energy with true potential on initial configuration"
+        msg = "\nComputing energy with true potential on initial configuration"
         self.log.logger_log.info(msg)
 
         # Compute potential energy, update fitting matrices and write the configuration to the trajectory
-        atoms = self.calc.compute_true_potential(self.atoms.copy())
-        if atoms is None:
-            msg = "True potential calculation failed or didn't converge"
-            raise TruePotentialError(msg)
-        self.mlip.update_matrices(atoms)
-        self.traj = Trajectory(self.prefix_output + ".traj", mode="w")
-        self.traj.write(atoms)
+        self.traj      = [] # To initialize the trajectories for each state
+        computed_atoms = [] # To have a list of the already computed atoms in order to avoid making the same calculation twice
+        for istate in range(self.nstate):
+            if len(computed_atoms) == 0:
+                msg  = "Initial configuration for state {0}/{1}".format(istate+1, self.nstate)
+                self.log.logger_log.info(msg)
+                atoms = self.calc.compute_true_potential(self.atoms[istate].copy())
+                if atoms is None:
+                    msg = "True potential calculation failed or didn't converge"
+                    raise TruePotentialError(msg)
+                computed_atoms.append(atoms)
+                self.mlip.update_matrices(atoms)
+            else: # This part is to avoid making the same calculation twice
+                as_prev = False
+                for at in computed_atoms:
+                    if self.atoms[istate] == at:
+                        msg  = "Initial configuration for state {0}/{1} is identical to a previously computed configuration".format(istate+1, self.nstate)
+                        self.log.logger_log.info(msg)
+                        #calc       = SinglePointCalculator(self.atoms[istate], energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress())
+                        calc       = SinglePointCalculator(self.atoms[istate], **at.calc.results)
+                        atoms      = self.atoms[istate].copy()
+                        atoms.calc = calc
+                        as_prev = True
+                if not as_prev:
+                    msg  = "Initial configuration for state {0}/{1}".format(istate+1, self.nstate)
+                    self.log.logger_log.info(msg)
+                    atoms = self.calc.compute_true_potential(self.atoms[istate].copy())
+                    if atoms is None:
+                        msg = "True potential calculation failed or didn't converge"
+                        raise TruePotentialError(msg)
+                    computed_atoms.append(atoms)
+                    self.mlip.update_matrices(atoms)
+            self.traj.append(Trajectory(self.prefix_output[istate] + ".traj", mode="w"))
+            self.traj[istate].write(atoms)
 
-        msg = "Computing energy with true potential on initial training configurations"
+        msg = "\nComputing energy with true potential on training configurations"
         self.log.logger_log.info(msg)
-
         # Check number of training configurations and create them if needed
         if self.confs_init is None:
-            confs_init = create_random_structures(self.atoms, self.std_init, 1)
+            confs_init = []
+            for at in computed_atoms:
+                confs_init.extend(create_random_structures(at, self.std_init, 1))
         elif isinstance(self.confs_init, (int, float)):
-            confs_init = create_random_structures(self.atoms, self.std_init, self.confs_init)
+            confs_init = create_random_structures(self.atoms[0], self.std_init, self.confs_init)
         elif isinstance(self.confs_init, list):
             confs_init = self.confs_init
         nconfs_init = len(confs_init)
@@ -333,21 +385,5 @@ class OtfMLACS:
                 init_traj.write(conf)
             # We dont need the initial configurations anymore
             del self.confs_init
-
-
-
-#===================================================================================================================================================#
-    def print_convergence(self):
-        """
-        """
-        nconfs   = len(self.vtrue)
-        tmax_msg = self.tmax_msg
-        if nconfs < tmax_msg:
-            tmax_msg = nconfs - 1
-
-        msg = " t0        <E> (eV/at)\n"
-        for i in range(0, tmax_msg):
-            mean = np.mean(self.vtrue[i:])
-            msg += "{0:3d}        {1:10.5f}\n".format(i+1, mean)
-        msg += "Conv: Step {0:3d} - Energy mean {1:10.5f} eV\n".format(self.step, mean)
-        self.log.logger_log.info(msg)
+        self.log.logger_log.info("")
+        self.launched = True

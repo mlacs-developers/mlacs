@@ -108,8 +108,8 @@ class VerletState(StateManager):
     def log_recap_state(self):
         """
         """
-        msg  = "Simulated state :\n"
-        msg += "NVE ensemble with the Velocity-Verlet integrator as implemented in ASE\n"
+#       msg  = "Simulated state :\n"
+        msg  = "NVE ensemble with the Velocity-Verlet integrator as implemented in ASE\n"
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
         msg += "Timestep (in fs) :                       {0}\n".format(self.dt)

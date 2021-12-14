@@ -182,8 +182,8 @@ class LangevinLammpsState(LammpsState):
         else:
             integraotr = "Velocity-verlet"
 
-        msg  = "Simulated state :\n"
-        msg += "NVT Langevin dynamics as implemented in LAMMPS\n"
+#       msg  = "Simulated state :\n"
+        msg  = "NVT Langevin dynamics as implemented in LAMMPS\n"
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)

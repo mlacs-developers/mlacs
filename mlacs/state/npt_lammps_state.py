@@ -187,8 +187,8 @@ class NPTLammpsState(LammpsState):
         if pdamp is None:
             pdamp = 1000 * self.dt
 
-        msg  = "Simulated state :\n"
-        msg += "NPT dynamics as implemented in LAMMPS\n"
+#       msg  = "Simulated state :\n"
+        msg  = "NPT dynamics as implemented in LAMMPS\n"
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Pressure (GPa)                           {0}\n".format(self.pressure)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)

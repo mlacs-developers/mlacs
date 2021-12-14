@@ -1,5 +1,9 @@
 """
 """
+import numpy as np
+
+from ase.units import GPa
+
 from mlacs.mlip.mlip_manager import MlipManager
 from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 

@@ -70,12 +70,7 @@ class MlipManager:
     def train_mlip(self):
         """
         """
-        if self.nconfs < self.nthrow:
-            idx = 0
-        elif self.nconfs >= self.nthrow and self.nconfs < 2 * self.nthrow:
-            idx = self.nconfs - self.nthrow
-        else:
-            idx = self.nthrow
+        idx = self.get_idx_fit()
 
         amatrix        = np.vstack((self.energy_coefficient * self.amatrix_energy[idx:], \
                                     self.forces_coefficient * self.amatrix_forces[idx*3*self.natoms:], \
@@ -87,9 +82,23 @@ class MlipManager:
         # Good ol' Ordinary Linear Least-Square fit
         self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
 
+        msg = self.compute_tests(idx)
         self.write_mlip()
         self.init_calc()
+        return msg
 
+
+#===================================================================================================================================================#
+    def get_mlip_dict(self):
+        mlip_dict = {}
+        mlip_dict['energy_coefficient'] = self.energy_coefficient
+        mlip_dict['forces_coefficient'] = self.forces_coefficient
+        mlip_dict['stress_coefficient'] = self.stress_coefficient
+        return mlip_dict
+
+
+#===================================================================================================================================================#
+    def compute_tests(self,idx):
         # Prepare some data to check accuracy of the fit
         e_true = self.ymatrix_energy[idx:]
         e_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_energy[idx:])
@@ -127,14 +136,15 @@ class MlipManager:
         header = "rmse: {:.5f} GPa       mae: {:.5f} GPa\n".format(rmse_stress, mae_stress) + \
                  " True Stress           Predicted Stress"
         np.savetxt("MLIP-Stress_comparison.dat", np.vstack((s_true.flatten(), s_mlip.flatten())).T, header=header)
-
         return msg
-
+    
 
 #===================================================================================================================================================#
-    def get_mlip_dict(self):
-        mlip_dict = self.lammps_interface.get_mlip_dict()
-        mlip_dict['energy_coefficient'] = self.energy_coefficient
-        mlip_dict['forces_coefficient'] = self.forces_coefficient
-        mlip_dict['stress_coefficient'] = self.stress_coefficient
-        return mlip_dict
+    def get_idx_fit(self):
+        if self.nconfs < self.nthrow:
+            idx = 0
+        elif self.nconfs >= self.nthrow and self.nconfs < 2 * self.nthrow:
+            idx = self.nconfs - self.nthrow
+        else:
+            idx = self.nthrow
+        return idx

@@ -126,8 +126,8 @@ class LangevinState(StateManager):
     def log_recap_state(self):
         """
         """
-        msg  = "Simulated state :\n"
-        msg += "NVT Langevin dynamics as implemented in ASE\n"
+#       msg  = "Simulated state :\n"
+        msg  = "NVT Langevin dynamics as implemented in ASE\n"
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)

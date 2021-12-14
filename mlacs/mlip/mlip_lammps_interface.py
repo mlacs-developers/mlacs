@@ -103,6 +103,7 @@ class LammpsMlipInterface:
             if self.chemflag == 1:
                 self.ndescriptors *= len(self.elements)**3
         if self.model == "quadratic":
+            self.ndesc_linear  = self.ndescriptors
             self.ndescriptors += int(self.ndescriptors * (self.ndescriptors + 1) / 2)
 
         self.ncolumns = int(len(self.elements) * (self.ndescriptors + 1))

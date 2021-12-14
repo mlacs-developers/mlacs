@@ -48,7 +48,7 @@ class LammpsState(StateManager):
                              )
 
         # Construct the working directory to run the LAMMPS MLDMD simulations
-        self.workdir = None
+        self.workdir = workdir
         if self.workdir is None:
             self.workdir = os.getcwd() + "/LammpsMLMD/"
         if self.workdir[-1] != "/":
