@@ -269,7 +269,7 @@ class OtfMLACS:
                 atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.pair_style, self.mlip.pair_coeff, eq[istate])
                 atoms_mlip[istate].calc = self.mlip.calc
             else:
-                atoms_mlip[istate] = self.state.run_dynamics(atoms_mlip[istate], self.mlip.calc, eq[istate])
+                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.calc, eq[istate])
         self.log.logger_log.info("")
                 
         # Computing energy with true potential
