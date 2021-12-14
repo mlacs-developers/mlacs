@@ -10,5 +10,14 @@ from mlacs.state.nvt_lammps_state import NVTLammpsState
 from mlacs.state.npt_lammps_state import NPTLammpsState
 from mlacs.state.langevin_lammps_state import LangevinLammpsState
 from mlacs.state.custom_lammps_state import CustomLammpsState
+from mlacs.state.pimd_lammps_state import PIMDLammpsState
 
-__all__ = ['StateManager', 'LangevinState', 'VerletState', 'LammpsState', 'NVTLammpsState', 'NPTLammpsState', 'LangevinLammpsState', 'CustomLammpsState']
+__all__ = ['StateManager', 
+           'LangevinState', 
+           'VerletState', 
+           'LammpsState', 
+           'NVTLammpsState', 
+           'NPTLammpsState', 
+           'LangevinLammpsState', 
+           'CustomLammpsState',
+           'PIMDLammpsState']

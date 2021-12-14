@@ -48,3 +48,8 @@ CustomLammpsState
 -----------------
 
 .. autoclass:: CustomLammpsState
+ 
+PIMDLammpsState
+-----------------
+
+.. autoclass:: PIMDLammpsState

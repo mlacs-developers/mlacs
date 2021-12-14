@@ -139,6 +139,7 @@ class LammpsState(StateManager):
 
         input_string += 'fix mythermofile all print {0} "$t ${{myetot}}  ${{mype}} ${{myke}} ${{mytemp}}  ${{mypress}} ${{mypxx}} ${{mypyy}} ${{mypzz}} ${{mypxy}} ${{mypxz}} ${{mypyz}}" append {1} title "# Step  Etot  Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'.format(self.loginterval, self.logfile)
         input_string += "\n"
+        input_string += "\n"
         return input_string
 
 
@@ -151,5 +152,6 @@ class LammpsState(StateManager):
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
         input_string += " ".join([p for p in elem])
+        input_string += "\n"
         input_string += "\n"
         return input_string

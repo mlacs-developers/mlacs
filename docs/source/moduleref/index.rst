@@ -11,3 +11,5 @@ User interface
    mlip
    otf_mlacs
    calc
+   path_integral
+=======
