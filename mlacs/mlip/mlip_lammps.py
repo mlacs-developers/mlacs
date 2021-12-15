@@ -51,6 +51,12 @@ class LammpsMlip(MlipManager):
         Parameter controlling the importance of forces in the fitting of the MLIP. Default 1.0.
     stress_coefficient : float (optional)
         Parameter controlling the importance of stress in the fitting of the MLIP. Default 0.0.
+    rescale_energy : Bool (optional)
+        If true, the energy data are divided by its standard deviation before the fit. Default True.
+    rescale_forces : Bool (optional)
+        If true, the forces data are divided by its standard deviation before the fit. Default True.
+    rescale_stress : Bool (optional)
+        If true, the stress data are divided by its standard deviation before the fit. Default True.
     """
     def __init__(self,
                  atoms,
@@ -68,6 +74,9 @@ class LammpsMlip(MlipManager):
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
+                 rescale_energy=True,
+                 rescale_forces=True,
+                 rescale_stress=True
                 ):
 
         MlipManager.__init__(self,

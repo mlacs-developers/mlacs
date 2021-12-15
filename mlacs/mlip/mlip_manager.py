@@ -7,7 +7,6 @@ from ase.units import GPa
 from mlacs.utilities import get_elements_Z_and_masses
 
 
-
 #===================================================================================================================================================#
 #===================================================================================================================================================#
 class MlipManager:
@@ -21,6 +20,9 @@ class MlipManager:
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
+                 rescale_energy=True,
+                 rescale_forces=True,
+                 rescale_stress=True
                 ):
 
         self.elements, self.Z, self.masses = get_elements_Z_and_masses(atoms)
@@ -37,6 +39,10 @@ class MlipManager:
         self.ymatrix_energy = np.array([])
         self.ymatrix_forces = np.array([])
         self.ymatrix_stress = np.array([])
+
+        self.rescale_energy = rescale_energy
+        self.rescale_forces = rescale_forces
+        self.rescale_stress = rescale_stress
 
         self.nthrow = nthrow
         self.nconfs = 0
@@ -70,15 +76,29 @@ class MlipManager:
     def train_mlip(self):
         """
         """
-        idx = self.get_idx_fit()
+        idx = self._get_idx_fit()
 
-        amatrix        = np.vstack((self.energy_coefficient * self.amatrix_energy[idx:], \
-                                    self.forces_coefficient * self.amatrix_forces[idx*3*self.natoms:], \
-                                    self.stress_coefficient * self.amatrix_stress[idx*6:]))
-        ymatrix        = np.hstack((self.energy_coefficient * self.ymatrix_energy[idx:], \
-                                    self.forces_coefficient * self.ymatrix_forces[idx*3*self.natoms:], \
-                                    self.stress_coefficient * self.ymatrix_stress[idx*6:]))
+        sigma_e = 1.0
+        if self.rescale_energy:
+            sigma_e = np.std(self.amatrix_energy[idx:])
+        sigma_f = 1.0
+        if self.rescale_forces:
+            sigma_e = np.std(self.amatrix_forces[idx*3*self.natoms:])
+        sigma_s = 1.0
+        if self.rescale_stress:
+            sigma_e = np.std(self.amatrix_stress[idx*6:])
 
+        ecoeff = self.energy_coefficient / sigma_e / len(self.amatrix_energy[idx:])
+        fcoeff = self.forces_coefficient / sigma_f / len(self.amatrix_forces[idx*3*self.natoms:])
+        scoeff = self.stress_coefficient / sigma_s / len(self.amatrix_stress[idx*6:])
+
+        amatrix        = np.vstack((ecoeff * self.amatrix_energy[idx:], \
+                                    fcoeff * self.amatrix_forces[idx*3*self.natoms:], \
+                                    scoeff * self.amatrix_stress[idx*6:]))
+        ymatrix        = np.hstack((ecoeff * self.ymatrix_energy[idx:], \
+                                    fcoeff * self.ymatrix_forces[idx*3*self.natoms:], \
+                                    scoeff * self.ymatrix_stress[idx*6:]))
+        
         # Good ol' Ordinary Linear Least-Square fit
         self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
 
@@ -140,7 +160,7 @@ class MlipManager:
     
 
 #===================================================================================================================================================#
-    def get_idx_fit(self):
+    def _get_idx_fit(self):
         if self.nconfs < self.nthrow:
             idx = 0
         elif self.nconfs >= self.nthrow and self.nconfs < 2 * self.nthrow:
