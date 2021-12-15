@@ -153,13 +153,16 @@ class OtfMLACS:
         if not self.launched:
             for istate in range(self.nstate):
                 self.state[istate].initialize_momenta(self.atoms[istate])
+                with open(self.prefix_output[istate] + "_potential.dat", "w") as f:
+                    f.write("# True epot [eV]          MLIP epot [eV]\n")
             self.confs_init  = confs_init
             self.std_init    = std_init
             self.nconfs = [0] * self.nstate
         
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
-        if self.launched:
+        #if self.launched:
+        else:
             msg = "Adding previous configurations to the training data"
             self.log.logger_log.info(msg)
             if os.path.isfile("Training_configurations.traj"):
@@ -297,6 +300,8 @@ class OtfMLACS:
                 self.traj[istate].write(atoms_true[istate])
                 self.atoms[istate]   = atoms_true[istate]
                 self.nconfs[istate] += 1
+                with open(self.prefix_output[istate] + "_potential.dat", "a") as f:
+                    f.write("{:20.15f}   {:20.15f}\n".format(atoms_true[istate].get_potential_energy(), atoms_mlip[istate].get_potential_energy()))
         return True
 
 
