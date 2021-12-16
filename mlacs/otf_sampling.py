@@ -279,22 +279,9 @@ class OtfMLACS:
         msg  = "Computing energy with the True potential\n"
         self.log.logger_log.info(msg)
         atoms_true = []
+        nerror = 0 # Handling of calculator error / non-convergence
         for istate in range(self.nstate):
             atoms_true.append(self.calc.compute_true_potential(atoms_mlip[istate].copy()))
-
-        # Handling of calculator error / non-convergence
-        nerror = 0
-        for istate in range(self.nstate):
-            if atoms_true[istate] is None:
-                msg  = "For state {0}/{1} calculation with the true potential resulted in error or didn't converge".format(istate+1, self.nstate)
-                self.log.logger_log.info(msg)
-                nerror += 1
-        if nerror == self.nstate:
-            msg  = "All true potential calculations failed, restarting the step\n"
-            self.log.logger_log.info(msg)
-            return False
-
-        for istate in range(self.nstate):
             if atoms_true[istate] is not None:
                 self.mlip.update_matrices(atoms_true[istate])
                 self.traj[istate].write(atoms_true[istate])
@@ -302,7 +289,17 @@ class OtfMLACS:
                 self.nconfs[istate] += 1
                 with open(self.prefix_output[istate] + "_potential.dat", "a") as f:
                     f.write("{:20.15f}   {:20.15f}\n".format(atoms_true[istate].get_potential_energy(), atoms_mlip[istate].get_potential_energy()))
-        return True
+            if atoms_true[istate] is None:
+                msg  = "For state {0}/{1} calculation with the true potential resulted in error or didn't converge".format(istate+1, self.nstate)
+                self.log.logger_log.info(msg)
+                nerror += 1
+
+        if nerror == self.nstate:
+            msg  = "All true potential calculations failed, restarting the step\n"
+            self.log.logger_log.info(msg)
+            return False
+        else:
+            return True
 
 
 #===================================================================================================================================================#
@@ -336,8 +333,8 @@ class OtfMLACS:
                     if self.atoms[istate] == at:
                         msg  = "Initial configuration for state {0}/{1} is identical to a previously computed configuration".format(istate+1, self.nstate)
                         self.log.logger_log.info(msg)
-                        #calc       = SinglePointCalculator(self.atoms[istate], energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress())
-                        calc       = SinglePointCalculator(self.atoms[istate], **at.calc.results)
+                        calc       = SinglePointCalculator(self.atoms[istate], energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress())
+                        #calc       = SinglePointCalculator(self.atoms[istate], **at.calc.results)
                         atoms      = self.atoms[istate].copy()
                         atoms.calc = calc
                         as_prev = True
