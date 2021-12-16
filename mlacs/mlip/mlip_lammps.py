@@ -4,14 +4,14 @@ import numpy as np
 
 from ase.units import GPa
 
-from mlacs.mlip.mlip_manager import MlipManager
+from mlacs.mlip.linear_mlip import LinearMlip
 from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
 
 
 #===================================================================================================================================================#
 #===================================================================================================================================================#
-class LammpsMlip(MlipManager):
+class LammpsMlip(LinearMlip):
     """
     MLIP Manager Class to interface with the ML-IAP package
 
@@ -79,14 +79,17 @@ class LammpsMlip(MlipManager):
                  rescale_stress=True
                 ):
 
-        MlipManager.__init__(self,
-                             atoms,
-                             rcut,
-                             nthrow,
-                             energy_coefficient,
-                             forces_coefficient,
-                             stress_coefficient,
-                            )
+        LinearMlip.__init__(self,
+                            atoms,
+                            rcut,
+                            nthrow,
+                            energy_coefficient,
+                            forces_coefficient,
+                            stress_coefficient,
+                            rescale_energy=True,
+                            rescale_forces=True,
+                            rescale_stress=True
+                           )
 
         self.lammps_interface = LammpsMlipInterface(self.elements,
                                                     self.masses,
