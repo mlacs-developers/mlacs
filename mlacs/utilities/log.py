@@ -103,7 +103,7 @@ class MLACS_Log:
         msg += "Descriptor\n"
         if mlip_params["style"] == "snap":
             msg += "Spectral Neighbor Analysis Potential\n"
-            msg += "2J_max:                                      {:}\n".format(mlip_params["twojmax"])
+            msg += "2Jmax:                                      {:}\n".format(mlip_params["twojmax"])
             if mlip_params["chemflag"] == 1:
                 msg += "Multi-element version\n"
         elif mlip_params["style"] == "so3":

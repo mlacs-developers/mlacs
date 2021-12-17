@@ -11,7 +11,7 @@ from ase.io.abinit import write_abinit_in
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import LammpsSnap #LammpsMlip
 from mlacs.calc import CalcManager
 from mlacs.state import StateManager
 from mlacs.utilities.log import MLACS_Log
@@ -35,8 +35,8 @@ class OtfMLACS:
         automatically created.
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
-        Default is a LammpsMlip object with a 5.0 angstrom rcut and a snap descriptor
-        with 8 2jmax
+        Default is a LammpsSnap object with a 5.0 angstrom rcut
+        with 8 twojmax
     neq: :int: (optional) or list of :int:
         The number of step equilibration steps. Default 10.
     prefix_output: :str: (optional) or list of :str:
@@ -97,7 +97,8 @@ class OtfMLACS:
     
         # Create mlip object
         if mlip is None:
-            self.mlip = LammpsMlip(self.atoms[0]) # Default MLIP Manager
+            #self.mlip = LammpsMlip(self.atoms[0]) # Default MLIP Manager
+            self.mlip = LammpsSnap(self.atoms[0]) # Default MLIP Manager
         else:
             self.mlip = mlip
 
