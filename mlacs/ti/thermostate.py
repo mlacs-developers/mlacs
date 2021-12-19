@@ -25,33 +25,33 @@ class ThermoState:
                  dt=1.5,
                  nsteps=10000,
                  nsteps_eq=5000,
-                 fixcm=True,
                  rng=None,
-                 workdir=None
-                )
+                ):
         
         self.atoms     = atoms
         self.dt        = dt
         self.nsteps    = nsteps
         self.nsteps_eq = nsteps_eq
-        self.fixcm     = fixcm
 
         self.rng = rng
+        if self.rng is None:
+            self.rng = np.random.default_rng()
+
+        self._get_lammps_command()
 
 
 #========================================================================================================================#
-    def run_dynamics(self, pair_style, pair_coeff):
+    def run_dynamics(self, wdir, pair_style, pair_coeff, mlip_style):
         """
         """
-        atomsfname     = self.workdir + "atoms.in"
-        lammpsfname    = self.workdir + "lammps_input.in"
-        lammps_command = self.cmd + "< " + self.lammpsfname + "> log"
+        atomsfname     = wdir + "atoms.in"
+        lammpsfname    = wdir + "lammps_input.in"
+        lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
+        write_lammps_data(atomsfname, self.atoms)
 
-        write_lammps_data(atomsfname, atoms, velocities=True)
-
-        self.write_lammps_input(atoms, pair_style, pair_coeff, nsteps)
-        call(lammps_command, shell=True, cwd=self.wordkir)
+        self.write_lammps_input(wdir, pair_style, pair_coeff, mlip_style)
+        call(lammps_command, shell=True, cwd=wdir)
 
 
 #========================================================================================================================#
@@ -72,3 +72,17 @@ class ThermoState:
         Write the LAMMPS input for the MD simulation
         """
         raise NotImplementedError
+
+
+#========================================================================================================================#
+    def get_workdir(self):
+        """
+        """
+        return self.suffixdir
+
+
+#========================================================================================================================#
+    def post_process(self):
+        """
+        """
+        pass

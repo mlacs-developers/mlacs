@@ -72,6 +72,7 @@ class LammpsState(StateManager):
     def run_dynamics(self, supercell, pair_style, pair_coeff, eq=False):
         """
         """
+
         atoms = supercell.copy()
 
         write_lammps_data(self.atomsfname, supercell, velocities=True)
