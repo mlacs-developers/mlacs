@@ -13,10 +13,6 @@ from mlacs.utilities.miscellanous import get_elements_Z_and_masses
 from mlacs.ti.thermostate import ThermoState
 
 
-eV   = 1.602176634e-19  # eV
-hbar = 6.582119514e-16  # hbar
-amu  = 1.6605390666e-27 # atomic mass constant
-
 p_tabled = [1, 25, 50, 75, 100]
 
 #========================================================================================================================#
