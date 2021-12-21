@@ -11,8 +11,9 @@ class ThermoLog:
     """
     Logging class for the thermodynamic integration module
     """
-    def __init__(self, restart=False):
-        logfile = "ThermoInt.log"
+    def __init__(self, logfile=None, restart=False):
+        if logfile is None:
+            logfile = "ThermoInt.log"
         if not restart:
             if os.path.isfile(logfile):
                 prev_step = 1
