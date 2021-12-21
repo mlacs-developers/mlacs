@@ -56,6 +56,7 @@ class ThermoState:
             self.loginterval    = interval
             self.trajinterval   = interval
 
+        self.elem, self.Z, self.masses = get_elements_Z_and_masses(self.atoms)
 
 #========================================================================================================================#
     def run_dynamics(self, wdir):
@@ -139,7 +140,7 @@ class ThermoState:
 
 
 #========================================================================================================================#
-    def get_traj_input(self, elem, suffix=None):
+    def get_traj_input(self, suffix=None):
         """
         """
         input_string  = "#####################################\n"
@@ -151,7 +152,45 @@ class ThermoState:
             input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + "mlmd_{0}.traj id type xu yu zu vx vy vz fx fy fz element \n".format(suffix)
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
-        input_string += " ".join([p for p in elem])
+        input_string += " ".join([p for p in self.elem])
+        input_string += "\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_general_input(self):
+        """
+        """
+        input_string  = "# LAMMPS input file to run a MLMD simulation for thermodynamic integration\n"
+        input_string += "#####################################\n"
+        input_string += "#           General parameters\n"
+        input_string += "#####################################\n"
+        input_string += "units        metal\n"
+
+        pbc = self.atoms.get_pbc()
+        input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
+        input_string += "atom_style   atomic\n"
+        input_string += "read_data    atoms.in\n"
+        for i, mass in enumerate(self.masses):
+            input_string += "mass         " + str(i + 1) + "  " + str(mass) + "\n"
+        for iel, el in enumerate(self.elem):
+            input_string += "group        {0} type {1}\n".format(el, iel+1)
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_interaction_input(self):
+        """
+        """
+        input_string  = "#####################################\n"
+        input_string += "#           Interactions\n"
+        input_string += "#####################################\n"
+        input_string += "pair_style    " + self.pair_style + "\n"
+        input_string += "pair_coeff    " + self.pair_coeff + "\n"
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string

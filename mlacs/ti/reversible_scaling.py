@@ -103,22 +103,7 @@ class ReversibleScalingState(ThermoState):
             pdamp = "$(1000*dt)"
         
 
-        input_string  = "# LAMMPS input file to run a MLMD simulation for thermodynamic integration\n"
-        input_string += "#####################################\n"
-        input_string += "#           General parameters\n"
-        input_string += "#####################################\n"
-        input_string += "units        metal\n"
-
-        pbc = self.atoms.get_pbc()
-        input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-        input_string += "atom_style   atomic\n"
-        input_string += "read_data    atoms.in"
-        input_string += "\n"
-
-        for i, mass in enumerate(masses):
-            input_string += "mass         " + str(i + 1) + "  " + str(mass) + "\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n"
+        input_string  = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -131,14 +116,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "#####################################\n"
         input_string += "\n\n"
 
-        input_string += "#####################################\n"
-        input_string += "#           Interactions\n"
-        input_string += "#####################################\n"
-        input_string += "pair_style    " + self.pair_style + "\n"
-        input_string += "pair_coeff    " + self.pair_coeff + "\n"
-        input_string += "\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n"
+        input_string += self.get_interaction_input()
 
 
         input_string += "\n\n"
@@ -153,15 +131,12 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      xcm equal xcm(all,x)\n"
             input_string += "variable      ycm equal xcm(all,y)\n"
             input_string += "variable      zcm equal xcm(all,z)\n"
-            input_string += "\n\n"
-
         if self.pressure is None:
-            input_string += "fix    f2  all nve\n"
+            input_string += "fix           f2  all nve\n"
         else:
-            input_string += "fix    f2  all nph iso {0} {0} {1} fixedpoint ${{xcm}} ${{ycm}} ${{zcm}}\n".format(self.pressure, pdamp)
-        input_string += "fix    f1  all langevin ${{tstart}} ${{tstart}}  {0}  {1} zero yes\n".format(damp, self.rng.integers(99999))
+            input_string += "fix           f2  all nph iso {0} {0} {1} fixedpoint ${{xcm}} ${{ycm}} ${{zcm}}\n".format(self.pressure, pdamp)
+        input_string += "fix           f1  all langevin ${{tstart}} ${{tstart}}  {0}  {1} zero yes\n".format(damp, self.rng.integers(99999))
         input_string += "\n"
-
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -174,7 +149,7 @@ class ReversibleScalingState(ThermoState):
         if self.logfile is not None:
             input_string += self.get_log_input()
         if self.trajfile is not None:
-            input_string += self.get_traj_input(elem)
+            input_string += self.get_traj_input()
 
         input_string += "\n"
 
@@ -183,7 +158,6 @@ class ReversibleScalingState(ThermoState):
         input_string += "#####################################\n"
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
-        #input_string += "print        \"$(pe/atoms) 1\" file forward.dat\n"
         input_string += "variable     lambda equal 1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
         input_string += "fix          f3 all adapt 1 pair snap scale * * v_lambda\n"
         input_string += "fix          f4 all print 1 \"$(pe/atoms) ${lambda}\" screen no " + \

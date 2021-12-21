@@ -78,8 +78,6 @@ class UFLiquidState(ThermoState):
         if self.suffixdir[-1] != "/":
             self.suffixdir += "/"
 
-        self.elem, self.Z, self.masses = get_elements_Z_and_masses(self.atoms)
-
 
 #========================================================================================================================#
     def run(self, wdir):
@@ -199,24 +197,7 @@ class UFLiquidState(ThermoState):
         pair_style = self.pair_style.split()
         hybrid_pair_coeff = " ".join([*pair_coeff[:2], pair_style[0], *pair_coeff[2:]])
 
-        input_string  = "# LAMMPS input file to run a MLMD simulation for thermodynamic integration\n"
-        input_string += "#####################################\n"
-        input_string += "#           General parameters\n"
-        input_string += "#####################################\n"
-        input_string += "units        metal\n"
-
-        pbc = self.atoms.get_pbc()
-        input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-        input_string += "atom_style   atomic\n"
-        input_string += "read_data    atoms.in\n"
-        input_string += "\n"
-        for iel, el in enumerate(self.elem):
-            input_string += "group        {0} type {1}\n".format(el, iel+1)
-
-        for i, mass in enumerate(self.masses):
-            input_string += "mass         " + str(i + 1) + "  " + str(mass) + "\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n"
+        input_string  = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -226,19 +207,18 @@ class UFLiquidState(ThermoState):
         input_string += "variable      T equal {0}\n".format(self.temperature)
         input_string += "timestep      {0}\n".format(self.dt/ 1000)
 
-        input_string += "\n\n"
+        input_string += "\n\n\n"
+
+        input_string += self.get_interaction_input()
 
         input_string += "#####################################\n"
-        input_string += "#           Interactions\n"
+        input_string += "#       UF potential parameters\n"
         input_string += "#####################################\n"
         input_string += "variable      p    equal  {0}\n".format(self.p)
         input_string += "variable      kB   equal  8.6173303e-5\n"
         input_string += "variable      eps  equal  ${T}*${p}${kB}\n"
         input_string += "variable      sig  equal  {0}\n".format(self.sigma)
         input_string += "variable      rc   equal  5.0*${sig}\n"
-        input_string += "pair_style    " + self.pair_style + "\n"
-        input_string += "pair_coeff    " + self.pair_coeff + "\n"
-        input_string += "\n"
         input_string += "#####################################\n"
         input_string += "\n\n\n"
 
@@ -250,7 +230,6 @@ class UFLiquidState(ThermoState):
         input_string += "velocity      all create {0} {1} dist gaussian\n".format(self.temperature, self.rng.integers(99999))
         input_string += "fix           f2  all nve\n"
         input_string += "fix           f1  all langevin ${{T}} ${{T}}  {0}  {1} zero yes\n\n".format(damp, self.rng.integers(99999))
-
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -261,7 +240,7 @@ class UFLiquidState(ThermoState):
         if self.logfile is not None:
             input_string += self.get_log_input()
         if self.trajfile is not None:
-            input_string += self.get_traj_input(self.elem)
+            input_string += self.get_traj_input()
 
         input_string += "\n"
 
@@ -292,9 +271,9 @@ class UFLiquidState(ThermoState):
         input_string += "fix          f3 all print 1 \"${dU1}  ${dU2}  ${lambda_true}\" " + \
                                    "title \"# dU1 dU2 lambda\" screen no append forward.dat\n"
         input_string += "run          ${nsteps}\n"
+        input_string += "unfix        f3\n"
         input_string += "#####################################\n"
 
-        input_string += "unfix        f3\n"
         
         input_string += "\n\n"
 
