@@ -107,7 +107,6 @@ class LammpsSnap(LinearMlip):
         self.lammps_interface.write_mlip_coeff(self.coefficients)
 
 
-
 #===================================================================================================================================================#
     def init_calc(self):
         """

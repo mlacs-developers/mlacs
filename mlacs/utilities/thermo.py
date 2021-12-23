@@ -103,28 +103,34 @@ def free_energy_uhlenbeck_ford(rho, p, sigma, T):
 
     if x < 0.0025:
         result = coef[0] * (x**2)/2.0 + coef[1] * x
-        return beta * result
+        return result/beta
+        #return beta * result
     elif x < 0.1:
         if x * 10000 % 25 == 0:
-            return beta * sum_spline[index-1]
+            #return beta * sum_spline[index-1]
+            return sum_spline[index-1] / beta
         else:
             x_0 = 0.0025 * int(x*400)
     elif x < 1:
         if x * 1000 % 25 == 0:
-            return beta * sum_spline[index-1]
+            #return beta * sum_spline[index-1]
+            return sum_spline[index-1] / beta
         else:
             x_0 = 0.025 * int(x*40)
     elif x < 4:
         if x * 100 % 10 == 0:
-            return beta * sum_spline[index-1]
+            #return beta * sum_spline[index-1]
+            return sum_spline[index-1] / beta
         else:
             x_0 = 0.1 * int(x*10)
     else:
-        return beta * sum_spline[index]
+        #return beta * sum_spline[index]
+        return sum_spline[index] / beta
 
     
     result =  sum_spline[index-1] + coef[0] * (x ** 2.0 - x_0 ** 2.0)/2.0 + coef[1] * (x - x_0) + (coef[2] - 1.0) * np.log(x/x_0) - coef[3] * (1.0/x - 1.0/x_0)
-    return beta * result
+    #return beta * result 
+    return result / beta
 
 
 

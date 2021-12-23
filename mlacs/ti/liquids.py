@@ -127,7 +127,7 @@ class UFLiquidState(ThermoState):
         f_ig /= nat
 
         # Compute Uhlenbeck-Ford excess free energy
-        f_uf = free_energy_uhlenbeck_ford(1./vol/nat, self.p, self.sigma, self.temperature)
+        f_uf = free_energy_uhlenbeck_ford(nat/vol, self.p, self.sigma, self.temperature)
 
 
         # Compute the work between Uhlenbeck-Ford potential and the MLIP
@@ -137,9 +137,8 @@ class UFLiquidState(ThermoState):
         int_b = np.trapz(u1_b-u2_b, lambda_b)
 
         work  = (int_f - int_b) / 2.0
-        work /= nat
 
-        free_energy = f_uf  + work
+        free_energy = f_ig + f_uf  - work
         free_energy_corrected  = free_energy
         if self.fcorr1 is not None:
             free_energy_corrected += self.fcorr1
