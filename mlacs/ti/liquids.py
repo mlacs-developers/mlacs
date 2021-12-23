@@ -113,37 +113,38 @@ class UFLiquidState(ThermoState):
         """
         pass
         # Get needed value/constants
-        vol             = self.atoms.get_volume()
-        kBT             = kB * self.temperature
-        nat             = len(self.atoms)
+        vol             = self.atoms.get_volume() # angs**3
+        kBT             = kB * self.temperature   # eV
+        nat_tot         = len(self.atoms)
 
-        # Compute the ideal gas limit
-        f_ig = 0
+        nat = []
         for iel, e in enumerate(self.elem):
-            nat_e = np.count_nonzero([a==e for a in self.atoms.get_chemical_symbols()])
-            f_ig += free_energy_ideal_gas(vol, nat_e, self.masses[iel], self.temperature)
-        f_ig /= nat
+            nat.append(np.count_nonzero([a==e for a in self.atoms.get_chemical_symbols()]))
+
+        # Compute the ideal gas free energy
+        f_ig = free_energy_ideal_gas(vol, nat, self.masses, self.temperature) # eV/at
 
         # Compute Uhlenbeck-Ford excess free energy
-        f_uf = free_energy_uhlenbeck_ford(1./vol/nat, self.p, self.sigma, self.temperature)
+        f_uf = free_energy_uhlenbeck_ford(nat_tot/vol, self.p, self.sigma, self.temperature) # eV/at
 
 
         # Compute the work between Uhlenbeck-Ford potential and the MLIP
         u1_f, u2_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
         u1_b, u2_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
-        int_f = np.trapz(u1_f-u2_f, lambda_f)
-        int_b = np.trapz(u1_b-u2_b, lambda_b)
+        int_f = np.trapz(u1_f-u2_f, (1-lambda_f)) # 1-lambda to get the right integration variable
+        int_b = np.trapz(u1_b-u2_b, (1-lambda_b)) # 1-lambda to get the right integration variable
 
-        work  = (int_f - int_b) / 2.0
-        work /= nat
+        work  = (int_f - int_b) / 2.0 # eV/at
 
-        free_energy = f_uf  + work
+        # Add everything together
+        free_energy = f_ig + f_uf  + work
         free_energy_corrected  = free_energy
         if self.fcorr1 is not None:
             free_energy_corrected += self.fcorr1
         if self.fcorr2 is not None:
             free_energy_corrected += self.fcorr2
 
+        # write the results
         with open(wdir+"free_energy.dat", "w") as f:
             header  = "#   T [K]     Fe tot [eV/at]     Fe harm [eV/at]      Work [eV/at]      Fe com [eV/at]"
             results = "{0:10.3f}     {1:10.6f}         {2:10.6f}          {3:10.6f}".format(self.temperature, free_energy, f_uf, work)
@@ -167,7 +168,7 @@ class UFLiquidState(ThermoState):
         msg += "      sigma                     {0}\n".format(self.sigma)
         msg += "      p                         {0}\n".format(self.p)
         msg += "Temperature :                   {0:10.3f} K\n".format(self.temperature)
-        msg += "Volume :                        {0:10.3f} angs^3\n".format(vol/nat)
+        msg += "Volume :                        {0:10.3f} angs^3/at\n".format(vol/nat_tot)
         msg += "Free energy :                   {0:10.6f} eV/at\n".format(free_energy)
         msg += "Excess work :                   {0:10.6f} eV/at\n".format(work)
         msg += "Ideal gas free energy :         {0:10.6f} eV/at\n".format(f_ig)

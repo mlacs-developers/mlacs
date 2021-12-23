@@ -152,22 +152,20 @@ class EinsteinSolidState(ThermoState):
         vol             = self.atoms.get_volume()
         k               = self.k
         kBT             = kB * self.temperature
+        nat_tot         = len(self.atoms)
 
-        # Compute harmonic free energy
+        # Compute some oscillator frequencies and number of atoms for each species
         omega  = []
         nat    = []
-        f_harm = 0
-        f_cm   = 0
         for iel, e in enumerate(self.elem):
             omega.append(np.sqrt(self.k[iel] / (self.masses[iel])))
             nat.append(np.count_nonzero([a==e for a in self.atoms.get_chemical_symbols()]))
-            f_harm += free_energy_harmonic_oscillator(omega[iel], self.temperature) * nat[iel]
-        nat_tot = np.sum(nat)
-        f_harm /= nat_tot
+
+        # Compute free energy of the Einstein crystal
+        f_harm = free_energy_harmonic_oscillator(omega, self.temperature, nat) # eV/at
 
         # Compute the center of mass correction
-        f_cm    = free_energy_com_harmonic_oscillator(self.k, self.temperature, nat, vol, self.masses)
-        f_cm   /= nat_tot
+        f_cm    = free_energy_com_harmonic_oscillator(self.k, self.temperature, nat, vol, self.masses) # eV/at
 
 
         # Compute the work between einstein crystal and the MLIP
@@ -177,7 +175,7 @@ class EinsteinSolidState(ThermoState):
         int_b = np.trapz(dE_b, lambda_b)
 
         work  = (int_f - int_b) / 2.0
-        work /= nat_tot
+        work /= nat_tot # eV/at
 
         free_energy = f_harm + f_cm + work
         free_energy_corrected  = free_energy
@@ -221,8 +219,6 @@ class EinsteinSolidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None:
             msg += "Free energy corrected :         {0:10.6f} eV/at\n".format(free_energy_corrected)
         return msg
-        
-
 
 
 #========================================================================================================================#
