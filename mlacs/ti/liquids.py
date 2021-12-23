@@ -133,12 +133,12 @@ class UFLiquidState(ThermoState):
         # Compute the work between Uhlenbeck-Ford potential and the MLIP
         u1_f, u2_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
         u1_b, u2_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
-        int_f = np.trapz(u1_f-u2_f, lambda_f)
-        int_b = np.trapz(u1_b-u2_b, lambda_b)
+        int_f = np.trapz(u1_f-u2_f, (1-lambda_f)) # 1-lambda to get the right integration variable
+        int_b = np.trapz(u1_b-u2_b, (1-lambda_b)) # 1-lambda to get the right integration variable
 
         work  = (int_f - int_b) / 2.0
 
-        free_energy = f_ig + f_uf  - work
+        free_energy = f_ig + f_uf  + work
         free_energy_corrected  = free_energy
         if self.fcorr1 is not None:
             free_energy_corrected += self.fcorr1
