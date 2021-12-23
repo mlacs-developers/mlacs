@@ -18,32 +18,35 @@ h    = 4.135667696e-15 * 1e15*fs # from eV.s to eV.(ASE time units)
 hbar = 6.582119514e-16 * 1e15*fs # from eV.s to eV.(ASE time units)
 
 
-def free_energy_harmonic_oscillator(omega, T, classical=True):
+def free_energy_harmonic_oscillator(omega, T, nat, classical=True):
     """
     Function to compute the free energy of a harmonic oscillator
     """
     kBT = kB * T
+
+    omega   = np.array(omega)
+    nat     = np.array(nat)
+    nat_tot = np.sum(nat)
+
     if classical:
-        f_harm = 3 * kBT * np.log(hbar*omega/kBT)
+        f_harm = 3 * nat * kBT * np.log(hbar*omega/kBT)
     else:
-        f_harm = hbar * omega/2 + kBT * np.log(1 - np.exp(-hbar*omega/kBT))
-    return f_harm
+        f_harm = nat * (hbar * omega/2 + kBT * np.log(1 - np.exp(-hbar*omega/kBT)))
+    return np.sum(f_harm) / nat_tot
 
 
 def free_energy_com_harmonic_oscillator(k, T, nat, vol, masses):
     """
     Function to compute the free energy of the center of mass of an harmonic oscillator
-    The formula used come from J. Chem. Phys. 154 164509 (2021)
     """
+    k    = np.array(k)
+    nat  = np.array(nat)
+
     kBT  = kB * T
-    a = 0
-    masses = np.array(masses)
-    vol    = np.array(vol)
-    nat    = np.array(nat)
-    a = masses * nat/ np.sum(masses * nat)
-    b = np.sum(a**2 / np.array(k))
-    f_cm = -kBT * np.log(vol/nat.sum() * (1./(2*np.pi*kBT*b))**(3/2))
-    return f_cm
+
+    f_cm = np.log((nat/vol)*(2*np.pi*kBT/(nat*k))**1.5)
+    f_cm = 0
+    return kBT * np.sum(f_cm) / np.sum(nat)
 
 
 def free_energy_ideal_gas(vol, nat, mass, T):
@@ -51,10 +54,17 @@ def free_energy_ideal_gas(vol, nat, mass, T):
     Function to compute the free energy of an ideal gas
     Uses Stirling formula
     """
-    kBT = kB * T
+    mass    = np.array(mass)
+    nat     = np.array(nat)
+    nat_tot = nat.sum()
+    c       = nat / nat_tot
+
+    kBT  = kB * T
     thermal_deBroglie = h / np.sqrt(2*np.pi*mass*kBT)
-    f_ig = -kBT * (3 * np.log(thermal_deBroglie) + np.log(nat/vol) -1 + np.log(2*np.pi*nat)/(2*nat))
-    return f_ig
+
+    f_ig = np.sum(3 * np.log(thermal_deBroglie) + np.log(nat/vol) - 1 + np.log(c))
+    f_ig = kBT * nat_tot * (f_ig + np.log(2*np.pi*nat_tot) / (2*nat_tot))
+    return np.sum(f_ig) / nat_tot # Sum for the multicomponent case
 
 
 
