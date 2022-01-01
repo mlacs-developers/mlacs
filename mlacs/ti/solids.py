@@ -166,6 +166,7 @@ class EinsteinSolidState(ThermoState):
         f_harm = free_energy_harmonic_oscillator(omega, self.temperature, nat) # eV/at
 
         # Compute the center of mass correction
+        #f_cm    = free_energy_com_harmonic_oscillator(omega, self.temperature, nat, vol, self.masses) # eV/at
         f_cm    = free_energy_com_harmonic_oscillator(self.k, self.temperature, nat, vol, self.masses) # eV/at
 
 
@@ -176,7 +177,7 @@ class EinsteinSolidState(ThermoState):
         int_b = np.trapz(dE_b, lambda_b)
 
         work  = (int_f - int_b) / 2.0
-        work /= nat_tot # eV/at
+        #work /= nat_tot # eV/at
 
         free_energy = f_harm + f_cm + work
         free_energy_corrected  = free_energy
@@ -297,7 +298,7 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "#         Integration\n"
         input_string += "#####################################\n"
-        input_string += "variable     dE equal pe-" + "-".join(["f_ff" + e for e in self.elem]) + "\n"
+        input_string += "variable     dE equal (pe-" + "-".join(["f_ff" + e for e in self.elem]) + ")/atoms \n"
         input_string += "variable     lambda equal f_ff{0}[1]\n".format(self.elem[0])
         input_string += "\n\n"
 

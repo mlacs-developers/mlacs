@@ -152,6 +152,7 @@ class ThermoState:
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
         input_string += " ".join([p for p in elem])
+        input_string += "\n"
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string
