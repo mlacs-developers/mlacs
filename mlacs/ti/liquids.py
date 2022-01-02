@@ -129,11 +129,10 @@ class UFLiquidState(ThermoState):
 
 
         # Compute the work between Uhlenbeck-Ford potential and the MLIP
-        u1_f, u2_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
-        u1_b, u2_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
-        int_f = np.trapz(u1_f-u2_f, (1-lambda_f)) # 1-lambda to get the right integration variable
-        int_b = np.trapz(u1_b-u2_b, (1-lambda_b)) # 1-lambda to get the right integration variable
-
+        u_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
+        u_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
+        int_f = np.trapz(u_f, lambda_f)
+        int_b = np.trapz(u_b, lambda_b)
         work  = (int_f - int_b) / 2.0 # eV/at
 
         # Add everything together
@@ -180,8 +179,6 @@ class UFLiquidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None:
             msg += "Free energy corrected :         {0:10.6f} eV/at\n".format(free_energy_corrected)
         return msg
-        
-
 
 
 #========================================================================================================================#
@@ -217,7 +214,7 @@ class UFLiquidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "variable      p    equal  {0}\n".format(self.p)
         input_string += "variable      kB   equal  8.6173303e-5\n"
-        input_string += "variable      eps  equal  ${T}*${p}${kB}\n"
+        input_string += "variable      eps  equal  ${T}*${p}*${kB}\n"
         input_string += "variable      sig  equal  {0}\n".format(self.sigma)
         input_string += "variable      rc   equal  5.0*${sig}\n"
         input_string += "#####################################\n"
@@ -256,8 +253,9 @@ class UFLiquidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "#       Forward integration\n"
         input_string += "#####################################\n"
-        input_string += "variable     lambda_true equal ramp(1,0)\n"
-        input_string += "variable     lambda_ufm  equal ramp(0,1)\n"
+        input_string += "variable     tau equal ramp(1,0)\n"
+        input_string += "variable     lambda_true equal v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
+        input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
         input_string += "pair_style   hybrid/scaled v_lambda_true {0} v_lambda_ufm ufm ${{rc}}\n".format(pair_style[0])
         input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
@@ -266,11 +264,11 @@ class UFLiquidState(ThermoState):
         input_string += "compute      c2 all pair {0}\n".format(pair_style[0])
         input_string += "compute      c3 all pair ufm\n"
         input_string += "\n"
-        input_string += "variable     dU1 equal c_c2/atoms\n"
-        input_string += "variable     dU2 equal c_c3/atoms\n"
+        input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
+        input_string += "variable     lamb equal 1-v_lambda_true\n"
         input_string += "\n"
-        input_string += "fix          f3 all print 1 \"${dU1}  ${dU2}  ${lambda_true}\" " + \
-                                   "title \"# dU1 dU2 lambda\" screen no append forward.dat\n"
+        input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
+                                   "title \"# dU lambda\" screen no append forward.dat\n"
         input_string += "run          ${nsteps}\n"
         input_string += "unfix        f3\n"
         input_string += "#####################################\n"
@@ -284,16 +282,16 @@ class UFLiquidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "run          ${nstepseq}\n"
         input_string += "\n"
-        input_string += "variable     lambda_true equal ramp(0,1)\n"
-        input_string += "variable     lambda_ufm  equal ramp(1,0)\n"
+        input_string += "variable     tau equal ramp(0,1)\n"
+        input_string += "variable     lambda_true equal v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
+        input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
         input_string += "pair_style   hybrid/scaled v_lambda_true {0} v_lambda_ufm ufm ${{rc}}\n".format(pair_style[0])
         input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
         input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
         input_string += "\n"
-
-        input_string += "fix          f3 all print 1 \"${dU1}  ${dU2}  ${lambda_true}\" " + \
-                                  "title \"# dU1 dU2 lambda\" screen no append backward.dat\n"
+        input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
+                                   "title \"# dU lambda\" screen no append backward.dat\n"
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 

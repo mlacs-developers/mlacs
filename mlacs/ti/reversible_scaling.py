@@ -24,6 +24,7 @@ class ReversibleScalingState(ThermoState):
                  pair_coeff,
                  t_start=300,
                  t_end=1200,
+                 fe_init=0,
                  dt=1,
                  damp=None,
                  pressure=None,
@@ -42,6 +43,7 @@ class ReversibleScalingState(ThermoState):
 
         self.t_start  = t_start
         self.t_end    = t_end  
+        self.fe_init  = fe_init
         self.damp     = damp
         self.pressure = pressure
         self.pdamp    = pdamp
@@ -159,7 +161,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal 1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        input_string += "fix          f3 all adapt 1 pair snap scale * * v_lambda\n"
+        input_string += "fix          f3 all adapt 1 pair {0} scale * * v_lambda\n".format(self.pair_style)
         input_string += "fix          f4 all print 1 \"$(pe/atoms) ${lambda}\" screen no " + \
                         "append forward.dat title \"# pe    lambda\"\n"
         input_string += "run          ${nsteps}\n"
@@ -206,7 +208,7 @@ class ReversibleScalingState(ThermoState):
         work  = (int_f + int_b) / (2 * lambda_f)
 
         temperature = self.t_start / lambda_f
-        free_energy = 1.5 * kB * temperature * np.log(lambda_f) + work
+        free_energy = self.fe_init / lambda_f + 1.5 * kB * temperature * np.log(lambda_f) + work
         
         results = np.array([temperature, free_energy]).T
         header  = "   T [K]    F [eV/at]"
@@ -242,10 +244,3 @@ class ReversibleScalingState(ThermoState):
             msg += "Pressure :                      {0} GPa\n".format(self.pressure)
             msg += "Pressure damping :              {0} fs\n".format(pdamp)
         return msg
-
-
-#========================================================================================================================#
-    def get_workdir(self):
-        """
-        """
-        return self.suffixdir

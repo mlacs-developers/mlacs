@@ -39,14 +39,14 @@ def free_energy_com_harmonic_oscillator(k, T, nat, vol, masses):
     """
     Function to compute the free energy of the center of mass of an harmonic oscillator
     """
-    k    = np.array(k)
-    nat  = np.array(nat)
+    k      = np.array(k)
+    nat    = np.array(nat)
+    masses = np.array(masses)
 
-    kBT  = kB * T
+    kBT    = kB * T
 
-    f_cm = np.log((nat/vol)*(2*np.pi*kBT/(nat*k))**1.5)
-    f_cm = 0
-    return kBT * np.sum(f_cm) / np.sum(nat)
+    f_cm = np.log((nat / vol) * (2*np.pi*kBT / (nat*masses*k))**1.5) # eV
+    return kBT * f_cm.sum() / nat.sum() # eV/at
 
 
 def free_energy_ideal_gas(vol, nat, mass, T):
@@ -62,9 +62,9 @@ def free_energy_ideal_gas(vol, nat, mass, T):
     kBT  = kB * T
     thermal_deBroglie = h / np.sqrt(2*np.pi*mass*kBT)
 
-    f_ig = np.sum(3 * np.log(thermal_deBroglie) + np.log(nat/vol) - 1 + np.log(c))
-    f_ig = kBT * nat_tot * (f_ig + np.log(2*np.pi*nat_tot) / (2*nat_tot))
-    return np.sum(f_ig) / nat_tot # Sum for the multicomponent case
+    f_ig = c * (3*np.log(thermal_deBroglie) + np.log(nat_tot/vol) - 1 + np.log(c))
+    f_ig = kBT * (f_ig.sum() + np.log(2*np.pi*nat_tot)/(2*nat_tot))
+    return f_ig
 
 
 
