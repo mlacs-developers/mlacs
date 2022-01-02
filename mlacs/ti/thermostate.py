@@ -152,7 +152,6 @@ class ThermoState:
             input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + "mlmd_{0}.traj id type xu yu zu vx vy vz fx fy fz element \n".format(suffix)
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
-<<<<<<< HEAD
         input_string += " ".join([p for p in self.elem])
         input_string += "\n"
         input_string += "#####################################\n"
@@ -192,10 +191,6 @@ class ThermoState:
         input_string += "#####################################\n"
         input_string += "pair_style    " + self.pair_style + "\n"
         input_string += "pair_coeff    " + self.pair_coeff + "\n"
-=======
-        input_string += " ".join([p for p in elem])
-        input_string += "\n"
->>>>>>> ti
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string
