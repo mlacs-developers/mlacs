@@ -1,3 +1,7 @@
+"""
+// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)
+"""
 from mlacs.state.state            import StateManager
 from mlacs.state.langevin         import LangevinState
 from mlacs.state.verlet           import VerletState

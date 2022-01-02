@@ -20,6 +20,7 @@ if __name__ == "__main__":
           author_email="alois.castellano@cea.fr",
           packages=["mlacs", "test"],
           description="Machine-Learning Assisted Canonical Sampling",
+          license_files=("LICENSE.txt",),
           long_description=long_description,
           install_requires=install_requires,
           extra_requires=extra_requires

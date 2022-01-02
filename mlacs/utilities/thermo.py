@@ -1,4 +1,6 @@
 """
+// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)
 
 The Uhlenbeck-Ford potential splines and the code to compute the free energy of the Uhlenbeck-Ford
 potential are adapted from :

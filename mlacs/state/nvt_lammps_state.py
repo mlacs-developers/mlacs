@@ -1,3 +1,7 @@
+"""
+// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)
+"""
 import numpy as np
 
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
