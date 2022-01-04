@@ -192,7 +192,11 @@ class ThermoState:
         input_string += "#           Interactions\n"
         input_string += "#####################################\n"
         input_string += "pair_style    " + self.pair_style + "\n"
-        input_string += "pair_coeff    " + self.pair_coeff + "\n"
+        if isinstance(self.pair_coeff, list):
+            for coeff in self.pair_coeff:
+                input_string += "pair_coeff    " + coeff + "\n"
+        else:
+            input_string += "pair_coeff    " + self.pair_coeff + "\n"
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string
