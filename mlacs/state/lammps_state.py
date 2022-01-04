@@ -119,7 +119,9 @@ class LammpsState(StateManager):
     def get_log_in(self):
         """
         """
-        input_string  = "# Logging\n"
+        input_string  = "#####################################\n"
+        input_string += "#          Logging\n"
+        input_string += "#####################################\n"
         input_string += "variable    t equal step\n"
         input_string += "variable    mytemp equal temp\n"
         input_string += "variable    mype equal pe\n"
@@ -138,8 +140,8 @@ class LammpsState(StateManager):
         input_string += "variable    mypyz equal pyz/(vol*10000)\n"
 
         input_string += 'fix mythermofile all print {0} "$t ${{myetot}}  ${{mype}} ${{myke}} ${{mytemp}}  ${{mypress}} ${{mypxx}} ${{mypyy}} ${{mypzz}} ${{mypxy}} ${{mypxz}} ${{mypyz}}" append {1} title "# Step  Etot  Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'.format(self.loginterval, self.logfile)
-        input_string += "\n"
-        input_string += "\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
         return input_string
 
 
@@ -147,11 +149,65 @@ class LammpsState(StateManager):
     def get_traj_in(self, elem):
         """
         """
-        input_string  = "# Dumping\n"
+        input_string  = "#####################################\n"
+        input_string += "#           Dumping\n"
+        input_string += "#####################################\n"
         input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + self.workdir + "{0} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfile)
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
         input_string += " ".join([p for p in elem])
         input_string += "\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_general_input(self, pbc, masses):
+        """
+        """
+        input_string  = "# LAMMPS input file to run a MLMD simulation for MLACS\n"
+        input_string += "#####################################\n"
+        input_string += "#           General parameters\n"
+        input_string += "#####################################\n"
+        input_string += "units        metal\n"
+
+        input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
+        input_string += "atom_style   atomic\n"
+        input_string += "read_data    atoms.in\n"
+        for i, mass in enumerate(masses):
+            input_string += "mass         " + str(i + 1) + "  " + str(mass) + "\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_interaction_input(self, pair_style, pair_coeff):
+        """
+        """
+        input_string  = "#####################################\n"
+        input_string += "#           Interactions\n"
+        input_string += "#####################################\n"
+        input_string += "pair_style    " + pair_style + "\n"
+        input_string += "pair_coeff    " + pair_coeff + "\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_last_dump_input(self, elem, nsteps):
+        """
+        """
+        input_string  = "#####################################\n"
+        input_string += "#         Dump last step\n"
+        input_string += "#####################################\n"
+        input_string += "dump last all custom {0} ".format(nsteps) + self.workdir + "configurations.out  id type xu yu zu vx vy vz fx fy fz element\n"
+        input_string += "dump_modify last element "
+        input_string += " ".join([p for p in elem])
         input_string += "\n"
+        input_string += "dump_modify last delay {0}\n".format(nsteps)
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
         return input_string

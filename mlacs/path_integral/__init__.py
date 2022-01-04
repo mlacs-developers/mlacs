@@ -1,3 +1,3 @@
-from mlacs.path_integral.pimd_langevin import PathIntegralLangevin
+from mlacs.path_integral.qpolymer import QPolymer
 
-__all__ = ['PathIntegralLangevin']
+__all__ = ['QPolymer']
