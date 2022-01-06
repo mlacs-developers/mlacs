@@ -3,5 +3,6 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from mlacs.otf_sampling import OtfMLACS
+from mlacs.pimlacs import PIMLACS
 
-__all__ = ['OtfMLACS']
+__all__ = ['OtfMLACS', 'PIMLACS']

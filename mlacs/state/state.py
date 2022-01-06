@@ -41,7 +41,6 @@ class StateManager:
             self.loginterval    = interval
             self.trajinterval   = interval
 
-        self.isnpt          = False
         self.islammps       = False
 
 

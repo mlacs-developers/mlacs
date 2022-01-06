@@ -7,8 +7,7 @@ import os
 import numpy as np
 
 from ase.atoms import Atoms
-from ase.io import read as ase_read, Trajectory
-from ase.io.abinit import write_abinit_in
+from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
@@ -17,6 +16,7 @@ from mlacs.calc import CalcManager
 from mlacs.state import StateManager
 from mlacs.utilities.log import MLACS_Log
 from mlacs.utilities import create_random_structures
+from mlacs.path_integral import compute_centroid_atoms
 
 
 class PIMLACS:
@@ -70,6 +70,8 @@ class PIMLACS:
         self.nbeads = self.state.get_nbeads()
         # We need to store the masses for isotope purposes
         self.masses = atoms.get_masses()
+        # We need the temperature for centroid computation purposes
+        self.temperature = self.state.get_temperature()
 
         # Create list of atoms
         self.atoms = []
@@ -100,6 +102,7 @@ class PIMLACS:
         self.prefix_output = []
         for i in range(self.nbeads):
             self.prefix_output.append(prefix_output + "_{0}".format(i+1))
+        self.prefix_centroid = prefix_output + "_centroid"
 
         # Miscellanous initialization
         self.rng      = np.random.default_rng()
@@ -127,6 +130,8 @@ class PIMLACS:
                 #self.state[istate].initialize_momenta(self.atoms[istate])
                 with open(self.prefix_output[ibead] + "_potential.dat", "w") as f:
                     f.write("# True epot [eV]          MLIP epot [eV]\n")
+                with open(self.prefix_centroid + "_potential.dat", "w") as f:
+                    f.write("# True epot [eV]       True ekin [eV]       MLIP epot [eV]    MLIP ekin [eV]\n")
             self.confs_init  = confs_init
             self.std_init    = std_init
             self.nconfs = 0
@@ -174,6 +179,7 @@ class PIMLACS:
             for ibead in range(self.nbeads):
                 self.traj.append(Trajectory(self.prefix_output[ibead]+".traj", mode="a"))
                 self.atoms.append(prev_traj[ibead][-1])
+            self.traj_centroid = Trajectory(self.prefix_centroid + ".traj", mode="a")
             del prev_traj
                 
         self.step = 0
@@ -236,12 +242,19 @@ class PIMLACS:
             at.set_masses(self.masses)
             atoms_mlip.append(at)
 
+
+        # SinglePointCalculator to bypass the calc attach to atoms thing of ase
+        sp_calc_true = []
+        sp_calc_mlip = []
+
         # Run the actual MLMD
         msg = "Running MLMD"
         self.log.logger_log.info(msg)
         atoms_mlip = self.state.run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, eq)
-        for ibead in range(self.nbeads):
-            atoms_mlip[ibead].calc = self.mlip.calc
+        for ibead, at in enumerate(atoms_mlip):
+            at.calc = self.mlip.calc
+            sp_calc_mlip.append(SinglePointCalculator(at, energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress()))
+            at.calc = sp_calc_mlip[ibead]
                 
         # Computing energy with true potential
         msg  = "Computing energy with the True potential\n"
@@ -250,7 +263,11 @@ class PIMLACS:
         for ibead in range(self.nbeads):
             msg = "Bead {0}/{1}".format(ibead+1, self.nbeads)
             self.log.logger_log.info(msg)
-            atoms_true.append(self.calc.compute_true_potential(atoms_mlip[ibead].copy()))
+            at = self.calc.compute_true_potential(atoms_mlip[ibead].copy())
+            sp_calc_true.append(SinglePointCalculator(at, energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress()))
+            at.calc = sp_calc_true[ibead]
+            atoms_true.append(at)
+            #atoms_true.append(self.calc.compute_true_potential(atoms_mlip[ibead].copy()))
             if atoms_true[ibead] is None:
                 msg  = "One of the true potential calculation failed, restarting the step\n"
                 self.log.logger_log.info(msg)
@@ -263,9 +280,17 @@ class PIMLACS:
         for ibead, at in enumerate(atoms_true):
             self.mlip.update_matrices(at)
             self.traj[ibead].write(at)
-            self.atoms[ibead]   = at
+            self.atoms[ibead] = at
             with open(self.prefix_output[ibead] + "_potential.dat", "a") as f:
                 f.write("{:20.15f}   {:20.15f}\n".format(at.get_potential_energy(), at.get_potential_energy()))
+        atoms_centroid      = compute_centroid_atoms(atoms_true, self.temperature)
+        atoms_centroid_mlip = compute_centroid_atoms(atoms_mlip, self.temperature)
+        self.traj_centroid.write(atoms_centroid)
+        with open(self.prefix_centroid + "_potential.dat", "a") as f:
+            f.write("{:20.15f}   {:20.15f}   {:20.15f}   {:20.15f}\n".format(atoms_centroid.get_potential_energy(), 
+                                                                             atoms_centroid.get_kinetic_energy(),
+                                                                             atoms_centroid_mlip.get_potential_energy(),
+                                                                             atoms_centroid_mlip.get_kinetic_energy()))
         self.nconfs += 1
         return True
 
@@ -279,9 +304,6 @@ class PIMLACS:
             Compute potential energy for the initial positions
             Compute potential for nconfs_init training configurations
         """
-        msg = "\nComputing energy with true potential on initial configuration"
-        self.log.logger_log.info(msg)
-
         # Compute potential energy, update fitting matrices and write the configuration to the trajectory
         msg = "Computing energy with the true potential on the initial configuration"
         self.log.logger_log.info(msg)
@@ -302,6 +324,9 @@ class PIMLACS:
             atoms.calc = calc
             self.traj.append(Trajectory(self.prefix_output[ibead] + ".traj", mode="w"))
             self.traj[ibead].write(atoms)
+        # Create centroid traj
+        self.traj_centroid = Trajectory(self.prefix_centroid + ".traj", mode="w")
+        self.traj_centroid.write(compute_centroid_atoms([at] * self.nbeads, self.temperature))
 
         msg = "\nComputing energy with true potential on training configurations"
         self.log.logger_log.info(msg)
@@ -319,7 +344,7 @@ class PIMLACS:
             msg += "Adding them to the training data"
             self.log.logger_log.info(msg)
 
-            confs_init = ase_read("Training_configurations.traj",index=":")
+            confs_init = read("Training_configurations.traj",index=":")
             for conf in confs_init:
                 self.mlip.update_matrices(conf)
         else:

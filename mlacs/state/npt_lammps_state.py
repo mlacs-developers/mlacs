@@ -2,8 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import numpy as np
-
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import LammpsState
@@ -111,6 +109,7 @@ class NPTLammpsState(LammpsState):
         Write the LAMMPS input for the MD simulation
         """
         elem, Z, masses = get_elements_Z_and_masses(atoms)
+        pbc             = atoms.get_pbc()
 
         damp  = self.damp
         if self.damp is None:
@@ -120,50 +119,28 @@ class NPTLammpsState(LammpsState):
         if self.pdamp is None:
             pdamp = "$(1000*dt)"
 
-        input_string  = "# LAMMPS input file to run a MLMD simulation\n"
-        input_string += "units      metal\n"
+        input_string  = ""
+        input_string += self.get_general_input(pbc, masses)
 
-        pbc = atoms.get_pbc()
-        input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-        input_string += "atom_style   atomic\n"
-        input_string += "read_data    " + self.atomsfname
-        input_string += "\n"
-
-        for i, mass in enumerate(masses):
-            input_string += "mass  " + str(i + 1) + "  " + str(mass) + "\n"
-        input_string += "\n"
-
-        #input_string += "velocity  all create {0}  {1}\n".format(self.temperature, self.rng.integers(999999))
-
-
-        input_string += "# Interactions\n"
-        input_string += "pair_style    {0}\n".format(pair_style)
-        input_string += "pair_coeff    {0}\n".format(pair_coeff)
-        input_string += "\n"
+        input_string += self.get_interaction_input(pair_style, pair_coeff)
 
         input_string += "timestep      {0}\n".format(self.dt/ 1000)
         input_string += "\n"
 
+
         input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure * 10000, pdamp)
         if self.fixcm:
-            input_string += "fix    2  all recenter INIT INIT INIT"
+            input_string += "fix    3  all recenter INIT INIT INIT\n"
+
+        input_string += "\n\n"
 
         if self.logfile is not None:
             input_string += self.get_log_in()
         if self.trajfile is not None:
             input_string += self.get_traj_in(elem)
 
-
-        input_string += "# Dump last step\n"
-        input_string += "dump last all custom {0} ".format(nsteps) + self.workdir + "configurations.out  id type xu yu zu vx vy vz fx fy fz element\n"
-        input_string += "dump_modify last element "
-        input_string += " ".join([p for p in elem])
-        input_string += "\n"
-        input_string += "dump_modify last delay {0}\n".format(nsteps)
-        input_string += "\n"
-
+        input_string += self.get_last_dump_input(elem, nsteps)
         input_string += "run  {0}".format(nsteps)
-
 
         with open(self.lammpsfname, "w") as f:
             f.write(input_string)

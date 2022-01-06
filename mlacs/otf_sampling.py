@@ -7,12 +7,11 @@ import os
 import numpy as np
 
 from ase.atoms import Atoms
-from ase.io import read as ase_read, Trajectory
-from ase.io.abinit import write_abinit_in
+from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from mlacs.mlip import LammpsSnap #LammpsMlip
+from mlacs.mlip import LammpsSnap
 from mlacs.calc import CalcManager
 from mlacs.state import StateManager
 from mlacs.utilities.log import MLACS_Log
@@ -370,7 +369,7 @@ class OtfMLACS:
             msg += "Adding them to the training data"
             self.log.logger_log.info(msg)
 
-            confs_init = ase_read("Training_configurations.traj",index=":")
+            confs_init = read("Training_configurations.traj",index=":")
             for conf in confs_init:
                 self.mlip.update_matrices(conf)
         else:

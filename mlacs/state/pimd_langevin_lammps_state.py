@@ -2,8 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import numpy as np
-
 from ase.units import fs
 
 from mlacs.state.pimd_lammps_state import PIMDLammpsState
@@ -37,6 +35,7 @@ class PIMDLangevinLammpsState(PIMDLammpsState):
         
         PIMDLammpsState.__init__(self,
                                  nbeads,
+                                 temperature,
                                  dt,
                                  nsteps,
                                  nsteps_eq,
@@ -51,7 +50,6 @@ class PIMDLangevinLammpsState(PIMDLammpsState):
                                  init_momenta,
                                  workdir
                                 )
-        self.temperature = temperature
         self.damp = damp
 
 
@@ -81,6 +79,11 @@ class PIMDLangevinLammpsState(PIMDLammpsState):
         if self.fixcm:
             input_string += "fix           f4  all recenter INIT INIT INIT\n"
         input_string += "\n\n\n"
+
+        if self.logfile is not None:
+            input_string += self.get_log_in()
+        if self.trajfile is not None:
+            input_string += self.get_traj_in(elem)
 
         input_string += self.get_last_dump_input(elem, nsteps)
         input_string += "run           {0}".format(nsteps)
