@@ -19,48 +19,48 @@ class LangevinLammpsState(LammpsState):
     Parameters
     ----------
 
-    temperature : float
+    temperature : :class:`float`
         Temperature of the simulation, in Kelvin
-    gjf : bool (optional)
+    gjf : :class:`Bool` (optional)
         If true, the 2half GJF integrator is used.
         Else, the standard Velocity-Verlet Langevin integrator is used.
-        Default True.
-    damp : float (optional)
-        Damping parameter. If None, a damping parameter of a hundred time the timestep is used.
-    dt : float (optional)
-        Timestep, in fs. Default 1.5 fs.
-    nsteps : int (optional)
-        Number of MLMD steps for production runs. Default 1000 steps.
-    nsteps_eq : int (optional)
-        Number of MLMD steps for equilibration runs. Default 100 steps.
-    fixcm : bool (optional)
-        Fix position and momentum center of mass. Default True.
-    logfile : str (optional)
+        Default ``True``.
+    damp : :class:`float` (optional)
+        Damping parameter. If ``None``, a damping parameter of a hundred time the timestep is used.
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+    fixcm : :class:`Bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+    logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
-        If none, no log file is created. Default None.
-    trajfile : str (optional)
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
-        If none, no traj file is created. Default None.
-    interval : int (optional)
+        If ``None``, no traj file is created. Default ``None``.
+    interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default 50
-    loginterval : int (optional)
-        Number of steps between MLMD logging. Default 50.
-    trajinterval : int (optional)
-        Number of steps between MLMD traj writing. Default 50.
+        loginterval and trajinterval. Default ``50``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    trajinterval : :class:`int` (optional)
+        Number of steps between MLMD traj writing. Default ``50``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
-        Default correspond to numpy.random.default_rng()
-    init_momenta : array (optional)
-        If None, velocities are initialized with a Maxwell Boltzmann distribution
+        Default correspond to :class:`numpy.random.default_rng()`
+    init_momenta : :class:`numpy.ndarray` (optional)
+        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
-    workdir : str (optional)
-        Working directory for the LAMMPS MLMD simulations. If none, a LammpsMLMD
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
         directory is created
     """
     def __init__(self,
                  temperature,
-                 gjf=True,
+                 gjf=False,
                  damp=None,
                  dt=1.5,
                  nsteps=1000,
@@ -117,13 +117,13 @@ class LangevinLammpsState(LammpsState):
         input_string += "\n"
 
         if self.gjf:
-            input_string += "fix    1  all langevin {0} {0}  {1} {2}  gjf vhalf\n".format(self.temperature, damp, self.rng.integers(99999))
+            input_string += "fix    f1  all langevin {0} {0}  {1} {2}  gjf vhalf zero yes\n".format(self.temperature, damp, self.rng.integers(99999))
         else:
-            input_string += "fix    1  all langevin {0} {0}  {1}  {2}\n".format(self.temperature, damp, self.rng.integers(99999))
-        input_string += "fix    2  all nve\n"
+            input_string += "fix    f1  all langevin {0} {0}  {1}  {2} zero yes\n".format(self.temperature, damp, self.rng.integers(99999))
+        input_string += "fix    f2  all nve\n"
 
         if self.fixcm:
-            input_string += "fix    3  all recenter INIT INIT INIT\n"
+            input_string += "fix    f3  all recenter INIT INIT INIT\n"
 
         input_string += "\n\n"
 
@@ -157,11 +157,7 @@ class LangevinLammpsState(LammpsState):
         """
         damp = None
         if damp is None:
-            damp = 1 / fs
-        if self.gjf == True:
-            integrator = "2 half GJF"
-        else:
-            integraotr = "Velocity-verlet"
+            damp = 100 * self.dt
 
 #       msg  = "Simulated state :\n"
         msg  = "NVT Langevin dynamics as implemented in LAMMPS\n"

@@ -9,39 +9,24 @@ from ase.units import Hartree, Bohr
 
 
 #========================================================================================================================#
-def extract_data_for_tdep(fname, nthrow=10):
-    """
-    Little function to extract ASCII data to be used by aTDEP
-    The forces and energies are converted to atomic units
-    """
-    trajectory = read(fname, index=":")
-    nconfs     = len(trajectory)
-
-    xred  = []
-    fcart = []
-    etot  = []
-
-    for iat in range(nthrow, nconfs):
-        atoms = trajectory[iat]
-
-        energy_tmp = atoms.get_potential_energy() / Hartree
-        forces_tmp = atoms.get_forces() / Hartree * Bohr
-        xred_tmp   = atoms.get_scaled_positions(wrap=False) # No wrapping of xred or it doesn't work
-
-        etot.append(energy_tmp)
-        fcart.append(forces_tmp)
-        xred.append(xred_tmp)
-    etot  = np.array(etot)
-    fcart = np.array(fcart).reshape(-1, 3)
-    xred  = np.array(xred).reshape(-1, 3)
-    return etot, fcart, xred
-
-
-
-#========================================================================================================================#
 def get_elements_Z_and_masses(supercell):
     '''
-    Get the unique chemical symbols and atomic numbers, for LAMMPS compatibility
+    Get the unique chemical symbols and atomic numbers of a supercell.
+    The list are returned according to the alphabetical order of the elements.
+
+    Parameters
+    ----------
+    supercell: :class:`ase.Atoms`
+        ASE atoms object
+
+    Return
+    ------
+    elements: :class:`list` of :class:`str`
+        list of unique elements in the supercell
+    Z: :class:`list` of :class:`int`
+        list of unique Z in the supercell
+    masses: :class:`list` of :class:`float`
+        list of unique masses in the supercell
     '''
     elements = supercell.get_chemical_symbols()
     Z        = supercell.get_atomic_numbers()
@@ -57,7 +42,25 @@ def get_elements_Z_and_masses(supercell):
     return un_elements, un_Z, un_masses
 
 
+#========================================================================================================================#
 def create_random_structures(atoms, std, nconfs):
+    """
+    Create n random structures by displacing atoms around position
+
+    Parameters
+    ----------
+    atoms: :class:`ase.Atoms`
+        ASE atoms object
+    std: :class:`float`
+        Standard deviation of the gaussian used to generate the random displacements. In angstrom.
+    nconfs: :class:`int`
+        Number of configurations to generate
+
+    Return
+    ------
+    confs: :class:`list` of :class:`ase.Atoms`
+        Configurations with random displacements
+    """
     rng = np.random.default_rng()
     confs = []
     for i in range(nconfs):

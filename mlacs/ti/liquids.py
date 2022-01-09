@@ -21,6 +21,54 @@ p_tabled = [1, 25, 50, 75, 100]
 #========================================================================================================================#
 class UFLiquidState(ThermoState):
     """
+    Class for performing thermodynamic integration from a Uhlenbeck-Ford potential reference
+
+    Parameters
+    ----------
+    atoms: :class:`ase.Atoms`
+        ASE atoms object on which the simulation will be performed
+    pair_style: :class:`str`
+        pair_style for the LAMMPS input
+    pair_coeff: :class:`str` or :class:`list` of :class:`str`
+        pair_coeff for the LAMMPS input
+    temperature: :class:`float`
+        Temperature of the simulation
+    fcorr1: :class:`float` or ``None``
+        First order cumulant correction to the free energy, in eV/at, to be added to the results.
+        If ``None``, no value is added. Default ``None``.
+    fcorr2: :class:`float` or ``None``
+        Second order cumulant correction to the free energy, in eV/at, to be added to the results.
+        If ``None``, no value is added. Default ``None``.
+    p: :class:`int`
+        p parameter of the Uhlenbeck-Ford potential. Should be ``1``, ``25``, ``50``, ``75`` or ``100``. Default ``50``
+    p: :class:`float`
+        sigma parameter of the Uhlenbeck-Ford potential. Default ``2.0``.
+    dt: :class:`int` (optional)
+        Timestep for the simulations, in fs. Default ``1.5``
+    damp : :class:`float` (optional)
+        Damping parameter. If ``None``, a damping parameter of a hundred time the timestep is used.
+    nsteps: :class:`int` (optional)
+        Number of production steps. Default ``10000``.
+    nsteps_eq: :class:`int` (optional)
+        Number of equilibration steps. Default ``5000``.
+    rng: :class:`RNG object`
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to :class:`numpy.random.default_rng()`
+    suffixdir: :class:`str`
+        Suffix for the directory in which the computation will be run. If ``None``, a directory ``\"Solid_TXK\"`` is created, where X is the temperature. Default ``None``.
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+    interval : :class:`int` (optional)
+        Number of steps between log and traj writing. Override
+        loginterval and trajinterval. Default ``50``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    trajinterval : :class:`int` (optional)
+        Number of steps between MLMD traj writing. Default ``50``.
     """
     def __init__(self,
                  atoms,

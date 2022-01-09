@@ -20,9 +20,27 @@ h    = 4.135667696e-15 * 1e15*fs # from eV.s to eV.(ASE time units)
 hbar = 6.582119514e-16 * 1e15*fs # from eV.s to eV.(ASE time units)
 
 
+#========================================================================================================================#
 def free_energy_harmonic_oscillator(omega, T, nat, classical=True):
     """
-    Function to compute the free energy of a harmonic oscillator
+    Function to compute the free energy of a Einstein crystal
+    
+    Parameters
+    ----------
+
+    omega: :class:`float` or :class:`list` of :class:`float`
+        The frequency of the oscillator
+    T: :class:`float`
+        The temperature, in Kelvin
+    nat: :class:`int` or :class:`list` of :class:`int`
+        Number of atoms in the supercell associated with each frequency frequency
+    classical: :class:`Bool` (optional)
+        Whether to use the classical formulation (``True``) or the quantum formulation (``False``)
+
+    Return
+    ------
+    f_cm: :class:`float`
+        Free energy of the Einstein crystal, in eV/at
     """
     kBT = kB * T
 
@@ -37,9 +55,27 @@ def free_energy_harmonic_oscillator(omega, T, nat, classical=True):
     return np.sum(f_harm) / nat_tot
 
 
+#========================================================================================================================#
 def free_energy_com_harmonic_oscillator(k, T, nat, vol, masses):
     """
     Function to compute the free energy of the center of mass of an harmonic oscillator
+
+    Parameters
+    ----------
+    
+    k: :class:`float` or :class:`list` of :class:`float`
+        Spring constant of the harmonic oscillators, in eV/angs
+    T: :class:`float`
+        Temperature, in Kelvin
+    nat: :class:`int` or :class:`list` of :class:`int`
+        Number of atoms in the supercell associated with each frequency frequency
+    masses: :class:`float` or :class:`list` of :class:`float`
+        masses of atoms in the supercell
+
+    Return
+    ------
+    f_cm: :class:`float`
+        Free energy of the center of mass, in eV/at
     """
     k      = np.array(k)
     nat    = np.array(nat)
@@ -51,10 +87,26 @@ def free_energy_com_harmonic_oscillator(k, T, nat, vol, masses):
     return kBT * f_cm.sum() / nat.sum() # eV/at
 
 
+#========================================================================================================================#
 def free_energy_ideal_gas(vol, nat, mass, T):
     """
-    Function to compute the free energy of an ideal gas
-    Uses Stirling formula
+    Function to compute the free energy of an ideal gas, uses Stirling formula
+
+    Parameters
+    ----------
+    vol: :class:`float`
+        Volume, in angstrom^3
+    nat: :class:`int` or :class:`list` of :class:`int`
+        Number of atoms in the supercell associated with each masses
+    masses: :class:`float` or :class:`list` of :class:`float`
+        masses of atoms in the supercell
+    T: :class:`float`
+        Temperature, in Kelvin
+
+    Return
+    ------
+    f_ig: :class:`float`
+        Free energy of the ideal gas, in eV/at
     """
     mass    = np.array(mass)
     nat     = np.array(nat)
@@ -70,6 +122,7 @@ def free_energy_ideal_gas(vol, nat, mass, T):
 
 
 
+#========================================================================================================================#
 def free_energy_uhlenbeck_ford(rho, p, sigma, T):
     """
     Function to compute the free energy of the Uhlenbeck-Ford potential
@@ -77,6 +130,22 @@ def free_energy_uhlenbeck_ford(rho, p, sigma, T):
 
     J. Chem. Phys. 145 194101 (2016)
     Rodolfo Paula Leite, Rodrigo Freitas, Rodolfo Azevedo and Maurice de Koning
+
+    Parameters
+    ----------
+    rho: :class:`float`
+        Density, in angstrom^-3
+    p: :class:`int`
+        Parameter of the Uhlenbeck-Ford potential. Allowed values are ``1``, ``25``, ``50``, ``75`` or ``100``
+    sigma: :class:`float`
+        Sigma parameter of the Ulhenbeck-Ford potential.
+    T: :class:`float`
+        Temperature, in Kelvin
+
+    Return
+    ------
+    f_uf: :class:`float`
+        Excess free energy of the Uhlenbeck-Ford potential compared to the ideal gas, in eV/at
     """
     beta = 1./(kB*T)
     x = rho * (np.pi * sigma**2)**1.5 / 2.0

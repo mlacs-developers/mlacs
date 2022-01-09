@@ -11,8 +11,9 @@ from mlacs.state import LammpsState
 
 #========================================================================================================================#
 #========================================================================================================================#
-class PIMDLammpsState(LammpsState):
+class PimdLammpsState(LammpsState):
     """
+    Parent class for the PIMD states using LAMMPS
     """
     def __init__(self,
                  nbeads,

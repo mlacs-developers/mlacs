@@ -23,32 +23,32 @@ class LammpsMlipInterface:
     Parameters
     ----------
 
-    elements: list
+    elements: :class:`list`
         list of elements in the fitting
-    masses: list
+    masses: :class:`list`
         masses of the elements in the fitting
-    rcut: float
-        cutoff radius for the MLIP
-    model: string
-        linear or quadratic, denote the model used for the MLIP
-    style: string
-        snap or so3, denote the descriptor used for the MLIP
-    twojmax: int
-        twojmax parameters, used for the SNAP descriptor
-    lmax: int
-        angular momentum used for the SO3 descriptor
-    nmax: int
-        number of radial basis for the SO3 descriptor
-    alpha: int
-        gaussian factor for the radial basis in the SO3 descriptor
-    chemflag: int
-        1 to enable the explicitely multi-element variation of SNAP
-    radelems: list of float
-        factor to multiply the rcut params to compute interaction. One parameter per elements
-        If None, is put to the default value of 0.5
-    welems: list of float
-        weights factor to enhance the sensibility of different species in the descriptors.
-        if None, weights factor of element n is put to mass_n / sum(all_masses)
+    rcut: :class:`float` (optional)
+        Cutoff radius for the MLIP. Default ``5.0``.
+    model: :class:`string` (optional)
+        ``\"linear\"`` or ``\"quadratic\"``, denote the model used for the MLIP. Default ``\"linear\"``.
+    style: :class:`string` (optional)
+        ``\"snap\"`` or ``\"so3\"``, denote the descriptor used for the MLIP. Default ``\"snap\"``.
+    twojmax: :class:`int` (optional)
+        2Jmax parameters, used for the SNAP descriptor. Default ``8``
+    lmax: :class:`int` (optional)
+        Angular momentum used for the SO3 descriptor. Default ``3``.
+    nmax: :class:`int` (optional)
+        Number of radial basis for the SO3 descriptor. Default ``5``.
+    alpha: :class:`int` (optional)
+        Gaussian factor for the radial basis in the SO3 descriptor. Default ``2.0``.
+    chemflag: :class:`int` (optional)
+        ``1`` to enable the explicitely multi-element variation of SNAP. Default ``0``.
+    radelems: :class:`list` of :class:`float` (optional)
+        Factor to multiply the rcut params to compute interaction. One parameter per elements
+        If ``None``, is put to the default value of 0.5. Default ``None``.
+    welems: :class:`list` of :class:`float` (optional)
+        Weights factor to enhance the sensibility of different species in the descriptors.
+        if ``None``, weights factor of element n is put to mass_n / sum(all_masses). Default ``None``.
     """
     def __init__(self, 
                  elements, 

@@ -14,11 +14,11 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from mlacs.mlip import LammpsSnap
 from mlacs.calc import CalcManager
 from mlacs.state import StateManager
-from mlacs.utilities.log import MLACS_Log
+from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
 
 
-class OtfMLACS:
+class OtfMlacs:
     """
     A Learn on-the-fly Molecular Dynamics constructed in order to sample an approximate distribution
 
@@ -30,24 +30,24 @@ class OtfMLACS:
     state: :class:`StateManager` or :list: of :class: `StateManager`
         Object determining the state to be sampled
     calc: :class:`ase.calculators` or :class:`CalcManager`
-        Class controlling the potential energy of the systme to be approximated.
-        If a :class:`ase.calculators` is attached, the :class:`CalcManager` is 
+        Class controlling the potential energy of the system to be approximated.
+        If a :class:`ase.Calculators` is attached, the :class:`CalcManager` is 
         automatically created.
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
-        Default is a LammpsSnap object with a 5.0 angstrom rcut
-        with 8 twojmax
-    neq: :int: (optional) or list of :int:
-        The number of step equilibration steps. Default 10.
-    prefix_output: :str: (optional) or list of :str:
-        Prefix for the output files of the simulation. Default "Trajectory".
-    confs_init: int or list of :class:`ase.Atoms`  (optional)
-        if int: Number of configuirations used to train a preliminary MLIP
+        Default is a :class:`LammpsSnap` object with a ``5.0`` angstrom rcut
+        with ``8`` twojmax
+    neq: :class:`int` (optional) or :class`list` of :class:`int`
+        The number of equilibration iterations. Default ``10``.
+    prefix_output: :class:`str` (optional) or list of :str:
+        Prefix for the output files of the simulation. Default ``\"Trajectory\"``.
+    confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
+        if :class:`int`: Number of configuirations used to train a preliminary MLIP
         The configurations are created by rattling the first structure
-        if list of atoms: The atoms that are to be computed in order to create the initial training configurations
-        Default 1.
-    std_init: float (optional)
-        Variance of the displacement when creating initial configurations. Default 0.05 angs^2
+        if :class:`list` of :class:`ase.Atoms`: The atoms that are to be computed in order to create the initial training configurations
+        Default ``1``.
+    std_init: :class:`float` (optional)
+        Variance (in angs^2) of the displacement when creating initial configurations. Default ``0.05`` angs^2
     """
     def __init__(self,
                  atoms,
@@ -140,7 +140,7 @@ class OtfMLACS:
         else:
             self.launched = False
 
-        self.log = MLACS_Log("MLACS.log", self.launched)
+        self.log = MlacsLog("MLACS.log", self.launched)
         msg = ""
         for istate in range(self.nstate):
             msg += "State {0}/{1} :\n".format(istate+1, self.nstate)

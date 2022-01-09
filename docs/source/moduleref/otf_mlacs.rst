@@ -3,11 +3,15 @@ On The Fly MLACS
 
 .. module:: mlacs
 
-.. index::
-   single: Class reference; OtfMLACS
-
-OtfMLACS
+OtfMlacs
 --------
 
-.. autoclass:: OtfMLACS
+.. autoclass:: OtfMlacs
+   :members: run
+
+
+PiMlacs
+--------
+
+.. autoclass:: PiMlacs
    :members: run

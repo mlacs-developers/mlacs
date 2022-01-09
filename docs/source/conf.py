@@ -1,4 +1,5 @@
 import sys
+import re
 import os
 
 sys.path.insert(0, os.path.abspath("../../mlacs"))
@@ -30,6 +31,8 @@ copyright = '2021, Aloïs Castellano'
 author = 'Aloïs Castellano'
 
 # The full version, including alpha/beta/rc tags
+with open("../../mlacs/version.py") as f:
+    version = re.search("__version__ = '(.*)'", f.read()).group(1)
 release = '0.0.5'
 
 

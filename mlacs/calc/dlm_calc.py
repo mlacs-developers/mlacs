@@ -11,7 +11,7 @@ from icet.tools.structure_generation import generate_sqs_from_supercells
 
 #===================================================================================================================================================#
 #===================================================================================================================================================#
-class DLMCalcManager(CalcManager):
+class DlmCalcManager(CalcManager):
     """
     Class for Disorder Local Moment simulation.
 
@@ -24,12 +24,12 @@ class DLMCalcManager(CalcManager):
         A ASE calculator object.
     atoms_ideal: :class:`ase.atoms`
         The Atoms object with ideal positions, for which the disorder spin structure will be computed.
-    mu_b: float
-        The initial spin amplitude, imposed before the calculation, in Bohr magneton.
-    cutoff: list of float
-        The cutoffs for the SQS generation. See icet documentation for more information.
-    n_steps: int
-        Number of Monte-Carlo steps for the generation of the magnetic SQS.
+    mu_b: :class:`float`
+        The initial spin amplitude, imposed before the calculation, in Bohr magneton. Default ``1.0``.
+    cutoff: :class:`list` of :class:`float`
+        The cutoffs for the SQS generation. See icet documentation for more information. Default ``[6.0, 4.0]``.
+    n_steps: :class:`int` (optional)
+        Number of Monte-Carlo steps for the generation of the magnetic SQS. Default ``3000``.
     """
     def __init__(self, calc, atoms_ideal, mu_b=1.0, cutoffs=[6.0, 4.0], n_steps=3000):
         CalcManager.__init__(self, calc,)

@@ -152,7 +152,8 @@ class LammpsState(StateManager):
         input_string  = "#####################################\n"
         input_string += "#           Dumping\n"
         input_string += "#####################################\n"
-        input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + self.workdir + "{0} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfile)
+        #input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + self.workdir + "{0} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfile)
+        input_string += "dump dum1 all custom {0} {1} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajinterval, self.trajfile)
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
         input_string += " ".join([p for p in elem])

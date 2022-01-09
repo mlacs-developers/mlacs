@@ -11,6 +11,21 @@ MlipManager
 
 .. autoclass:: MlipManager
 
+LinearMlip
+----------
+
+.. autoclass:: LinearMlip
+
+LammpsSnapInterface
+-------------------
+
+.. autoclass:: LammpsSnapInterface
+
+LammpsSnap
+-------------------
+
+.. autoclass:: LammpsSnap
+
 LammpsMlipInterface
 -------------------
 

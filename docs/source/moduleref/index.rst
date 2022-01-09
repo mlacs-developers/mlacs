@@ -10,8 +10,6 @@ User interface
    state
    mlip
    otf_mlacs
-<<<<<<< HEAD
    calc
-=======
->>>>>>> Rough but functional PIMD Langevin dynamics
-   path_integral
+   ti
+   utilities

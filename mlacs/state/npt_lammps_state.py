@@ -10,55 +10,55 @@ from mlacs.utilities import get_elements_Z_and_masses
 
 #========================================================================================================================#
 #========================================================================================================================#
-class NPTLammpsState(LammpsState):
+class NptLammpsState(LammpsState):
     """
     State Class for running a NPT simulation as implemented in LAMMPS
 
     Parameters
     ----------
 
-    temperature : float
+    temperature : :class:`float`
         Temperature of the simulation, in Kelvin
-    pressure : float
+    pressure : :class:`float`
         Pressure for the simulation, in GPa
-    ptype : 'iso' or 'aniso' (optional)
+    ptype : ``\"iso\"`` or ``\"aniso\"`` (optional)
         Type of external strain tensor to manage the
-        deformation of the cell. Default 'iso'.
-    damp : float (optional)
-        Damping parameter. If None a damping parameter of 100 timestep is used.
-        Default None.
-    pdamp : float (optional)
-        Damping parameter for the barostat. Default 1000 timestep is used.
-        Default None.
-    dt : float (optional)
-        Timestep, in fs. Default 1.5 fs.
-    nsteps : int (optional)
-        Number of MLMD steps for production runs. Default 1000 steps.
-    nsteps_eq : int (optional)
-        Number of MLMD steps for equilibration runs. Default 100 steps.
-    fixcm : bool (optional)
-        Fix position and momentum center of mass. Default True.
-    logfile : str (optional)
+        deformation of the cell. Default ``\"iso\"``.
+    damp : :class:`float` (optional)
+        Damping parameter. If None a damping parameter of 100 times ``dt`` is used.
+        Default ``None``.
+    pdamp : :class:`float` (optional)
+        Damping parameter for the barostat. Default 1000 times ``dt`` is used.
+        Default ``None``.
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+    fixcm : :class:`Bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+    logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
-        If none, no log file is created. Default None.
-    trajfile : str (optional)
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
-        If none, no traj file is created. Default None.
-    interval : int (optional)
+        If ``None``, no traj file is created. Default ``None``.
+    interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default 50
-    loginterval : int (optional)
-        Number of steps between MLMD logging. Default 50.
-    trajinterval : int (optional)
-        Number of steps between MLMD traj writing. Default 50.
+        loginterval and trajinterval. Default ``50``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    trajinterval : :class:`int` (optional)
+        Number of steps between MLMD traj writing. Default ``50``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
-        Default correspond to numpy.random.default_rng()
-    init_momenta : array (optional)
-        If None, velocities are initialized with a Maxwell Boltzmann distribution
+        Default correspond to :class:`numpy.random.default_rng()`
+    init_momenta : :class:`numpy.ndarray` (optional)
+        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
-    workdir : str (optional)
-        Working directory for the LAMMPS MLMD simulations. If none, a LammpsMLMD
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
         directory is created
     """
     def __init__(self,
@@ -128,9 +128,9 @@ class NPTLammpsState(LammpsState):
         input_string += "\n"
 
 
-        input_string += "fix    1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure * 10000, pdamp)
+        input_string += "fix    f1  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure * 10000, pdamp)
         if self.fixcm:
-            input_string += "fix    3  all recenter INIT INIT INIT\n"
+            input_string += "fix    f2  all recenter INIT INIT INIT\n"
 
         input_string += "\n\n"
 

@@ -11,15 +11,15 @@ from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from mlacs.mlip import LammpsSnap #LammpsMlip
+from mlacs.mlip import LammpsSnap
 from mlacs.calc import CalcManager
 from mlacs.state import StateManager
-from mlacs.utilities.log import MLACS_Log
+from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
 from mlacs.path_integral import compute_centroid_atoms
 
 
-class PIMLACS:
+class PiMlacs:
     """
     A Learn on-the-fly Path-Integral Molecular Dynamics constructed in order to sample an approximate distribution
 
@@ -31,24 +31,24 @@ class PIMLACS:
     state: :class:`StateManager` or :list: of :class: `StateManager`
         Object determining the state to be sampled
     calc: :class:`ase.calculators` or :class:`CalcManager`
-        Class controlling the potential energy of the systme to be approximated.
+        Class controlling the potential energy of the system to be approximated.
         If a :class:`ase.calculators` is attached, the :class:`CalcManager` is 
         automatically created.
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsSnap object with a 5.0 angstrom rcut
-        with 8 twojmax
-    neq: :int: (optional) or list of :int:
-        The number of step equilibration steps. Default 10.
-    prefix_output: :str: (optional) or list of :str:
-        Prefix for the output files of the simulation. Default "Trajectory".
-    confs_init: int or list of :class:`ase.Atoms`  (optional)
-        if int: Number of configuirations used to train a preliminary MLIP
+        with 8 twojmax.
+    neq: :class:`int` (optional)
+        The number of equilibration iteration. Default ``10``.
+    prefix_output: :class:`str` (optional)
+        Prefix for the output files of the simulation. Default ``\"Trajectory\"``.
+    confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
+        if :class:`int`: Number of configuirations used to train a preliminary MLIP
         The configurations are created by rattling the first structure
-        if list of atoms: The atoms that are to be computed in order to create the initial training configurations
-        Default 1.
-    std_init: float (optional)
-        Variance of the displacement when creating initial configurations. Default 0.05 angs^2
+        if :class:`list` of :class:`ase.Atoms`: The atoms that are to be computed in order to create the initial training configurations
+        Default ``1``.
+    std_init: :class:`float` (optional)
+        Variance (in angs^2) of the displacement when creating initial configurations. Default ``0.05`` angs^2
     """
     def __init__(self,
                  atoms,
@@ -117,7 +117,7 @@ class PIMLACS:
         else:
             self.launched = False
 
-        self.log = MLACS_Log("PIMLACS.log", self.launched)
+        self.log = MlacsLog("PIMLACS.log", self.launched)
         msg = self.state.log_recap_state()
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
@@ -127,11 +127,11 @@ class PIMLACS:
         # We initialize momenta and parameters for training configurations
         if not self.launched:
             for ibead in range(self.nbeads):
-                #self.state[istate].initialize_momenta(self.atoms[istate])
+                self.state.initialize_momenta(self.atoms[ibead])
                 with open(self.prefix_output[ibead] + "_potential.dat", "w") as f:
                     f.write("# True epot [eV]          MLIP epot [eV]\n")
                 with open(self.prefix_centroid + "_potential.dat", "w") as f:
-                    f.write("# True epot [eV]       True ekin [eV]       MLIP epot [eV]    MLIP ekin [eV]\n")
+                    f.write("# True epot [eV]           True ekin [eV]       MLIP epot [eV]            MLIP ekin [eV]\n")
             self.confs_init  = confs_init
             self.std_init    = std_init
             self.nconfs = 0

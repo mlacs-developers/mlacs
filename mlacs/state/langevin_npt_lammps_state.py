@@ -8,20 +8,32 @@ from mlacs.state import LammpsState
 from mlacs.utilities import get_elements_Z_and_masses
 
 
-
 #========================================================================================================================#
 #========================================================================================================================#
-class NvtLammpsState(LammpsState):
+class LangevinNptLammpsState(LammpsState):
     """
-    State Class for running a NVT simulation as implemented in LAMMPS
+    State Class for running a NPT simulation as implemented in LAMMPS
 
     Parameters
     ----------
 
     temperature : :class:`float`
         Temperature of the simulation, in Kelvin
+    pressure : :class:`float`
+        Pressure for the simulation, in GPa
+    gjf : :class:`Bool`
+        If true, the 2half GJF integrator is used.
+        Else, the standard Velocity-Verlet Langevin integrator is used.
+        Default ``True``.
+    ptype : ``\"iso\"`` or ``\"aniso\"`` (optional)
+        Type of external strain tensor to manage the
+        deformation of the cell. Default ``\"iso\"``.
     damp : :class:`float` (optional)
-        Damping parameter. If ``None``, a damping parameter of a hundred time the timestep is used.
+        Damping parameter. If None a damping parameter of 100 times ``dt`` is used.
+        Default ``None``.
+    pdamp : :class:`float` (optional)
+        Damping parameter for the barostat. Default 1000 times ``dt`` is used.
+        Default ``None``.
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
     nsteps : :class:`int` (optional)
@@ -55,7 +67,11 @@ class NvtLammpsState(LammpsState):
     """
     def __init__(self,
                  temperature,
+                 pressure,
+                 gjf=False,
+                 ptype="iso",
                  damp=None,
+                 pdamp=None,
                  dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
@@ -86,19 +102,28 @@ class NvtLammpsState(LammpsState):
                             )
 
         self.temperature = temperature
+        self.pressure    = pressure
+        self.ptype       = ptype
         self.damp        = damp
+        self.pdamp       = pdamp
+        self.gjf         = gjf
 
 
 #========================================================================================================================#
     def write_lammps_input(self, atoms, pair_style, pair_coeff, nsteps):
         """
+        Write the LAMMPS input for the MD simulation
         """
         elem, Z, masses = get_elements_Z_and_masses(atoms)
         pbc             = atoms.get_pbc()
 
-        damp = self.damp
-        if damp is None:
+        damp  = self.damp
+        if self.damp is None:
             damp = "$(100*dt)"
+
+        pdamp = self.pdamp
+        if self.pdamp is None:
+            pdamp = "$(1000*dt)"
 
         input_string  = ""
         input_string += self.get_general_input(pbc, masses)
@@ -108,10 +133,15 @@ class NvtLammpsState(LammpsState):
         input_string += "timestep      {0}\n".format(self.dt/ 1000)
         input_string += "\n"
 
-        input_string += "fix    f1  all nvt temp {0} {0}  {1}\n".format(self.temperature, damp)
 
+        if self.gjf:
+            input_string += "fix    f1  all langevin {0} {0}  {1} {2}  gjf vhalf zero yes\n".format(self.temperature, damp, self.rng.integers(99999))
+        else:
+            input_string += "fix           f1 all langevin {0} {0} {1} {2} zero yes\n".format(self.temperature, damp, self.rng.integers(9999999))
+        input_string += "fix           f2 all nph  {0} {1} {1} {2}\n".format(self.ptype, self.pressure * 10000, pdamp)
         if self.fixcm:
-            input_string += "fix    f2  all recenter INIT INIT INIT\n"
+            input_string += "fix           f3 all recenter INIT INIT INIT\n"
+
         input_string += "\n\n"
 
         if self.logfile is not None:
@@ -121,7 +151,6 @@ class NvtLammpsState(LammpsState):
 
         input_string += self.get_last_dump_input(elem, nsteps)
         input_string += "run  {0}".format(nsteps)
-
 
         with open(self.lammpsfname, "w") as f:
             f.write(input_string)
@@ -142,16 +171,21 @@ class NvtLammpsState(LammpsState):
         """
         Function to return a string describing the state for the log
         """
-        damp = None
+        damp = self.damp
         if damp is None:
             damp = 100 * self.dt
+        pdamp = self.pdamp
+        if pdamp is None:
+            pdamp = 1000 * self.dt
 
 #       msg  = "Simulated state :\n"
-        msg  = "NVT dynamics as implemented in LAMMPS\n"
+        msg  = "NPT dynamics as implemented in LAMMPS\n"
         msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
+        msg += "Pressure (GPa)                           {0}\n".format(self.pressure)
         msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
         msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
         msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
-        msg += "Damping parameter (in fs) :              {0}\n".format(damp)
+        msg += "Themostat damping parameter (in fs) :    {0}\n".format(damp)
+        msg += "Barostat damping parameter (in fs) :     {0}\n".format(pdamp)
         msg += "\n"
         return msg

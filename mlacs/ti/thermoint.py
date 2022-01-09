@@ -17,13 +17,21 @@ from mlacs.ti.thermostate import ThermoState
 #========================================================================================================================#
 class ThermodynamicIntegration:
     """
+    Class to handle a series of thermodynamic integration
+
+    Parameters
+    ----------
+    thermostate: :class:`thermostate` or :class:`list` of :class:`thermostate`
+        State for which the thermodynamic integration should be performed
+    logfile: :class:`str` (optional)
+        Name of the logfile. Default ``\"ThermoInt.log\"``
     """
     def __init__(self,
                  thermostate,
                  logfile=None
                 ):
 
-        self.log        = ThermoLog(logfile)
+        self.log = ThermoLog(logfile)
  
         # Construct the working directory to run the thermodynamic integrations
         self.workdir = os.getcwd() + "/ThermoInt/"
@@ -46,6 +54,7 @@ class ThermodynamicIntegration:
 #========================================================================================================================#
     def run(self):
         """
+        Launch the simulation
         """
         msg  = "Running the simulation\n"
         self.log.logger_log.info(msg)

@@ -15,40 +15,40 @@ from mlacs.mlip.mlip_snap_interface import LammpsSnapInterface
 #===================================================================================================================================================#
 class LammpsSnap(LinearMlip):
     """
-    MLIP Manager Class to interface with the SNAP package
+    MLIP Manager Class to interface with the SNAP package of LAMMPS
 
     Parameters
     ----------
     atoms : :class:`ase.atoms`
         Should contains the same elements as the main simulation
-    rcut : float (optional)
-        Cutoff radius, in angstrom. Default 5.0.
-    twojmax : int (optiona)
-        Parameter 2jmax of the snap descriptor. Default 8.
-    chemflag : 0 or 1 (optional)
-        If 0, the standard descriptor is used. If 1, the explicitely multi-elements is used. Default 0.
-    radelems : list (optional)
-        Cutoff scaling factor for each elements. If None, 0.5 for each elements. Default None.
-    welems : list (optional)
-        List of the weight of each atomic type in the descriptor. If None, the weight is given by
+    rcut : :class:`float` (optional)
+        Cutoff radius, in angstrom. Default ``5.0``.
+    twojmax : :class:`int` (optiona)
+        Parameter 2Jmax of the snap descriptor. Default ``8``.
+    chemflag : ``0`` or ``1`` (optional)
+        If ``0``, the standard descriptor is used. If ``1``, the explicitely multi-elements is used. Default ``0``.
+    radelems : :class:`list` (optional)
+        Cutoff scaling factor for each elements. If ``None``, 0.5 for each elements. Default ``None``.
+    welems : :class:`list` of :class:`float`(optional)
+        List of the weight of each atomic type in the descriptor. If ``None``, the weight is given by
         :math: ̀\\frac{Z_i}{\\sum_i Z_i} ̀
-    quadratic: bool (optional)
-        Whether to use the quadratic implementation of SNAP. Default False.
-    nthrow: int (optional)
+    quadratic: :class:`Bool` (optional)
+        Whether to use the quadratic implementation of SNAP. Default ``False``.
+    nthrow: :class:`int` (optional)
         Number of initial configuration to throw as the simulation runs (Counting the training configurations).
-        Default 10.
-    energy_coefficient : float (optional)
-        Parameter controlling the importance of energy in the fitting of the MLIP. Default 1.0.
-    forces_coefficient : float (optional)
-        Parameter controlling the importance of forces in the fitting of the MLIP. Default 1.0.
-    stress_coefficient : float (optional)
-        Parameter controlling the importance of stress in the fitting of the MLIP. Default 0.0.
-    rescale_energy : Bool (optional)
-        If true, the energy data are divided by its standard deviation before the fit. Default True.
-    rescale_forces : Bool (optional)
-        If true, the forces data are divided by its standard deviation before the fit. Default True.
-    rescale_stress : Bool (optional)
-        If true, the stress data are divided by its standard deviation before the fit. Default True.
+        Default ``10``.
+    energy_coefficient : :class:`float` (optional)
+        Parameter controlling the importance of energy in the fitting of the MLIP. Default ``1.0``.
+    forces_coefficient : :class:`float` (optional)
+        Parameter controlling the importance of forces in the fitting of the MLIP. Default ``1.0``.
+    stress_coefficient : :class:`float` (optional)
+        Parameter controlling the importance of stress in the fitting of the MLIP. Default ``0.0``.
+    rescale_energy : :class:`Bool` (optional)
+        If true, the energy data are divided by its standard deviation before the fit. Default ``True``.
+    rescale_forces : :class:`Bool` (optional)
+        If true, the forces data are divided by its standard deviation before the fit. Default ``True``.
+    rescale_stress : :class:`Bool` (optional)
+        If true, the stress data are divided by its standard deviation before the fit. Default ``True``.
     """
     def __init__(self,
                  atoms,

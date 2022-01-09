@@ -16,6 +16,30 @@ from ase.units import GPa
 #========================================================================================================================#
 class LammpsSnapInterface:
     """
+    Class to interface the ML-SNAP package of LAMMPS, in order to create linear or quadratic SNAP potential
+
+
+    Parameters
+    ----------
+
+    elements: :class:`list`
+        List of elements in the fitting
+    masses: :class:`list`
+        Masses of the elements in the fitting
+    rcut: :class:`float` (optional)
+        Cutoff radius for the MLIP. Default ``5.0``.
+    twojmax: :class:`int` (optional)
+        twojmax parameters, used for the SNAP descriptor. Default ``8``.
+    chemflag: :class:`int` (optional)
+        ``1`` to enable the explicitely multi-element variation of SNAP
+    radelems: :class:`list` of :class:`float` (optional)
+        factor to multiply the rcut params to compute interaction. One parameter per elements
+        If ``None``, is put to the default value of 0.5. Default ``None``.
+    welems: :class:`list` of :class:`float` (optional
+        Weights factor to enhance the sensibility of different species in the descriptors.
+        If ``None``, weights factor of element n is put to mass_n / sum(all_masses). Default ``None``.
+    quadratic : :class:`Bool` (optional)
+        Whether to use the quadratic formulation of SNAP. Default ``False``.
     """
     def __init__(self,
                  elements,

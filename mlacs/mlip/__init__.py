@@ -7,5 +7,6 @@ from mlacs.mlip.linear_mlip import LinearMlip
 from mlacs.mlip.mlip_lammps import LammpsMlip
 from mlacs.mlip.mlip_snap import LammpsSnap
 from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
+from mlacs.mlip.mlip_snap_interface import LammpsSnapInterface
 
-__all__ = ['MlipManager', 'LinearMlip', 'LammpsMlip', 'LammpsMlipInterface']
+__all__ = ['MlipManager', 'LinearMlip', 'LammpsMlip', 'LammpsSnap']

@@ -21,6 +21,37 @@ from mlacs.utilities import get_elements_Z_and_masses
 class ThermoState:
     """
     Parent class for the thermodynamic state used in thermodynamic integration
+
+    Parameters
+    ----------
+    atoms: :class:`ase.Atoms`
+        ASE atoms object on which the simulation will be performed
+    pair_style: :class:`str`
+        pair_style for the LAMMPS input
+    pair_coeff: :class:`str` or :class:`list` of :class:`str`
+        pair_coeff for the LAMMPS input
+    dt: :class:`int` (optional)
+        Timestep for the simulations, in fs. Default ``1.5``
+    nsteps: :class:`int` (optional)
+        Number of production steps. Default ``10000``.
+    nsteps_eq: :class:`int` (optional)
+        Number of equilibration steps. Default ``5000``.
+    rng: :class:`RNG object`
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to :class:`numpy.random.default_rng()`
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+    interval : :class:`int` (optional)
+        Number of steps between log and traj writing. Override
+        loginterval and trajinterval. Default ``50``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    trajinterval : :class:`int` (optional)
+        Number of steps between MLMD traj writing. Default ``50``.
     """
     def __init__(self,
                  atoms,

@@ -15,8 +15,8 @@ class CalcManager:
         A ASE calculator object
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
-        If none, no initial magnetization. (Non magnetic calculation)
-        Default None.
+        If ``None``, no initial magnetization. (Non magnetic calculation)
+        Default ``None``.
     """
     def __init__(self,
                  calc,
