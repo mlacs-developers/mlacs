@@ -29,13 +29,8 @@ class CustomLammpsState(LammpsState):
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
-    interval : :class:`int` (optional)
-        Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default ``50``.
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-    trajinterval : :class:`int` (optional)
-        Number of steps between MLMD traj writing. Default ``50``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to :class:`numpy.random.default_rng()`
@@ -54,27 +49,24 @@ class CustomLammpsState(LammpsState):
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
                  loginterval=50,
-                 trajinterval=50,
                  rng=None,
                  init_momenta=None,
                  workdir=None
                 ):
 
         LammpsState.__init__(self,
-                             dt,
-                             nsteps,
-                             nsteps_eq,
-                             fixcm,
-                             logfile,
-                             trajfile,
-                             interval,
-                             loginterval,
-                             trajinterval,
-                             rng,
-                             init_momenta,
-                             workdir
+                             temperature=300,
+                             dt=dt,
+                             nsteps=nsteps,
+                             nsteps_eq=nsteps_eq,
+                             fixcm=fixcm,
+                             logfile=logfile,
+                             trajfile=trajfile,
+                             loginterval=loginterval,
+                             rng=rng,
+                             init_momenta=init_momenta,
+                             workdir=workdir
                             )
                      
         self.custom_input = custom_input

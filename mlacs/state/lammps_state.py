@@ -8,7 +8,6 @@ from subprocess import call
 import numpy as np
 
 from ase.io import Trajectory, read
-from ase.io.lammpsdata import read_lammps_data
 from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
@@ -16,24 +15,68 @@ from mlacs.state import StateManager
 from mlacs.utilities import get_elements_Z_and_masses
 
 
-default_lammps = {}
-
 #========================================================================================================================#
 #========================================================================================================================#
 class LammpsState(StateManager):
     """
-    Parent Class for the Lammps States
+    Class to manage States with LAMMPS
+
+    Parameters
+    ----------
+    temperature: :class:`float`
+        Temperature of the simulation, in Kelvin.
+    pressure: :class:`float` or ``None``
+        Pressure of the simulation, in GPa. If ``None``, no barostat is applied and the simulation is in the NVT ensemble. Default ``None``
+    damp: :class:`float` or ``None``
+    langevin: :class:`Bool`
+        If ``True``, a Langevin thermostat is used for the thermostat. Default ``True``
+    gjf: ``no`` or ``vfull`` or ``vhalf``
+        Whether to use the Gronbech-Jensen/Farago integrator for the Langevin dynamics. Only apply if langevin is ``True``. Default ``vhalf``.
+    pdamp: :class:`float` or ``None``
+        Damping parameter for the barostat. If ``None``, apply a damping parameter of 1000 times the timestep of the simulation. Default ``None``
+    ptype: ``iso`` or ``aniso``
+        Handle the type of pressure applied. Default ``iso``
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+    fixcm : :class:`Bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat. 
+        Default correspond to :class:`numpy.random.default_rng()`
+    init_momenta : :class:`numpy.ndarray` (optional)
+        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
+        N * 3 velocities for the initial configuration
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
+        directory is created
     """
     def __init__(self,
+                 temperature,
+                 pressure=None,
+                 damp=None,
+                 langevin=True,
+                 gjf="vhalf",
+                 pdamp=None,
+                 ptype="iso",
                  dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
                  loginterval=50,
-                 trajinterval=50,
                  rng=None,
                  init_momenta=None,
                  workdir=None
@@ -46,9 +89,7 @@ class LammpsState(StateManager):
                               fixcm,
                               logfile,
                               trajfile,
-                              interval,
                               loginterval,
-                              trajinterval
                              )
 
         # Construct the working directory to run the LAMMPS MLDMD simulations
@@ -71,10 +112,20 @@ class LammpsState(StateManager):
 
         self._get_lammps_command()
         self.islammps = True
+        self.ispimd   = False
+
+        self.temperature = temperature
+        self.langevin    = langevin
+        self.pressure    = pressure
+        self.damp        = damp
+        self.gjf         = gjf
+        self.pdamp       = pdamp
+        self.ptype       = ptype
 
 #========================================================================================================================#
     def run_dynamics(self, supercell, pair_style, pair_coeff, eq=False):
         """
+        Function to run the dynamics
         """
 
         atoms = supercell.copy()
@@ -90,9 +141,18 @@ class LammpsState(StateManager):
         lammps_command = self.cmd + "< " + self.lammpsfname + "> log"
         call(lammps_command, shell=True, cwd=self.workdir)
 
-        #atoms = read_lammps_data(self.workdir + "configurations.out")
         atoms = read(self.workdir + "configurations.out")
         return atoms.copy()
+
+
+#========================================================================================================================#
+    def initialize_momenta(self, atoms):
+        """
+        """
+        if self.init_momenta is None:
+            MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
+        else:
+            atoms.set_momenta(self.init_momenta)
 
 
 #========================================================================================================================#
@@ -112,12 +172,65 @@ class LammpsState(StateManager):
         """
         Write the LAMMPS input for the MD simulation
         """
-        raise NotImplementedError
+        elem, Z, masses = get_elements_Z_and_masses(atoms)
+        pbc             = atoms.get_pbc()
+
+        input_string  = ""
+        input_string += self.get_general_input(pbc, masses)
+        input_string += self.get_interaction_input(pair_style, pair_coeff)
+        input_string += self.get_thermostat_input()
+        if self.logfile is not None:
+            input_string += self.get_log_input()
+        if self.trajfile is not None:
+            input_string += self.get_traj_input(elem)
+
+        input_string += self.get_last_dump_input(elem, nsteps)
+        input_string += "run  {0}".format(nsteps)
+
+        with open(self.lammpsfname, "w") as f:
+            f.write(input_string)
 
 
 #========================================================================================================================#
-    def get_log_in(self):
+    def get_thermostat_input(self):
         """
+        Function to write the thermostat of the mlmd run
+        """
+        damp  = self.damp
+        if self.damp is None:
+            damp = "$(100*dt)"
+
+        pdamp = self.pdamp
+        if self.pdamp is None:
+            pdamp = "$(1000*dt)"
+
+        input_string  = "#####################################\n"
+        input_string += "#      Thermostat/Integrator\n"
+        input_string += "#####################################\n"
+        input_string += "timestep      {0}\n".format(self.dt/ 1000)
+        if self.pressure is None:
+            if self.langevin:
+                input_string += "fix    f1 all langevin {0} {0}  {1} {2}  gjf {3} zero yes\n".format(self.temperature, damp, self.rng.integers(99999), self.gjf)
+                input_string += "fix    f2 all nve\n"
+            else:
+                input_string += "fix    f1 all nvt temp {0} {0}  {1}\n".format(self.temperature, damp)
+        else:
+            if self.langevin:
+                input_string += "fix    f1 all langevin {0} {0}  {1} {2}  gjf {3} zero yes\n".format(self.temperature, damp, self.rng.integers(99999), self.gjf)
+                input_string += "fix    f2 all nph  {0} {1} {1} {2}\n".format(self.ptype, self.pressure * 10000, pdamp)
+            else:
+                input_string += "fix    f1 all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure * 10000, pdamp)
+        if self.fixcm:
+            input_string += "fix    fcm all recenter INIT INIT INIT\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+#========================================================================================================================#
+    def get_log_input(self):
+        """
+        Function to write the log of the mlmd run
         """
         input_string  = "#####################################\n"
         input_string += "#          Logging\n"
@@ -138,7 +251,6 @@ class LammpsState(StateManager):
         input_string += "variable    mypxy equal pxy/(vol*10000)\n"
         input_string += "variable    mypxz equal pxz/(vol*10000)\n"
         input_string += "variable    mypyz equal pyz/(vol*10000)\n"
-
         input_string += 'fix mythermofile all print {0} "$t ${{myetot}}  ${{mype}} ${{myke}} ${{mytemp}}  ${{mypress}} ${{mypxx}} ${{mypyy}} ${{mypzz}} ${{mypxy}} ${{mypxz}} ${{mypyz}}" append {1} title "# Step  Etot  Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'.format(self.loginterval, self.logfile)
         input_string += "#####################################\n"
         input_string += "\n\n\n"
@@ -146,14 +258,14 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def get_traj_in(self, elem):
+    def get_traj_input(self, elem):
         """
+        Function to write the dump of the mlmd run
         """
         input_string  = "#####################################\n"
         input_string += "#           Dumping\n"
         input_string += "#####################################\n"
-        #input_string += "dump dum1 all custom {0} ".format(self.trajinterval) + self.workdir + "{0} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfile)
-        input_string += "dump dum1 all custom {0} {1} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajinterval, self.trajfile)
+        input_string += "dump dum1 all custom {0} {1} id type xu yu zu vx vy vz fx fy fz element \n".format(self.loginterval, self.trajfile)
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
         input_string += " ".join([p for p in elem])
@@ -166,13 +278,13 @@ class LammpsState(StateManager):
 #========================================================================================================================#
     def get_general_input(self, pbc, masses):
         """
+        Function to write the general parameters in the input
         """
         input_string  = "# LAMMPS input file to run a MLMD simulation for MLACS\n"
         input_string += "#####################################\n"
         input_string += "#           General parameters\n"
         input_string += "#####################################\n"
         input_string += "units        metal\n"
-
         input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
         input_string += "atom_style   atomic\n"
         input_string += "read_data    atoms.in\n"
@@ -186,6 +298,7 @@ class LammpsState(StateManager):
 #========================================================================================================================#
     def get_interaction_input(self, pair_style, pair_coeff):
         """
+        Function to write the interaction in the input
         """
         input_string  = "#####################################\n"
         input_string += "#           Interactions\n"
@@ -200,6 +313,7 @@ class LammpsState(StateManager):
 #========================================================================================================================#
     def get_last_dump_input(self, elem, nsteps):
         """
+        Function to write the dump of the last configuration of the mlmd
         """
         input_string  = "#####################################\n"
         input_string += "#         Dump last step\n"
@@ -212,3 +326,34 @@ class LammpsState(StateManager):
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string
+
+
+#========================================================================================================================#
+    def log_recap_state(self):
+        """
+        Function to return a string describing the state for the log
+        """
+        damp = self.damp
+        if damp is None:
+            damp = 100 * self.dt
+        pdamp = self.pdamp
+        if pdamp is None:
+            pdamp = 1000 * self.dt
+
+        if self.pressure is None:
+            msg  = "NVT dynamics as implemented in LAMMPS\n"
+        else:
+            msg  = "NPT dynamics as implemented in LAMMPS\n"
+        msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
+        if self.langevin:
+            msg += "A Langevin thermostat is used\n"
+        if self.pressure is not None:
+            msg += "Pressure (GPa)                           {0}\n".format(self.pressure)
+        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
+        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
+        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
+        msg += "Themostat damping parameter (in fs) :    {0}\n".format(damp)
+        if self.pressure is not None:
+            msg += "Barostat damping parameter (in fs) :     {0}\n".format(pdamp)
+        msg += "\n"
+        return msg

@@ -34,13 +34,8 @@ class VerletState(StateManager):
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
-    interval : :class:`int` (optional)
-        Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default ``50``
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-    trajinterval : :class:`int` (optional)
-        Number of steps between MLMD traj writing. Default ``50``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to ``numpy.random.default_rng()``.
@@ -58,9 +53,7 @@ class VerletState(StateManager):
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
                  loginterval=50,
-                 trajinterval=50,
                  init_momenta=None
                 ):
 
@@ -72,7 +65,6 @@ class VerletState(StateManager):
                               logfile,
                               trajfile,
                               loginterval,
-                              trajinterval
                              )
         self.init_momenta = init_momenta
 

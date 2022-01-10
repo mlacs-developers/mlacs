@@ -39,13 +39,8 @@ class LangevinState(StateManager):
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
-    interval : :class:`int` (optional)
-        Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default ``50``
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-    trajinterval : :class:`int` (optional)
-        Number of steps between MLMD traj writing. Default ``50``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to ``numpy.random.default_rng()``.
@@ -65,9 +60,7 @@ class LangevinState(StateManager):
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
                  loginterval=50,
-                 trajinterval=50,
                  rng=None,
                  init_momenta=None
                 ):
@@ -80,7 +73,6 @@ class LangevinState(StateManager):
                               logfile,
                               trajfile,
                               loginterval,
-                              trajinterval
                              )
 
         self.temperature  = temperature
@@ -107,7 +99,7 @@ class LangevinState(StateManager):
 
         if self.trajfile is not None:
             trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
-            dyn.attach(trajectory.write, interval=self.trajinterval)
+            dyn.attach(trajectory.write, interval=self.loginterval)
 
         if self.logfile is not None:
             dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True), interval=self.loginterval)

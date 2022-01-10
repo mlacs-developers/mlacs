@@ -4,6 +4,7 @@
 """
 import numpy as np
 
+from ase.atoms import Atoms
 from ase.io import read
 from ase.units import Hartree, Bohr
 
@@ -49,8 +50,8 @@ def create_random_structures(atoms, std, nconfs):
 
     Parameters
     ----------
-    atoms: :class:`ase.Atoms`
-        ASE atoms object
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
     std: :class:`float`
         Standard deviation of the gaussian used to generate the random displacements. In angstrom.
     nconfs: :class:`int`
@@ -61,10 +62,13 @@ def create_random_structures(atoms, std, nconfs):
     confs: :class:`list` of :class:`ase.Atoms`
         Configurations with random displacements
     """
+    if isinstance(atoms, Atoms):
+        atoms = [atoms]
     rng = np.random.default_rng()
     confs = []
-    for i in range(nconfs):
-        iatoms = atoms.copy()
-        iatoms.rattle(stdev=std)
-        confs.append(iatoms)
+    for iat, at in enumerate(atoms):
+        for i in range(nconfs):
+            iatoms = at.copy()
+            iatoms.rattle(stdev=std)
+            confs.append(iatoms)
     return confs

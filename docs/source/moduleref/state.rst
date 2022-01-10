@@ -18,6 +18,16 @@ LammpsState
 -----------
 
 .. autoclass:: LammpsState
+ 
+PimdLammpsState
+---------------
+
+.. autoclass:: PimdLammpsState
+
+CustomLammpsState
+-----------------
+
+.. autoclass:: CustomLammpsState
 
 LangevinState
 -------------
@@ -29,37 +39,4 @@ VerletState
 
 .. autoclass:: VerletState
  
-NvtLammpsState
---------------
-
-.. autoclass:: NvtLammpsState
  
-NptLammpsState
---------------
-
-.. autoclass:: NptLammpsState
- 
-LangevinLammpsState
--------------------
-
-.. autoclass:: LangevinLammpsState
- 
-CustomLammpsState
------------------
-
-.. autoclass:: CustomLammpsState
- 
-PimdLammpsState
----------------
-
-.. autoclass:: PimdLammpsState
- 
-PimdLangevinLammpsState
------------------------
-
-.. autoclass:: PimdLangevinLammpsState
- 
-PimdNptLammpsState
-------------------
-
-.. autoclass:: PimdNptLammpsState

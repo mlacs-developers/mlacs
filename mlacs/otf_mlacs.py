@@ -16,11 +16,14 @@ from mlacs.calc import CalcManager
 from mlacs.state import StateManager
 from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
+from mlacs.path_integral import compute_centroid_atoms
 
 
+#===================================================================================================================================================#
+#===================================================================================================================================================#
 class OtfMlacs:
     """
-    A Learn on-the-fly Molecular Dynamics constructed in order to sample an approximate distribution
+    A Learn on-the-fly simulation constructed in order to sample approximate distribution
 
     Parameters
     ----------
@@ -31,15 +34,15 @@ class OtfMlacs:
         Object determining the state to be sampled
     calc: :class:`ase.calculators` or :class:`CalcManager`
         Class controlling the potential energy of the system to be approximated.
-        If a :class:`ase.Calculators` is attached, the :class:`CalcManager` is 
+        If a :class:`ase.calculators` is attached, the :class:`CalcManager` is 
         automatically created.
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
-        Default is a :class:`LammpsSnap` object with a ``5.0`` angstrom rcut
-        with ``8`` twojmax
-    neq: :class:`int` (optional) or :class`list` of :class:`int`
-        The number of equilibration iterations. Default ``10``.
-    prefix_output: :class:`str` (optional) or list of :str:
+        Default is a LammpsSnap object with a 5.0 angstrom rcut
+        with 8 twojmax.
+    neq: :class:`int` (optional)
+        The number of equilibration iteration. Default ``10``.
+    prefix_output: :class:`str` (optional)
         Prefix for the output files of the simulation. Default ``\"Trajectory\"``.
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
         if :class:`int`: Number of configuirations used to train a preliminary MLIP
@@ -63,28 +66,7 @@ class OtfMlacs:
         ##############
         # Check inputs
         ##############
-        # Create list of states
-        if isinstance(state, StateManager):
-            self.state = [state]
-        elif isinstance(state, list):
-            self.state  = state
-        else:
-            msg = "state should be a StateManager object or a list of StateManager objects"
-            raise TypeError(msg)
-        # We get the number of simulated state here
-        self.nstate = len(self.state)
-
-        # Create list of atoms
-        if isinstance(atoms, Atoms):
-            self.atoms = []
-            for istate in range(self.nstate):
-                self.atoms.append(atoms.copy())
-        elif isinstance(atoms, list):
-            assert len(atoms) == self.nstate
-            self.atoms = atoms
-        else:
-            msg = "atoms should be a ASE Atoms object or a list of ASE atoms objects"
-            raise TypeError(msg)
+        self._initialize_state(state, atoms, neq, prefix_output)
 
         # Create calculator object 
         if isinstance(calc, Calculator):
@@ -97,35 +79,9 @@ class OtfMlacs:
     
         # Create mlip object
         if mlip is None:
-            #self.mlip = LammpsMlip(self.atoms[0]) # Default MLIP Manager
             self.mlip = LammpsSnap(self.atoms[0]) # Default MLIP Manager
         else:
             self.mlip = mlip
-
-        # Create list of neq -> number of equilibration mlmd runs for each state
-        if isinstance(neq, int):
-            self.neq = [neq] * self.nstate
-        elif isinstance(neq, list):
-            assert len(neq) == self.nstate
-            self.neq = self.nstate
-        else:
-            msg = "neq should be an integer or a list of integers"
-            raise TypeError(msg)
-
-        # Create prefix of output files
-        if isinstance(prefix_output, str):
-            self.prefix_output = []
-            if self.nstate > 1:
-                for i in range(self.nstate):
-                    self.prefix_output.append(prefix_output + "_{0}".format(i+1))
-            else: 
-                self.prefix_output.append(prefix_output)
-        elif isinstance(prefix_output, list):
-            assert len(prefix_output) == self.nstate
-            self.prefix_output = prefix_output
-        else:
-            msg = "prefix_output should be a string or a list of strings"
-            raise TypeError(msg)
 
         # Miscellanous initialization
         self.rng      = np.random.default_rng()
@@ -140,29 +96,41 @@ class OtfMlacs:
         else:
             self.launched = False
 
+        if self.pimd:
+            nmax = self.nbeads
+            val  = "bead"
+        else:
+            nmax = self.nstate
+            val  = "state"
+
         self.log = MlacsLog("MLACS.log", self.launched)
-        msg = ""
-        for istate in range(self.nstate):
-            msg += "State {0}/{1} :\n".format(istate+1, self.nstate)
-            msg += self.state[istate].log_recap_state()
+        msg  = ""
+        for i in range(self.nstate):
+            msg += "State {0}/{1} :\n".format(i+1, self.nstate)
+            msg += self.state[i].log_recap_state()
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
         self.log.recap_mlip(self.mlip.get_mlip_dict())
-            
+
         # We initialize momenta and parameters for training configurations
         if not self.launched:
-            for istate in range(self.nstate):
-                self.state[istate].initialize_momenta(self.atoms[istate])
-                with open(self.prefix_output[istate] + "_potential.dat", "w") as f:
+            for i in range(nmax):
+                if self.pimd:
+                    self.state[0].initialize_momenta(self.atoms[i])
+                else:
+                    self.state[i].initialize_momenta(self.atoms[i])
+                with open(self.prefix_output[i] + "_potential.dat", "w") as f:
                     f.write("# True epot [eV]          MLIP epot [eV]\n")
+            if self.pimd:
+                with open(self.prefix_centroid + "_potential.dat", "w") as f:
+                    f.write("# True epot [eV]           True ekin [eV]       MLIP epot [eV]            MLIP ekin [eV]\n")
             self.confs_init  = confs_init
             self.std_init    = std_init
-            self.nconfs = [0] * self.nstate
+            self.nconfs      = [0] * self.nstate
         
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
-        #if self.launched:
         else:
             msg = "Adding previous configurations to the training data"
             self.log.logger_log.info(msg)
@@ -179,28 +147,35 @@ class OtfMlacs:
 
             prev_traj = []
             lgth      = []
-            for istate in range(self.nstate):
-                prev_traj.append(Trajectory(self.prefix_output[istate] + ".traj", mode="r"))
-                lgth.append(len(prev_traj[istate]))
+            for i in range(nmax):
+                prev_traj.append(Trajectory(self.prefix_output[i] + ".traj", mode="r"))
+                lgth.append(len(prev_traj[i]))
+            if self.pimd:
+                self.nconfs = [lgth[0]]
+                if not np.all([a == lgth[0] for a in lgth]):
+                    msg = "Not all trajectories have the same number of configurations"
+                    raise ValueError(msg)
+            else:
+                self.nconfs = lgth
             msg = "{0} configuration from trajectories".format(np.sum(lgth))
             self.log.logger_log.info(msg)
             lgth = np.max(lgth)
             for iconf in range(lgth):
-                for istate in range(self.nstate):
+                for i in range(nmax):
                     try:
-                        self.mlip.update_matrices(prev_traj[istate][iconf])
-                        msg = "Configuration {0} of state {1}/{2}".format(iconf, istate+1, self.nstate)
+                        self.mlip.update_matrices(prev_traj[i][iconf])
+                        msg = "Configuration {0} of {1} {2}/{3}".format(iconf, ibead+1, val, self.nbead)
                         self.log.logger_log.info(msg)
                     except:
                         pass
 
             self.traj   = []
             self.atoms  = []
-            self.nconfs = []
-            for istate in range(self.nstate):
-                self.traj.append(Trajectory(self.prefix_output[istate]+".traj", mode="a"))
-                self.atoms.append(prev_traj[istate][-1])
-                self.nconfs.append(len(prev_traj[istate]))
+            for i in range(nmax):
+                self.traj.append(Trajectory(self.prefix_output[i]+".traj", mode="a"))
+                self.atoms.append(prev_traj[i][-1])
+            if self.pimd:
+                self.traj_centroid = Trajectory(self.prefix_centroid + ".traj", mode="a")
             del prev_traj
                 
         self.step = 0
@@ -238,6 +213,12 @@ class OtfMlacs:
            true potential computation
         """
         # Check if this is an equilibration or normal step for the mlmd
+        if self.pimd:
+            nmax = self.nbeads
+            val  = "Beads"
+        else:
+            nmax = self.nstate
+            val  = "State"
         
         self.log.logger_log.info("")
         eq = []
@@ -260,8 +241,15 @@ class OtfMlacs:
 
         # Create MLIP atoms object
         atoms_mlip = []
-        for istate in range(self.nstate):
-            atoms_mlip.append(self.atoms[istate].copy())
+        for i in range(nmax):
+            at = self.atoms[i].copy()
+            if self.pimd:
+                at.set_masses(self.masses)
+            atoms_mlip.append(at)
+
+        # SinglePointCalculator to bypass the calc attach to atoms thing of ase
+        sp_calc_true = []
+        sp_calc_mlip = []
 
         # Run the actual MLMD
         msg = "Running MLMD"
@@ -269,38 +257,68 @@ class OtfMlacs:
         for istate in range(self.nstate):
             msg = "State {0}/{1}".format(istate+1, self.nstate)
             self.log.logger_log.info(msg)
-            if self.state[istate].islammps:
-                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.pair_style, self.mlip.pair_coeff, eq[istate])
-                atoms_mlip[istate].calc = self.mlip.calc
+            if self.pimd:
+                atoms_mlip = self.state[istate].run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, eq)
             else:
-                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.calc, eq[istate])
-        self.log.logger_log.info("")
+                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.pair_style, self.mlip.pair_coeff, eq[istate])
+        for i, at in enumerate(atoms_mlip):
+            at.calc = self.mlip.calc
+            sp_calc_mlip.append(SinglePointCalculator(at, energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress()))
+            at.calc = sp_calc_mlip[i]
                 
         # Computing energy with true potential
         msg  = "Computing energy with the True potential\n"
         self.log.logger_log.info(msg)
         atoms_true = []
         nerror = 0 # Handling of calculator error / non-convergence
-        for istate in range(self.nstate):
-            atoms_true.append(self.calc.compute_true_potential(atoms_mlip[istate].copy()))
-            if atoms_true[istate] is not None:
-                self.mlip.update_matrices(atoms_true[istate])
-                self.traj[istate].write(atoms_true[istate])
-                self.atoms[istate]   = atoms_true[istate]
-                self.nconfs[istate] += 1
-                with open(self.prefix_output[istate] + "_potential.dat", "a") as f:
-                    f.write("{:20.15f}   {:20.15f}\n".format(atoms_true[istate].get_potential_energy(), atoms_mlip[istate].get_potential_energy()))
-            if atoms_true[istate] is None:
-                msg  = "For state {0}/{1} calculation with the true potential resulted in error or didn't converge".format(istate+1, self.nstate)
-                self.log.logger_log.info(msg)
-                nerror += 1
+        for i in range(nmax):
+            msg = "{0} {1}/{2}".format(val, i+1, nmax)
+            self.log.logger_log.info(msg)
+            at = self.calc.compute_true_potential(atoms_mlip[i].copy())
+            sp_calc_true.append(SinglePointCalculator(at, energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress()))
+            at.calc = sp_calc_true[i]
+            atoms_true.append(at)
+            if self.pimd:
+                if atoms_true[i] is None:
+                    msg  = "One of the true potential calculation failed, restarting the step\n"
+                    self.log.logger_log.info(msg)
+                    return False
+                else:
+                    atoms_true[i].set_masses(self.masses)
+            else:
+                if atoms_true[i] is None:
+                    msg  = "For state {0}/{1} calculation with the true potential resulted in error or didn't converge".format(i+1, nmax)
+                    self.log.logger_log.info(msg)
+                    nerror += 1
 
+        # True potential error handling
         if nerror == self.nstate:
             msg  = "All true potential calculations failed, restarting the step\n"
             self.log.logger_log.info(msg)
             return False
-        else:
-            return True
+
+        # We need to write atoms after computation, in case the simulation stops before all beads are computed
+        # or one of the true calc computation fails
+        for i, at in enumerate(atoms_true):
+            if at is not None:
+                self.mlip.update_matrices(at)
+                self.traj[i].write(at)
+                self.atoms[i] = at
+                with open(self.prefix_output[i] + "_potential.dat", "a") as f:
+                    f.write("{:20.15f}   {:20.15f}\n".format(at.get_potential_energy(), at.get_potential_energy()))
+                if not self.pimd:
+                    self.nconfs[i] += 1
+        if self.pimd:
+            atoms_centroid      = compute_centroid_atoms(atoms_true, self.temperature)
+            atoms_centroid_mlip = compute_centroid_atoms(atoms_mlip, self.temperature)
+            self.traj_centroid.write(atoms_centroid)
+            with open(self.prefix_centroid + "_potential.dat", "a") as f:
+                f.write("{:20.15f}   {:20.15f}   {:20.15f}   {:20.15f}\n".format(atoms_centroid.get_potential_energy(), 
+                                                                                atoms_centroid.get_kinetic_energy(),
+                                                                                atoms_centroid_mlip.get_potential_energy(),
+                                                                                atoms_centroid_mlip.get_kinetic_energy()))
+            self.nconfs[0] += 1
+        return True
 
 
 #===================================================================================================================================================#
@@ -312,8 +330,13 @@ class OtfMlacs:
             Compute potential energy for the initial positions
             Compute potential for nconfs_init training configurations
         """
-        msg = "\nComputing energy with true potential on initial configuration"
-        self.log.logger_log.info(msg)
+        if self.pimd:
+            nmax = self.nbeads
+            val  = "beads"
+        else:
+            nmax = self.nstate
+            val  = "state"
+
 
         # Compute potential energy, update fitting matrices and write the configuration to the trajectory
         self.traj      = [] # To initialize the trajectories for each state
@@ -348,16 +371,29 @@ class OtfMlacs:
                         raise TruePotentialError(msg)
                     computed_atoms.append(atoms)
                     self.mlip.update_matrices(atoms)
-            self.traj.append(Trajectory(self.prefix_output[istate] + ".traj", mode="w"))
-            self.traj[istate].write(atoms)
+            if self.pimd:
+                for ibead in range(self.nbeads):
+                    calc = SinglePointCalculator(self.atoms[ibead], energy=atoms.get_potential_energy(), forces=atoms.get_forces(), stress=atoms.get_stress())
+                    at = self.atoms[ibead].copy()
+                    at.set_masses(self.masses)
+                    at.calc = calc
+                    self.traj.append(Trajectory(self.prefix_output[ibead] + ".traj", mode="w"))
+                    self.traj[ibead].write(at)
 
+                # Create centroid traj
+                self.traj_centroid = Trajectory(self.prefix_centroid + ".traj", mode="w")
+                self.traj_centroid.write(compute_centroid_atoms([at] * self.nbeads, self.temperature))
+            else:
+                self.traj.append(Trajectory(self.prefix_output[istate] + ".traj", mode="w"))
+                self.traj[istate].write(atoms)
+
+
+        # Training configurations
         msg = "\nComputing energy with true potential on training configurations"
         self.log.logger_log.info(msg)
         # Check number of training configurations and create them if needed
         if self.confs_init is None:
-            confs_init = []
-            for at in computed_atoms:
-                confs_init.extend(create_random_structures(at, self.std_init, 1))
+            confs_init = create_random_structures(computed_atoms, self.std_init, 1)
         elif isinstance(self.confs_init, (int, float)):
             confs_init = create_random_structures(self.atoms[0], self.std_init, self.confs_init)
         elif isinstance(self.confs_init, list):
@@ -390,3 +426,87 @@ class OtfMlacs:
             del self.confs_init
         self.log.logger_log.info("")
         self.launched = True
+
+
+#===================================================================================================================================================#
+    def _initialize_state(self, state, atoms, neq, prefix_output):
+        """
+        Function to initialize the state
+        """
+        # Put the state(s) as a list
+        if isinstance(state, StateManager):
+            self.state = [state]
+        if isinstance(state, list):
+            self.state = state
+
+        npimd = 0
+        for s in self.state:
+            if s.ispimd:
+                npimd += 1
+        if npimd == 0:
+            self.pimd = False
+        elif npimd == 1:
+            self.pimd = True
+        else:
+            msg = "PIMD simulation is available only for one state at a time"
+            raise ValueError(msg)
+
+        self.atoms  = []
+        self.nstate = len(self.state)
+        if self.pimd:
+            # We get the number of beads here
+            self.nbeads = self.state[0].get_nbeads()
+            # We need to store the masses for isotope purposes
+            self.masses = atoms.get_masses()
+            # We need the temperature for centroid computation purposes
+            self.temperature = self.state[0].get_temperature()
+            # Now we add the atoms
+            for ibead in range(self.nbeads):
+                at = atoms.copy()
+                at.set_masses(self.masses)
+                self.atoms.append(at)
+            # Create list of neq
+            self.neq = [neq]
+
+            # Create prefix of output files
+            self.prefix_output = []
+            for i in range(self.nbeads):
+                self.prefix_output.append(prefix_output + "_{0}".format(i+1))
+            self.prefix_centroid = prefix_output + "_centroid"
+
+        else:
+            # Create list of atoms
+            if isinstance(atoms, Atoms):
+                for istate in range(self.nstate):
+                    self.atoms.append(atoms.copy())
+            elif isinstance(atoms, list):
+                assert len(atoms) == self.nstate
+                self.atoms = atoms
+            else:
+                msg = "atoms should be a ASE Atoms object or a list of ASE atoms objects"
+                raise TypeError(msg)
+
+            # Create list of neq -> number of equilibration mlmd runs for each state
+            if isinstance(neq, int):
+                self.neq = [neq] * self.nstate
+            elif isinstance(neq, list):
+                assert len(neq) == self.nstate
+                self.neq = self.nstate
+            else:
+                msg = "neq should be an integer or a list of integers"
+                raise TypeError(msg)
+
+            # Create prefix of output files
+            if isinstance(prefix_output, str):
+                self.prefix_output = []
+                if self.nstate > 1:
+                    for i in range(self.nstate):
+                        self.prefix_output.append(prefix_output + "_{0}".format(i+1))
+                else: 
+                    self.prefix_output.append(prefix_output)
+            elif isinstance(prefix_output, list):
+                assert len(prefix_output) == self.nstate
+                self.prefix_output = prefix_output
+            else:
+                msg = "prefix_output should be a string or a list of strings"
+                raise TypeError(msg)

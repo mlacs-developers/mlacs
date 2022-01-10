@@ -8,10 +8,3 @@ OtfMlacs
 
 .. autoclass:: OtfMlacs
    :members: run
-
-
-PiMlacs
---------
-
-.. autoclass:: PiMlacs
-   :members: run

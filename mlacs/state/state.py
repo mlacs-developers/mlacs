@@ -23,9 +23,7 @@ class StateManager:
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
                  loginterval=50,
-                 trajinterval=50
                 ):
 
         self.dt             = dt
@@ -34,12 +32,7 @@ class StateManager:
         self.fixcm          = fixcm
         self.logfile        = logfile
         self.trajfile       = trajfile
-        self.interval       = interval
         self.loginterval    = loginterval
-        self.trajinterval   = trajinterval
-        if self.interval is not None:
-            self.loginterval    = interval
-            self.trajinterval   = interval
 
         self.islammps       = False
 
