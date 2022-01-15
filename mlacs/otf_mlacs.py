@@ -276,8 +276,6 @@ class OtfMlacs:
             msg = "{0} {1}/{2}".format(val, i+1, nmax)
             self.log.logger_log.info(msg)
             at = self.calc.compute_true_potential(atoms_mlip[i].copy())
-            sp_calc_true.append(SinglePointCalculator(at, energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress()))
-            at.calc = sp_calc_true[i]
             atoms_true.append(at)
             if self.pimd:
                 if atoms_true[i] is None:
@@ -315,9 +313,9 @@ class OtfMlacs:
             self.traj_centroid.write(atoms_centroid)
             with open(self.prefix_centroid + "_potential.dat", "a") as f:
                 f.write("{:20.15f}   {:20.15f}   {:20.15f}   {:20.15f}\n".format(atoms_centroid.get_potential_energy(), 
-                                                                                atoms_centroid.get_kinetic_energy(),
-                                                                                atoms_centroid_mlip.get_potential_energy(),
-                                                                                atoms_centroid_mlip.get_kinetic_energy()))
+                                                                                 atoms_centroid.get_kinetic_energy(),
+                                                                                 atoms_centroid_mlip.get_potential_energy(),
+                                                                                 atoms_centroid_mlip.get_kinetic_energy()))
             self.nconfs[0] += 1
         return True
 
@@ -359,7 +357,6 @@ class OtfMlacs:
                         msg  = "Initial configuration for state {0}/{1} is identical to a previously computed configuration".format(istate+1, self.nstate)
                         self.log.logger_log.info(msg)
                         calc       = SinglePointCalculator(self.atoms[istate], energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress())
-                        #calc       = SinglePointCalculator(self.atoms[istate], **at.calc.results)
                         atoms      = self.atoms[istate].copy()
                         atoms.calc = calc
                         as_prev = True

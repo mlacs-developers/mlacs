@@ -3,6 +3,8 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
+from ase.calculators.singlepoint import SinglePointCalculator
+
 #===================================================================================================================================================#
 #===================================================================================================================================================#
 class CalcManager:
@@ -33,7 +35,11 @@ class CalcManager:
         atoms.set_initial_magnetic_moments(self.magmoms)
         atoms.calc = self.calc
         try:
-            atoms.get_potential_energy()
+            energy = atoms.get_potential_energy()
+            forces = atoms.get_forces()
+            stress = atoms.get_stress()
+            sp_calc   = SinglePointCalculator(atoms, energy=energy, forces=forces, stress=stress)
+            atoms.calc = sp_calc
         except:
             atoms = None
         return atoms

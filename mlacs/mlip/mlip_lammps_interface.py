@@ -290,8 +290,8 @@ class LammpsMlipInterface:
                             [xz, yz, zz]])
         
         rot_mat = prism.rot_mat
-        str_ten = np.dot(rot_mat, str_ten)
-        str_ten = np.dot(str_ten, rot_mat.T)
+        str_ten = rot_mat @ str_ten
+        str_ten = str_ten @ rot_mat.T
         stress  = str_ten[[0, 1, 2, 1, 0, 0],
                           [0, 1, 2, 2, 2, 1]]
         true_stress = -stress
