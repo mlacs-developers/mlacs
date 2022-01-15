@@ -219,6 +219,7 @@ class OtfMlacs:
         else:
             nmax = self.nstate
             val  = "State"
+
         
         self.log.logger_log.info("")
         eq = []
@@ -258,7 +259,7 @@ class OtfMlacs:
             msg = "State {0}/{1}".format(istate+1, self.nstate)
             self.log.logger_log.info(msg)
             if self.pimd:
-                atoms_mlip = self.state[istate].run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, eq)
+                atoms_mlip = self.state[istate].run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, eq[istate])
             else:
                 atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.pair_style, self.mlip.pair_coeff, eq[istate])
         for i, at in enumerate(atoms_mlip):

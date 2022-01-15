@@ -57,9 +57,6 @@ class PimdLammpsState(LammpsState):
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat. 
         Default correspond to :class:`numpy.random.default_rng()`
-    init_momenta : :class:`numpy.ndarray` (optional)
-        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
-        N * 3 velocities for the initial configuration
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
         directory is created
@@ -197,13 +194,13 @@ class PimdLammpsState(LammpsState):
         input_string += "fix    f1  all rpmd {0}\n".format(self.temperature)
         if self.pressure is None:
             if self.langevin:
-                input_string += "fix    f2  all langevin {0} {0}  {1} {2}  gjf {3} zero yes\n".format(self.temperature, damp, self.rng.integers(99999), self.gjf)
+                input_string += "fix    f2  all langevin {0} {0}  {1} {2}${{ibead}}  gjf {3} zero yes\n".format(self.temperature, damp, self.rng.integers(99999), self.gjf)
                 input_string += "fix    f3  all nve\n"
             else:                           
                 input_string += "fix    f2  all nvt temp {0} {0}  {1}\n".format(self.temperature, damp)
         else:                               
             if self.langevin:               
-                input_string += "fix    f2  all langevin {0} {0}  {1} {2}  gjf {3} zero yes\n".format(self.temperature, damp, self.rng.integers(99999), self.gjf)
+                input_string += "fix    f2  all langevin {0} {0}  {1} {2}${{ibead}}  gjf {3} zero yes\n".format(self.temperature, damp, self.rng.integers(99999), self.gjf)
                 input_string += "fix    f3  all nph  {0} {1} {1} {2}\n".format(self.ptype, self.pressure * 10000, pdamp)
             else:                           
                 input_string += "fix    f2  all npt temp {0} {0}  {1} {2} {3} {3} {4}\n".format(self.temperature, damp, self.ptype, self.pressure * 10000, pdamp)
@@ -215,7 +212,7 @@ class PimdLammpsState(LammpsState):
 
 
 #========================================================================================================================#
-    def get_log_in(self):
+    def get_log_input(self):
         """
         Function to write the log of the mlmd run
         """
@@ -246,14 +243,14 @@ class PimdLammpsState(LammpsState):
 
 
 #========================================================================================================================#
-    def get_traj_in(self, elem):
+    def get_traj_input(self, elem):
         """
         Function to write the dump of the mlmd run
         """
         input_string  = "#####################################\n"
         input_string += "#           Dumping\n"
         input_string += "#####################################\n"
-        input_string += "dump dum1 all custom {0} ".format(self.loginterval) + self.workdir + "{0}_${{ibead}} id type xu yu zu vx vy vz fx fy fz element \n".format(self.trajfile)
+        input_string += "dump dum1 all custom {0} {1}_${{ibead}} id type xu yu zu vx vy vz fx fy fz element \n".format(self.loginterval, self.trajfile)
         input_string += "dump_modify dum1 append yes\n"
         input_string += "dump_modify dum1 element " # Add element type
         input_string += " ".join([p for p in elem])

@@ -36,7 +36,6 @@ class CalcManager:
             atoms.get_potential_energy()
         except:
             atoms = None
-
         return atoms
 
 
