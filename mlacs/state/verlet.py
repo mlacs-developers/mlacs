@@ -68,6 +68,7 @@ class VerletState(StateManager):
                              )
         self.init_momenta = init_momenta
 
+        self.ispimd   = False
 
 
 #========================================================================================================================#

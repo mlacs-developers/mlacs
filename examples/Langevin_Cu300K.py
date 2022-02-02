@@ -5,7 +5,7 @@ from ase.md.langevin import Langevin
 
 from mlacs.mlip import LammpsMlip
 from mlacs.state import LangevinState
-from mlacs import OtfMLACS
+from mlacs import OtfMlacs
 
 
 # Parameters---------------------------------------------------------------------------
@@ -47,6 +47,6 @@ mlip = LammpsMlip(atoms, rcut=rcut, twojmax=twojmax)
 # Creation of the State Manager
 state = LangevinState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq)
 # Creation of the OtfMLACS object
-sampling = OtfMLACS(atoms, state, calc, mlip, neq=neq)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
 # Run the simulation
 sampling.run(nconfs)

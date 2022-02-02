@@ -9,6 +9,7 @@ from ase.units import fs
 from ase.md.langevin import Langevin
 from ase.md import MDLogger
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.calculators.lammpsrun import LAMMPS
 
 from mlacs.state import StateManager
 
@@ -82,12 +83,15 @@ class LangevinState(StateManager):
         if self.rng is None:
             self.rng = np.random.default_rng()
 
+        self.ispimd   = False
 
 #========================================================================================================================#
-    def run_dynamics(self, supercell, calc, eq=False):
+    def run_dynamics(self, supercell, pair_style, pair_coeff, eq=False):
         """
         """
-        atoms      = supercell.copy()
+        atoms = supercell.copy()
+        calc  = LAMMPS(pair_style=pair_style, pair_coeff=[pair_coeff])
+
         atoms.calc = calc
 
         if eq:

@@ -5,7 +5,7 @@ from ase.md.langevin import Langevin
 
 from mlacs.mlip import LammpsMlip
 from mlacs.state import LangevinState
-from mlacs import OtfMLACS
+from mlacs import OtfMlacs
 
 
 # Parameters---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ prefix = []
 for t in temperature:
     state.append(LangevinState(t, nsteps=nsteps, nsteps_eq=nsteps_eq))
     prefix.append("{0}K".format(t))
-# Creation of the OtfMLACS object
-sampling = OtfMLACS(atoms, state, calc, mlip, neq=neq, prefix_output=prefix)
+# Creation of the OtfMlacs object
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, prefix_output=prefix)
 # Run the simulation
 sampling.run(nconfs)
