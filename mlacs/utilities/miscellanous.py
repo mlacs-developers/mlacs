@@ -32,15 +32,21 @@ def get_elements_Z_and_masses(supercell):
     elements = supercell.get_chemical_symbols()
     Z        = supercell.get_atomic_numbers()
     masses   = supercell.get_masses()
+    charges  = supercell.get_initial_charges()
 
     un_elements = sorted(set(elements))
     un_Z        = []
     un_masses   = []
+    un_charges  = []
     for iel in range(len(un_elements)):
         idx = elements.index(un_elements[iel])
         un_Z.append(Z[idx])
         un_masses.append(masses[idx])
-    return un_elements, un_Z, un_masses
+        un_charges.append(charges[idx])
+
+    if np.allclose(un_charges, 0.0, atol=1e-8):
+        un_charges = None
+    return un_elements, un_Z, un_masses, un_charges
 
 
 #========================================================================================================================#
@@ -69,6 +75,6 @@ def create_random_structures(atoms, std, nconfs):
     for iat, at in enumerate(atoms):
         for i in range(nconfs):
             iatoms = at.copy()
-            iatoms.rattle(stdev=std)
+            iatoms.rattle(stdev=std, rng=rng)
             confs.append(iatoms)
     return confs

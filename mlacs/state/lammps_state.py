@@ -123,25 +123,35 @@ class LammpsState(StateManager):
         self.ptype       = ptype
 
 #========================================================================================================================#
-    def run_dynamics(self, supercell, pair_style, pair_coeff, eq=False):
+    def run_dynamics(self, supercell, pair_style, pair_coeff, model_post, eq=False):
         """
         Function to run the dynamics
         """
 
         atoms = supercell.copy()
 
-        write_lammps_data(self.atomsfname, supercell, velocities=True)
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+
+        if charges is None:
+            write_lammps_data(self.atomsfname, supercell, velocities=True)
+        else:
+            write_lammps_data(self.atomsfname, supercell, velocities=True, atom_style="charge")
 
         if eq:
             nsteps = self.nsteps_eq
         else:
             nsteps = self.nsteps
 
-        self.write_lammps_input(atoms, pair_style, pair_coeff, nsteps)
+        self.write_lammps_input(atoms, pair_style, pair_coeff, model_post, nsteps)
         lammps_command = self.cmd + "< " + self.lammpsfname + "> log"
         call(lammps_command, shell=True, cwd=self.workdir)
 
+        if charges is not None:
+            init_charges = atoms.get_initial_charges()
         atoms = read(self.workdir + "configurations.out")
+        if charges is not None:
+            atoms.set_initial_charges(init_charges)
+
         return atoms.copy()
 
 
@@ -168,16 +178,16 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def write_lammps_input(self, atoms, pair_style, pair_coeff, nsteps):
+    def write_lammps_input(self, atoms, pair_style, pair_coeff, model_post, nsteps):
         """
         Write the LAMMPS input for the MD simulation
         """
-        elem, Z, masses = get_elements_Z_and_masses(atoms)
-        pbc             = atoms.get_pbc()
+        elem, Z, masses, charges  = get_elements_Z_and_masses(atoms)
+        pbc                       = atoms.get_pbc()
 
         input_string  = ""
-        input_string += self.get_general_input(pbc, masses)
-        input_string += self.get_interaction_input(pair_style, pair_coeff)
+        input_string += self.get_general_input(pbc, masses, charges)
+        input_string += self.get_interaction_input(pair_style, pair_coeff, model_post)
         input_string += self.get_thermostat_input()
         if self.logfile is not None:
             input_string += self.get_log_input()
@@ -276,7 +286,7 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def get_general_input(self, pbc, masses):
+    def get_general_input(self, pbc, masses, charges):
         """
         Function to write the general parameters in the input
         """
@@ -286,7 +296,10 @@ class LammpsState(StateManager):
         input_string += "#####################################\n"
         input_string += "units        metal\n"
         input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-        input_string += "atom_style   atomic\n"
+        if charges is None:
+            input_string += "atom_style   atomic\n"
+        else:
+            input_string += "atom_style   charge\n"
         input_string += "read_data    atoms.in\n"
         for i, mass in enumerate(masses):
             input_string += "mass         " + str(i + 1) + "  " + str(mass) + "\n"
@@ -296,15 +309,19 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def get_interaction_input(self, pair_style, pair_coeff):
+    def get_interaction_input(self, pair_style, pair_coeff, model_post):
         """
         Function to write the interaction in the input
         """
         input_string  = "#####################################\n"
         input_string += "#           Interactions\n"
         input_string += "#####################################\n"
-        input_string += "pair_style    " + pair_style + "\n"
-        input_string += "pair_coeff    " + pair_coeff + "\n"
+        input_string += f"pair_style    {pair_style}\n"
+        for pair in pair_coeff:
+            input_string += f"pair_coeff    {pair}\n"
+        if model_post is not None:
+            for model in model_post:
+                input_string += model
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string

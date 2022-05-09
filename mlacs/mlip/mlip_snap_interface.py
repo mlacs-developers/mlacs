@@ -45,12 +45,15 @@ class LammpsSnapInterface:
                  elements,
                  masses,
                  Z,
+                 charges=None,
                  rcut=5.0,
                  twojmax=8,
                  chemflag=0,
                  radelems=None,
                  welems=None,
-                 quadratic=False
+                 quadratic=False,
+                 reference_potential=None,
+                 fit_dielectric=False
                 ):
 
         
@@ -58,19 +61,22 @@ class LammpsSnapInterface:
         self.elements  = np.array(elements)
         self.masses    = masses
         self.Z         = Z
+        self.charges   = charges
         self.rcut      = rcut
         self.twojmax   = twojmax
         self.quadratic = quadratic
         self.chemflag  = chemflag
         self.bnormflag = 0
+        self.fit_dielectric = fit_dielectric
+        self.prepare_ref_pot(reference_potential)
         if self.chemflag == 1:
             self.bnormflag = 1
 
-        if radelems == None:
+        if radelems is None:
             self.radelems = np.array([0.5 for i in self.elements])
         else:
             self.radelems = radelems
-        if welems == None:
+        if welems is None:
             #self.welems = np.array(self.masses) / np.sum(self.masses)
             self.welems = np.array(self.Z) / np.sum(self.Z)
         else:
@@ -89,6 +95,8 @@ class LammpsSnapInterface:
             self.ndescriptors += int(self.ndescriptors * (self.ndescriptors + 1) / 2)
 
         self.ncolumns = int(len(self.elements) * (self.ndescriptors + 1))
+        if self.fit_dielectric:
+            self.ncolumns += 1
         self._get_lammps_command()
 
         self.snapline = "{0} 0.99363 {1} ".format(self.rcut, self.twojmax)
@@ -101,7 +109,7 @@ class LammpsSnapInterface:
             for n in range(len(self.elements)):
                 self.snapline += "{:} ".format(n)
         if self.quadratic:
-            self.snapline += "quadraticflag 1"
+            self.snapline += "quadraticflag 1 "
         self.snapline += "bnormflag {:}".format(self.bnormflag)
 
 
@@ -121,17 +129,33 @@ class LammpsSnapInterface:
         '''
         Write the LAMMPS input to extract the descriptor and gradient value needed to fit
         '''
+        pair_style = f"pair_style         {self.pair_style}  zero {self.rcut*2}\n"
+        if self.pair_coeff is None:
+            pair_coeff = "pair_coeff       * *\n"
+        else:
+            pair_coeff = "pair_coeff       * * zero\n"
+            for pc in self.pair_coeff:
+                pair_coeff += f"pair_coeff         {pc}\n"
+        model_post = ""
+        if self.model_post is not None:
+            for mp in self.model_post:
+                model_post += f"{mp}"
+                
         input_string  = "# LAMMPS input file for extracting the MLIP descriptors\n"
         input_string += "clear\n"
         input_string += "boundary         p p p\n"
-        input_string += "atom_style       atomic\n"
+        #input_string += "atom_style       atomic\n"
+        input_string += f"atom_style      {self.atom_style}\n"
         input_string += "units            metal\n"
         input_string += "read_data        ${filename}\n"
         for n1 in range(len(self.elements)):
             input_string += "mass             {i} {mass}\n".format(i=n1+1, mass=self.masses[n1])
 
-        input_string += "pair_style       zero {:}\n".format(self.rcut * 2)
-        input_string += "pair_coeff       * *\n"
+        input_string += pair_style
+        input_string += pair_coeff
+        input_string += model_post
+        #input_string += "pair_style       zero {:}\n".format(self.rcut * 2)
+        #input_string += "pair_coeff       * *\n"
 
         input_string += "thermo           100\n"
         input_string += "timestep         0.005\n"
@@ -193,6 +217,9 @@ class LammpsSnapInterface:
             for elements in self.elements:
                 f.write("{:} ".format(elements))
             f.write("SNAP parameters\n")
+            if self.pair_coeff is not None:
+                f.write("# Fitted with a reference potential\n")
+                f.write("# See the mliap.model file to see the parameters\n")
             f.write("\n")
 
             f.write("rcutfac       {:}\n".format(self.rcut))
@@ -212,21 +239,36 @@ class LammpsSnapInterface:
         """
         Function to write the mliap.model parameter files of the MLIP
         """
+        if self.fit_dielectric:
+            coeff = coefficients[:-1]
+        else:
+            coeff = coefficients
         with open("MLIP.snap.model", "w") as f:
             f.write("# ")
             # Adding a commment line to know what elements are fitted here
             for elements in self.elements:
                 f.write("{:} ".format(elements))
             f.write("SNAP coefficients\n")
+            # add some lines showing the LAMMPS parameters
+            pair_style, pair_coeff, model_post = self.get_pair_coeff_and_style(coefficients[-1])
+            f.write("# Parameters to be used in LAMMPS :\n")
+            f.write(f"# pair_style    {pair_style}\n")
+            for pc in pair_coeff:
+                f.write(f"# pair_coeff   {pc}\n")
+            if model_post is not None:
+                for mp in model_post:
+                    f.write(f"# {mp}")
+            f.write(f"# atom_style   {self.atom_style}\n")
+                        
             f.write("\n")
             #f.write("# nelems   ncoefs\n")
-            f.write("{:}   {:}\n".format(len(self.elements), self.ndescriptors+1))
 
+            f.write("{:}   {:}\n".format(len(self.elements), self.ndescriptors+1))
             for n in range(len(self.elements)):
                 f.write("{:}  {:}  {:}\n".format(self.elements[n], self.radelems[n], self.welems[n]))
-                f.write("{:35.30f}\n".format(coefficients[n]))
+                f.write("{:35.30f}\n".format(coeff[n]))
                 for icoef in range(self.ndescriptors):
-                    f.write("{:35.30f}\n".format(coefficients[n*(self.ndescriptors)+icoef+len(self.elements)]))
+                    f.write("{:35.30f}\n".format(coeff[n*(self.ndescriptors)+icoef+len(self.elements)]))
 
 
 #========================================================================================================================#
@@ -268,18 +310,64 @@ class LammpsSnapInterface:
 
         # Organize the data in the same order as in the LAMMPS output:
         # Energy, then 3*Nat forces, then 6 stress in form xx, yy, zz, yz, xz and xy
-        data_true   = np.append(true_energy, true_forces.flatten(order="C")) # order C -> lammps is in C++, not FORTRAN
-        data_true   = np.append(data_true,   true_stress)
+        data_true = np.append(true_energy, true_forces.flatten(order="C")) # order C -> lammps is in C++, not FORTRAN
+        data_true = np.append(data_true,   true_stress)
         
-        write_lammps_data(lmp_atoms_fname, atoms)
+        write_lammps_data(lmp_atoms_fname, atoms, atom_style=self.atom_style)
         self._run_lammps(lmp_atoms_fname)
         
-        data_bispectrum = np.loadtxt("descriptor.out", skiprows=4)[:,1:-1]
-        
-        data_bispectrum[-6:]  /= atoms.get_volume()
+        # I definitely hate stress units in LAMMPS
+        # ASE gives eV/angs**3 - LAMMPS are in bar (WTF ?) - and bispectrum component are in ??????
+        bispectrum = np.loadtxt("descriptor.out", skiprows=4)
+        bispectrum[-6:,1:-1] /= atoms.get_volume() #* 1e-4 #1e-4 / atoms.get_volume() # WTF units is that ?
+        bispectrum[-6:,-1] *= 1e-4 * GPa
+        data_bispectrum = bispectrum[:,1:-1]
+
+        # We need to remove the reference potential values from the data
+        data_true -= bispectrum[:,-1]
+
+        if self.fit_dielectric:
+            coul_calc = LAMMPS(pair_style=f"coul/long {self.rcut+0.01}", 
+                               pair_coeff=["* *"], 
+                               model_post=[f"kspace_style {self.kspace}\n", "dielectric 1\n"],
+                               atom_style="charge",
+                               keep_alive=False) 
+            coul_at = atoms.copy()
+            coul_at.calc = coul_calc
+
+            coul_energy = coul_at.get_potential_energy()
+            coul_forces = coul_at.get_forces()
+            coul_stress = coul_at.get_stress()
+
+            # We need to reorganize the forces from ase to LAMMPS vector because of the weird non orthogonal LAMMPS input
+            for iat in range(coul_forces.shape[0]):
+                coul_forces[iat] = prism.vector_to_lammps(coul_forces[iat])
+
+            # Same thing for the stress
+            xx, yy, zz, yz, xz, xy = coul_stress
+            str_ten = np.array([[xx, xy, xz],
+                                [xy, yy, yz],
+                                [xz, yz, zz]])
+            
+            rot_mat = prism.rot_mat
+            str_ten = rot_mat @ str_ten
+            str_ten = str_ten @ rot_mat.T
+            stress  = str_ten[[0, 1, 2, 1, 0, 0],
+                              [0, 1, 2, 2, 2, 1]]
+            coul_stress = -stress
+
+            data_coul = np.append(coul_energy, coul_forces.flatten(order="C"))
+            data_coul = np.append(data_coul, coul_stress)
+
+            data_bispectrum = np.hstack((data_bispectrum, data_coul[:,np.newaxis]))
+
+            amatrix[:,len(self.elements):] = data_bispectrum
+            #amatrix[:,len(self.elements):-1] = data_bispectrum
+            #amatrix[:,-1] = data_coul#.T
+        else:
+            amatrix[:,len(self.elements):] = data_bispectrum
 
 
-        amatrix[:,len(self.elements):] = data_bispectrum
         symb = atoms.get_chemical_symbols()
         for n in range(len(self.elements)):
             amatrix[0,n] = symb.count(self.elements[n])
@@ -290,31 +378,153 @@ class LammpsSnapInterface:
 
 
 #========================================================================================================================#
-    def load_mlip(self):
+    def load_mlip(self, dielectric=None):
         '''
         Function to load a MLIP model
         Return a LAMMPSRUN calculator from the ASE package
         '''
-        pair_style = 'snap'
-        pair_coeff = ' * * MLIP.snap.model  MLIP.snap.descriptor ' + " ".join(self.elements)
-        #for el in self.elements:
-        #    pair_coeff += " " + el
-        pair_coeff = [pair_coeff]
-        pwd = os.getcwd()
-        calc       = LAMMPS(keep_alive=False)
-        calc.set(pair_style=pair_style, pair_coeff=pair_coeff)
+        cwd = os.getcwd()
+        pair_style_mliap = " snap "
+        pair_coeff_mliap = f"{cwd}/MLIP.snap.model {cwd}/MLIP.snap.descriptor " + " ".join(self.elements)
+
+        pair_style = self.pair_style + pair_style_mliap
+        pair_coeff = []
+        if self.pair_coeff is None:
+            pair_coeff = [f"* * {pair_coeff_mliap}"]
+        else:
+            pair_coeff.append(f"* * snap {pair_coeff_mliap}")
+            for pc in self.pair_coeff:
+                pair_coeff.append(pc)
+
+        if self.model_post is None:
+            model_post = None
+        else:
+            model_post = self.model_post.copy()
+
+        if self.fit_dielectric:
+            # We need to modifiy the pair style/coeff if there is no reference potential
+            if self.pair_coeff is None:
+                pair_style = f"hybrid/overlay   {self.pair_style}   {pair_style_mliap}"
+                pair_coeff = [f"* * snap {pair_coeff_mliap}"]
+            pair_style = pair_style + f"  coul/long {self.rcut+0.01}"
+            pair_coeff.append("* * coul/long")
+            if self.model_post is not None:
+                for mp in self.model_post:
+                    if mp.split()[0] == "kspace_style":
+                        break
+                    else:
+                        model_post.append(f"kspace_style   {self.kspace}\n")
+                        model_post.append(f"dielectric   {1.0/dielectric}\n")
+            else:
+                model_post = [f"kspace_style   {self.kspace}\n"]
+                model_post.append(f"dielectric   {1.0/dielectric}\n")
+
+        calc = LAMMPS(keep_alive=False)
+        calc.set(pair_style=pair_style,
+                 pair_coeff=pair_coeff,
+                 atom_style=self.atom_style
+                )
+        if model_post is not None:
+            calc.set(model_post=model_post)
         return calc
 
 
 #========================================================================================================================#
-    def get_pair_coeff_and_style(self):
+    def get_pair_coeff_and_style(self, dielectric=1):
         """
         """
-        cwd = os.getcwd() + "/"
+        cwd = os.getcwd()
 
-        pair_style = "snap"
-        pair_coeff = "* * " + cwd + "MLIP.snap.model " + cwd + "MLIP.snap.descriptor " + " ".join(self.elements)
-        return pair_style, pair_coeff
+        pair_style_mliap = " snap "
+        pair_coeff_mliap = f"{cwd}/MLIP.snap.model {cwd}/MLIP.snap.descriptor " + " ".join(self.elements)
+
+        pair_style = self.pair_style + pair_style_mliap
+        pair_coeff = []
+        if self.pair_coeff is None:
+            pair_coeff = [f"* * {pair_coeff_mliap}"]
+        else:
+            pair_coeff.append(f"* * snap {pair_coeff_mliap}")
+            for pc in self.pair_coeff:
+                pair_coeff.append(pc)
+
+        if self.model_post is None:
+            model_post = None
+        else:
+            model_post = self.model_post.copy()
+
+        if self.fit_dielectric:
+            # We need to modifiy the pair style/coeff if there is no reference potential
+            if self.pair_coeff is None:
+                pair_style = f"hybrid/overlay   {self.pair_style}   {pair_style_mliap}"
+                pair_coeff = [f"* * snap {pair_coeff_mliap}"]
+            pair_style = pair_style + f"  coul/long {self.rcut+0.01}"
+            pair_coeff.append("* * coul/long")
+            if self.model_post is not None:
+                for mp in self.model_post:
+                    if mp.split()[0] == "kspace_style":
+                        break
+                    else:
+                        model_post.append(f"kspace_style   {self.kspace}\n")
+                        model_post.append(f"dielectric   {1.0/dielectric}\n")
+            else:
+                model_post = [f"kspace_style   {self.kspace}\n"]
+                model_post.append(f"dielectric   {1.0/dielectric}\n")
+        return pair_style, pair_coeff, model_post
+
+
+#========================================================================================================================#
+    def prepare_ref_pot(self, ref_pot):
+        """
+        """
+        if ref_pot is None:
+            self.pair_style = ""
+            self.pair_coeff = None
+            self.model_post = None
+            self.atom_style = "atomic"
+        else:
+            self.pair_style = ref_pot.get("pair_style", "")
+            self.pair_coeff = ref_pot.get("pair_coeff", None)
+            self.atom_style = ref_pot.get("atom_style", "atomic")
+            self.model_post = ref_pot.get("model_post", None)
+            if isinstance(self.model_post, str):
+                self.model_post = [self.model_post + "\n"]
+
+        if self.pair_style != "":
+            ref_ps = self.pair_style
+            ref_pc = self.pair_coeff
+            if isinstance(ref_ps, str):
+                ref_ps = [ref_ps]
+
+            self.pair_style  = "hybrid/overlay  "
+            self.pair_style += "   ".join(ref_ps)
+            self.pair_coeff  = []
+            for i, ps in enumerate(ref_ps):
+                pss  = ps.split()[0] # pair_style
+                pc  = ref_pc[i]
+                if isinstance(pc, str):
+                    pcs = pc.split() # pair_coeff splitted
+                    if len(pcs) < 2:
+                        self.pair_coeff.append(f"{pcs[0]} {pcs[1]} {pss} ")
+                    else:
+                        self.pair_coeff.append(f"{pcs[0]} {pcs[1]} {pss} " + " ".join(pcs[2:]))
+                else:
+                    for p in pc:
+                        pcs = p.split()
+                        if len(pcs) < 2:
+                            self.pair_coeff.append(f"{pcs[0]} {pcs[1]} {pss} ")
+                        else:
+                            self.pair_coeff.append(f"{pcs[0]} {pcs[1]} {pss} " + " ".join(pcs[2:]))
+
+
+
+        if self.fit_dielectric:
+            self.kspace = "pppm 1.0e-5"
+            if self.model_post is not None:
+                for mp in self.model_post:
+                    if mp.split()[0] ==  "kspace_style":
+                        self.kspace = mp.split()[1:]
+            if self.atom_style not in ["full", "charge"]:
+                self.atom_style = "charge"
 
 
 #========================================================================================================================#

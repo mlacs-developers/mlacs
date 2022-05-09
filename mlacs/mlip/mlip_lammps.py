@@ -72,6 +72,8 @@ class LammpsMlip(LinearMlip):
                  chemflag=0,
                  radelems=None,
                  welems=None,
+                 reference_potential=None,
+                 fit_dielectric=False,
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
@@ -105,11 +107,13 @@ class LammpsMlip(LinearMlip):
                                                     alpha,
                                                     chemflag,
                                                     radelems,
-                                                    welems)
+                                                    welems,
+                                                    reference_potential,
+                                                    fit_dielectric)
 
         self.ncolumns = self.lammps_interface.ncolumns
 
-        self.pair_style, self.pair_coeff = self.lammps_interface.get_pair_coeff_and_style()
+        self.pair_style, self.pair_coeff, self.model_post = self.lammps_interface.get_pair_coeff_and_style()
 
 
 #===================================================================================================================================================#
@@ -126,12 +130,15 @@ class LammpsMlip(LinearMlip):
         self.lammps_interface.write_mlip_coeff(self.coefficients)
 
 
-
 #===================================================================================================================================================#
     def init_calc(self):
         """
         """
-        self.calc = self.lammps_interface.load_mlip()
+        if self.lammps_interface.fit_dielectric:
+            self.calc = self.lammps_interface.load_mlip(self.coefficients[-1])
+        else:
+            self.calc = self.lammps_interface.load_mlip()
+        self.pair_style, self.pair_coeff, self.model_post = self.lammps_interface.get_pair_coeff_and_style(self.coefficients[-1])
 
 
 #===================================================================================================================================================#

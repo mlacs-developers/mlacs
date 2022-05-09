@@ -24,7 +24,7 @@ class MlipManager:
                  stress_coefficient=0.0,
                 ):
 
-        self.elements, self.Z, self.masses = get_elements_Z_and_masses(atoms)
+        self.elements, self.Z, self.masses, self.charges = get_elements_Z_and_masses(atoms)
         self.natoms = len(atoms)
         self.rcut   = rcut
 

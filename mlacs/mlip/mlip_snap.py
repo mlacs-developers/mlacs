@@ -58,6 +58,8 @@ class LammpsSnap(LinearMlip):
                  radelems=None,
                  welems=None,
                  quadratic=False,
+                 reference_potential=None,
+                 fit_dielectric=False,
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
@@ -82,17 +84,20 @@ class LammpsSnap(LinearMlip):
         self.lammps_interface = LammpsSnapInterface(self.elements,
                                                     self.masses,
                                                     self.Z,
+                                                    self.charges,
                                                     self.rcut,
                                                     twojmax,
                                                     chemflag,
                                                     radelems,
                                                     welems,
-                                                    quadratic
+                                                    quadratic,
+                                                    reference_potential,
+                                                    fit_dielectric
                                                    )
 
         self.ncolumns = self.lammps_interface.ncolumns
 
-        self.pair_style, self.pair_coeff = self.lammps_interface.get_pair_coeff_and_style()
+        self.pair_style, self.pair_coeff, self.model_post = self.lammps_interface.get_pair_coeff_and_style()
 
 
 #===================================================================================================================================================#
@@ -113,7 +118,11 @@ class LammpsSnap(LinearMlip):
     def init_calc(self):
         """
         """
-        self.calc = self.lammps_interface.load_mlip()
+        if self.lammps_interface.fit_dielectric:
+            self.calc = self.lammps_interface.load_mlip(self.coefficients[-1])
+        else:
+            self.calc = self.lammps_interface.load_mlip()
+        self.pair_style, self.pair_coeff, self.model_post = self.lammps_interface.get_pair_coeff_and_style(self.coefficients[-1])
 
 
 #===================================================================================================================================================#
