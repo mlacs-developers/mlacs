@@ -66,14 +66,16 @@ class LammpsMlip(LinearMlip):
                  model="linear",
                  style="snap",
                  twojmax=8,
-                 lmax=4,
-                 nmax=4,
+                 lmax=3,
+                 nmax=5,
                  alpha=2.0,
                  chemflag=0,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
                  fit_dielectric=False,
+		 bonds=None,
+                 angles=None,
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
@@ -109,12 +111,15 @@ class LammpsMlip(LinearMlip):
                                                     radelems,
                                                     welems,
                                                     reference_potential,
-                                                    fit_dielectric)
+                                                    fit_dielectric,
+						    bonds,
+                                                    angles)
 
         self.ncolumns = self.lammps_interface.ncolumns
 
         self.pair_style, self.pair_coeff, self.model_post = self.lammps_interface.get_pair_coeff_and_style()
-
+        self.atom_style, self.bond_style, self.bond_coeff, self.angle_style, self.angle_coeff = self.lammps_interface.get_bond_angle_coeff_and_style()
+        self.bonds, self.angles = self.lammps_interface.get_bonds_angles()
 
 #===================================================================================================================================================#
     def compute_fit_matrix(self, atoms):

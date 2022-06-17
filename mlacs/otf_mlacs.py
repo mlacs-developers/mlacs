@@ -259,9 +259,9 @@ class OtfMlacs:
             msg = "State {0}/{1}".format(istate+1, self.nstate)
             self.log.logger_log.info(msg)
             if self.pimd:
-                atoms_mlip = self.state[istate].run_dynamics(atoms_mlip, self.mlip.pair_style, self.mlip.pair_coeff, self.mlip.model_post, eq[istate])
+                atoms_mlip = self.state[istate].run_dynamics(atoms_mlip, self.mlip.atom_style, self.mlip.bonds, self.mlip.angles, self.mlip.bond_style, self.mlip.bond_coeff, self.mlip.angle_style, self.mlip.angle_coeff, self.mlip.pair_style, self.mlip.pair_coeff, self.mlip.model_post, eq[istate])
             else:
-                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.pair_style, self.mlip.pair_coeff, self.mlip.model_post, eq[istate])
+                atoms_mlip[istate] = self.state[istate].run_dynamics(atoms_mlip[istate], self.mlip.atom_style, self.mlip.bonds, self.mlip.angles, self.mlip.bond_style, self.mlip.bond_coeff, self.mlip.angle_style, self.mlip.angle_coeff, self.mlip.pair_style, self.mlip.pair_coeff, self.mlip.model_post, eq[istate])
         for i, at in enumerate(atoms_mlip):
             at.calc = self.mlip.calc
             sp_calc_mlip.append(SinglePointCalculator(at, energy=at.get_potential_energy(), forces=at.get_forces(), stress=at.get_stress()))
