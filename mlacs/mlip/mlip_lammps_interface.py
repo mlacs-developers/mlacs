@@ -177,18 +177,6 @@ class LammpsMlipInterface:
 
         pair_style = f"pair_style         {self.pair_style}  zero {self.rcut*2}\n"
 
-#        if self.bond_coeff is None : 
-#            bond_style = "" 
-#        else :
-#            bond_coeff = ""
-#            for bc in self.bond_coeff:
-#                bond_coeff +=f"bond_coeff       {bc}\n"
-#        if self.angle_coeff is None : 
-#            angle_coeff = "" 
-#        else : 
-#            angle_coeff = "" 
-#            for angc in self.angle_coeff : 
-#                angle_coeff += f"angle_coeff      {angc}\n" 
         if self.pair_coeff is None:
             pair_coeff = "pair_coeff       * *\n"
         else:
@@ -593,8 +581,6 @@ class LammpsMlipInterface:
 #========================================================================================================================#
     def prepare_ref_pot(self, ref_pot):
         """
-        !!!!!!! TEST PERSO 
-        pair_style est maintenant une list et pair coeff une list de list. 
         """
         if ref_pot is None:
             self.bond_style = None
