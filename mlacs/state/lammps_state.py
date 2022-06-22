@@ -13,7 +13,7 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state import StateManager
 from mlacs.utilities import get_elements_Z_and_masses
-
+from mlacs.utilities import write_lammps_data_full
 
 #========================================================================================================================#
 #========================================================================================================================#
@@ -123,7 +123,7 @@ class LammpsState(StateManager):
         self.ptype       = ptype
 
 #========================================================================================================================#
-    def run_dynamics(self, supercell, pair_style, pair_coeff, model_post, eq=False):
+    def run_dynamics(self, supercell, atom_style, bonds, angles, bond_style, bond_coeff, angle_style, angle_coeff, pair_style, pair_coeff, model_post, eq=False):
         """
         Function to run the dynamics
         """
@@ -131,18 +131,21 @@ class LammpsState(StateManager):
         atoms = supercell.copy()
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
-
-        if charges is None:
-            write_lammps_data(self.atomsfname, supercell, velocities=True)
-        else:
-            write_lammps_data(self.atomsfname, supercell, velocities=True, atom_style="charge")
+        
+        if atom_style == 'full' : 
+            write_lammps_data_full(self.atomsfname, atoms, bonds=bonds, angles=angles, velocities=True)
+        else : 
+            if charges is None:
+                write_lammps_data(self.atomsfname, supercell, velocities=True)
+            else:
+                write_lammps_data(self.atomsfname, supercell, velocities=True, atom_style="charge")
 
         if eq:
             nsteps = self.nsteps_eq
         else:
             nsteps = self.nsteps
 
-        self.write_lammps_input(atoms, pair_style, pair_coeff, model_post, nsteps)
+        self.write_lammps_input(atoms, atom_style, bond_style, bond_coeff, angle_style, angle_coeff, pair_style, pair_coeff, model_post, nsteps)
         lammps_command = self.cmd + "< " + self.lammpsfname + "> log"
         call(lammps_command, shell=True, cwd=self.workdir)
 
@@ -178,7 +181,7 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def write_lammps_input(self, atoms, pair_style, pair_coeff, model_post, nsteps):
+    def write_lammps_input(self, atoms, atom_style, bond_style, bond_coeff, angle_style, angle_coeff, pair_style, pair_coeff, model_post, nsteps):
         """
         Write the LAMMPS input for the MD simulation
         """
@@ -186,8 +189,8 @@ class LammpsState(StateManager):
         pbc                       = atoms.get_pbc()
 
         input_string  = ""
-        input_string += self.get_general_input(pbc, masses, charges)
-        input_string += self.get_interaction_input(pair_style, pair_coeff, model_post)
+        input_string += self.get_general_input(pbc, masses, charges, atom_style)
+        input_string += self.get_interaction_input(bond_style, bond_coeff, angle_style, angle_coeff, pair_style, pair_coeff, model_post)
         input_string += self.get_thermostat_input()
         if self.logfile is not None:
             input_string += self.get_log_input()
@@ -286,7 +289,7 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def get_general_input(self, pbc, masses, charges):
+    def get_general_input(self, pbc, masses, charges, atom_style):
         """
         Function to write the general parameters in the input
         """
@@ -296,10 +299,13 @@ class LammpsState(StateManager):
         input_string += "#####################################\n"
         input_string += "units        metal\n"
         input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-        if charges is None:
-            input_string += "atom_style   atomic\n"
-        else:
-            input_string += "atom_style   charge\n"
+        if atom_style == "full" : 
+            input_string += "atom_style   full\n"
+        else :
+            if charges is None:
+                input_string += "atom_style   atomic\n"
+            else:
+                input_string += "atom_style   charge\n"
         input_string += "read_data    atoms.in\n"
         for i, mass in enumerate(masses):
             input_string += "mass         " + str(i + 1) + "  " + str(mass) + "\n"
@@ -309,13 +315,24 @@ class LammpsState(StateManager):
 
 
 #========================================================================================================================#
-    def get_interaction_input(self, pair_style, pair_coeff, model_post):
+    def get_interaction_input(self, bond_style, bond_coeff, angle_style, angle_coeff, pair_style, pair_coeff, model_post):
         """
         Function to write the interaction in the input
         """
         input_string  = "#####################################\n"
         input_string += "#           Interactions\n"
         input_string += "#####################################\n"
+        if bond_style is not None : 
+            input_string += f"bond_style   {bond_style}\n" 
+            for bc in bond_coeff : 
+                input_string += f"bond_coeff {bc}\n"
+
+    
+        if angle_style is not None : 
+            input_string += f"angle_style   {angle_style}\n" 
+            for angc in angle_coeff : 
+                input_string += f"angle_coeff {angc}\n"
+
         input_string += f"pair_style    {pair_style}\n"
         for pair in pair_coeff:
             input_string += f"pair_coeff    {pair}\n"

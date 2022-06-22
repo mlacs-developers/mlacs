@@ -12,6 +12,8 @@ from ase.calculators.lammps import Prism, convert
 from ase.calculators.lammpsrun import LAMMPS
 from ase.units import GPa
 
+from mlacs.utilities import write_lammps_data_full
+
 
 #========================================================================================================================#
 #========================================================================================================================#
@@ -54,6 +56,10 @@ class LammpsMlipInterface:
         true and reference potential. Needs to be a dict with parameters for LAMMPS calculator.
         At least a pair_coeff and a pair_style are needed in the dictionary.
         Default ```None``
+    bonds: :class:`np.array`
+        Numpy array of bonds list 
+    angles: :class:`np.array` 
+        Numpy array of angles list 
     """
     def __init__(self, 
                  elements, 
@@ -70,7 +76,9 @@ class LammpsMlipInterface:
                  radelems=None,
                  welems=None,
                  reference_potential=None,
-                 fit_dielectric=False
+                 fit_dielectric=False,
+                 bonds=None,
+                 angles=None
                 ):
         # Waiting for LAMMPS to finnish the implementation of SO3 potential
         #if style != "snap":
@@ -90,6 +98,14 @@ class LammpsMlipInterface:
         self.chemflag = chemflag
         self.fit_dielectric = fit_dielectric
         self.prepare_ref_pot(reference_potential)
+        if bonds is None : 
+            self.bonds = None
+        else : 
+            self.bonds = bonds
+        if angles is None : 
+            self.angles = None
+        else : 
+            self.angles = angles 
         if self.chemflag == 1:
             self.bnormflag = 1
 
@@ -142,7 +158,25 @@ class LammpsMlipInterface:
         '''
         Write the LAMMPS input to extract the descriptor and gradient value needed to fit
         '''
+        if self.bond_style is not None : 
+            bond_style = f"bond_style         {self.bond_style}\n"
+            bond_coeff = ""
+            for bc in self.bond_coeff:
+                bond_coeff +=f"bond_coeff       {bc}\n"
+        else : 
+            bond_style = "" 
+            bond_coeff = "" 
+        if self.angle_style is not None :
+            angle_style = f"angle_style       {self.angle_style}\n"
+            angle_coeff = "" 
+            for angc in self.angle_coeff : 
+                angle_coeff += f"angle_coeff      {angc}\n" 
+        else : 
+            angle_style = "" 
+            angle_coeff = ""
+
         pair_style = f"pair_style         {self.pair_style}  zero {self.rcut*2}\n"
+
         if self.pair_coeff is None:
             pair_coeff = "pair_coeff       * *\n"
         else:
@@ -163,7 +197,10 @@ class LammpsMlipInterface:
         input_string += "read_data        ${filename}\n"
         for n1 in range(len(self.elements)):
             input_string += "mass             {i} {mass}\n".format(i=n1+1, mass=self.masses[n1])
-
+        input_string += bond_style 
+        input_string += bond_coeff
+        input_string += angle_style 
+        input_string += angle_coeff
         input_string += pair_style
         input_string += pair_coeff
         input_string += model_post
@@ -284,7 +321,16 @@ class LammpsMlipInterface:
             # If there is a reference potential
             # add some lines showing the LAMMPS parameters
             pair_style, pair_coeff, model_post = self.get_pair_coeff_and_style(coefficients[-1])
+            atom_style, bond_style, bond_coeff, angle_style, angle_coeff = self.get_bond_angle_coeff_and_style()
+
+
             f.write("# Parameters to be used in LAMMPS :\n")
+            f.write(f"#bond_style     {bond_style}\n")
+            for bc in bond_coeff : 
+                f.write(f"#bond_coeff    {bc}\n")
+            f.write(f"#angle_style     {angle_style}\n")
+            for angc in bond_coeff : 
+                f.write(f"#angle_coeff    {angc}\n")
             f.write(f"# pair_style    {pair_style}\n")
             for pc in pair_coeff:
                 f.write(f"# pair_coeff   {pc}\n")
@@ -341,8 +387,11 @@ class LammpsMlipInterface:
         # Energy, then 3*Nat forces, then 6 stress in form xx, yy, zz, yz, xz and xy
         data_true = np.append(true_energy, true_forces.flatten(order="C")) # order C -> lammps is in C++, not FORTRAN
         data_true = np.append(data_true,   true_stress)
-        
-        write_lammps_data(lmp_atoms_fname, atoms, atom_style=self.atom_style)
+       
+        if self.bonds is not None or self.angles is not None : 
+            write_lammps_data_full(lmp_atoms_fname, atoms, self.bonds, self.angles)
+        else : 
+            write_lammps_data(lmp_atoms_fname, atoms, atom_style=self.atom_style)
         self._run_lammps(lmp_atoms_fname)
         
         # I definitely hate stress units in LAMMPS
@@ -500,17 +549,53 @@ class LammpsMlipInterface:
                 model_post.append(f"dielectric   {1.0/dielectric}\n")
         return pair_style, pair_coeff, model_post
 
+#========================================================================================================================#
+    def get_bond_angle_coeff_and_style(self) : 
+        """ 
+        """ 
+        atom_style = self.atom_style 
+        bond_style = self.bond_style
+        bond_coeff = []
+        if self.bond_coeff is None : 
+            bond_coeff = [""] 
+        else : 
+            for bc in self.bond_coeff : 
+                bond_coeff.append(bc) 
 
+        angle_style = self.angle_style
+        angle_coeff= []
+        if self.angle_coeff is None : 
+            angle_coeff = [""] 
+        else : 
+            for angc in self.angle_coeff : 
+                angle_coeff.append(angc) 
+
+        return atom_style, bond_style, bond_coeff, angle_style, angle_coeff 
+
+    def get_bonds_angles(self) : 
+        """
+        """ 
+        bonds = self.bonds 
+        angles = self.angles
+        return bonds, angles 
 #========================================================================================================================#
     def prepare_ref_pot(self, ref_pot):
         """
         """
         if ref_pot is None:
+            self.bond_style = None
+            self.bond_coeff = None
+            self.angle_style = None
+            self.angle_bond = None 
             self.pair_style = ""
             self.pair_coeff = None
             self.model_post = None
             self.atom_style = "atomic"
         else:
+            self.bond_style = ref_pot.get("bond_style", None)
+            self.bond_coeff = ref_pot.get("bond_coeff", None)
+            self.angle_style= ref_pot.get("angle_style", None)
+            self.angle_coeff= ref_pot.get("angle_coeff", None)
             self.pair_style = ref_pot.get("pair_style", "")
             self.pair_coeff = ref_pot.get("pair_coeff", None)
             self.atom_style = ref_pot.get("atom_style", "atomic")
@@ -519,6 +604,7 @@ class LammpsMlipInterface:
                 self.model_post = [self.model_post + "\n"]
 
         if self.pair_style != "":
+
             ref_ps = self.pair_style
             ref_pc = self.pair_coeff
             if isinstance(ref_ps, str):
@@ -527,6 +613,7 @@ class LammpsMlipInterface:
             self.pair_style  = "hybrid/overlay  "
             self.pair_style += "   ".join(ref_ps)
             self.pair_coeff  = []
+
             for i, ps in enumerate(ref_ps):
                 pss  = ps.split()[0] # pair_style
                 pc  = ref_pc[i]
@@ -545,9 +632,57 @@ class LammpsMlipInterface:
                             self.pair_coeff.append(f"{pcs[0]} {pcs[1]} {pss} " + " ".join(pcs[2:]))
 
 
+        if self.bond_style is not None:
+
+            ref_bs = self.bond_style
+            ref_bc = self.bond_coeff
+            if isinstance(ref_bs, str):
+                ref_bs = [ref_bs]
+
+            self.bond_style  = "hybrid  "
+            self.bond_style += "   ".join(ref_bs)
+            self.bond_coeff  = []
+
+            for i, bs in enumerate(ref_bs):
+                bss  = bs.split()[0] # pair_style
+                bc  = ref_bc[i]
+                if isinstance(bc, str):
+                    bcs = bc.split() # pair_coeff splitted
+                    self.bond_coeff.append(f" ".join(bcs[:]))
+
+                else:
+                    for b in bc:
+                        bcs = b.split()
+                        self.bond_coeff.append(f" ".join(bcs[:]))
+
+
+        if self.angle_style is not None:
+
+            ref_angs = self.angle_style
+            ref_angc = self.angle_coeff
+            if isinstance(ref_angs, str):
+                ref_as = [ref_angs]
+
+            self.angle_style  = "hybrid  "
+            self.angle_style += "   ".join(ref_angs)
+            self.angle_coeff  = []
+
+            for i, angs in enumerate(ref_angs):
+                angss  = angs.split()[0] # pair_style
+                angc  = ref_angc[i]
+                if isinstance(angc, str):
+                    angcs = angc.split() # pair_coeff splitted
+                    self.angle_coeff.append(f" ".join(angcs[0:]))
+                else:
+                    for ang in angc:
+                        angcs = ang.split()
+                        self.angle_coeff.append(f" ".join(angcs[0:]))
+
+
 
         if self.fit_dielectric:
-            self.kspace = "pppm 1.0e-5"
+            #self.kspace = "pppm 1.0e-5"
+            self.kspace = "ewald 1e-6"
             if self.model_post is not None:
                 for mp in self.model_post:
                     if mp.split()[0] ==  "kspace_style":

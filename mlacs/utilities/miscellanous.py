@@ -3,11 +3,12 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import numpy as np
+import subprocess 
 
 from ase.atoms import Atoms
 from ase.io import read
 from ase.units import Hartree, Bohr
-
+from ase.io.lammpsdata import write_lammps_data 
 
 #========================================================================================================================#
 def get_elements_Z_and_masses(supercell):
@@ -78,3 +79,45 @@ def create_random_structures(atoms, std, nconfs):
             iatoms.rattle(stdev=std, rng=rng)
             confs.append(iatoms)
     return confs
+
+def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False) : 
+    """
+    Write lammps data file with bonds and angles 
+
+    Parameters
+    ----------
+    name : :class:`str` 
+        name of the output file 
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+    bonds: :class:`numpy.array`
+        array of bonds list
+    nconfs: :class:`numpy.array`
+        array of angles list 
+    Return
+    ------
+    """
+    write_lammps_data('coord_tmp.lmp', atoms, atom_style = "full", velocities=velocities)
+    with open('coord_tmp.lmp', 'r') as file : 
+        lines = file.readlines()
+
+    ind = [i for i, element in enumerate(lines) if "atoms" in element][0] 
+    lines.insert(ind+1, str(len(bonds))+' bonds \n')
+    lines.insert(ind+2, str(len(angles))+' angles \n')
+    
+
+    ind = [i for i, element in enumerate(lines) if "atom types" in element][0] 
+    lines.insert(ind+1, str(len(np.unique(bonds[:,1])))+' bond types \n')
+    lines.insert(ind+2, str(len(np.unique(angles[:,1])))+' angle types \n')
+
+    f = open(name, 'w')
+    for line in lines : 
+        f.write(line)
+    f.write("\n")
+    f.write(" Bonds \n \n")
+    np.savetxt(f, bonds, fmt='%s') 
+    f.write("\n")
+    f.write(" Angles \n \n")
+    np.savetxt(f, angles, fmt='%s')
+    f.close()
+    subprocess.run('rm coord_tmp.lmp', shell=True)
