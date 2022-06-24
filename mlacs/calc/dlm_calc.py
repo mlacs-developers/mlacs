@@ -22,8 +22,12 @@ class DlmCalcManager(CalcManager):
     ----------
     calc: :class:`ase.calculator`
         A ASE calculator object.
-    atoms_ideal: :class:`ase.atoms`
-        The Atoms object with ideal positions, for which the disorder spin structure will be computed.
+    unitcell: :class:`ase.atoms`
+        The Atoms object for the unitcell, for which the symmetry will be used to create the magnetic sqs.
+    supercell: :class:`ase.atoms`
+        The supercell with ideal positions
+    magnetic_sites: :class:`list`
+        List of integers describing the unitcell sites where the magnetic atoms are located
     mu_b: :class:`float`
         The initial spin amplitude, imposed before the calculation, in Bohr magneton. Default ``1.0``.
     cutoff: :class:`list` of :class:`float`
@@ -31,13 +35,16 @@ class DlmCalcManager(CalcManager):
     n_steps: :class:`int` (optional)
         Number of Monte-Carlo steps for the generation of the magnetic SQS. Default ``3000``.
     """
-    def __init__(self, calc, atoms_ideal, mu_b=1.0, cutoffs=[6.0, 4.0], n_steps=3000):
+    def __init__(self, calc, unitcell, supercell, magnetic_sites, mu_b=1.0, cutoffs=[6.0, 4.0], n_steps=3000):
         CalcManager.__init__(self, calc,)
 
+        chemsymb = ["N"] * len(unitcell)
+        for i in magnetic_sites:
+            chemsymb[i] = ["H", "B"]
         self.cutoffs   = cutoffs
         self.mu_b      = mu_b
         self.supercell = atoms_ideal.copy()
-        self.cs        = ClusterSpace(self.supercell, cutoffs, ["H", "B"]) # H -> haut et B -> bas
+        self.cs        = ClusterSpace(self.supercell, cutoffs, chemsymb) # H -> haut et B -> bas
         self.n_steps   = n_steps
         self.target_concentrations = {"H": 0.5, "B": 0.5}
 
@@ -51,12 +58,12 @@ class DlmCalcManager(CalcManager):
                                            self.target_concentrations,
                                            n_steps=self.n_steps
                                           )
-        magmoms = []
-        for i in sqs.get_chemical_symbols():
-            if i == "H":
-                magmoms.append( self.mu_b)
-            if i == "B":
-                magmoms.append(-self.mu_b)
+        magmoms = np.zeros(len(self.supercell))
+        for i, c in enumerate(sqs.get_chemical_symbols()):
+            if c == dn_at:
+                magmoms[i] =  self.mu_b
+            if c == up_at:
+                magmoms[i] = -self.mu_b
         atoms.set_initial_magnetic_moments(magmoms)
         atoms.calc = self.calc
         atoms.get_potential_energy()
