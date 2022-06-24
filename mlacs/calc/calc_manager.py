@@ -28,6 +28,7 @@ class CalcManager:
         self.calc    = calc
         self.magmoms = magmoms
 
+
 #===================================================================================================================================================#
     def compute_true_potential(self, atoms):
         """

@@ -60,9 +60,9 @@ class DlmCalcManager(CalcManager):
                                           )
         magmoms = np.zeros(len(self.supercell))
         for i, c in enumerate(sqs.get_chemical_symbols()):
-            if c == dn_at:
+            if c == "H":
                 magmoms[i] =  self.mu_b
-            if c == up_at:
+            if c == "B":
                 magmoms[i] = -self.mu_b
         atoms.set_initial_magnetic_moments(magmoms)
         atoms.calc = self.calc
