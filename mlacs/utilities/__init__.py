@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from mlacs.utilities.pdf import compute_pdf
-from mlacs.utilities.miscellanous import get_elements_Z_and_masses, create_random_structures
+from mlacs.utilities.miscellanous import get_elements_Z_and_masses, create_random_structures, write_lammps_data_full
 
-__all__ = ['compute_pdf', 'get_elements_Z_and_masses', 'create_random_structures']
+__all__ = ['compute_pdf', 'get_elements_Z_and_masses', 'create_random_structures',
+           'write_lammps_data_full']
