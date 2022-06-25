@@ -50,7 +50,7 @@ class McSpinCalcManager(CalcManager):
         magmoms_try[idx_choice] *= -1
 
         # Compute energy with the spin flip
-        atoms_try.set_initial_magnetic_moments(atoms_try)
+        atoms_try.set_initial_magnetic_moments(magmoms_try)
         atoms_try.calc = self.calc
         etry = atoms_try.get_potential_energy()
 
