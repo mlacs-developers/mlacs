@@ -38,13 +38,13 @@ class DlmCalcManager(CalcManager):
     def __init__(self, calc, unitcell, supercell, magnetic_sites, mu_b=1.0, cutoffs=[6.0, 4.0], n_steps=3000):
         CalcManager.__init__(self, calc,)
 
-        chemsymb = ["N"] * len(unitcell)
+        chemsymb = [["N"]] * len(unitcell)
         for i in magnetic_sites:
             chemsymb[i] = ["H", "B"]
         self.cutoffs   = cutoffs
         self.mu_b      = mu_b
-        self.supercell = atoms_ideal.copy()
-        self.cs        = ClusterSpace(self.supercell, cutoffs, chemsymb) # H -> haut et B -> bas
+        self.supercell = supercell.copy()
+        self.cs        = ClusterSpace(unitcell, cutoffs, chemsymb) # H -> haut et B -> bas
         self.n_steps   = n_steps
         self.target_concentrations = {"H": 0.5, "B": 0.5}
 
