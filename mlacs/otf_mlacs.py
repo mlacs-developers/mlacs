@@ -41,8 +41,8 @@ class OtfMlacs:
         is automatically created.
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
-        Default is a LammpsSnap object with a 5.0 angstrom rcut
-        with 8 twojmax.
+        Default is a LammpsMlip object with a snap descriptor,
+        5.0 angstrom rcut with 8 twojmax.
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
     prefix_output: :class:`str` (optional)
@@ -86,7 +86,7 @@ class OtfMlacs:
 
         # Create mlip object
         if mlip is None:
-            self.mlip = LammpsSnap(self.atoms[0])  # Default MLIP Manager
+            self.mlip = LammpsMlip(self.atoms[0])  # Default MLIP Manager
         else:
             self.mlip = mlip
 
