@@ -13,15 +13,15 @@ from ase.calculators.lammpsrun import LAMMPS
 
 from mlacs.state import StateManager
 
-#========================================================================================================================#
-#========================================================================================================================#
+
+# ========================================================================== #
+# ========================================================================== #
 class LangevinState(StateManager):
     """
     State Class for running a Langevin simulation as implemented in ASE
 
     Parameters
     ----------
-
     temperature : :class:`float`
         Temperature of the simulation, in Kelvin
     friction : :class:`float` (optional)
@@ -43,13 +43,15 @@ class LangevinState(StateManager):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
     rng : RNG object (optional)
-        Rng object to be used with the Langevin thermostat. 
+        Rng object to be used with the Langevin thermostat.
         Default correspond to ``numpy.random.default_rng()``.
     init_momenta : :class:`numpy.ndarray` (optional)
-        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
+        If ``None``, velocities are initialized with a
+        Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
     workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD
         directory is created
     """
     def __init__(self,
@@ -63,9 +65,8 @@ class LangevinState(StateManager):
                  trajfile=None,
                  loginterval=50,
                  rng=None,
-                 init_momenta=None
-                ):
-        
+                 init_momenta=None):
+
         StateManager.__init__(self,
                               dt,
                               nsteps,
@@ -73,24 +74,23 @@ class LangevinState(StateManager):
                               fixcm,
                               logfile,
                               trajfile,
-                              loginterval,
-                             )
+                              loginterval)
 
-        self.temperature  = temperature
-        self.friction     = friction
+        self.temperature = temperature
+        self.friction = friction
         self.init_momenta = init_momenta
-        self.rng          = rng
+        self.rng = rng
         if self.rng is None:
             self.rng = np.random.default_rng()
 
-        self.ispimd   = False
+        self.ispimd = False
 
-#========================================================================================================================#
+# ========================================================================== #
     def run_dynamics(self, supercell, pair_style, pair_coeff, eq=False):
         """
         """
         atoms = supercell.copy()
-        calc  = LAMMPS(pair_style=pair_style, pair_coeff=[pair_coeff])
+        calc = LAMMPS(pair_style=pair_style, pair_coeff=[pair_coeff])
 
         atoms.calc = calc
 
@@ -99,39 +99,44 @@ class LangevinState(StateManager):
         else:
             nsteps = self.nsteps
 
-        dyn = Langevin(atoms, self.dt*fs, temperature_K=self.temperature, friction=self.friction, fixcm=self.fixcm, rng=self.rng)
+        dyn = Langevin(atoms,
+                       self.dt*fs,
+                       temperature_K=self.temperature,
+                       friction=self.friction,
+                       fixcm=self.fixcm,
+                       rng=self.rng)
 
         if self.trajfile is not None:
             trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
             dyn.attach(trajectory.write, interval=self.loginterval)
 
         if self.logfile is not None:
-            dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True), interval=self.loginterval)
+            dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True),
+                       interval=self.loginterval)
 
         dyn.run(nsteps)
         return dyn.atoms
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def initialize_momenta(self, atoms):
         """
         """
         if self.init_momenta is None:
-            MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
+            MaxwellBoltzmannDistribution(atoms,
+                                         temperature_K=self.temperature,
+                                         rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         """
-#       msg  = "Simulated state :\n"
-        msg  = "NVT Langevin dynamics as implemented in ASE\n"
-        msg += "Temperature (in Kelvin)                  {0}\n".format(self.temperature)
-        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
-        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
-        msg += "Friction (in fs) :                       {:}\n".format(self.friction / fs)
+        msg = "NVT Langevin dynamics as implemented in ASE\n"
+        msg += f"Temperature (in Kelvin)                {self.temperature}\n"
+        msg += f"Number of MLMD equilibration steps :   {self.nsteps_eq}\n"
+        msg += f"Number of MLMD production steps :      {self.nsteps}\n"
+        msg += f"Timestep (in fs) :                     {self.dt}\n"
+        msg += f"Friction (in fs) :                     {self.friction / fs}\n"
         msg += "\n"
         return msg

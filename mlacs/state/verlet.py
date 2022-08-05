@@ -2,8 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import numpy as np
-
 from ase.io import Trajectory
 from ase.units import fs
 from ase.md.verlet import VelocityVerlet
@@ -12,11 +10,12 @@ from ase.md import MDLogger
 from mlacs.state import StateManager
 
 
-#========================================================================================================================#
-#========================================================================================================================#
+# ========================================================================== #
+# ========================================================================== #
 class VerletState(StateManager):
     """
-    State class for running a NVE simulation using a velocity verlet integrator, as implemented in ASE
+    State class for running a NVE simulation using a
+    velocity verlet integrator, as implemented in ASE
 
     Parameters
     ----------
@@ -37,13 +36,15 @@ class VerletState(StateManager):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
     rng : RNG object (optional)
-        Rng object to be used with the Langevin thermostat. 
+        Rng object to be used with the Langevin thermostat.
         Default correspond to ``numpy.random.default_rng()``.
     init_momenta : :class:`numpy.ndarray` (optional)
-        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
+        If ``None``, velocities are initialized with a
+        Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
     workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD
         directory is created
     """
     def __init__(self,
@@ -54,8 +55,7 @@ class VerletState(StateManager):
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 init_momenta=None
-                ):
+                 init_momenta=None):
 
         StateManager.__init__(self,
                               dt,
@@ -64,18 +64,15 @@ class VerletState(StateManager):
                               fixcm,
                               logfile,
                               trajfile,
-                              loginterval,
-                             )
+                              loginterval)
         self.init_momenta = init_momenta
+        self.ispimd = False
 
-        self.ispimd   = False
-
-
-#========================================================================================================================#
+# ========================================================================== #
     def run_dynamics(self, supercell, calc, eq=False):
         """
         """
-        atoms      = supercell.copy()
+        atoms = supercell.copy()
         atoms.calc = calc
 
         if eq:
@@ -95,23 +92,21 @@ class VerletState(StateManager):
         dyn.run(nsteps)
         return dyn.atoms
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def initialize_momenta(self, atoms):
         """
         """
         if self.init_momenta is not None:
             atoms.set_momenta(self.init_momenta)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         """
-#       msg  = "Simulated state :\n"
-        msg  = "NVE ensemble with the Velocity-Verlet integrator as implemented in ASE\n"
-        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
-        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
+        msg = "NVE ensemble with the Velocity-Verlet integrator " + \
+              "as implemented in ASE\n"
+        msg += f"Number of MLMD equilibration steps :     {self.nsteps_eq}\n"
+        msg += f"Number of MLMD production steps :        {self.nstesp}\n"
+        msg += f"Timestep (in fs) :                       {self.dt}\n"
         msg += "\n"
         return msg
