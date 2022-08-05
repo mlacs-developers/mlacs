@@ -260,9 +260,9 @@ class PimdLammpsState(LammpsState):
 
         input_string += 'fix mythermofile all print ' + \
                         f'{self.loginterval} "$t ${{myetot}} ' + \
-                        '${{mype}} ${{myke}} ${{mytemp}}  ${{mypress}} ' + \
-                        '${{mypxx}} ${{mypyy}} ${{mypzz}} ${{mypxy}} ' + \
-                        '${{mypxz}} ${{mypyz}}" append ' + \
+                        '${mype} ${myke} ${mytemp}  ${mypress} ' + \
+                        '${mypxx} ${mypyy} ${mypzz} ${mypxy} ' + \
+                        '${mypxz} ${mypyz}" append ' + \
                         f'{self.logfile}_${{ibead}} title "# Step  ' + \
                         'Etot  Epot  Ekin  Press  Pxx  Pyy  Pzz  ' + \
                         'Pxy  Pxz  Pyz"\n'
