@@ -33,6 +33,7 @@ def get_log_input(loginterval, logfile):
     input_string += "\n\n\n"
     return input_string
 
+
 # ========================================================================== #
 def get_traj_input(loginterval, trajfile, elem):
     """
@@ -51,6 +52,7 @@ def get_traj_input(loginterval, trajfile, elem):
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
+
 
 # ========================================================================== #
 def get_general_input(pbc, masses, charges, atom_style):
@@ -78,6 +80,7 @@ def get_general_input(pbc, masses, charges, atom_style):
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
+
 
 # ========================================================================== #
 def get_interaction_input(bond_style,
@@ -112,6 +115,7 @@ def get_interaction_input(bond_style,
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
+
 
 # ========================================================================== #
 def get_last_dump_input(workdir, elem, nsteps):
