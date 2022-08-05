@@ -40,10 +40,6 @@ nsteps         = 100
 nsteps_eq      = 10
 neq            = 50
 rcut           = 3
-twojmax        = 8
-nmax           = 4
-lmax           = 4
-alpha          = 2.0
 dt             = 1.0 # fs
 #friction       = 0.01
 ecoeff      = 1.0
@@ -51,6 +47,7 @@ fcoeff      = 1.0
 scoeff      = 0.0  # 1.0
 welems      = [0.5 , 0.5]  # weight of the different elemetns in the fit; default: w_i=Z_i / Sum_i Z_i.
 style          = "snap"
+mlip_params = {"twojmax": 4}
 fit_dielectric = False
 
 bonds = np.array(
@@ -103,11 +100,11 @@ ref_pot = {
 	"pair_style" : ["lj/cut/coul/long 3.5"],
 	"pair_coeff" : [["2 2 0.00674 3.165492"]],
 	"model_post" : ["special_bonds lj 0.  0.  0.  coul 0.  0.  0.0\n", "kspace_style ewald 1e-6\n"]
+    "bonds": bonds,
+    "angles": angles
 	}
-		
 
-
-mlip = LammpsMlip(atom, rcut=rcut, twojmax=twojmax, nmax=nmax, lmax=lmax, alpha=alpha, stress_coefficient=scoeff, reference_potential=ref_pot, style=style, fit_dielectric=fit_dielectric, bonds=bonds, angles=angles)
+mlip = LammpsMlip(atom, rcut=rcut, mlip_parameters=mlip_params, stress_coefficient=scoeff, reference_potential=ref_pot, style=style, fit_dielectric=fit_dielectric)
 state = LammpsState(temperature, pressure=pressure,langevin=False, nsteps=nsteps, nsteps_eq=nsteps_eq, logfile="mlmd.log", trajfile="mlmd.traj")
 sampling = OtfMlacs(atom, state, calc, mlip, neq=neq)
 sampling.run(nconfs)

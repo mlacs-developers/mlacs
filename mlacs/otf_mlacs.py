@@ -11,7 +11,7 @@ from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from mlacs.mlip import LammpsSnap
+from mlacs.mlip import LammpsMlip
 from mlacs.calc import CalcManager
 from mlacs.state import StateManager
 from mlacs.utilities.log import MlacsLog

@@ -17,9 +17,9 @@ nsteps_ref  = 5000
 neq         = 5
 cell_size   = 2
 rcut        = 4.2
-twojmax     = 4
 dt          = 1.5 # fs
 friction    = 0.01
+mlip_params = {"twojmax": 4}
 
 
 # Supercell creation-------------------------------------------------------------------
@@ -32,7 +32,7 @@ atoms_ref.calc = calc
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation-----------------
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms, rcut=rcut, twojmax=twojmax)
+mlip = LammpsMlip(atoms, rcut=rcut, mlip_parameters=mlip_params)
 # Creation of the State Manager
 state  = []
 prefix = []
