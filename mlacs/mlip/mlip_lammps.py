@@ -75,17 +75,11 @@ class LammpsMlip(LinearMlip):
                  rcut=5.0,
                  model="linear",
                  style="snap",
-                 twojmax=8,
-                 lmax=3,
-                 nmax=5,
-                 alpha=2.0,
-                 chemflag=0,
+                 mlip_parameters=None,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
                  fit_dielectric=False,
-                 bonds=None,
-                 angles=None,
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
@@ -110,17 +104,11 @@ class LammpsMlip(LinearMlip):
                                                     self.rcut,
                                                     model,
                                                     style,
-                                                    twojmax,
-                                                    lmax,
-                                                    nmax,
-                                                    alpha,
-                                                    chemflag,
+                                                    mlip_parameters,
                                                     radelems,
                                                     welems,
                                                     reference_potential,
-                                                    fit_dielectric,
-                                                    bonds,
-                                                    angles)
+                                                    fit_dielectric)
 
         self.ncolumns = self.lammps_interface.ncolumns
 

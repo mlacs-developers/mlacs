@@ -83,16 +83,16 @@ class MlacsLog:
         msg += f"Cutoff radius:                               {rcut}\n"
         msg += "Descriptor\n"
         if mlip_params["style"] == "snap":
-            twojmax = mlip_params['twojmax']
+            twojmax = mlip_params['parameters']['twojmax']
             msg += "Spectral Neighbor Analysis Potential\n"
             msg += f"2J_max:                                      {twojmax}\n"
-            if mlip_params["chemflag"] == 1:
+            if mlip_params['parameters']["chemflag"] == 1:
                 msg += "Multi-element version\n"
         elif mlip_params["style"] == "so3":
-            nmax = mlip_params['nmax']
-            lmax = mlip_params['lmax']
-            alpha = mlip_params['alpha']
-            ncoef = mlip_params['ncoef']
+            nmax = mlip_params['parameters']['nmax']
+            lmax = mlip_params['parameters']['lmax']
+            alpha = mlip_params['parameters']['alpha']
+            ncoef = mlip_params['parameters']['ncoef']
             msg += "Smooth SO(3) Power Spectrum\n"
             msg += f"nmax                                         {nmax}\n"
             msg += f"lmax                                         {lmax}\n"
@@ -112,15 +112,15 @@ class MlacsLog:
         msg += f"Cutoff radius:                               {rcut}\n"
         msg += "Descriptor\n"
         if mlip_params["style"] == "snap":
-            twojmax = mlip_params['twojmax']
+            twojmax = mlip_params['parameters']['twojmax']
             msg += "Spectral Neighbor Analysis Potential\n"
             msg += f"2Jmax:                                      {twojmax}\n"
-            if mlip_params["chemflag"] == 1:
+            if mlip_params['parameters']["chemflag"] == 1:
                 msg += "Multi-element version\n"
         elif mlip_params["style"] == "so3":
-            nmax = mlip_params['nmax']
-            lmax = mlip_params['lmax']
-            alpha = mlip_params['alpha']
+            nmax = mlip_params['parameters']['nmax']
+            lmax = mlip_params['parameters']['lmax']
+            alpha = mlip_params['parameters']['alpha']
             msg += "Smooth SO(3) Power Spectrum\n"
             msg += f"nmax                                         {nmax}\n"
             msg += f"lmax                                         {lmax}\n"
