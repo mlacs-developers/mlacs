@@ -332,9 +332,9 @@ class LammpsState(StateManager):
         input_string += "variable    mypxz equal pxz/(vol*10000)\n"
         input_string += "variable    mypyz equal pyz/(vol*10000)\n"
         input_string += f'fix mythermofile all print {self.loginterval} ' + \
-                        '$t ${{myetot}}  ${{mype}} ${{myke}} ' + \
-                        '${{mytemp}}  ${{mypress}} ${{mypxx}} ${{mypyy}} ' + \
-                        '${{mypzz}} ${{mypxy}} ${{mypxz}} ${{mypyz}}" ' + \
+                        '"$t ${myetot}  ${mype} ${myke} ' + \
+                        '${mytemp}  ${mypress}} ${mypxx} ${mypyy} ' + \
+                        '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                         f'append {self.logfile} title "# Step  Etot  ' + \
                         'Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
         input_string += "#####################################\n"
