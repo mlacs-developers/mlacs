@@ -4,6 +4,6 @@
 """
 from mlacs.calc.calc_manager import CalcManager
 from mlacs.calc.mcspin_calc import McSpinCalcManager
-#from mlacs.calc.dlm_calc import DlmCalcManager
 
-__all__ = ["CalcManager", "McSpinCalcManager"]
+__all__ = ["CalcManager",
+           "McSpinCalcManager"]

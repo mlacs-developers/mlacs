@@ -5,8 +5,9 @@
 
 from ase.calculators.singlepoint import SinglePointCalculator
 
-#===================================================================================================================================================#
-#===================================================================================================================================================#
+
+# ========================================================================== #
+# ========================================================================== #
 class CalcManager:
     """
     Parent Class managing the true potential being simulated
@@ -22,14 +23,11 @@ class CalcManager:
     """
     def __init__(self,
                  calc,
-                 magmoms=None
-                ):
-
-        self.calc    = calc
+                 magmoms=None):
+        self.calc = calc
         self.magmoms = magmoms
 
-
-#===================================================================================================================================================#
+# ========================================================================== #
     def compute_true_potential(self, atoms):
         """
         """
@@ -39,20 +37,22 @@ class CalcManager:
             energy = atoms.get_potential_energy()
             forces = atoms.get_forces()
             stress = atoms.get_stress()
-            sp_calc   = SinglePointCalculator(atoms, energy=energy, forces=forces, stress=stress)
+            sp_calc = SinglePointCalculator(atoms,
+                                            energy=energy,
+                                            forces=forces,
+                                            stress=stress)
             atoms.calc = sp_calc
         except:
             atoms = None
         return atoms
 
-
-#===================================================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         """
         name = self.calc.name
 
-        msg  = "True potential parameters:\n"
+        msg = "True potential parameters:\n"
         msg += "Calculator : {0}\n".format(name)
         if hasattr(self.calc, "todict"):
             dct = self.calc.todict()

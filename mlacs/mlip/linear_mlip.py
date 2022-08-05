@@ -3,15 +3,13 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 '''
 import numpy as np
-
 from ase.units import GPa
 
-from mlacs.utilities import get_elements_Z_and_masses
 from mlacs.mlip import MlipManager
 
 
-#===================================================================================================================================================#
-#===================================================================================================================================================#
+# ========================================================================== #
+# ========================================================================== #
 class LinearMlip(MlipManager):
     """
     Parent Class for linear MLIP
@@ -25,24 +23,20 @@ class LinearMlip(MlipManager):
                  stress_coefficient=1.0,
                  rescale_energy=True,
                  rescale_forces=True,
-                 rescale_stress=True
-                ):
-
+                 rescale_stress=True):
         MlipManager.__init__(self,
                              atoms,
                              rcut,
                              nthrow,
                              energy_coefficient,
                              forces_coefficient,
-                             stress_coefficient
-                            )
+                             stress_coefficient)
 
         self.rescale_energy = rescale_energy
         self.rescale_forces = rescale_forces
         self.rescale_stress = rescale_stress
 
-
-#===================================================================================================================================================#
+# ========================================================================== #
     def train_mlip(self):
         """
         """
@@ -58,17 +52,20 @@ class LinearMlip(MlipManager):
         if self.rescale_stress:
             sigma_e = np.std(self.amatrix_stress[idx*6:])
 
-        ecoeff = self.energy_coefficient / sigma_e / len(self.amatrix_energy[idx:])
-        fcoeff = self.forces_coefficient / sigma_f / len(self.amatrix_forces[idx*3*self.natoms:])
-        scoeff = self.stress_coefficient / sigma_s / len(self.amatrix_stress[idx*6:])
+        ecoef = self.energy_coefficient / sigma_e / \
+            len(self.amatrix_energy[idx:])
+        fcoef = self.forces_coefficient / sigma_f / \
+            len(self.amatrix_forces[idx*3*self.natoms:])
+        scoef = self.stress_coefficient / sigma_s / \
+            len(self.amatrix_stress[idx*6:])
 
-        amatrix        = np.vstack((ecoeff * self.amatrix_energy[idx:], \
-                                    fcoeff * self.amatrix_forces[idx*3*self.natoms:], \
-                                    scoeff * self.amatrix_stress[idx*6:]))
-        ymatrix        = np.hstack((ecoeff * self.ymatrix_energy[idx:], \
-                                    fcoeff * self.ymatrix_forces[idx*3*self.natoms:], \
-                                    scoeff * self.ymatrix_stress[idx*6:]))
-        
+        amatrix = np.vstack((ecoef * self.amatrix_energy[idx:],
+                             fcoef * self.amatrix_forces[idx*3*self.natoms:],
+                             scoef * self.amatrix_stress[idx*6:]))
+        ymatrix = np.hstack((ecoef * self.ymatrix_energy[idx:],
+                             fcoef * self.ymatrix_forces[idx*3*self.natoms:],
+                             scoef * self.ymatrix_stress[idx*6:]))
+
         # Good ol' Ordinary Linear Least-Square fit
         self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
 
@@ -77,8 +74,7 @@ class LinearMlip(MlipManager):
         self.init_calc()
         return msg
 
-
-#===================================================================================================================================================#
+# ========================================================================== #
     def get_mlip_dict(self):
         mlip_dict = {}
         mlip_dict['energy_coefficient'] = self.energy_coefficient
@@ -86,29 +82,32 @@ class LinearMlip(MlipManager):
         mlip_dict['stress_coefficient'] = self.stress_coefficient
         return mlip_dict
 
-
-#===================================================================================================================================================#
-    def compute_tests(self,idx):
+# ========================================================================== #
+    def compute_tests(self, idx):
         # Prepare some data to check accuracy of the fit
         e_true = self.ymatrix_energy[idx:]
-        e_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_energy[idx:])
+        e_mlip = np.einsum('i,ki->k', self.coefficients,
+                           self.amatrix_energy[idx:])
         f_true = self.ymatrix_forces[idx*3*self.natoms:]
-        f_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_forces[idx*3*self.natoms:])
+        f_mlip = np.einsum('i,ki->k', self.coefficients,
+                           self.amatrix_forces[idx*3*self.natoms:])
         s_true = self.ymatrix_stress[idx*6:] / GPa
-        s_mlip = np.einsum('i,ki->k', self.coefficients, self.amatrix_stress[idx*6:]) / GPa
+        s_mlip = np.einsum('i,ki->k', self.coefficients,
+                           self.amatrix_stress[idx*6:]) / GPa
 
         # Compute RMSE and MAE
         rmse_energy = np.sqrt(np.mean((e_true - e_mlip)**2))
-        mae_energy  = np.mean(np.abs(e_true - e_mlip))
+        mae_energy = np.mean(np.abs(e_true - e_mlip))
 
         rmse_forces = np.sqrt(np.mean((f_true - f_mlip)**2))
-        mae_forces  = np.mean(np.abs(f_true - f_mlip))
+        mae_forces = np.mean(np.abs(f_true - f_mlip))
 
         rmse_stress = np.sqrt(np.mean((s_true - s_mlip)**2))
-        mae_stress  = np.mean(np.abs(s_true - s_mlip))
+        mae_stress = np.mean(np.abs(s_true - s_mlip))
 
         # Prepare message to the log
-        msg  = "number of configurations for training:  {:}\n".format(len(self.amatrix_energy[idx:]))
+        msg = "number of configurations for training:  " + \
+              f"{len(self.amatrix_energy[idx:])}\n"
         msg += "RMSE Energy    {:.4f} eV/at\n".format(rmse_energy)
         msg += "MAE Energy     {:.4f} eV/at\n".format(mae_energy)
         msg += "RMSE Forces    {:.4f} eV/angs\n".format(rmse_forces)
@@ -117,13 +116,22 @@ class LinearMlip(MlipManager):
         msg += "MAE Stress     {:.4f} GPa\n".format(mae_stress)
         msg += "\n"
 
-        header = "rmse: {:.5f} eV/at,    mae: {:.5f} eV/at\n".format(rmse_energy, mae_energy) + \
+        header = f"rmse: {rmse_energy:.5f} eV/at,    " + \
+                 f"mae: {mae_energy:.5f} eV/at\n" + \
                  " True Energy           Predicted Energy"
-        np.savetxt("MLIP-Energy_comparison.dat", np.vstack((e_true, e_mlip)).T, header=header)
-        header = "rmse: {:.5f} eV/angs   mae: {:.5f} eV/angs\n".format(rmse_forces, mae_forces) + \
+        np.savetxt("MLIP-Energy_comparison.dat",
+                   np.vstack((e_true, e_mlip)).T,
+                   header=header)
+        header = f"rmse: {rmse_forces:.5f} eV/angs   " + \
+                 f"mae: {mae_forces:.5f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
-        np.savetxt("MLIP-Forces_comparison.dat", np.vstack((f_true.flatten(), f_mlip.flatten())).T, header=header)
-        header = "rmse: {:.5f} GPa       mae: {:.5f} GPa\n".format(rmse_stress, mae_stress) + \
+        np.savetxt("MLIP-Forces_comparison.dat",
+                   np.vstack((f_true.flatten(), f_mlip.flatten())).T,
+                   header=header)
+        header = f"rmse: {rmse_stress:.5f} GPa       " + \
+                 f"mae: {mae_stress:.5f} GPa\n" + \
                  " True Stress           Predicted Stress"
-        np.savetxt("MLIP-Stress_comparison.dat", np.vstack((s_true.flatten(), s_mlip.flatten())).T, header=header)
+        np.savetxt("MLIP-Stress_comparison.dat",
+                   np.vstack((s_true.flatten(), s_mlip.flatten())).T,
+                   header=header)
         return msg
