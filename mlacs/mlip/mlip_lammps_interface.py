@@ -745,7 +745,7 @@ class LammpsMlipInterface:
         if mlip_params is not None:
             self.params.update(mlip_params)
         if self.style == "snap":
-            if self.params["chemflag"] == 1 and "bnormflag" not in self.params:
+            if self.params["chemflag"] == 1:
                 self.params["bnormflag"] = 1
             else:
                 self.params["bnormflag"] = 0
@@ -762,6 +762,8 @@ class LammpsMlipInterface:
             snapline += f"{self.welems[n]} "
         if chemflag == 1:
             snapline += f"chem {len(self.elements)} "
+            for n in range(len(self.elements)):
+                snapline += f"{n} "
         if self.model == "quadratic":
             snapline += "quadratiflag 1 "
         snapline += f"bnormflag {bnormflag}"
