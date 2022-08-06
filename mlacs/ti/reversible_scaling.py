@@ -114,7 +114,7 @@ class ReversibleScalingState(ThermoState):
                              loginterval,
                              trajinterval)
 
-        self.suffixdir = "ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
+        self.suffixdir = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
         if self.pressure is None:
             self.suffixdir += "_NVT"
         else:
@@ -172,7 +172,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "#####################################\n"
         input_string += "#          Integrators\n"
         input_string += "#####################################\n"
-        input_string += "velocity      all create ${{tstart}} " + \
+        input_string += "velocity      all create ${tstart} " + \
             f"{self.rng.integers(99999)} dist gaussian\n"
         if self.pressure is not None:
             input_string += "# Fix center of mass for barostat\n"
@@ -185,7 +185,7 @@ class ReversibleScalingState(ThermoState):
             input_string += "fix           f2  all nph iso " + \
                 f"{self.pressure} {self.pressure} {pdamp} " + \
                 "fixedpoint ${xcm} ${ycm} ${zcm}\n"
-        input_string += "fix           f1  all langevin ${{tstart}} " + \
+        input_string += "fix           f1  all langevin ${tstart} " + \
             f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
         input_string += "\n"
         input_string += "# Fix center of mass\n"

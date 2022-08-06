@@ -271,7 +271,7 @@ class EinsteinSolidState(ThermoState):
         msg += "Reference Einstein crystal spring :\n"
         for iel, e in enumerate(self.elem):
             msg += f"    For {e} :                   " + \
-                   f"{self.K[iel]:10.6f} eV/angs^2\n"
+                   f"{self.k[iel]:10.6f} eV/angs^2\n"
         msg += f"Temperature :                   {self.temperature:10.3f} K\n"
         msg += f"Volume :                        {vol/nat_tot:10.3f} angs^3\n"
         msg += f"Free energy :                   {free_energy:10.6f} eV/at\n"
@@ -320,7 +320,7 @@ class EinsteinSolidState(ThermoState):
                         f"{self.rng.integers(99999)} dist gaussian\n"
         input_string += "fix           f2  all nve\n"
         for iel, el in enumerate(self.elem):
-            input_string += f"fix           ff{el} {0} ti/spring " + \
+            input_string += f"fix           ff{el} {el} ti/spring " + \
                             f"{self.k[iel]} ${{nsteps}} ${{nstepseq}} " + \
                             "function 2\n"
         input_string += "fix           f1  all langevin " + \
@@ -389,7 +389,7 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += f"variable      nsteps equal {self.nsteps_msd}\n"
         input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
-        input_string += f"timestep      {0}\n".format(self.dt/1000)
+        input_string += f"timestep      {self.dt/1000}\n"
         for iel, el in enumerate(self.elem):
             # input_string += "group         {0} type {1}\n".format(el, iel+1)
             input_string += f"compute       c{10+iel} {el} msd com yes\n"
@@ -424,9 +424,8 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "run         ${nstepseq}\n"
         for iel, el in enumerate(self.elem):
-            input_string += f"fix         f{iel+3} {1} print 1 " + \
-                            "\"${{msd{1}}}\" screen no append " + \
-                            f"msd{el}.dat\n"
+            input_string += f"fix         f{iel+3} {el} print 1 " + \
+                            f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"
         input_string += "run         ${nsteps}\n"
         input_string += "#####################################\n"
         with open(wdir + "lammps_msd_input.in", "w") as f:
@@ -452,5 +451,5 @@ class EinsteinSolidState(ThermoState):
             msg += "Reference einstein crystal spring :\n"
             for iel, e in enumerate(self.elem):
                 msg += f"    For {e} :                   " + \
-                       f"k = {self.K[iel]} eV/angs^2\n"
+                       f"k = {self.k[iel]} eV/angs^2\n"
         return msg
