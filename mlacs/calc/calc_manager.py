@@ -4,6 +4,7 @@
 """
 
 from ase.calculators.singlepoint import SinglePointCalculator
+from ase.calculators.calculator import CalculatorError
 
 
 # ========================================================================== #
@@ -42,7 +43,7 @@ class CalcManager:
                                             forces=forces,
                                             stress=stress)
             atoms.calc = sp_calc
-        except:
+        except CalculatorError:
             atoms = None
         return atoms
 
