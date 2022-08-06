@@ -137,16 +137,16 @@ class LammpsState(StateManager):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      pair_style,
                      pair_coeff,
-                     model_post,
+                     model_post=None,
+                     atom_style=None,
+                     bonds=None,
+                     angles=None,
+                     bond_style=None,
+                     bond_coeff=None,
+                     angle_style=None,
+                     angle_coeff=None,
                      eq=False):
         """
         Function to run the dynamics
