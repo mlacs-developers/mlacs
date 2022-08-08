@@ -68,8 +68,10 @@ class LinearMlip(MlipManager):
                              fcoef * self.ymatrix_forces[idx*3*self.natoms:],
                              scoef * self.ymatrix_stress[idx*6:]))
 
+        # TODO function to test several lambda values of regularization
         if self.regularization is not None:
-            regul = self.get_regularization_vector(self.regularization)
+            lamb = self.regularization
+            regul = self.get_regularization_vector(lamb)
             regul = self.regularization * np.diag(regul)
 
             ymatrix = amatrix.T.dot(ymatrix)

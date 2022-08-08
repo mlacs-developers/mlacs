@@ -116,12 +116,12 @@ class LammpsMlip(LinearMlip):
 # ========================================================================== #
     def get_regularization_vector(self, lamb):
         """
+        Get the non zero entries for the  regularization vector, so everything
+        that is no the intercept
         """
         nelem = len(self.lammps_interface.elements)
         regul = np.zeros(self.lammps_interface.ncolumns)
         regul[nelem:] = 1.0
-        if self.fit_dielectric:
-            regul[-1] = 0.0
         return regul
 
 # ========================================================================== #
@@ -154,4 +154,5 @@ class LammpsMlip(LinearMlip):
         mlip_dict['energy_coefficient'] = self.energy_coefficient
         mlip_dict['forces_coefficient'] = self.forces_coefficient
         mlip_dict['stress_coefficient'] = self.stress_coefficient
+        mlip_dict['regularization'] = self.regularization
         return mlip_dict

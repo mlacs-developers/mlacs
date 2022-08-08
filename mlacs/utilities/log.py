@@ -58,52 +58,6 @@ class MlacsLog:
         self.logger_log.info(msg)
 
 # ========================================================================== #
-    def recap_params(self, temperature, nsteps, nt, nt_eq, neq,
-                     nconfs_init, mlip_params, friction, timestep):
-        rcut = mlip_params['rcutfac']
-        msg = '============================================================\n'
-        msg += "Recap of the simulation parameters\n"
-        msg += "----------------------------------\n"
-        msg += "\n"
-        msg += "General parameters:\n"
-        msg += "Temperature:                                 {temperature} K\n"
-        msg += f"Total number of steps:                       {nsteps}\n"
-        msg += f"Number of equilibration steps:               {neq}\n"
-        msg += f"Number of MLMD steps during equilibration    {nt_eq}\n"
-        msg += f"Number of MLMD steps after equilibration     {nt}\n"
-        msg += f"Number of initial configurations:            {nconfs_init}\n"
-        msg += "\n"
-        msg += "Machine-Learning Molecular Dynamics parameters:\n"
-        msg += "Langevin thermostat\n"
-        msg += f"Timestep:                                    {timestep} fs\n"
-        msg += f"Friction parameters:                         {friction}\n"
-        msg += "\n"
-        msg += "Machine-Learning Interatomic Potential parameters:\n"
-        msg += "The model used is {:}\n".format(mlip_params["model"])
-        msg += f"Cutoff radius:                               {rcut}\n"
-        msg += "Descriptor\n"
-        if mlip_params["style"] == "snap":
-            twojmax = mlip_params['parameters']['twojmax']
-            msg += "Spectral Neighbor Analysis Potential\n"
-            msg += f"2J_max:                                      {twojmax}\n"
-            if mlip_params['parameters']["chemflag"] == 1:
-                msg += "Multi-element version\n"
-        elif mlip_params["style"] == "so3":
-            nmax = mlip_params['parameters']['nmax']
-            lmax = mlip_params['parameters']['lmax']
-            alpha = mlip_params['parameters']['alpha']
-            ncoef = mlip_params['parameters']['ncoef']
-            msg += "Smooth SO(3) Power Spectrum\n"
-            msg += f"nmax                                         {nmax}\n"
-            msg += f"lmax                                         {lmax}\n"
-            msg += f"alpha                                        {alpha}\n"
-        msg += f"Total number of coefficient to fit           {ncoef}\n"
-        msg += "\n"
-        msg += "\n"
-        msg += '============================================================\n'
-        self.logger_log.info(msg)
-
-# ========================================================================== #
     def recap_mlip(self, mlip_params):
         rcut = mlip_params['rcut']
         model = mlip_params['model']
@@ -114,7 +68,7 @@ class MlacsLog:
         if mlip_params["style"] == "snap":
             twojmax = mlip_params['parameters']['twojmax']
             msg += "Spectral Neighbor Analysis Potential\n"
-            msg += f"2Jmax:                                      {twojmax}\n"
+            msg += f"2Jmax:                                       {twojmax}\n"
             if mlip_params['parameters']["chemflag"] == 1:
                 msg += "Multi-element version\n"
         elif mlip_params["style"] == "so3":
@@ -125,12 +79,15 @@ class MlacsLog:
             msg += f"nmax                                         {nmax}\n"
             msg += f"lmax                                         {lmax}\n"
             msg += f"alpha                                        {alpha}\n"
+        if mlip_params['regularization'] is not None:
+            lam = mlip_params['regularization']
+            msg += f"L2-norm regularization with lambda           {lam}\n"
         ecoef = mlip_params['energy_coefficient']
         fcoef = mlip_params['forces_coefficient']
         scoef = mlip_params['stress_coefficient']
-        msg += f"Energy coefficient  {ecoef}\n"
-        msg += f"Forces coefficient  {fcoef}\n"
-        msg += f"Stress coefficient  {scoef}\n"
+        msg += f"Energy coefficient                           {ecoef}\n"
+        msg += f"Forces coefficient                           {fcoef}\n"
+        msg += f"Stress coefficient                           {scoef}\n"
         msg += "\n"
         self.logger_log.info(msg)
 
