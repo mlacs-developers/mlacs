@@ -764,7 +764,7 @@ class LammpsMlipInterface:
             for n in range(len(self.elements)):
                 snapline += f"{n} "
         if self.model == "quadratic":
-            snapline += "quadratiflag 1 "
+            snapline += "quadraticflag 1 "
         snapline += f"bnormflag {bnormflag}"
         return snapline
 
