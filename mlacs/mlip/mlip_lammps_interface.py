@@ -629,7 +629,6 @@ class LammpsMlipInterface:
     def prepare_ref_pot(self, ref_pot):
         """
         """
-        print(ref_pot)
         if ref_pot is None:
             self.pair_style = ""
             self.pair_coeff = None
