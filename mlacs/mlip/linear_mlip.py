@@ -18,6 +18,7 @@ class LinearMlip(MlipManager):
                  atoms,
                  rcut=5.0,
                  nthrow=10,
+                 regularization=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
@@ -32,6 +33,7 @@ class LinearMlip(MlipManager):
                              forces_coefficient,
                              stress_coefficient)
 
+        self.regularization = regularization
         self.rescale_energy = rescale_energy
         self.rescale_forces = rescale_forces
         self.rescale_stress = rescale_stress
@@ -65,6 +67,13 @@ class LinearMlip(MlipManager):
         ymatrix = np.hstack((ecoef * self.ymatrix_energy[idx:],
                              fcoef * self.ymatrix_forces[idx*3*self.natoms:],
                              scoef * self.ymatrix_stress[idx*6:]))
+
+        if self.regularization is not None:
+            regul = self.get_regularization_vector(self.regularization)
+            regul = self.regularization * np.diag(regul)
+
+            ymatrix = amatrix.T.dot(ymatrix)
+            amatrix = amatrix.T.dot(amatrix) + regul
 
         # Good ol' Ordinary Linear Least-Square fit
         self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]

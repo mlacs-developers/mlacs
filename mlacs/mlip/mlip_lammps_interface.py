@@ -629,7 +629,6 @@ class LammpsMlipInterface:
     def prepare_ref_pot(self, ref_pot):
         """
         """
-        print(ref_pot)
         if ref_pot is None:
             self.pair_style = ""
             self.pair_coeff = None
@@ -765,7 +764,7 @@ class LammpsMlipInterface:
             for n in range(len(self.elements)):
                 snapline += f"{n} "
         if self.model == "quadratic":
-            snapline += "quadratiflag 1 "
+            snapline += "quadraticflag 1 "
         snapline += f"bnormflag {bnormflag}"
         return snapline
 

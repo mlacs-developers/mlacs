@@ -2,6 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import numpy as np
+
 from mlacs.mlip.linear_mlip import LinearMlip
 from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
@@ -26,20 +28,8 @@ class LammpsMlip(LinearMlip):
         Style of the descriptor. 'snap' is based on the extension of
         the atomic environment on the 4-sphere.
         Default ``\"snap\"``.
-    twojmax : :class:`int` (optiona)
-        Parameter 2jmax of the snap descriptor. Default ``8``.
-    lmax : :class:`int` (optional)
-        Parameter lmax of radial part of the so3 descriptor.
-        Default ``3``.
-    nmax : :class:`int` (optional)
-        Parameter nmax of the angular part of the so3 descriptor.
-        Default ``5``.
-    alpha : :class:`float` (optional)
-        Parameter of the gaussian smoothing of the so3 descriptor.
-        Default ``2.0``.
-    chemflag : ``0`` or ``1`` (optional)
-        If ``0``, the standard descriptor is used.
-        If ``1``, the explicitely multi-elements is used. Default ``0``.
+    mlip_parameters: :class:`dict`
+        Dictionnary containing the parameters for the MLIP
     radelems : :class:`list` (optional)
         Cutoff scaling factor for each elements.
         If ``None``, 0.5 for each elements. Default ``None``.
@@ -51,6 +41,7 @@ class LammpsMlip(LinearMlip):
         Number of initial configuration to throw
         as the simulation runs (Counting the training configurations).
         Default ``10``.
+    regularization: :class:`float`
     energy_coefficient : :class:`float` (optional)
         Parameter controlling the importance of energy
         in the fitting of the MLIP. Default ``1.0``.
@@ -81,6 +72,7 @@ class LammpsMlip(LinearMlip):
                  reference_potential=None,
                  fit_dielectric=False,
                  nthrow=10,
+                 regularization=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
@@ -91,6 +83,7 @@ class LammpsMlip(LinearMlip):
                             atoms,
                             rcut,
                             nthrow,
+                            regularization,
                             energy_coefficient,
                             forces_coefficient,
                             stress_coefficient,
@@ -118,6 +111,18 @@ class LammpsMlip(LinearMlip):
             self.angle_style, self.angle_coeff = \
             self.lammps_interface.get_bond_angle_coeff_and_style()
         self.bonds, self.angles = self.lammps_interface.get_bonds_angles()
+        self.fit_dielectric = fit_dielectric
+
+# ========================================================================== #
+    def get_regularization_vector(self, lamb):
+        """
+        """
+        nelem = len(self.lammps_interface.elements)
+        regul = np.zeros(self.lammps_interface.ncolumns)
+        regul[nelem:] = 1.0
+        if self.fit_dielectric:
+            regul[-1] = 0.0
+        return regul
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
