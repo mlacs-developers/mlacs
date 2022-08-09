@@ -12,6 +12,8 @@ on the nist potential repository
 https://www.ctcms.nist.gov/potentials/entry/2007--Kumagai-T-Izumi-S-Hara-S-Sakai-S--Si/ # noqa
 
 The simulations uses a SNAP potential with 2Jmax of 6 and cutoff of 5.5 angs
+Only 2 beads are computed by the true potential, while the pimd is run
+with 4 beads
 """
 
 
