@@ -48,4 +48,3 @@ def compute_centroid_atoms(confs, temperature):
                                  stress=cstress)
     atoms.calc = calc
     return atoms
-

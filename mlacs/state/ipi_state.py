@@ -600,4 +600,4 @@ class IpiState(LammpsState):
 
 
 if __name__ == '__main__':
-    help(IPIState)
+    help(IpiState)
