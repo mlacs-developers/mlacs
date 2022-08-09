@@ -123,7 +123,6 @@ class LammpsState(StateManager):
         self.lammpsfname = self.workdir + "lammps_input.in"
 
         self._get_lammps_command()
-        self.islammps = True
         self.ispimd = False
 
         self.temperature = temperature
@@ -262,7 +261,7 @@ class LammpsState(StateManager):
         input_string += get_last_dump_input(self.workdir,
                                             elem,
                                             nsteps)
-        input_string += "run  {0}".format(nsteps)
+        input_string += f"run  {nsteps}"
 
         with open(self.lammpsfname, "w") as f:
             f.write(input_string)

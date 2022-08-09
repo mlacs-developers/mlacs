@@ -16,7 +16,7 @@ from mlacs.calc import CalcManager
 from mlacs.state import StateManager
 from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
-from mlacs.path_integral import compute_centroid_atoms
+from mlacs.utilities.path_integral import compute_centroid_atoms
 
 
 # ========================================================================== #
@@ -65,6 +65,7 @@ class OtfMlacs:
                  calc,
                  mlip=None,
                  neq=10,
+                 nbeads=1,
                  prefix_output="Trajectory",
                  confs_init=None,
                  std_init=0.05,
@@ -72,7 +73,7 @@ class OtfMlacs:
         ##############
         # Check inputs
         ##############
-        self._initialize_state(state, atoms, neq, prefix_output)
+        self._initialize_state(state, atoms, neq, prefix_output, nbeads)
 
         # Create calculator object
         if isinstance(calc, Calculator):
@@ -267,7 +268,7 @@ class OtfMlacs:
             self.log.logger_log.info(msg)
             if self.pimd:
                 atoms_mlip = self.state[istate].run_dynamics(
-                                   atoms_mlip,
+                                   atoms_mlip[istate],
                                    self.mlip.pair_style,
                                    self.mlip.pair_coeff,
                                    self.mlip.model_post,
@@ -278,7 +279,8 @@ class OtfMlacs:
                                    self.mlip.bond_coeff,
                                    self.mlip.angle_style,
                                    self.mlip.angle_coeff,
-                                   eq[istate])
+                                   eq[istate],
+                                   self.nbeads)
             else:
                 atoms_mlip[istate] = self.state[istate].run_dynamics(
                                            atoms_mlip[istate],
@@ -495,7 +497,7 @@ class OtfMlacs:
         self.launched = True
 
 # ========================================================================== #
-    def _initialize_state(self, state, atoms, neq, prefix_output):
+    def _initialize_state(self, state, atoms, neq, prefix_output, nbeads):
         """
         Function to initialize the state
         """
@@ -505,9 +507,10 @@ class OtfMlacs:
         if isinstance(state, list):
             self.state = state
 
+        print(nbeads)
         npimd = 0
         for s in self.state:
-            if s.ispimd:
+            if s.ispimd and nbeads > 1:
                 npimd += 1
         if npimd == 0:
             self.pimd = False
@@ -521,7 +524,7 @@ class OtfMlacs:
         self.nstate = len(self.state)
         if self.pimd:
             # We get the number of beads here
-            self.nbeads = self.state[0].get_nbeads()
+            self.nbeads = nbeads  # self.state[0].get_nbeads()
             # We need to store the masses for isotope purposes
             self.masses = atoms.get_masses()
             # We need the temperature for centroid computation purposes

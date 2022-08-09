@@ -2,11 +2,7 @@ import numpy as np
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.units import kB, fs
 
-from mlacs.path_integral.qpolymer import QPolymer
-
-__all__ = ['QPolymer']
-
-hbar = 6.582119514e-16 * 1e15*fs  # from eV.s to eV.(ASE time units)
+hbar = 6.582119514e-16 * 1e15 * fs  # from eV.s to eV.(ASE time units)
 
 
 # ========================================================================== #
@@ -52,3 +48,4 @@ def compute_centroid_atoms(confs, temperature):
                                  stress=cstress)
     atoms.calc = calc
     return atoms
+

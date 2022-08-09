@@ -28,8 +28,6 @@ class StateManager:
         self.trajfile = trajfile
         self.loginterval = loginterval
 
-        self.islammps = False
-
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
