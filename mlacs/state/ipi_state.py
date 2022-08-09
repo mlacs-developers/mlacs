@@ -22,7 +22,7 @@ from mlacs.utilities import (get_elements_Z_and_masses,
 
 # ========================================================================== #
 # ========================================================================== #
-class IPIState(LammpsState):
+class IpiState(LammpsState):
     """
     State Class for running a NPT simulation as implemented in LAMMPS
 

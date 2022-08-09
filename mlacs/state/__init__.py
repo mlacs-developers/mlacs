@@ -7,11 +7,11 @@ from mlacs.state.langevin import LangevinState
 from mlacs.state.verlet import VerletState
 from mlacs.state.lammps_state import LammpsState
 from mlacs.state.custom_lammps_state import CustomLammpsState
-from mlacs.state.pimd_lammps_state import PimdLammpsState
+from mlacs.state.ipi_state import IpiState
 
 __all__ = ['StateManager',
            'LangevinState',
            'VerletState',
            'LammpsState',
            'CustomLammpsState',
-           'PimdLammpsState']
+           'IpiState']
