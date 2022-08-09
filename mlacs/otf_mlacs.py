@@ -13,7 +13,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 
 from mlacs.mlip import LammpsMlip
 from mlacs.calc import CalcManager
-from mlacs.state import StateManager
+from mlacs.state.state import StateManager
 from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
 from mlacs.utilities.path_integral import compute_centroid_atoms
