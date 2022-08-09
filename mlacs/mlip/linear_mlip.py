@@ -71,7 +71,7 @@ class LinearMlip(MlipManager):
         # TODO function to test several lambda values of regularization
         if self.regularization is not None:
             lamb = self.regularization
-            regul = self.get_regularization_vector(lamb)
+            regul = self.get_regularization_vector()
             regul = self.regularization * np.diag(regul)
 
             ymatrix = amatrix.T.dot(ymatrix)

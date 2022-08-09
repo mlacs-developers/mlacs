@@ -17,8 +17,8 @@ from mlacs.utilities import write_lammps_data_full
 default_snap = {"twojmax": 8,
                 "chemflag": 0,
                 "bnormflag": 0}
-default_so3 = {"lmax": 4,
-               "nmax": 4,
+default_so3 = {"nmax": 4,
+               "lmax": 3,
                "alpha": 2}
 
 
@@ -121,7 +121,6 @@ class LammpsMlipInterface:
             if chemflag == 1:
                 self.ndescriptors *= len(self.elements)**3
         if self.model == "quadratic":
-            self.ndesc_linear = self.ndescriptors
             self.ndescriptors += \
                 int(self.ndescriptors * (self.ndescriptors + 1) / 2)
 
@@ -206,7 +205,7 @@ class LammpsMlipInterface:
                             "so3 MLIP.descriptor  model " + \
                             self.model + " gradgradflag 1\n"
         input_string += "fix          ml all ave/time 1 1 1 c_ml[*] " + \
-                        "file descriptor.out mode vector format %15.5f  \n"
+                        "file descriptor.out mode vector \n"
 
         input_string += "run              0\n"
 
@@ -281,7 +280,7 @@ class LammpsMlipInterface:
         # If style is so3, we use the ml-iap stuffs in LAMMPS
         elif self.style == "so3":
             nmax = self.params["nmax"]
-            lmax = self.params["nmax"]
+            lmax = self.params["lmax"]
             alpha = self.params["alpha"]
             with open("MLIP.descriptor", "w") as f:
                 f.write("# ")

@@ -114,7 +114,7 @@ class LammpsMlip(LinearMlip):
         self.fit_dielectric = fit_dielectric
 
 # ========================================================================== #
-    def get_regularization_vector(self, lamb):
+    def get_regularization_vector(self):
         """
         Get the non zero entries for the  regularization vector, so everything
         that is no the intercept
