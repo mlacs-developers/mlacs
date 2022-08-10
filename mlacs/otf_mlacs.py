@@ -360,7 +360,7 @@ class OtfMlacs:
             epot = atoms_centroid.get_potential_energy()
             ekin = atoms_centroid.get_kinetic_energy()
             epot_mlip = atoms_centroid_mlip.get_potential_energy()
-            ekin_mlip = atoms_centroid_mlip.get_potential_energy()
+            ekin_mlip = atoms_centroid_mlip.get_kinetic_energy()
             with open(self.prefix_centroid + "_potential.dat", "a") as f:
                 f.write(f"{epot:20.15f}   " +
                         f"{ekin:20.15f}   " +

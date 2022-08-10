@@ -7,7 +7,7 @@ import shlex
 import time
 import numpy as np
 import xml.etree.cElementTree as ET
-from subprocess import Popen
+from subprocess import Popen, PIPE
 
 from ase import Atoms
 from ase.units import Bohr, fs
@@ -194,7 +194,7 @@ class IpiState(LammpsState):
         """
         """
         lammps_command = self.cmd + ' -in ' + \
-            self.lammpsfname + " -screen log." + bead
+            self.lammpsfname + " -screen log." + bead + ' -log none'
         return lammps_command
 
 # ========================================================================== #
@@ -259,15 +259,20 @@ class IpiState(LammpsState):
         self.write_ipi_input(atoms, nsteps)
         ipi_command = f"{self.cmdipi} {self.ipifname} > {self.workdir}ipi.log"
         # We start by running ipi alone
-        proc_ipi = Popen(ipi_command, shell=True, cwd=self.workdir)
+        ipi_handle = Popen(ipi_command, shell=True, cwd=self.workdir,
+                           stderr=PIPE)
         time.sleep(5)  # We need to wait a bit for i-pi ready the socket
         # We get all LAMMPS run in an array
         alllammps = []
         for i in range(self.paralbeads):
             alllammps.append(self._build_lammps_command(str(i)))
         # And we run all LAMMPS instance
-        [Popen(shlex.split(i), cwd=self.workdir) for i in alllammps]
-        proc_ipi.wait()
+        [Popen(shlex.split(i, posix=(os.name == "posix")),
+               cwd=self.workdir) for i in alllammps]
+        ipi_handle.wait()
+        if ipi_handle.returncode != 0:
+            msg = "i-pi stopped prematurely"
+            raise RuntimeError(msg)
         atoms = self.create_ase_atom(pbc, nbeads)
         return atoms
 
@@ -321,6 +326,7 @@ class IpiState(LammpsState):
             trajectory0 = _add_textxml(ET.Element('trajectory',
                                                   attrib=attrib_tmp),
                                        'positions{angstrom}')
+            trajarr.append(trajectory0)
 
             attrib_tmp = {'stride': str(self.loginterval),
                           'filename': 'for',
@@ -329,6 +335,7 @@ class IpiState(LammpsState):
             trajectory1 = _add_textxml(ET.Element('trajectory',
                                                   attrib=attrib_tmp),
                                        'forces{ev/ang}')
+            trajarr.append(trajectory1)
 
             attrib_tmp = {'stride': str(self.loginterval),
                           'filename': 'vel',
@@ -337,8 +344,6 @@ class IpiState(LammpsState):
             trajectory2 = _add_textxml(ET.Element('trajectory',
                                                   attrib=attrib_tmp),
                                        'velocities{m/s}')
-            trajarr.append(trajectory0)
-            trajarr.append(trajectory1)
             trajarr.append(trajectory2)
 
         # Adding trajectory for outputs
@@ -349,6 +354,7 @@ class IpiState(LammpsState):
         outtrajpos = _add_textxml(ET.Element('trajectory',
                                              attrib=attrib_tmp),
                                   'positions{angstrom}')
+        trajarr.append(outtrajpos)
 
         attrib_tmp = {'stride': str(nsteps),
                       'filename': 'outfor',
@@ -357,6 +363,7 @@ class IpiState(LammpsState):
         outtrajfor = _add_textxml(ET.Element('trajectory',
                                              attrib=attrib_tmp),
                                   'forces{ev/ang}')
+        trajarr.append(outtrajfor)
 
         attrib_tmp = {'stride': str(nsteps),
                       'filename': 'outvel',
@@ -365,8 +372,6 @@ class IpiState(LammpsState):
         outtrajvel = _add_textxml(ET.Element('trajectory',
                                              attrib=attrib_tmp),
                                   'velocities{m/s}')
-        trajarr.append(outtrajpos)
-        trajarr.append(outtrajfor)
         trajarr.append(outtrajvel)
 
         output = ET.Element('output', attrib={'prefix': self.prefix})

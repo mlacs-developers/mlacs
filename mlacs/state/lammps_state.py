@@ -3,7 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
-from subprocess import call
+from subprocess import run, PIPE
 
 import numpy as np
 
@@ -187,8 +187,18 @@ class LammpsState(StateManager):
                                 pair_coeff,
                                 model_post,
                                 nsteps)
-        lammps_command = self.cmd + "< " + self.lammpsfname + "> log"
-        call(lammps_command, shell=True, cwd=self.workdir)
+
+        lammps_command = self.cmd + " -in " + self.lammpsfname + \
+            " -sc out.lmp"
+        lmp_handle = run(lammps_command,
+                         shell=True,
+                         cwd=self.workdir,
+                         stderr=PIPE)
+
+        if lmp_handle.returncode != 0:
+            msg = "LAMMPS stopped with the exit code \n" + \
+                  f"{lmp_handle.stderr.decode()}"
+            raise RuntimeError(msg)
 
         if charges is not None:
             init_charges = atoms.get_initial_charges()

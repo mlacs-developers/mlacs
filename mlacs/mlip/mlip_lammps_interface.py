@@ -4,7 +4,7 @@
 """
 import os
 import numpy as np
-from subprocess import call
+from subprocess import run, PIPE
 
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.lammps import Prism
@@ -181,7 +181,7 @@ class LammpsMlipInterface:
         input_string += "boundary         p p p\n"
         input_string += f"atom_style      {self.atom_style}\n"
         input_string += "units            metal\n"
-        input_string += "read_data        ${filename}\n"
+        input_string += "read_data        atoms.lmp\n"
         for n1 in range(len(self.elements)):
             input_string += f"mass             {n1+1} {self.masses[n1]}\n"
         input_string += bond_style
@@ -218,9 +218,15 @@ class LammpsMlipInterface:
         '''
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
-        lammps_command = self.cmd + " -var filename " + lmp_atoms_fname + \
-            " -in base.in -log log.lammps > lmp.out"
-        call(lammps_command, shell=True)
+        lammps_command = self.cmd + ' -in base.in -log none -sc lmp.out'
+        lmp_handle = run(lammps_command,
+                         shell=True,
+                         stderr=PIPE)
+
+        if lmp_handle.returncode != 0:
+            msg = "LAMMPS stopped with the exit code \n" + \
+                  f"{lmp_handle.stderr.decode()}"
+            raise RuntimeError(msg)
 
 # ========================================================================== #
     def _get_lammps_command(self):
@@ -241,7 +247,6 @@ class LammpsMlipInterface:
         '''
         os.remove("lmp.out")
         os.remove("descriptor.out")
-        os.remove("log.lammps")
         os.remove("base.in")
         os.remove("atoms.lmp")
 
