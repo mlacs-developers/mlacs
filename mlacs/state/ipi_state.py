@@ -587,10 +587,16 @@ class IpiState(LammpsState):
         if pdamp is None:
             pdamp = 2*damp
 
-        msg = "Running Lammps with I-Pi\n"
+        if self.ispimd:
+            msg = "Running Path-Integral Molecular Dynamics, " + \
+                  "using Lammps with I-Pi\n"
+        else:
+            msg = "Running Molecular Dynamics, " + \
+                  "using Lammps with I-Pi\n"
         msg += f"Langevin dynamics in the {self.ensemble} " + \
             "ensemble as implemented in IPI\n"
-        msg += f"Number of beads ;                     {self.nbeads}\n"
+        if self.ispimd:
+            msg += f"Number of beads :                     {self.nbeads}\n"
         msg += f"Temperature (in Kelvin) :             {self.temperature}\n"
         if self.ensemble != 'nvt':
             msg += f"Pressure (GPa) :                      {self.pressure}\n"
