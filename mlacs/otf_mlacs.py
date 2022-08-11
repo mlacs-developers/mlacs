@@ -169,14 +169,14 @@ class OtfMlacs:
                     raise ValueError(msg)
             else:
                 self.nconfs = lgth
-            msg = f"{np.sum(lgth)} configuration from trajectories"
+            msg = f"{np.sum(lgth)} configuration from trajectories\n"
+            msg += "Adding configuration to training database"
             self.log.logger_log.info(msg)
-            lgth = np.max(lgth)
-            for iconf in range(lgth):
-                for i in range(nmax):
-                    self.mlip.update_matrices(prev_traj[i][iconf])
+            for istate in range(self.nstate):
+                for iconf in range(lgth[istate]):
+                    self.mlip.update_matrices(prev_traj[istate][iconf])
                     msg = f"Configuration {iconf} of {val} " + \
-                          f"{i+1}/{nmax}"
+                          f"{istate+1}/{nmax}"
                     self.log.logger_log.info(msg)
 
             self.traj = []
@@ -192,6 +192,7 @@ class OtfMlacs:
 
         self.step = 0
         self.ntrymax = ntrymax
+        self.log.logger_log.info("")
 
 # ========================================================================== #
     def run(self, nsteps=100):
@@ -225,22 +226,21 @@ class OtfMlacs:
         # Check if this is an equilibration or normal step for the mlmd
         if self.pimd:
             nmax = self.nbeads
-            val = "Beads"
         else:
             nmax = self.nstate
-            val = "State"
 
         self.log.logger_log.info("")
         eq = []
         for istate in range(self.nstate):
+            trajstep = self.nconfs[istate]
             if self.nconfs[istate] < self.neq[istate]:
                 eq.append(True)
-                msg = "Equilibration step for state {0}".format(istate+1)
-                self.log.logger_log.info(msg)
+                msg = f"Equilibration step for state {istate+1}, "
             else:
                 eq.append(False)
-                msg = "Production step for state {0}".format(istate+1)
-                self.log.logger_log.info(msg)
+                msg = f"Production step for state {istate+1}, "
+            msg += f"configuration {trajstep} for this state"
+            self.log.logger_log.info(msg)
         self.log.logger_log.info("\n")
 
         # Training MLIP
@@ -309,21 +309,18 @@ class OtfMlacs:
         self.log.logger_log.info(msg)
         atoms_true = []
         nerror = 0  # Handling of calculator error / non-convergence
-        for i in range(nmax):
-            msg = "{0} {1}/{2}".format(val, i+1, nmax)
-            self.log.logger_log.info(msg)
-            at = self.calc.compute_true_potential(atoms_mlip[i].copy())
-            atoms_true.append(at)
-            if self.pimd:
-                if atoms_true[i] is None:
+
+        atoms_true = self.calc.compute_true_potential(atoms_mlip,
+                                                      self.prefix_output,
+                                                      self.nconfs)
+        for i, at in enumerate(atoms_true):
+            if at is None:
+                if self.pimd:
                     msg = "One of the true potential calculation failed, " + \
                           "restarting the step\n"
                     self.log.logger_log.info(msg)
                     return False
                 else:
-                    atoms_true[i].set_masses(self.masses)
-            else:
-                if atoms_true[i] is None:
                     msg = f"For state {i+1}/{nmax} calculation with " + \
                            "the true potential resulted in error " + \
                            "or didn't converge"
@@ -381,51 +378,54 @@ class OtfMlacs:
         # Compute potential energy, update fitting matrices
         # and write the configuration to the trajectory
         self.traj = []  # To initialize the trajectories for each state
-        computed_atoms = []  # To have a list of the already computed atoms
+
+        # Once each computation is done, we need to correctly assign each atom
+        # to the right state, this is done using the idx_computed list of list
+        uniq_at = []
+        idx_computed = []
         for istate in range(self.nstate):
-            if len(computed_atoms) == 0:
-                msg = "Initial configuration for state " + \
-                      f"{istate+1}/{self.nstate}"
-                self.log.logger_log.info(msg)
-                atoms = self.calc.compute_true_potential(
-                                  self.atoms[istate].copy())
-                if atoms is None:
-                    msg = "True potential calculation failed or " + \
-                          "didn't converge"
-                    raise TruePotentialError(msg)
-                computed_atoms.append(atoms)
-                self.mlip.update_matrices(atoms)
-            else:  # This part is to avoid making the same calculation twice
-                as_prev = False
-                for at in computed_atoms:
+            if len(uniq_at) == 0:  # We always have to add the first atoms
+                uniq_at.append(self.atoms[istate])
+                idx_computed.append([istate])
+            else:
+                isin_list = False
+                for icop, at in enumerate(uniq_at):
                     if self.atoms[istate] == at:
-                        msg = "Initial configuration for state " + \
-                              f"{istate+1}/{self.nstate} is identical " + \
-                              "to a previously computed configuration"
-                        self.log.logger_log.info(msg)
-                        epot = at.get_potential_energy()
-                        forces = at.get_forces()
-                        stress = at.get_stress()
-                        calc = SinglePointCalculator(self.atoms[istate],
-                                                     energy=epot,
-                                                     forces=forces,
-                                                     stress=stress)
-                        atoms = self.atoms[istate].copy()
-                        atoms.calc = calc
-                        as_prev = True
-                if not as_prev:
-                    msg = "Initial configuration for state + " + \
-                           f"{istate+1}/{self.nstate}"
-                    self.log.logger_log.info(msg)
-                    atoms = self.calc.compute_true_potential(
-                                      self.atoms[istate].copy())
-                    if atoms is None:
-                        msg = "True potential calculation " + \
-                              "failed or didn't converge"
-                        raise TruePotentialError(msg)
-                    computed_atoms.append(atoms)
-                    self.mlip.update_matrices(atoms)
+                        isin_list = True
+                        idx_computed[icop].append(istate)
+                if not isin_list:
+                    uniq_at.append(self.atoms[istate])
+                    idx_computed.append([istate])
+
+        # And finally we compute the properties for each unique atoms
+        tmp_state = ["Initial"] * len(uniq_at)
+        tmp_step = np.linspace(0, len(uniq_at), len(uniq_at), dtype=int)
+        uniq_at = self.calc.compute_true_potential(uniq_at,
+                                                   tmp_state,
+                                                   tmp_step)
+
+        # And now, we dispatch each atoms to the right trajectory
+        for iun, at in enumerate(uniq_at):
+            if at is None:
+                msg = "True potential calculation failed or " + \
+                      "didn't converge"
+                raise TruePotentialError(msg)
+            self.mlip.update_matrices(at)
+            for icop in idx_computed[iun]:
+                newat = at.copy()
+                epot = at.get_potential_energy()
+                forces = at.get_forces()
+                stress = at.get_stress()
+                calc = SinglePointCalculator(newat,
+                                             energy=epot,
+                                             forces=forces,
+                                             stress=stress)
+                newat.calc = calc
+                self.atoms[icop] = newat
+
+        for istate in range(self.nstate):
             if self.pimd:
+                atoms = uniq_at[0]
                 for ibead in range(self.nbeads):
                     energy = atoms.get_potential_energy()
                     forces = atoms.get_forces()
@@ -450,7 +450,9 @@ class OtfMlacs:
             else:
                 self.traj.append(Trajectory(self.prefix_output[istate] +
                                             ".traj", mode="w"))
-                self.traj[istate].write(atoms)
+                self.traj[istate].write(self.atoms[istate])
+
+            self.nconfs[istate] += 1
 
         # Training configurations
         msg = "\nComputing energy with true potential " + \
@@ -458,7 +460,7 @@ class OtfMlacs:
         self.log.logger_log.info(msg)
         # Check number of training configurations and create them if needed
         if self.confs_init is None:
-            confs_init = create_random_structures(computed_atoms,
+            confs_init = create_random_structures(uniq_at,
                                                   self.std_init,
                                                   1)
         elif isinstance(self.confs_init, (int, float)):
@@ -467,7 +469,6 @@ class OtfMlacs:
                                                   self.confs_init)
         elif isinstance(self.confs_init, list):
             confs_init = self.confs_init
-        nconfs_init = len(confs_init)
 
         if os.path.isfile("Training_configurations.traj"):
             msg = "Training configurations found\n"
@@ -479,11 +480,15 @@ class OtfMlacs:
                 self.mlip.update_matrices(conf)
         else:
             init_traj = Trajectory("Training_configurations.traj", mode="w")
+            tmp_state = ["Training"] * len(confs_init)
+            tmp_step = np.linspace(0,
+                                   len(confs_init)-1,
+                                   len(confs_init),
+                                   dtype=int)
+            confs_init = self.calc.compute_true_potential(confs_init,
+                                                          tmp_state,
+                                                          tmp_step)
             for i, conf in enumerate(confs_init):
-                msg = "Configuration {:} / {:}".format(i+1, nconfs_init)
-                self.log.logger_log.info(msg)
-
-                conf = self.calc.compute_true_potential(conf)
                 if conf is None:
                     msg = "True potential calculation failed or " + \
                           "didn't converge"
