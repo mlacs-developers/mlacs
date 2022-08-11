@@ -222,18 +222,18 @@ class IpiState(LammpsState):
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         if atom_style == 'full':
-            write_lammps_data_full(self.atomsfname,
+            write_lammps_data_full(self.workdir + self.atomsfname,
                                    atoms,
                                    bonds=bonds,
                                    angles=angles,
                                    velocities=True)
         else:
             if charges is None:
-                write_lammps_data(self.atomsfname,
+                write_lammps_data(self.workdir + self.atomsfname,
                                   atoms,
                                   velocities=True)
             else:
-                write_lammps_data(self.atomsfname,
+                write_lammps_data(self.workdir + self.atomsfname,
                                   atoms,
                                   velocities=True,
                                   atom_style="charge")
