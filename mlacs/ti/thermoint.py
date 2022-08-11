@@ -6,6 +6,7 @@ import os
 
 from mlacs.utilities.thermolog import ThermoLog
 from mlacs.ti.thermostate import ThermoState
+from concurrent.futures import ThreadPoolExecutor
 
 
 # ========================================================================== #
@@ -23,9 +24,11 @@ class ThermodynamicIntegration:
     """
     def __init__(self,
                  thermostate,
+                 ninstance=10,
                  logfile=None):
 
         self.log = ThermoLog(logfile)
+        self.ninstance = ninstance
 
         # Construct the working directory to run the thermodynamic integrations
         self.workdir = os.getcwd() + "/ThermoInt/"
@@ -49,24 +52,27 @@ class ThermodynamicIntegration:
         """
         Launch the simulation
         """
-        msg = "Running the simulation\n"
+        with ThreadPoolExecutor(max_workers=self.ninstance) as executor:
+            for istate in range(self.nstate):
+                executor.submit(self._run_one_state, istate)
+                msg = f"State {istate+1}/{self.nstate} launched"
+                stateworkdir = self.workdir + self.state[istate].get_workdir()
+                msg += f"Working directory for this state : \n{stateworkdir}\n"
+
+# ========================================================================== #
+    def _run_one_state(self, istate):
+        """
+        """
+        stateworkdir = self.workdir + self.state[istate].get_workdir()
+        self.state[istate].run(stateworkdir)
+        msg = f"State {istate+1} : Molecular Dynamics Done\n"
+        msg += "Starting post-process\n"
         self.log.logger_log.info(msg)
-        for istate in range(self.nstate):
-            stateworkdir = self.workdir + self.state[istate].get_workdir()
-            msg = '=======================================================\n'
-            msg += "State {0}/{1} :\n".format(istate+1, self.nstate)
-            msg += '=======================================================\n'
-            msg += "Working directory : {0}\n".format(stateworkdir)
-            self.log.logger_log.info(msg)
-            self.state[istate].run(stateworkdir)
-            msg = "MLMD simulation done\n"
-            msg += "Running post-process"
-            self.log.logger_log.info(msg)
-            msg = "Post-process Done\n"
-            self.log.logger_log.info(msg)
-            msg = self.state[istate].postprocess(stateworkdir)
-            self.log.logger_log.info(msg)
-            self.log.logger_log.info("\n")
+        msg = '============================================================\n'
+        msg += f"State {istate+1} : Post-process Done\n"
+        msg += self.state[istate].postprocess(stateworkdir)
+        msg += '============================================================\n'
+        self.log.logger_log.info(msg)
 
 # ========================================================================== #
     def recap_state(self):
