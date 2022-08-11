@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
@@ -114,7 +115,7 @@ class OtfMlacs:
         self.log = MlacsLog("MLACS.log", self.launched)
         msg = ""
         for i in range(self.nstate):
-            msg += "State {0}/{1} :\n".format(i+1, self.nstate)
+            msg += f"State {i+1}/{self.nstate} :\n"
             msg += self.state[i].log_recap_state()
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
@@ -263,38 +264,47 @@ class OtfMlacs:
         # Run the actual MLMD
         msg = "Running MLMD"
         self.log.logger_log.info(msg)
-        for istate in range(self.nstate):
-            msg = "State {0}/{1}".format(istate+1, self.nstate)
-            self.log.logger_log.info(msg)
-            if self.pimd:
-                atoms_mlip = self.state[istate].run_dynamics(
-                                   atoms_mlip[istate],
-                                   self.mlip.pair_style,
-                                   self.mlip.pair_coeff,
-                                   self.mlip.model_post,
-                                   self.mlip.atom_style,
-                                   self.mlip.bonds,
-                                   self.mlip.angles,
-                                   self.mlip.bond_style,
-                                   self.mlip.bond_coeff,
-                                   self.mlip.angle_style,
-                                   self.mlip.angle_coeff,
-                                   eq[istate],
-                                   self.nbeads)
-            else:
-                atoms_mlip[istate] = self.state[istate].run_dynamics(
-                                           atoms_mlip[istate],
-                                           self.mlip.pair_style,
-                                           self.mlip.pair_coeff,
-                                           self.mlip.model_post,
-                                           self.mlip.atom_style,
-                                           self.mlip.bonds,
-                                           self.mlip.angles,
-                                           self.mlip.bond_style,
-                                           self.mlip.bond_coeff,
-                                           self.mlip.angle_style,
-                                           self.mlip.angle_coeff,
-                                           eq[istate])
+
+        # For PIMD, i-pi state manager is handling the parallel stuff
+        if self.pimd:
+            atoms_mlip = self.state[istate].run_dynamics(
+                               atoms_mlip[istate],
+                               self.mlip.pair_style,
+                               self.mlip.pair_coeff,
+                               self.mlip.model_post,
+                               self.mlip.atom_style,
+                               self.mlip.bonds,
+                               self.mlip.angles,
+                               self.mlip.bond_style,
+                               self.mlip.bond_coeff,
+                               self.mlip.angle_style,
+                               self.mlip.angle_coeff,
+                               eq[istate],
+                               self.nbeads)
+        else:
+            # With those thread, we can execute all the states in parallell
+            futures = []
+            with ThreadPoolExecutor() as executor:
+                for istate in range(self.nstate):
+                    exe = executor.submit(self.state[istate].run_dynamics,
+                                          *(atoms_mlip[istate],
+                                            self.mlip.pair_style,
+                                            self.mlip.pair_coeff,
+                                            self.mlip.model_post,
+                                            self.mlip.atom_style,
+                                            self.mlip.bonds,
+                                            self.mlip.angles,
+                                            self.mlip.bond_style,
+                                            self.mlip.bond_coeff,
+                                            self.mlip.angle_style,
+                                            self.mlip.angle_coeff,
+                                            eq[istate]))
+                    futures.append(exe)
+                    msg = f"State {istate+1}/{self.nstate} has been launched"
+                    self.log.logger_log.info(msg)
+                for istate, exe in enumerate(futures):
+                    atoms_mlip[istate] = exe.result()
+
         for i, at in enumerate(atoms_mlip):
             at.calc = self.mlip.calc
             sp_calc_mlip.append(SinglePointCalculator(

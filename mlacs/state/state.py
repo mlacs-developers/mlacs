@@ -2,6 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
+
 import numpy as np
 
 
@@ -18,7 +20,8 @@ class StateManager:
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 loginterval=50):
+                 loginterval=50,
+                 workdir=None):
 
         self.dt = dt
         self.nsteps = nsteps
@@ -27,6 +30,14 @@ class StateManager:
         self.logfile = logfile
         self.trajfile = trajfile
         self.loginterval = loginterval
+
+        self.workdir = workdir
+        if self.workdir is None:
+            self.workdir = os.getcwd() + "/MolecularDynamics/"
+        if self.workdir[-1] != "/":
+            self.workdir[-1] += "/"
+        if not os.path.exists(self.workdir):
+            os.makedirs(self.workdir)
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -56,3 +67,9 @@ class StateManager:
         Function to return a string describing the state for the log
         """
         return ""
+
+# ========================================================================== #
+    def set_workdir(self, workdir):
+        """
+        """
+        self.workdir = workdir

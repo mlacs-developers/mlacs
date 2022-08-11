@@ -609,6 +609,14 @@ class IpiState(LammpsState):
         msg += "\n"
         return msg
 
+# ========================================================================== #
+    def set_workdir(self, workdir):
+        """
+        """
+        self.workdir = workdir
+        self.ipiatomsfname = self.workdir + "ipi_atoms.xyz"
+        self.ipifname = self.workdir + "ipi_input.xml"
+
 
 if __name__ == '__main__':
     help(IpiState)

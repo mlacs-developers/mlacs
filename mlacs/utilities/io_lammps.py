@@ -125,7 +125,7 @@ def get_last_dump_input(workdir, elem, nsteps):
     input_string = "#####################################\n"
     input_string += "#         Dump last step\n"
     input_string += "#####################################\n"
-    input_string += f"dump last all custom {nsteps} {workdir}" + \
+    input_string += f"dump last all custom {nsteps} " + \
                     "configurations.out  id type xu yu zu " + \
                     "vx vy vz fx fy fz element\n"
     input_string += "dump_modify last element "

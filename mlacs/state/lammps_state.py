@@ -101,17 +101,8 @@ class LammpsState(StateManager):
                               fixcm,
                               logfile,
                               trajfile,
-                              loginterval)
-
-        # Construct the working directory
-        # to run the LAMMPS MLDMD simulations
-        self.workdir = workdir
-        if self.workdir is None:
-            self.workdir = os.getcwd() + "/LammpsMLMD/"
-        if self.workdir[-1] != "/":
-            self.workdir[-1] += "/"
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
+                              loginterval,
+                              workdir)
 
         self.rng = rng
         if self.rng is None:
@@ -119,8 +110,8 @@ class LammpsState(StateManager):
 
         self.init_momenta = init_momenta
 
-        self.atomsfname = self.workdir + "atoms.in"
-        self.lammpsfname = self.workdir + "lammps_input.in"
+        self.atomsfname = "atoms.in"
+        self.lammpsfname = "lammps_input.in"
 
         self._get_lammps_command()
         self.ispimd = False
@@ -156,18 +147,18 @@ class LammpsState(StateManager):
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         if atom_style == 'full':
-            write_lammps_data_full(self.atomsfname,
+            write_lammps_data_full(self.workdir + self.atomsfname,
                                    atoms,
                                    bonds=bonds,
                                    angles=angles,
                                    velocities=True)
         else:
             if charges is None:
-                write_lammps_data(self.atomsfname,
+                write_lammps_data(self.workdir + self.atomsfname,
                                   supercell,
                                   velocities=True)
             else:
-                write_lammps_data(self.atomsfname,
+                write_lammps_data(self.workdir + self.atomsfname,
                                   supercell,
                                   velocities=True,
                                   atom_style="charge")
@@ -273,7 +264,7 @@ class LammpsState(StateManager):
                                             nsteps)
         input_string += f"run  {nsteps}"
 
-        with open(self.lammpsfname, "w") as f:
+        with open(self.workdir + "lammps_input.in", "w") as f:
             f.write(input_string)
 
 # ========================================================================== #
@@ -354,3 +345,9 @@ class LammpsState(StateManager):
             msg += f"Barostat damping parameter (in fs) :    {pdamp}\n"
         msg += "\n"
         return msg
+
+# ========================================================================== #
+    def set_workdir(self, workdir):
+        """
+        """
+        self.workdir = workdir
