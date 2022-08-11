@@ -1,5 +1,9 @@
 # Todo list
 ===========
 
-* make the Path-Integral MD class
-* make the Path-Integral State class
+* make a directory by DFT calculation
+* give the possibility to restart at the begining of the trajectory
+* give the possibility to run DFT calculation in parallel
+* give the possibility to run PIMD states simultaneously
+* verify and update the comments at the start of each object
+* finish the documentation

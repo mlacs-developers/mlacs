@@ -6,25 +6,25 @@ import os
 from subprocess import call
 
 import numpy as np
-
 from ase.units import kB
 from ase.io.lammpsdata import write_lammps_data
 
-from mlacs.utilities.miscellanous import get_elements_Z_and_masses
-from mlacs.utilities.thermo import free_energy_harmonic_oscillator, free_energy_com_harmonic_oscillator
+from mlacs.utilities.thermo import (free_energy_harmonic_oscillator,
+                                    free_energy_com_harmonic_oscillator)
 from mlacs.ti.thermostate import ThermoState
 
 
-eV   = 1.602176634e-19  # eV
+eV = 1.602176634e-19  # eV
 hbar = 6.582119514e-16  # hbar
-amu  = 1.6605390666e-27 # atomic mass constant
+amu = 1.6605390666e-27  # atomic mass constant
 
 
-#========================================================================================================================#
-#========================================================================================================================#
+# ========================================================================== #
+# ========================================================================== #
 class EinsteinSolidState(ThermoState):
     """
-    Class for performing thermodynamic integration from an Einstein crystal reference
+    Class for performing thermodynamic integration from
+    an Einstein crystal reference
 
     Parameters
     ----------
@@ -37,27 +37,35 @@ class EinsteinSolidState(ThermoState):
     temperature: :class:`float`
         Temperature of the simulation
     fcorr1: :class:`float` or ``None``
-        First order cumulant correction to the free energy, in eV/at, to be added to the results.
+        First order cumulant correction to the free energy, in eV/at,
+        to be added to the results.
         If ``None``, no value is added. Default ``None``.
     fcorr2: :class:`float` or ``None``
-        Second order cumulant correction to the free energy, in eV/at, to be added to the results.
+        Second order cumulant correction to the free energy, in eV/at,
+        to be added to the results.
         If ``None``, no value is added. Default ``None``.
     k: :class:`float` or :class:`list` of :class:float` or ``None``
         Spring constant for the Einstein crystal reference.
-        If a float, all atoms type have the same spring constant. If a list, a value for each atoms type should be provided. If ``None``, a short simulation is run to determine the optimal value. Default ``None``
+        If a float, all atoms type have the same spring constant.
+        If a list, a value for each atoms type should be provided.
+        If ``None``, a short simulation is run to determine the optimal value.
+        Default ``None``
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
     damp : :class:`float` (optional)
-        Damping parameter. If ``None``, a damping parameter of a hundred time the timestep is used.
+        Damping parameter.
+        If ``None``, a damping parameter of  1000 x dt is used.
     nsteps: :class:`int` (optional)
         Number of production steps. Default ``10000``.
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
     rng: :class:`RNG object`
-        Rng object to be used with the Langevin thermostat. 
+        Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
     suffixdir: :class:`str`
-        Suffix for the directory in which the computation will be run. If ``None``, a directory ``\"Solid_TXK\"`` is created, where X is the temperature. Default ``None``.
+        Suffix for the directory in which the computation will be run.
+        If ``None``, a directory ``\"Solid_TXK\"`` is created,
+        where X is the temperature. Default ``None``.
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
@@ -91,13 +99,12 @@ class EinsteinSolidState(ThermoState):
                  trajfile=True,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50
-                ):
+                 trajinterval=50):
 
-        self.atoms       = atoms
+        self.atoms = atoms
         self.temperature = temperature
-        self.damp        = damp
-        self.nsteps_msd  = nsteps_msd
+        self.damp = damp
+        self.nsteps_msd = nsteps_msd
 
         self.fcorr1 = fcorr1
         self.fcorr2 = fcorr2
@@ -114,29 +121,31 @@ class EinsteinSolidState(ThermoState):
                              trajfile,
                              interval,
                              loginterval,
-                             trajinterval,
-                            )
+                             trajinterval)
 
-        self.suffixdir = "Solid_T{0}K/".format(self.temperature)
+        self.suffixdir = f"Solid_T{self.temperature}K/"
         if suffixdir is not None:
             self.suffixdir = suffixdir
         if self.suffixdir[-1] != "/":
             self.suffixdir += "/"
 
-        self.k           = k
+        self.k = k
         if self.k is not None:
             if isinstance(self.k, list):
                 if not len(self.k) == len(self.elem):
-                    msg = "The spring constant paramater has to be a float or a list of length n=number of different species in the system"
+                    msg = "The spring constant paramater has to be a " + \
+                          "float or a list of length n=number of " + \
+                          "different species in the system"
                     raise ValueError(msg)
             elif isinstance(self.k, (float, int)):
                 self.k = [self.k] * len(self.elem)
             else:
-                msg = "The spring constant parameter k has to be a float or a list of length n=\'number of different species in the system\'"
+                msg = "The spring constant parameter k has to be a " + \
+                      "float or a list of length n=\'number of " + \
+                      "different species in the system\'"
                 raise ValueError(msg)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def run(self, wdir):
         """
         """
@@ -152,13 +161,12 @@ class EinsteinSolidState(ThermoState):
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def run_dynamics(self, wdir):
         """
         """
-        atomsfname     = wdir + "atoms.in"
-        lammpsfname    = wdir + "lammps_input.in"
+        atomsfname = wdir + "atoms.in"
+        lammpsfname = wdir + "lammps_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
         write_lammps_data(atomsfname, self.atoms)
@@ -166,13 +174,12 @@ class EinsteinSolidState(ThermoState):
         self.write_lammps_input(wdir)
         call(lammps_command, shell=True, cwd=wdir)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def compute_msd(self, wdir):
         """
         """
-        atomsfname     = wdir + "atoms.in"
-        lammpsfname    = wdir + "lammps_msd_input.in"
+        atomsfname = wdir + "atoms.in"
+        lammpsfname = wdir + "lammps_msd_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
         write_lammps_data(atomsfname, self.atoms)
@@ -180,43 +187,46 @@ class EinsteinSolidState(ThermoState):
         self.write_lammps_input_msd(wdir)
         call(lammps_command, shell=True, cwd=wdir)
 
-        kall     = []
-        prt_data = []
+        kall = []
         with open(wdir + "msd.dat", "w") as f:
             for e in self.elem:
-                data = np.loadtxt(wdir + "msd{0}.dat".format(e))
-                nat  = np.count_nonzero([a==e for a in self.atoms.get_chemical_symbols()])
-                k    = 3 * kB * self.temperature / data.mean()
+                data = np.loadtxt(wdir + f"msd{e}.dat")
+                nat = np.count_nonzero([a == e for a in
+                                        self.atoms.get_chemical_symbols()])
+                k = 3 * kB * self.temperature / data.mean()
                 kall.append(k)
                 f.write(e + " {0}   {1:10.5f}\n".format(nat, k))
         self.k = kall
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def postprocess(self, wdir):
         """
         Compute the free energy from the simulation
         """
         # Get needed value/constants
-        vol             = self.atoms.get_volume()
-        k               = self.k
-        kBT             = kB * self.temperature
-        nat_tot         = len(self.atoms)
+        vol = self.atoms.get_volume()
+        nat_tot = len(self.atoms)
 
-        # Compute some oscillator frequencies and number of atoms for each species
-        omega  = []
-        nat    = []
+        # Compute some oscillator frequencies and number
+        # of atoms for each species
+        omega = []
+        nat = []
         for iel, e in enumerate(self.elem):
             omega.append(np.sqrt(self.k[iel] / (self.masses[iel])))
-            nat.append(np.count_nonzero([a==e for a in self.atoms.get_chemical_symbols()]))
+            nat.append(np.count_nonzero([a == e for a in
+                                         self.atoms.get_chemical_symbols()]))
 
         # Compute free energy of the Einstein crystal
-        f_harm = free_energy_harmonic_oscillator(omega, self.temperature, nat) # eV/at
+        f_harm = free_energy_harmonic_oscillator(omega,
+                                                 self.temperature,
+                                                 nat)  # eV/at
 
         # Compute the center of mass correction
-        #f_cm    = free_energy_com_harmonic_oscillator(omega, self.temperature, nat, vol, self.masses) # eV/at
-        f_cm    = free_energy_com_harmonic_oscillator(self.k, self.temperature, nat, vol, self.masses) # eV/at
-
+        f_cm = free_energy_com_harmonic_oscillator(self.k,
+                                                   self.temperature,
+                                                   nat,
+                                                   vol,
+                                                   self.masses)  # eV/at
 
         # Compute the work between einstein crystal and the MLIP
         dE_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
@@ -224,54 +234,62 @@ class EinsteinSolidState(ThermoState):
         int_f = np.trapz(dE_f, lambda_f)
         int_b = np.trapz(dE_b, lambda_b)
 
-        work  = (int_f - int_b) / 2.0
-        #work /= nat_tot # eV/at
+        work = (int_f - int_b) / 2.0
 
         free_energy = f_harm + f_cm + work
-        free_energy_corrected  = free_energy
+        free_energy_corrected = free_energy
         if self.fcorr1 is not None:
             free_energy_corrected += self.fcorr1
         if self.fcorr2 is not None:
             free_energy_corrected += self.fcorr2
 
         with open(wdir+"free_energy.dat", "w") as f:
-            header  = "#   T [K]     Fe tot [eV/at]     Fe harm [eV/at]      Work [eV/at]      Fe com [eV/at]"
-            results = "{0:10.3f}     {1:10.6f}         {2:10.6f}          {3:10.6f}         {4:10.6f}".format(self.temperature, free_energy, f_harm, work, f_cm)
+            header = "#   T [K]     Fe tot [eV/at]     " + \
+                     "Fe harm [eV/at]      Work [eV/at]      Fe com [eV/at]"
+            results = f"{self.temperature:10.3f}     " + \
+                      f"{free_energy:10.6f}         " + \
+                      f"{f_harm:10.6f}          " + \
+                      f"{work:10.6f}         " + \
+                      f"{f_cm:10.6f}"
             if self.fcorr1 is not None:
-                header  += "    Delta F1 [eV/at]"
-                results += "         {0:10.6f}".format(self.fcorr1)
+                header += "    Delta F1 [eV/at]"
+                results += f"         {self.fcorr1:10.6f}"
             if self.fcorr2 is not None:
-                header  += "    Delta F2 [eV/at]"
-                results += "          {0:10.6f}".format(self.fcorr2)
+                header += "    Delta F2 [eV/at]"
+                results += f"          {self.fcorr2:10.6f}"
             if self.fcorr1 is not None or self.fcorr2 is not None:
-                header  += "    Fe corrected [eV/at]"
-                results += "           {0:10.6f}".format(free_energy_corrected)
+                header += "    Fe corrected [eV/at]"
+                results += f"           {free_energy_corrected:10.6f}"
             header += "\n"
             f.write(header)
             f.write(results)
-        
-        msg  = "Summary of results for this state\n"
-        msg += '===============================================================\n' 
-        msg += "Frenkel-Ladd path integration, with an Einstein crystal reference\n"
+
+        msg = "Summary of results for this state\n"
+        msg += '============================================================\n'
+        msg += "Frenkel-Ladd path integration, with an " + \
+               "Einstein crystal reference\n"
         msg += "Reference Einstein crystal spring :\n"
         for iel, e in enumerate(self.elem):
-            msg += "    For {0} :                   {1:10.6f} eV/angs^2\n".format(e, self.k[iel])
-        msg += "Temperature :                   {0:10.3f} K\n".format(self.temperature)
-        msg += "Volume :                        {0:10.3f} angs^3\n".format(vol/nat_tot)
-        msg += "Free energy :                   {0:10.6f} eV/at\n".format(free_energy)
-        msg += "Excess work :                   {0:10.6f} eV/at\n".format(work)
-        msg += "Einstein crystal free energy :  {0:10.6f} eV/at\n".format(f_harm)
-        msg += "Center of mass free energy :    {0:10.6f} eV/at\n".format(f_cm)
+            msg += f"    For {e} :                   " + \
+                   f"{self.k[iel]:10.6f} eV/angs^2\n"
+        msg += f"Temperature :                   {self.temperature:10.3f} K\n"
+        msg += f"Volume :                        {vol/nat_tot:10.3f} angs^3\n"
+        msg += f"Free energy :                   {free_energy:10.6f} eV/at\n"
+        msg += f"Excess work :                   {work:10.6f} eV/at\n"
+        msg += f"Einstein crystal free energy :  {f_harm:10.6f} eV/at\n"
+        msg += f"Center of mass free energy :    {f_cm:10.6f} eV/at\n"
         if self.fcorr1 is not None:
-            msg += "1st order true pot correction : {0:10.6f} eV/at\n".format(self.fcorr1)
+            msg += "1st order true pot correction : " + \
+                   f"{self.fcorr1:10.6f} eV/at\n"
         if self.fcorr2 is not None:
-            msg += "2nd order true pot correction : {0:10.6f} eV/at\n".format(self.fcorr2)
+            msg += "2nd order true pot correction : " + \
+                   f"{self.fcorr2:10.6f} eV/at\n"
         if self.fcorr1 is not None or self.fcorr2 is not None:
-            msg += "Free energy corrected :         {0:10.6f} eV/at\n".format(free_energy_corrected)
+            msg += "Free energy corrected :         " + \
+                   f"{free_energy_corrected:10.6f} eV/at\n"
         return msg
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def write_lammps_input(self, wdir):
         """
         Write the LAMMPS input for the MLMD simulation
@@ -281,15 +299,14 @@ class EinsteinSolidState(ThermoState):
         if damp is None:
             damp = "$(100*dt)"
 
-
-        input_string  = self.get_general_input()
+        input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
         input_string += "#####################################\n"
-        input_string += "variable      nsteps equal {0}\n".format(self.nsteps)
-        input_string += "variable      nstepseq equal {0}\n".format(self.nsteps_eq)
-        input_string += "timestep      {0}\n".format(self.dt/ 1000)
+        input_string += f"variable      nsteps equal {self.nsteps}\n"
+        input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
+        input_string += f"timestep      {self.dt / 1000}\n"
         input_string += "#####################################\n"
 
         input_string += "\n\n"
@@ -299,11 +316,16 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "# Integrators\n"
         input_string += "#####################################\n"
-        input_string += "velocity      all create {0} {1} dist gaussian\n".format(self.temperature, self.rng.integers(99999))
+        input_string += f"velocity      all create {self.temperature} " + \
+                        f"{self.rng.integers(99999)} dist gaussian\n"
         input_string += "fix           f2  all nve\n"
         for iel, el in enumerate(self.elem):
-            input_string += "fix           ff{0} {0} ti/spring {1} ${{nsteps}} ${{nstepseq}} function 2\n".format(el, self.k[iel])
-        input_string += "fix           f1  all langevin {0} {0}  {1}  {2} zero yes\n\n".format(self.temperature, damp, self.rng.integers(99999))
+            input_string += f"fix           ff{el} {el} ti/spring " + \
+                            f"{self.k[iel]} ${{nsteps}} ${{nstepseq}} " + \
+                            "function 2\n"
+        input_string += "fix           f1  all langevin " + \
+                        f"{self.temperature} {self.temperature}  " + \
+                        f"{damp}  {self.rng.integers(99999)} zero yes\n\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -321,60 +343,57 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "#         Integration\n"
         input_string += "#####################################\n"
-        input_string += "variable     dE equal (pe-" + "-".join(["f_ff" + e for e in self.elem]) + ")/atoms \n"
-        input_string += "variable     lambda equal f_ff{0}[1]\n".format(self.elem[0])
+        input_string += "variable     dE equal (pe-" + \
+                        "-".join(["f_ff" + e for e in self.elem]) + ")/atoms\n"
+        input_string += f"variable     lambda equal f_ff{self.elem[0]}[1]\n"
         input_string += "\n\n"
 
         input_string += "#####################################\n"
         input_string += "#       Forward integration\n"
         input_string += "#####################################\n"
         input_string += "run          ${nstepseq}\n"
-        input_string += "fix          f4 all print 1 \"${dE} ${lambda}\" screen no " + \
-                        "append forward.dat title \"# pe    lambda\"\n"
+        input_string += "fix          f4 all print 1 \"${dE} ${lambda}\" " + \
+                        "screen no append forward.dat title \"# pe  lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "unfix        f4\n"
         input_string += "#####################################\n"
-        
-        input_string += "\n\n"
 
+        input_string += "\n\n"
 
         input_string += "#####################################\n"
         input_string += "#       Backward integration\n"
         input_string += "#####################################\n"
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
-        input_string += "fix          f4 all print 1 \"${dE} ${lambda}\" screen no " + \
-                        "append backward.dat title \"# pe    lambda\"\n"
+        input_string += "fix          f4 all print 1 \"${dE} ${lambda}\" " + \
+                        "screen no append backward.dat title \"# pe lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
         with open(wdir + "lammps_input.in", "w") as f:
             f.write(input_string)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def write_lammps_input_msd(self, wdir):
         """
         Write the LAMMPS input for the MLMD simulation
         """
-
         damp = self.damp
         if damp is None:
             damp = "$(100*dt)"
-        
 
-        input_string  = self.get_general_input()
+        input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
         input_string += "#####################################\n"
-        input_string += "variable      nsteps equal {0}\n".format(self.nsteps_msd)
-        input_string += "variable      nstepseq equal {0}\n".format(self.nsteps_eq)
-        input_string += "timestep      {0}\n".format(self.dt/1000)
+        input_string += f"variable      nsteps equal {self.nsteps_msd}\n"
+        input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
+        input_string += f"timestep      {self.dt/1000}\n"
         for iel, el in enumerate(self.elem):
-            #input_string += "group         {0} type {1}\n".format(el, iel+1)
-            input_string += "compute       c{0} {1} msd com yes\n".format(10+iel,  el)
-            input_string += "variable      msd{0} equal c_c{1}[4]\n".format(el, 10+iel)
+            # input_string += "group         {0} type {1}\n".format(el, iel+1)
+            input_string += f"compute       c{10+iel} {el} msd com yes\n"
+            input_string += f"variable      msd{el} equal c_c{10+iel}[4]\n"
         input_string += "#####################################\n"
         input_string += "\n\n"
 
@@ -383,9 +402,12 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "#          Integrators\n"
         input_string += "#####################################\n"
-        input_string += "velocity      all create {0} {1} dist gaussian\n".format(self.temperature, self.rng.integers(99999))
+        input_string += f"velocity      all create {self.temperature} " + \
+                        f"{self.rng.integers(99999)} dist gaussian\n"
         input_string += "fix    f2  all nve\n"
-        input_string += "fix    f1  all langevin {0} {0} {1}  {2} zero yes\n".format(self.temperature, damp, self.rng.integers(99999))
+        input_string += f"fix    f1  all langevin {self.temperature} " + \
+                        f"{self.temperature} {damp}  " + \
+                        f"{self.rng.integers(99999)} zero yes\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -402,31 +424,32 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "run         ${nstepseq}\n"
         for iel, el in enumerate(self.elem):
-            input_string += "fix         f{0} {1} print 1 \"${{msd{1}}}\" screen no append msd{1}.dat\n".format(iel+3, el)
+            input_string += f"fix         f{iel+3} {el} print 1 " + \
+                            f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"
         input_string += "run         ${nsteps}\n"
         input_string += "#####################################\n"
         with open(wdir + "lammps_msd_input.in", "w") as f:
             f.write(input_string)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         """
-        npt = False
         if self.damp is None:
             damp = 100 * self.dt
-        
-        msg  = "Thermodynamic Integration using Frenkel-Ladd path and an Einstein crystal\n"
-        msg += "Temperature :                   {0}\n".format(self.temperature)
-        msg += "Langevin damping :              {0} fs\n".format(damp)
-        msg += "Timestep :                      {0} fs\n".format(self.dt)
-        msg += "Number of steps :               {0}\n".format(self.nsteps)
-        msg += "Number of equilibration steps : {0}\n".format(self.nsteps_eq)
+
+        msg = "Thermodynamic Integration using Frenkel-Ladd " + \
+              "path and an Einstein crystal\n"
+        msg += f"Temperature :                   {self.temperature}\n"
+        msg += f"Langevin damping :              {damp} fs\n"
+        msg += f"Timestep :                      {self.dt} fs\n"
+        msg += f"Number of steps :               {self.nsteps}\n"
+        msg += f"Number of equilibration steps : {self.nsteps_eq}\n"
         if self.k is None:
             msg += "Reference einstein crystal to be computed\n"
         else:
             msg += "Reference einstein crystal spring :\n"
             for iel, e in enumerate(self.elem):
-                msg += "    For {0} :                   k = {1} eV/angs^2\n".format(e, self.k[iel])
+                msg += f"    For {e} :                   " + \
+                       f"k = {self.k[iel]} eV/angs^2\n"
         return msg

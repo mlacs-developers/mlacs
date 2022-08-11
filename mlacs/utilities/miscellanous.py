@@ -2,14 +2,14 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
+
 import numpy as np
-
 from ase.atoms import Atoms
-from ase.io import read
-from ase.units import Hartree, Bohr
+from ase.io.lammpsdata import write_lammps_data
 
 
-#========================================================================================================================#
+# ========================================================================== #
 def get_elements_Z_and_masses(supercell):
     '''
     Get the unique chemical symbols and atomic numbers of a supercell.
@@ -30,14 +30,14 @@ def get_elements_Z_and_masses(supercell):
         list of unique masses in the supercell
     '''
     elements = supercell.get_chemical_symbols()
-    Z        = supercell.get_atomic_numbers()
-    masses   = supercell.get_masses()
-    charges  = supercell.get_initial_charges()
+    Z = supercell.get_atomic_numbers()
+    masses = supercell.get_masses()
+    charges = supercell.get_initial_charges()
 
     un_elements = sorted(set(elements))
-    un_Z        = []
-    un_masses   = []
-    un_charges  = []
+    un_Z = []
+    un_masses = []
+    un_charges = []
     for iel in range(len(un_elements)):
         idx = elements.index(un_elements[iel])
         un_Z.append(Z[idx])
@@ -49,7 +49,7 @@ def get_elements_Z_and_masses(supercell):
     return un_elements, un_Z, un_masses, un_charges
 
 
-#========================================================================================================================#
+# ========================================================================== #
 def create_random_structures(atoms, std, nconfs):
     """
     Create n random structures by displacing atoms around position
@@ -59,7 +59,8 @@ def create_random_structures(atoms, std, nconfs):
     atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
         ASE atoms objects to be rattled
     std: :class:`float`
-        Standard deviation of the gaussian used to generate the random displacements. In angstrom.
+        Standard deviation of the gaussian used to generate
+        the random displacements. In angstrom.
     nconfs: :class:`int`
         Number of configurations to generate
 
@@ -78,3 +79,48 @@ def create_random_structures(atoms, std, nconfs):
             iatoms.rattle(stdev=std, rng=rng)
             confs.append(iatoms)
     return confs
+
+
+# ========================================================================== #
+def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
+    """
+    Write lammps data file with bonds and angles
+
+    Parameters
+    ----------
+    name : :class:`str`
+        name of the output file
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+    bonds: :class:`numpy.array`
+        array of bonds list
+    nconfs: :class:`numpy.array`
+        array of angles list
+    Return
+    ------
+    """
+    write_lammps_data('coord_tmp.lmp',
+                      atoms,
+                      atom_style="full",
+                      velocities=velocities)
+    with open('coord_tmp.lmp', 'r') as file:
+        lines = file.readlines()
+
+    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
+    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
+    lines.insert(ind+2, str(len(angles)) + ' angles \n')
+
+    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
+    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
+    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
+
+    with open(name, 'w') as fd:
+        for line in lines:
+            fd.write(line)
+        fd.write("\n")
+        fd.write(" Bonds \n \n")
+        np.savetxt(fd, bonds, fmt='%s')
+        fd.write("\n")
+        fd.write(" Angles \n \n")
+        np.savetxt(fd, angles, fmt='%s')
+    os.remove('coord_tmp.lmp')

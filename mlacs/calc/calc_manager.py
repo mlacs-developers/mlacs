@@ -4,9 +4,11 @@
 """
 
 from ase.calculators.singlepoint import SinglePointCalculator
+from ase.calculators.calculator import CalculatorError
 
-#===================================================================================================================================================#
-#===================================================================================================================================================#
+
+# ========================================================================== #
+# ========================================================================== #
 class CalcManager:
     """
     Parent Class managing the true potential being simulated
@@ -22,37 +24,48 @@ class CalcManager:
     """
     def __init__(self,
                  calc,
-                 magmoms=None
-                ):
-
-        self.calc    = calc
+                 magmoms=None):
+        self.calc = calc
         self.magmoms = magmoms
 
-#===================================================================================================================================================#
-    def compute_true_potential(self, atoms):
+# ========================================================================== #
+    def compute_true_potential(self,
+                               confs,
+                               state=None,
+                               step=None):
         """
         """
-        atoms.set_initial_magnetic_moments(self.magmoms)
-        atoms.calc = self.calc
-        try:
-            energy = atoms.get_potential_energy()
-            forces = atoms.get_forces()
-            stress = atoms.get_stress()
-            sp_calc   = SinglePointCalculator(atoms, energy=energy, forces=forces, stress=stress)
-            atoms.calc = sp_calc
-        except:
-            atoms = None
-        return atoms
+        confs = [at.copy() for at in confs]
+        result_confs = []
+        for at in confs:
+            at.set_initial_magnetic_moments(self.magmoms)
+            at.calc = self.calc
+            try:
+                energy = at.get_potential_energy()
+                forces = at.get_forces()
+                stress = at.get_stress()
+                sp_calc = SinglePointCalculator(at,
+                                                energy=energy,
+                                                forces=forces,
+                                                stress=stress)
+                at.calc = sp_calc
+                result_confs.append(at)
+            except CalculatorError:
+                result_confs.append(None)
+        return result_confs
 
-
-#===================================================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         """
-        name = self.calc.name
+        try:
+            name = self.calc.name
+        except AttributeError:
+            name = None
 
-        msg  = "True potential parameters:\n"
-        msg += "Calculator : {0}\n".format(name)
+        msg = "True potential parameters:\n"
+        if name is not None:
+            msg += "Calculator : {0}\n".format(name)
         if hasattr(self.calc, "todict"):
             dct = self.calc.todict()
             msg += "parameters :\n"

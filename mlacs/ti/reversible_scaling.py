@@ -6,20 +6,18 @@ import os
 
 import numpy as np
 from scipy.integrate import cumtrapz
-
 from ase.units import kB
 
 from mlacs.utilities.miscellanous import get_elements_Z_and_masses
 from mlacs.ti.thermostate import ThermoState
 
 
-
-
-#========================================================================================================================#
-#========================================================================================================================#
+# ========================================================================== #
+# ========================================================================== #
 class ReversibleScalingState(ThermoState):
     """
-    Class for performing thermodynamic integration for a range of temperature using reversible scaling.
+    Class for performing thermodynamic integration for a
+    range of temperature using reversible scaling.
 
     Parameters
     ----------
@@ -38,9 +36,12 @@ class ReversibleScalingState(ThermoState):
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
     damp : :class:`float` (optional)
-        Damping parameter. If ``None``, a damping parameter of a hundred time the timestep is used.
+        Damping parameter. If ``None``, a damping parameter of a
+        hundred time the timestep is used.
     pressure: :class:`float` or ``None``
-        Pressure of the simulation. If ``None``, simulations are performed in the NVT ensemble. Default ``None``.
+        Pressure of the simulation.
+        If ``None``, simulations are performed in the NVT ensemble.
+        Default ``None``.
     pdamp : :class:`float` (optional)
         Damping parameter for the barostat. Default 1000 times ``dt`` is used.
         Default ``None``.
@@ -49,10 +50,12 @@ class ReversibleScalingState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
     rng: :class:`RNG object`
-        Rng object to be used with the Langevin thermostat. 
+        Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
     suffixdir: :class:`str`
-        Suffix for the directory in which the computation will be run. If ``None``, a directory ``\"Solid_TXK\"`` is created, where X is the temperature. Default ``None``.
+        Suffix for the directory in which the computation will be run.
+        If ``None``, a directory ``\"Solid_TXK\"`` is created,
+        where X is the temperature. Default ``None``.
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
@@ -87,16 +90,15 @@ class ReversibleScalingState(ThermoState):
                  trajfile=True,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50,
-                ):
+                 trajinterval=50):
 
-        self.t_start  = t_start
-        self.t_end    = t_end  
-        self.fe_init  = fe_init
-        self.damp     = damp
+        self.t_start = t_start
+        self.t_end = t_end
+        self.fe_init = fe_init
+        self.damp = damp
         self.pressure = pressure
-        self.pdamp    = pdamp
-        self.gjf      = gjf
+        self.pdamp = pdamp
+        self.gjf = gjf
 
         ThermoState.__init__(self,
                              atoms,
@@ -110,10 +112,9 @@ class ReversibleScalingState(ThermoState):
                              trajfile,
                              interval,
                              loginterval,
-                             trajinterval,
-                            )
+                             trajinterval)
 
-        self.suffixdir = "ReversibleScaling_T{0}K_T{1}K".format(self.t_start, self.t_end)
+        self.suffixdir = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
         if self.pressure is None:
             self.suffixdir += "_NVT"
         else:
@@ -124,8 +125,7 @@ class ReversibleScalingState(ThermoState):
         if self.suffixdir[-1] != "/":
             self.suffixdir += "/"
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def run(self, wdir):
         """
         """
@@ -137,13 +137,12 @@ class ReversibleScalingState(ThermoState):
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def write_lammps_input(self, wdir):
         """
         Write the LAMMPS input for the MLMD simulation
         """
-        elem, Z, masses = get_elements_Z_and_masses(self.atoms)
+        elem, Z, masses, charges = get_elements_Z_and_masses(self.atoms)
 
         damp = self.damp
         if damp is None:
@@ -152,31 +151,29 @@ class ReversibleScalingState(ThermoState):
         pdamp = self.pdamp
         if pdamp is None:
             pdamp = "$(1000*dt)"
-        
 
-        input_string  = self.get_general_input()
+        input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
         input_string += "#####################################\n"
-        input_string += "variable      nsteps equal {0}\n".format(self.nsteps)
-        input_string += "variable      nstepseq equal {0}\n".format(self.nsteps_eq)
-        input_string += "variable      tstart equal {0}\n".format(self.t_start)
-        input_string += "variable      tend  equal {0}\n".format(self.t_end)
-        input_string += "timestep      {0}\n".format(self.dt/ 1000)
+        input_string += f"variable      nsteps equal {self.nsteps}\n"
+        input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
+        input_string += f"variable      tstart equal {self.t_start}\n"
+        input_string += f"variable      tend  equal {self.t_end}\n"
+        input_string += f"timestep      {self.dt/ 1000}\n"
         input_string += "#####################################\n"
         input_string += "\n\n"
 
         input_string += self.get_interaction_input()
 
-
         input_string += "\n\n"
 
-        
         input_string += "#####################################\n"
         input_string += "#          Integrators\n"
         input_string += "#####################################\n"
-        input_string += "velocity      all create ${{tstart}} {0} dist gaussian\n".format(self.rng.integers(99999))
+        input_string += "velocity      all create ${tstart} " + \
+            f"{self.rng.integers(99999)} dist gaussian\n"
         if self.pressure is not None:
             input_string += "# Fix center of mass for barostat\n"
             input_string += "variable      xcm equal xcm(all,x)\n"
@@ -185,8 +182,11 @@ class ReversibleScalingState(ThermoState):
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
         else:
-            input_string += "fix           f2  all nph iso {0} {0} {1} fixedpoint ${{xcm}} ${{ycm}} ${{zcm}}\n".format(self.pressure, pdamp)
-        input_string += "fix           f1  all langevin ${{tstart}} ${{tstart}}  {0}  {1} zero yes\n".format(damp, self.rng.integers(99999))
+            input_string += "fix           f2  all nph iso " + \
+                f"{self.pressure} {self.pressure} {pdamp} " + \
+                "fixedpoint ${xcm} ${ycm} ${zcm}\n"
+        input_string += "fix           f1  all langevin ${tstart} " + \
+            f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
         input_string += "\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
@@ -209,35 +209,39 @@ class ReversibleScalingState(ThermoState):
         input_string += "#####################################\n"
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
-        input_string += "variable     lambda equal 1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        input_string += "fix          f3 all adapt 1 pair {0} scale * * v_lambda\n".format(self.pair_style)
-        input_string += "fix          f4 all print 1 \"$(pe/atoms) ${lambda}\" screen no " + \
-                        "append forward.dat title \"# pe    lambda\"\n"
+        input_string += "variable     lambda equal " + \
+            "1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
+        input_string += "fix          f3 all adapt 1 pair " + \
+            f"{self.pair_style} scale * * v_lambda\n"
+        input_string += "fix          f4 all print 1 " + \
+            "\"$(pe/atoms) ${lambda}\" screen no " + \
+            "append forward.dat title \"# pe    lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "unfix        f3\n"
         input_string += "unfix        f4\n"
         input_string += "#####################################\n"
-        
-        input_string += "\n\n"
 
+        input_string += "\n\n"
 
         input_string += "#####################################\n"
         input_string += "# Backward integration\n"
         input_string += "#####################################\n"
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
-        input_string += "variable     lambda equal 1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        input_string += "fix          f3 all adapt 1 pair snap scale * * v_lambda\n"
-        input_string += "fix          f4 all print 1 \"$(pe/atoms) ${lambda}\" screen no " + \
-                        "append backward.dat title \"# pe    lambda\"\n"
+        input_string += "variable     lambda equal " + \
+            "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
+        input_string += "fix          f3 all adapt 1 " + \
+            "pair snap scale * * v_lambda\n"
+        input_string += "fix          f4 all print 1 " + \
+            "\"$(pe/atoms) ${lambda}\" screen no " + \
+            "append backward.dat title \"# pe    lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
         with open(wdir + "lammps_input.in", "w") as f:
             f.write(input_string)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def postprocess(self, wdir):
         """
         Compute the free energy from the simulation
@@ -254,42 +258,41 @@ class ReversibleScalingState(ThermoState):
         int_f = cumtrapz(v_f, lambda_f, initial=0)
         int_b = cumtrapz(v_b[::-1], lambda_b[::-1], initial=0)
         # Compute the total work
-        work  = (int_f + int_b) / (2 * lambda_f)
+        work = (int_f + int_b) / (2 * lambda_f)
 
         temperature = self.t_start / lambda_f
-        free_energy = self.fe_init / lambda_f + 1.5 * kB * temperature * np.log(lambda_f) + work
-        
+        free_energy = self.fe_init / lambda_f + \
+            1.5 * kB * temperature * np.log(lambda_f) + work
+
         results = np.array([temperature, free_energy]).T
-        header  = "   T [K]    F [eV/at]"
-        fmt     = "%10.3f  %10.6f"
+        header = "   T [K]    F [eV/at]"
+        fmt = "%10.3f  %10.6f"
         np.savetxt(wdir + "free_energy.dat", results, header=header, fmt=fmt)
         return ""
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         """
         npt = False
         if self.pressure is not None:
             npt = True
-            pressure = self.pressure
         if self.damp is None:
             damp = 100 * self.dt
-        
-        msg  = "Thermodynamic Integration using Reversible Scaling\n"
-        msg += "Starting temperature :          {0}\n".format(self.t_start)
-        msg += "Stopping temperature :          {0}\n".format(self.t_end)
-        msg += "Langevin damping :              {0} fs\n".format(damp)
-        msg += "Timestep :                      {0} fs\n".format(self.dt)
-        msg += "Number of steps :               {0}\n".format(self.nsteps)
-        msg += "Number of equilibration steps : {0}\n".format(self.nsteps_eq)
+
+        msg = "Thermodynamic Integration using Reversible Scaling\n"
+        msg += f"Starting temperature :          {self.t_start}\n"
+        msg += f"Stopping temperature :          {self.t_end}\n"
+        msg += f"Langevin damping :              {damp} fs\n"
+        msg += f"Timestep :                      {self.dt} fs\n"
+        msg += f"Number of steps :               {self.nsteps}\n"
+        msg += f"Number of equilibration steps : {self.nsteps_eq}\n"
         if not npt:
             msg += "Constant volume simulation\n"
         else:
             if self.pdamp is None:
                 pdamp = 1000 * self.dt
             msg += "Constant pressure simulation\n"
-            msg += "Pressure :                      {0} GPa\n".format(self.pressure)
-            msg += "Pressure damping :              {0} fs\n".format(pdamp)
+            msg += f"Pressure :                      {self.pressure} GPa\n"
+            msg += f"Pressure damping :              {pdamp} fs\n"
         return msg

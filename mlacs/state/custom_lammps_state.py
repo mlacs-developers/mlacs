@@ -5,8 +5,9 @@
 from mlacs.state import LammpsState
 from mlacs.utilities import get_elements_Z_and_masses
 
-#========================================================================================================================#
-#========================================================================================================================#
+
+# ========================================================================== #
+# ========================================================================== #
 class CustomLammpsState(LammpsState):
     """
     State Class for running a user-designed simulation using the LAMMPS code
@@ -32,14 +33,15 @@ class CustomLammpsState(LammpsState):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
     rng : RNG object (optional)
-        Rng object to be used with the Langevin thermostat. 
+        Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
     init_momenta : :class:`numpy.ndarray` (optional)
-        If ``None``, velocities are initialized with a Maxwell Boltzmann distribution
+        If ``None``, velocities are initialized with a
+        Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
     workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations. If ``None``, a LammpsMLMD
-        directory is created
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD directory is created
     """
     def __init__(self,
                  custom_input,
@@ -52,8 +54,7 @@ class CustomLammpsState(LammpsState):
                  loginterval=50,
                  rng=None,
                  init_momenta=None,
-                 workdir=None
-                ):
+                 workdir=None):
 
         LammpsState.__init__(self,
                              temperature=300,
@@ -66,25 +67,22 @@ class CustomLammpsState(LammpsState):
                              loginterval=loginterval,
                              rng=rng,
                              init_momenta=init_momenta,
-                             workdir=workdir
-                            )
-                     
+                             workdir=workdir)
         self.custom_input = custom_input
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def write_lammps_input(self, atoms, pair_style, pair_coeff, nsteps):
         """
         """
-        elem, Z, masses = get_elements_Z_and_masses(atoms)
-        pbc             = atoms.get_pbc()
+        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        pbc = atoms.get_pbc()
 
-        input_string  = ""
+        input_string = ""
         input_string += self.get_general_input(pbc, masses)
 
         input_string += self.get_interaction_input(pair_style, pair_coeff)
 
-        input_string += "timestep      {0}\n".format(self.dt/ 1000)
+        input_string += "timestep      {0}\n".format(self.dt / 1000)
         input_string += "\n"
 
         input_string += self.custom_input
@@ -102,8 +100,7 @@ class CustomLammpsState(LammpsState):
         with open(self.lammpsfname, "w") as f:
             f.write(input_string)
 
-
-#========================================================================================================================#
+# ========================================================================== #
     def initialize_momenta(self, atoms):
         """
         """
