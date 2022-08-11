@@ -282,6 +282,26 @@ class OtfMlacs:
                                eq[istate],
                                self.nbeads)
         else:
+            if type(self.state[istate]).__name__ == 'PafiLammpsState':
+                self.state[istate].run_NEB(self.mlip.pair_style, 
+                                           self.mlip.pair_coeff,
+                                           self.mlip.model_post,
+                                           self.mlip.atom_style,
+                                           self.mlip.bonds,
+                                           self.mlip.angles,
+                                           self.mlip.bond_style,
+                                           self.mlip.bond_coeff,
+                                           self.mlip.angle_style,
+                                           self.mlip.angle_coeff)
+                self.state[istate].extract_NEB_configurations()
+                self.state[istate].compute_spline()
+                self.state[istate].isrestart = False
+            # Reset Atoms to sample from the perfect atomic structures
+            if self.state[istate].isrestart:
+                msg = "Starting from first configuration\n" 
+                self.log.logger_log.info(msg)
+                atoms_mlip[istate] = self.atoms_start[istate].copy()
+                self.state[istate].initialize_momenta(atoms_mlip[istate])
             # With those thread, we can execute all the states in parallell
             futures = []
             with ThreadPoolExecutor() as executor:
@@ -574,6 +594,7 @@ class OtfMlacs:
                 msg = "atoms should be a ASE Atoms object or " + \
                       "a list of ASE atoms objects"
                 raise TypeError(msg)
+            self.atoms_start = self.atoms
 
             # Create list of neq -> number of equilibration
             # mlmd runs for each state
