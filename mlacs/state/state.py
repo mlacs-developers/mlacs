@@ -36,8 +36,6 @@ class StateManager:
             self.workdir = os.getcwd() + "/MolecularDynamics/"
         if self.workdir[-1] != "/":
             self.workdir[-1] += "/"
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
 
 # ========================================================================== #
     def run_dynamics(self,

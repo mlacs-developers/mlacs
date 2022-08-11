@@ -141,6 +141,8 @@ class LammpsState(StateManager):
         """
         Function to run the dynamics
         """
+        if not os.path.exists(self.workdir):
+            os.makedirs(self.workdir)
 
         atoms = supercell.copy()
 

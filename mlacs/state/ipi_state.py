@@ -214,6 +214,9 @@ class IpiState(LammpsState):
                      nbeads=1):
         """
         """
+        if not os.path.exists(self.workdir):
+            os.makedirs(self.workdir)
+
         atoms = supercell.copy()
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)

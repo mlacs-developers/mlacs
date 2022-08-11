@@ -602,6 +602,11 @@ class OtfMlacs:
                 msg = "prefix_output should be a string or a list of strings"
                 raise TypeError(msg)
 
+        prefworkdir = os.getcwd() + "/MolecularDynamics/"
+        for istate in range(self.nstate):
+            self.state[istate].set_workdir(prefworkdir +
+                                           self.prefix_output[istate]+"/")
+
 
 class TruePotentialError(Exception):
     """
