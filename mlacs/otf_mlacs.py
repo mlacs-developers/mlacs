@@ -310,9 +310,13 @@ class OtfMlacs:
         atoms_true = []
         nerror = 0  # Handling of calculator error / non-convergence
 
+        if self.pimd:
+            nconfs = self.nconfs * self.nbeads
+        else:
+            nconfs = self.nconfs
         atoms_true = self.calc.compute_true_potential(atoms_mlip,
                                                       self.prefix_output,
-                                                      self.nconfs)
+                                                      nconfs)
         for i, at in enumerate(atoms_true):
             if at is None:
                 if self.pimd:
