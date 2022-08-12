@@ -6,6 +6,16 @@ import numpy as np
 from ase.units import GPa
 
 from mlacs.mlip import MlipManager
+try:
+    import sklearn.linear_model as lin_mod
+    from sklearn.model_selection import GridSearchCV
+except ImportError:
+    lin_mod = None
+
+
+default_parameters = {"method": "ols",
+                      "hyperparameters": None,
+                      "gridcv": None}
 
 
 # ========================================================================== #
@@ -18,7 +28,7 @@ class LinearMlip(MlipManager):
                  atoms,
                  rcut=5.0,
                  nthrow=10,
-                 regularization=None,
+                 parameters=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
@@ -33,7 +43,7 @@ class LinearMlip(MlipManager):
                              forces_coefficient,
                              stress_coefficient)
 
-        self.regularization = regularization
+        self._initialize_parameters(parameters)
         self.rescale_energy = rescale_energy
         self.rescale_forces = rescale_forces
         self.rescale_stress = rescale_stress
@@ -68,21 +78,70 @@ class LinearMlip(MlipManager):
                              fcoef * self.ymatrix_forces[idx*3*self.natoms:],
                              scoef * self.ymatrix_stress[idx*6:]))
 
-        # TODO function to test several lambda values of regularization
-        if self.regularization is not None:
-            regul = self.get_regularization_vector()
-            regul = self.regularization * np.diag(regul)
+        msg = "number of configurations for training:  " + \
+              f"{len(self.amatrix_energy[idx:])}\n"
 
-            ymatrix = amatrix.T.dot(ymatrix)
-            amatrix = amatrix.T.dot(amatrix) + regul
+        if self.parameters["method"] == "ols":
+            self.coefficients = np.linalg.lstsq(amatrix,
+                                                ymatrix,
+                                                rcond=None)[0]
+        else:
+            if lin_mod is None:
+                msg = "You need sklearn installed to use other method " + \
+                      "than Ordinary Least Squares"
+                raise ModuleNotFoundError(msg)
 
-        # Good ol' Ordinary Linear Least-Square fit
-        self.coefficients = np.linalg.lstsq(amatrix, ymatrix, rcond=None)[0]
+            nelem = self._get_nelem()
+            intercept_col = self.amatrix_energy[idx:, :nelem].mean(axis=0)
 
-        msg = self.compute_tests(idx)
+            fitmethod = getattr(lin_mod, self.parameters["method"])
+            fitlin = fitmethod(**self.parameters["hyperparameters"])
+            if self.parameters["gridcv"] is None:
+                fitlin.fit(amatrix, ymatrix)
+            else:
+                fitgcv = GridSearchCV(fitlin,
+                                      self.parameters["gridcv"], verbose=0)
+                fitgcv.fit(amatrix, ymatrix)
+                fitlin = fitgcv.best_estimator_
+
+                msg += "Hyperparameters found by Grid Seach Cross Validation\n"
+                for key in fitgcv.best_params_.keys():
+                    msg += f"    {key} :    {fitgcv.best_params_[key]}\n"
+
+            # With sklearn, we need to update the intercept as it could
+            # have been modified with the regularization method
+            # If LinearRegression is used, this method recovers the
+            # usual Ordinary Least Square solution as with np.linalg.lstsq
+            mean_e = self.ymatrix_energy[idx:].mean()
+            intercept = np.einsum("ij,j->i",
+                                  self.amatrix_energy[idx:, nelem:],
+                                  fitlin.coef_[nelem:]).mean()
+            intercept_col /= intercept_col.sum()
+            intercept = intercept_col * (mean_e - intercept)
+
+            self.coefficients = fitlin.coef_
+            self.coefficients[:nelem] = intercept
+
+        msg = self.compute_tests(idx, msg)
         self.write_mlip()
         self.init_calc()
         return msg
+
+# ========================================================================== #
+    def _initialize_parameters(self, parameters):
+        """
+        """
+        self.parameters = default_parameters
+        if parameters is not None:
+            self.parameters.update(parameters)
+
+        if self.parameters["method"] != "ols":
+            if self.parameters["hyperparameters"] is None:
+                hyperparam = {}
+            else:
+                hyperparam = self.parameters["hyperparameters"]
+            hyperparam["fit_intercept"] = False
+            self.parameters["hyperparameters"] = hyperparam
 
 # ========================================================================== #
     def get_mlip_dict(self):
@@ -93,7 +152,7 @@ class LinearMlip(MlipManager):
         return mlip_dict
 
 # ========================================================================== #
-    def compute_tests(self, idx):
+    def compute_tests(self, idx, msg):
         # Prepare some data to check accuracy of the fit
         e_true = self.ymatrix_energy[idx:]
         e_mlip = np.einsum('i,ki->k', self.coefficients,
@@ -116,8 +175,6 @@ class LinearMlip(MlipManager):
         mae_stress = np.mean(np.abs(s_true - s_mlip))
 
         # Prepare message to the log
-        msg = "number of configurations for training:  " + \
-              f"{len(self.amatrix_energy[idx:])}\n"
         msg += "RMSE Energy    {:.4f} eV/at\n".format(rmse_energy)
         msg += "MAE Energy     {:.4f} eV/at\n".format(mae_energy)
         msg += "RMSE Forces    {:.4f} eV/angs\n".format(rmse_forces)
