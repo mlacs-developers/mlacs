@@ -124,3 +124,142 @@ def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
         fd.write(" Angles \n \n")
         np.savetxt(fd, angles, fmt='%s')
     os.remove('coord_tmp.lmp')
+
+
+# ========================================================================== #
+def write_lammps_NEB_ASCIIfile(filename, supercell):
+    '''
+    Convert Ase Atoms into an ASCII file for lammps neb calculations.
+
+    Parameters
+    ----------
+    filename : :class:`str`
+        name of the output file
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+    Return
+    ------
+    '''
+    instr  = '# Final coordinates of the NEB calculation.\n'
+    instr += '{0}\n'.format(len(supercell))
+    for atoms in supercell:
+        instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
+    with open(filename, "w") as w:
+        w.write(instr)
+
+
+# ========================================================================== #
+def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
+    """
+    Interpolate points.
+
+    Parameters
+    ----------
+    x : :class:`numpy.array`
+        List of points to interpolate
+    y : :class:`numpy.array`
+        List of points to interpolate
+    xf : :class:`numpy.array`
+        New thiner list of points
+    order : :class:`int`
+        Order of the spline
+    smooth : :class:`int`
+        Smoothing parameter
+    periodic : :class:`int`
+        Activate periodic function boundary conditions
+    border : :class:`bol`
+        Impose a zero derivative condition at the function boundaries 
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+    Return
+    yf : :class:`list`
+        List of interpolated points
+    """
+
+    def err(c, x, y, t, k):
+        """The error function to minimize"""
+        diff = y - interpolate.splev(x, (t, c, k))
+        diff = np.einsum('...i,...i', diff, diff)
+        return np.abs(diff)
+
+    tck = interpolate.splrep(x, y, s=smooth, per=periodic)
+    if border is not None:
+        t, c0, k  = tck
+        x0 = (x[0], x[-1])
+        con = {'type': 'eq',
+               'fun': lambda c: interpolate.splev(x0, (t, c, k), der=1),
+               }
+        opt = minimize(err, c0, (x, y, t, k), constraints=con)
+        copt = opt.x
+        tck = (t, copt, k)
+            
+    if isinstance(xf, list):
+        yf = [interpolate.splev(_, tck, der=order) for _ in xf]
+        return yf
+    elif isinstance(xf, np.ndarray):
+        yf = [interpolate.splev(_, tck, der=order) for _ in xf]
+        return yf
+    else:
+        return float(interpolate.splev(xf, tck, der=order))
+
+
+# ========================================================================== #
+def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
+    """
+    Interpolate points and return derivatives.
+
+    Parameters
+    ----------
+    x : :class:`numpy.array`
+        List of points to interpolate
+    y : :class:`numpy.array`
+        List of points to interpolate
+    xf : :class:`numpy.array`
+        New thiner list of points
+    order : :class:`int`
+        Order of the spline
+    smooth : :class:`int`
+        Smoothing parameter
+    periodic : :class:`int`
+        Activate periodic function boundary conditions
+    border : :class:`bol`
+        Impose a zero derivative condition at the function boundaries 
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+    Return
+    yf : :class:`list`
+        Integral of spline from start to xf
+    """
+
+    def err(c, x, y, t, k):
+        """The error function to minimize"""
+        diff = y - interpolate.splev(x, (t, c, k))
+        diff = np.einsum('...i,...i', diff, diff)
+        return np.abs(diff)
+
+    def integ(x, tck):
+        """Integral of spline from start to x"""
+        x = np.atleast_1d(x)
+        prim = np.zeros(x.shape, dtype=x.dtype)
+        for i in range(len(prim)):
+            prim[i] = interpolate.splint(0, x[i], tck)
+        return prim
+
+    tck = interpolate.splrep(x, y, s=smooth, per=periodic)
+    if border is not None:
+        t, c0, k  = tck
+        x0 = (x[0], x[-1])
+        con = {'type': 'eq',
+               'fun': lambda c: interpolate.splev(x0, (t, c, k), der=1),
+               }
+        opt = minimize(err, c0, (x, y, t, k), constraints=con)
+        copt = opt.x
+        tck = (t, copt, k)
+    if isinstance(xf, list):
+        yf = integ(xf, tck)
+        return yf
+    elif isinstance(xf, np.ndarray):
+        yf = integ(xf, tck)
+        return yf
+    else:
+        return float(integ(xf, tck))
