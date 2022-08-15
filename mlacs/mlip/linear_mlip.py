@@ -59,10 +59,10 @@ class LinearMlip(MlipManager):
             sigma_e = np.std(self.amatrix_energy[idx:])
         sigma_f = 1.0
         if self.rescale_forces:
-            sigma_e = np.std(self.amatrix_forces[idx*3*self.natoms:])
+            sigma_f = np.std(self.amatrix_forces[idx*3*self.natoms:])
         sigma_s = 1.0
         if self.rescale_stress:
-            sigma_e = np.std(self.amatrix_stress[idx*6:])
+            sigma_s = np.std(self.amatrix_stress[idx*6:])
 
         ecoef = self.energy_coefficient / sigma_e / \
             len(self.amatrix_energy[idx:])
