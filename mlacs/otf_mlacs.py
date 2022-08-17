@@ -351,7 +351,6 @@ class OtfMlacs:
         # We need to write atoms after computation,
         # in case the simulation stops before all beads are computed
         # or one of the true calc computation fails
-        #for i, at in enumerate(atoms_true):
         for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
             if at is not None:
                 self.mlip.update_matrices(attrue)

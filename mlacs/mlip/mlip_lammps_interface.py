@@ -341,7 +341,6 @@ class LammpsMlipInterface:
                 f.write(f"{len(self.elements)}  {self.ndescriptors+1}\n")
                 np.savetxt(f, coefficients, fmt="%35.30f")
 
-
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
         """
