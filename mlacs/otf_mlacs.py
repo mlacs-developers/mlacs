@@ -351,15 +351,16 @@ class OtfMlacs:
         # We need to write atoms after computation,
         # in case the simulation stops before all beads are computed
         # or one of the true calc computation fails
-        for i, at in enumerate(atoms_true):
+        #for i, at in enumerate(atoms_true):
+        for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
             if at is not None:
-                self.mlip.update_matrices(at)
-                self.traj[i].write(at)
-                self.atoms[i] = at
+                self.mlip.update_matrices(attrue)
+                self.traj[i].write(attrue)
+                self.atoms[i] = attrue
                 with open(self.prefix_output[i] + "_potential.dat", "a") as f:
                     f.write("{:20.15f}   {:20.15f}\n".format(
-                             at.get_potential_energy(),
-                             at.get_potential_energy()))
+                             attrue.get_potential_energy(),
+                             atmlip.get_potential_energy()))
                 if not self.pimd:
                     self.nconfs[i] += 1
         if self.pimd:
