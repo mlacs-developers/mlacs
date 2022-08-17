@@ -63,13 +63,13 @@ class LammpsMlip(LinearMlip):
                  rcut=5.0,
                  model="linear",
                  style="snap",
-                 mlip_parameters=None,
+                 descriptor_parameters=None,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
                  fit_dielectric=False,
                  nthrow=10,
-                 parameters=None,
+                 fit_parameters=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
@@ -80,7 +80,7 @@ class LammpsMlip(LinearMlip):
                             atoms,
                             rcut,
                             nthrow,
-                            parameters,
+                            fit_parameters,
                             energy_coefficient,
                             forces_coefficient,
                             stress_coefficient,
@@ -94,7 +94,7 @@ class LammpsMlip(LinearMlip):
                                                     self.rcut,
                                                     model,
                                                     style,
-                                                    mlip_parameters,
+                                                    descriptor_parameters,
                                                     radelems,
                                                     welems,
                                                     reference_potential,
@@ -131,12 +131,12 @@ class LammpsMlip(LinearMlip):
         """
         """
         if self.lammps_interface.fit_dielectric:
-            self.calc = self.lammps_interface.load_mlip(self.coefficients[-1])
+            diel = self.coefficients[-1]
         else:
-            self.calc = self.lammps_interface.load_mlip()
-        coeffs = self.coefficients[-1]
+            diel = None
+        self.calc = self.lammps_interface.load_mlip(diel)
         self.pair_style, self.pair_coeff, self.model_post = \
-            self.lammps_interface.get_pair_coeff_and_style(coeffs)
+            self.lammps_interface.get_pair_coeff_and_style(diel)
 
 # ========================================================================== #
     def get_mlip_dict(self):
