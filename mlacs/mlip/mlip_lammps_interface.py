@@ -19,7 +19,7 @@ default_snap = {"twojmax": 8,
                 "bnormflag": 0}
 default_so3 = {"nmax": 4,
                "lmax": 3,
-               "alpha": 2}
+               "alpha": 1.0}
 
 
 # ========================================================================== #
@@ -40,12 +40,13 @@ class LammpsMlipInterface:
     rcut: :class:`float` (optional)
         Cutoff radius for the MLIP. Default ``5.0``.
     model: :class:`string` (optional)
-        ``\"linear\"``, ``\"quadratic\"`` or ``\"nn\"``, the model used for the MLIP.
+        ``\"linear\"``, ``\"quadratic\"`` or ``\"nn\"``,
+        the model used for the MLIP.
         Default ``\"linear\"``.
     style: :class:`string` (optional)
         ``\"snap\"`` or ``\"so3\"``, the descriptor used for the MLIP.
         Default ``\"snap\"``.
-    mlip_parameters: :dict:
+    descriptor_parameters: :dict:
         Dictionnary of the MLIP parameters.
         For ``\"snap\"``, the only parameter is twojmax, which is
         8 by default.
@@ -75,7 +76,7 @@ class LammpsMlipInterface:
                  rcut=5.0,
                  model="linear",
                  style="snap",
-                 mlip_parameters=None,
+                 descriptor_parameters=None,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
@@ -88,7 +89,7 @@ class LammpsMlipInterface:
         self.rcut = rcut
         self.model = model
         self.style = style
-        self._get_mlip_params(mlip_parameters)
+        self._get_mlip_params(descriptor_parameters)
         self.fit_dielectric = fit_dielectric
         self.prepare_ref_pot(reference_potential)
 
@@ -198,12 +199,18 @@ class LammpsMlipInterface:
         input_string += "neigh_modify   once no every 1 delay 0 check yes\n"
 
         if self.style == "snap":
-            snapline = self._get_snapline()
-            input_string += "compute        ml all snap " + snapline + "\n"
+            style = "sna"
         elif self.style == "so3":
-            input_string += "compute          ml all mliap  descriptor " + \
-                            "so3 MLIP.descriptor  model " + \
-                            self.model + " gradgradflag 1\n"
+            style = "so3"
+
+        if self.model in ["linear", "nn"]:
+            model = "linear"
+        elif self.model == "quadratic":
+            model = "quadratic"
+
+        input_string += "compute          ml all mliap  descriptor " + \
+                        f"{style} MLIP.descriptor  model " + \
+                        model + " gradgradflag 1\n"
         input_string += "fix          ml all ave/time 1 1 1 c_ml[*] " + \
                         "file descriptor.out mode vector \n"
 
@@ -255,159 +262,180 @@ class LammpsMlipInterface:
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        # If style is snap, we use directly the snap stuffs in LAMMPS
-        if self.style == "snap":
-            twojmax = self.params["twojmax"]
-            bnormflag = self.params["bnormflag"]
-            chemflag = self.params["chemflag"]
-            with open("MLIP.descriptor", "w") as f:
-                f.write("# ")
-                # Adding a commment line to know what elements are fitted here
-                for elements in self.elements:
-                    f.write("{:} ".format(elements))
-                f.write("SNAP parameters\n")
-                if self.pair_coeff is not None:
-                    f.write("# Fitted with a reference potential\n")
-                    f.write("# See the MLIP.model file for the parameters\n")
-                f.write("\n")
+        with open("MLIP.descriptor", "w") as f:
+            f.write("# ")
+            # Adding a commment line to know what elements are fitted here
+            for elements in self.elements:
+                f.write("{:} ".format(elements))
+            f.write("MLIP parameters\n")
+            f.write("# Descriptor:  " + self.style + "\n")
+            f.write("# Model:       " + self.model + "\n")
+            if self.pair_coeff is not None:
+                f.write("# Fitted with a reference potential\n")
+                f.write("# See the MLIP.model file for the parameters\n")
+            f.write("\n")
+            f.write("rcutfac     {:}\n".format(self.rcut))
+            for key in self.params.keys():
+                f.write(f"{key}         {self.params[key]}\n")
+            f.write("\n\n\n")
+            f.write("nelems      {:}\n".format(len(self.elements)))
+            f.write("elems       ")
+            for n in range(len(self.elements)):
+                f.write(self.elements[n] + " ")
+            f.write("\n")
+            f.write("radelems   ")
+            for n in range(len(self.elements)):
+                f.write(" {:}".format(self.radelems[n]))
+            f.write("\n")
+            f.write("welems    ")
+            for n in range(len(self.elements)):
+                f.write("  {:}".format(self.welems[n]))
+            f.write("\n")
 
-                f.write("rcutfac       {:}\n".format(self.rcut))
-                f.write("twojmax       {:}\n".format(twojmax))
-                f.write("rfac0         0.99363\n")
-                f.write("rmin0         0.0\n")
-                f.write("chemflag      {:}\n".format(chemflag))
-                if self.model == "quadratic":
-                    f.write("quadraticflag 1\n")
-                else:
-                    f.write("quadraticflag 0\n")
-                f.write("bnormflag     {:}\n".format(bnormflag))
-
-        # If style is so3, we use the ml-iap stuffs in LAMMPS
-        elif self.style == "so3":
-            nmax = self.params["nmax"]
-            lmax = self.params["lmax"]
-            alpha = self.params["alpha"]
-            with open("MLIP.descriptor", "w") as f:
-                f.write("# ")
-                # Adding a commment line to know what elements are fitted here
-                for elements in self.elements:
-                    f.write("{:} ".format(elements))
-                f.write("MLIP parameters\n")
-                f.write("# Descriptor:  " + self.style + "\n")
-                f.write("# Model:       " + self.model + "\n")
-                if self.pair_coeff is not None:
-                    f.write("# Fitted with a reference potential\n")
-                    f.write("# See the MLIP.model file for the parameters\n")
-                f.write("\n")
-                f.write("rcutfac     {:}\n".format(self.rcut))
-                f.write("nmax        {:}\n".format(nmax))
-                f.write("lmax        {:}\n".format(lmax))
-                f.write("alpha       {:}\n".format(alpha))
-                f.write("\n\n\n")
-                f.write("nelems      {:}\n".format(len(self.elements)))
-                f.write("elems       ")
-                for n in range(len(self.elements)):
-                    f.write(self.elements[n] + " ")
-                f.write("\n")
-                f.write("radelems   ")
-                for n in range(len(self.elements)):
-                    f.write(" {:}".format(self.radelems[n]))
-                f.write("\n")
-                f.write("welems    ")
-                for n in range(len(self.elements)):
-                    f.write("  {:}".format(self.welems[n]))
-                f.write("\n")
-
-            if self.style == "snap" and self.chemflag == 1:
+            if self.style == "snap" and self.params["chemflag"] == 1:
                 f.write("\n\n")
                 f.write("chemflag     1\n")
                 f.write("bnormflag    1\n")
 
 # ========================================================================== #
-    def write_mlip_coeff(self, coefficients):
+    def write_mlip_model_polynomial(self, coefficients):
         """
         Function to write the mliap.model parameter files of the MLIP
         """
+        assert self.model in ["linear", "quadratic"]
         # We get the reference potential to write it in the file
         pair_style, pair_coeff, model_post = \
             self.get_pair_coeff_and_style(coefficients[-1])
         atom_style, bond_style, bond_coeff, angle_style, angle_coeff = \
             self.get_bond_angle_coeff_and_style()
 
-        if self.fit_dielectric:
-            coeff = coefficients[:-1]
-        else:
-            coeff = coefficients
+        with open("MLIP.model", "w") as f:
+            f.write("# ")
+            # Adding a commment line to know what elements are fitted here
+            for elements in self.elements:
+                f.write("{:} ".format(elements))
+            # One line to tell what are the parameters of the MLIP
+            f.write("MLIP parameters\n")
+            f.write("# Descriptor:  " + self.style + "\n")
+            f.write("# Model:       " + self.model + "\n")
 
-        if self.style == "snap":
-            with open("MLIP.model", "w") as f:
-                f.write("# ")
-                # Adding a commment line to know what elements are fitted here
-                for elements in self.elements:
-                    f.write("{:} ".format(elements))
-                f.write("SNAP coefficients\n")
-                # add some lines showing the LAMMPS parameters
-                f.write("# Parameters to be used in LAMMPS :\n")
-                if self.bond_style is not None:
-                    f.write(f"#bond_style     {bond_style}\n")
-                    for bc in bond_coeff:
-                        f.write(f"#bond_coeff    {bc}\n")
-                    f.write(f"#angle_style     {angle_style}\n")
-                    for angc in bond_coeff:
-                        f.write(f"#angle_coeff    {angc}\n")
-                f.write(f"# pair_style    {pair_style}\n")
-                for pc in pair_coeff:
-                    f.write(f"# pair_coeff   {pc}\n")
-                if model_post is not None:
-                    for mp in model_post:
-                        f.write(f"# {mp}")
-                f.write(f"# atom_style   {self.atom_style}\n")
-                f.write("\n")
+            # If there is a reference potential
+            # add some lines showing the LAMMPS parameters
+            f.write("# Parameters to be used in LAMMPS :\n")
+            if self.bond_style is not None:
+                f.write(f"#bond_style     {bond_style}\n")
+                for bc in bond_coeff:
+                    f.write(f"#bond_coeff    {bc}\n")
+                f.write(f"#angle_style     {angle_style}\n")
+                for angc in bond_coeff:
+                    f.write(f"#angle_coeff    {angc}\n")
+            f.write(f"# pair_style    {pair_style}\n")
+            for pc in pair_coeff:
+                f.write(f"# pair_coeff   {pc}\n")
+            if model_post is not None:
+                for mp in model_post:
+                    f.write(f"# {mp}")
+            f.write(f"# atom_style   {self.atom_style}\n")
 
-                f.write(f"{len(self.elements)}   {self.ndescriptors+1}\n")
-                for n in range(len(self.elements)):
-                    f.write(f"{self.elements[n]}  {self.radelems[n]}  " +
-                            f"{self.welems[n]}\n")
-                    f.write("{:35.30f}\n".format(coeff[n]))
-                    for icoef in range(self.ndescriptors):
-                        value = coeff[n*(self.ndescriptors) + icoef +
-                                      len(self.elements)]
-                        f.write(f"{value:35.30f}\n")
-
-        elif self.style == "so3":
-            with open("MLIP.model", "w") as f:
-                f.write("# ")
-                # Adding a commment line to know what elements are fitted here
-                for elements in self.elements:
-                    f.write("{:} ".format(elements))
-                # One line to tel what are the parameters of the MLIP
-                f.write("MLIP parameters\n")
-                f.write("# Descriptor:  " + self.style + "\n")
-                f.write("# Model:       " + self.model + "\n")
-                # If there is a reference potential
-                # add some lines showing the LAMMPS parameters
-
-                f.write("# Parameters to be used in LAMMPS :\n")
-                if self.bond_style is not None:
-                    f.write(f"#bond_style     {bond_style}\n")
-                    for bc in bond_coeff:
-                        f.write(f"#bond_coeff    {bc}\n")
-                    f.write(f"#angle_style     {angle_style}\n")
-                    for angc in bond_coeff:
-                        f.write(f"#angle_coeff    {angc}\n")
-                f.write(f"# pair_style    {pair_style}\n")
-                for pc in pair_coeff:
-                    f.write(f"# pair_coeff   {pc}\n")
-                if model_post is not None:
-                    for mp in model_post:
-                        f.write(f"# {mp}")
-                f.write(f"# atom_style   {self.atom_style}\n")
-
-                f.write("\n")
-                f.write("# nelems   ncoefs\n")
+            f.write("\n")
+            f.write("# nelems   ncoefs\n")
+            if self.model in ["linear", "quadratic"]:
                 f.write(f"{len(self.elements)}  {self.ndescriptors+1}\n")
-                for icoef in range(len(coefficients-1)):
-                    f.write("{:35.30f}\n".format(coefficients[icoef]))
+                np.savetxt(f, coefficients, fmt="%35.30f")
+
+# ========================================================================== #
+    def write_mlip_model_nn(self,
+                            scale0,
+                            scale1,
+                            results,
+                            nnodes,
+                            activation):
+        """
+        Function to write the mliap.model parameter files of the MLIP
+        """
+        assert self.model == "nn"
+
+        # First we count the number of parameters
+        nparams = 0
+        nlayer = len(nnodes)
+        for ilay in range(nlayer):
+            name = f"layer{ilay}"
+            param = results[name]
+            nparams += param.size
+
+        # We get the reference potential to write it in the file
+        pair_style, pair_coeff, model_post = \
+            self.get_pair_coeff_and_style()
+        atom_style, bond_style, bond_coeff, angle_style, angle_coeff = \
+            self.get_bond_angle_coeff_and_style()
+
+        with open("MLIP.model", "w") as f:
+            f.write("# ")
+            # Adding a commment line to know what elements are fitted here
+            for elements in self.elements:
+                f.write("{:} ".format(elements))
+            # One line to tell what are the parameters of the MLIP
+            f.write("MLIP parameters\n")
+            f.write("# Descriptor:  " + self.style + "\n")
+            f.write("# Model:       " + self.model + "\n")
+
+            # If there is a reference potential
+            # add some lines showing the LAMMPS parameters
+            f.write("# Parameters to be used in LAMMPS :\n")
+            if self.bond_style is not None:
+                f.write(f"#bond_style     {bond_style}\n")
+                for bc in bond_coeff:
+                    f.write(f"#bond_coeff    {bc}\n")
+                f.write(f"#angle_style     {angle_style}\n")
+                for angc in bond_coeff:
+                    f.write(f"#angle_coeff    {angc}\n")
+            f.write(f"# pair_style    {pair_style}\n")
+            for pc in pair_coeff:
+                f.write(f"# pair_coeff   {pc}\n")
+            if model_post is not None:
+                for mp in model_post:
+                    f.write(f"# {mp}")
+            f.write(f"# atom_style   {self.atom_style}\n")
+
+            f.write("\n")
+            f.write("# nelems   ncoefs\n")
+            f.write(f"{len(self.elements)}  {nparams}\n")
+            f.write(f"NET {self.ndescriptors} {len(nnodes)} ")
+            for func, num in zip(activation, nnodes):
+                f.write(f"{func} {num} ")
+            f.write("\n")
+            f.write("# scale0\n")
+            i = 0
+            # We write the rescaling parameters
+            for smin in scale0:
+                if i == 10:
+                    f.write("\n")
+                    i = 0
+                f.write(f"{smin:15.10f} ")
+                i += 1
+            f.write("\n")
+            f.write("# scale1\n")
+            i = 0
+            for smax in scale1:
+                if i == 10:
+                    f.write("\n")
+                    i = 0
+                f.write(f"{smax:15.10f} ")
+                i += 1
+            f.write("\n")
+
+            for ilay in range(nlayer):
+                name = f"layer{ilay}"
+                param = results[name]
+                f.write(f"# {name}\n")
+                i = 0
+                for p in param:
+                    if i == 10:
+                        f.write("\n")
+                        i = 0
+                    f.write(f"{p:15.10f} ")
+                    i += 1
+                f.write("\n")
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
@@ -513,14 +541,7 @@ class LammpsMlipInterface:
 
             data_bispectrum = np.hstack((data_bispectrum,
                                          data_coul[:, np.newaxis]))
-
-        if self.style == "snap":
-            amatrix[:, len(self.elements):] = data_bispectrum
-            symb = atoms.get_chemical_symbols()
-            for n in range(len(self.elements)):
-                amatrix[0, n] = symb.count(self.elements[n])
-        elif self.style == "so3":
-            amatrix[:] = data_bispectrum
+        amatrix[:] = data_bispectrum
 
         self.cleanup()
 
@@ -550,25 +571,20 @@ class LammpsMlipInterface:
         cwd = os.getcwd()
 
         if self.style == "snap":
-            module = "snap"
-            pair_style_mliap = " snap "
-            pair_coeff_mliap = f"{cwd}/MLIP.model " + \
-                               f"{cwd}/MLIP.descriptor " + \
-                               " ".join(self.elements)
-
+            style = "sna"
         elif self.style == "so3":
-            module = "mliap"
-            pair_style_mliap = f" mliap  model {self.model} " + \
-                               f"{cwd}/MLIP.model  descriptor " + \
-                               f"so3 {cwd}/MLIP.descriptor "
-            pair_coeff_mliap = " ".join(self.elements) + " "
+            style = "so3"
+        pair_style_mliap = f" mliap  model {self.model} " + \
+                           f"{cwd}/MLIP.model  descriptor " + \
+                           f"{style} {cwd}/MLIP.descriptor "
+        pair_coeff_mliap = " ".join(self.elements) + " "
 
         pair_style = self.pair_style + pair_style_mliap
         pair_coeff = []
         if self.pair_coeff is None:
             pair_coeff = [f"* * {pair_coeff_mliap}"]
         else:
-            pair_coeff.append(f"* * {module} {pair_coeff_mliap}")
+            pair_coeff.append(f"* * mliap {pair_coeff_mliap}")
             for pc in self.pair_coeff:
                 pair_coeff.append(pc)
 
@@ -584,7 +600,7 @@ class LammpsMlipInterface:
                 pair_style = "hybrid/overlay    " + \
                              f"{self.pair_style} " + \
                              f"{pair_style_mliap}"
-                pair_coeff = [f"* * {module} {pair_coeff_mliap} "]
+                pair_coeff = [f"* * mliap {pair_coeff_mliap} "]
             pair_style = pair_style + f"  coul/long {self.rcut+0.01}"
             pair_coeff.append("* * coul/long")
             if self.model_post is not None:
@@ -712,8 +728,6 @@ class LammpsMlipInterface:
         if self.angle_style is not None:
             ref_angs = self.angle_style
             ref_angc = self.angle_coeff
-            # if isinstance(ref_angs, str):
-            # ref_as = [ref_angs]
             self.angle_style = "hybrid  "
             self.angle_style += "   ".join(ref_angs)
             self.angle_coeff = []
@@ -752,25 +766,6 @@ class LammpsMlipInterface:
                 self.params["bnormflag"] = 1
             else:
                 self.params["bnormflag"] = 0
-
-# ========================================================================== #
-    def _get_snapline(self):
-        twojmax = self.params["twojmax"]
-        bnormflag = self.params["bnormflag"]
-        chemflag = self.params["chemflag"]
-        snapline = f"{self.rcut} 0.99363 {twojmax} "
-        for n in range(len(self.elements)):
-            snapline += f"{self.radelems[n]} "
-        for n in range(len(self.elements)):
-            snapline += f"{self.welems[n]} "
-        if chemflag == 1:
-            snapline += f"chem {len(self.elements)} "
-            for n in range(len(self.elements)):
-                snapline += f"{n} "
-        if self.model == "quadratic":
-            snapline += "quadraticflag 1 "
-        snapline += f"bnormflag {bnormflag}"
-        return snapline
 
 # ========================================================================== #
     def get_mlip_dict(self):

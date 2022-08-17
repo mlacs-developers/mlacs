@@ -87,6 +87,10 @@ class LammpsMlip(LinearMlip):
                             rescale_energy=True,
                             rescale_forces=True,
                             rescale_stress=True)
+        if model == "nn":
+            msg = "Neural network models are interfaced using the " + \
+                  "LampsMlipNn class"
+            raise RuntimeError(msg)
 
         self.lammps_interface = LammpsMlipInterface(self.elements,
                                                     self.masses,
@@ -124,19 +128,19 @@ class LammpsMlip(LinearMlip):
     def write_mlip(self):
         """
         """
-        self.lammps_interface.write_mlip_coeff(self.coefficients)
+        self.lammps_interface.write_mlip_model_polynomial(self.coefficients)
 
 # ========================================================================== #
     def init_calc(self):
         """
         """
         if self.lammps_interface.fit_dielectric:
-            self.calc = self.lammps_interface.load_mlip(self.coefficients[-1])
+            diel = self.coefficients[-1]
         else:
-            self.calc = self.lammps_interface.load_mlip()
-        coeffs = self.coefficients[-1]
+            diel = None
+        self.calc = self.lammps_interface.load_mlip(diel)
         self.pair_style, self.pair_coeff, self.model_post = \
-            self.lammps_interface.get_pair_coeff_and_style(coeffs)
+            self.lammps_interface.get_pair_coeff_and_style(diel)
 
 # ========================================================================== #
     def get_mlip_dict(self):

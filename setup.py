@@ -10,14 +10,16 @@ with open("mlacs/version.py") as f:
 install_requires = ["numpy>=1.17.0",
                     "ase>=3.22"]
 
-extra_requires = ["icet>=1.4"]
+extra_requires = ["icet>=1.4",
+                  "sklearn",
+                  "torch"]
 
 if __name__ == "__main__":
     setup(
           name="mlacs",
           version=version,
           author="Aloïs Castellano",
-          author_email="alois.castellano@cea.fr",
+          author_email="alois.castellano@uliege.be",
           packages=["mlacs", "test"],
           description="Machine-Learning Assisted Canonical Sampling",
           license_files=("LICENSE.txt",),
