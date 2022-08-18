@@ -9,6 +9,19 @@ hbar = 6.582119514e-16 * 1e15 * fs  # from eV.s to eV.(ASE time units)
 def compute_centroid_atoms(confs, temperature):
     """
     Function to compute the centroid
+
+    Parameters
+    ----------
+
+    confs: :class:`list` of :class:`ase.Atoms`
+        The configurations of the quantum polymer
+    temperature: :class:`float`
+
+    Returns
+    -------
+    
+    atoms: :class:`ase.Atoms`
+        The centroid of the quantum polymer
     """
     nbead = len(confs)
     atoms = confs[0].copy()
