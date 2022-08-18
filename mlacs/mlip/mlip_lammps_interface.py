@@ -40,8 +40,7 @@ class LammpsMlipInterface:
     rcut: :class:`float` (optional)
         Cutoff radius for the MLIP. Default ``5.0``.
     model: :class:`string` (optional)
-        ``\"linear\"``, ``\"quadratic\"`` or ``\"nn\"``,
-        the model used for the MLIP.
+        ``\"linear\"``, ``\"quadratic\"``, the model used for the MLIP.
         Default ``\"linear\"``.
     style: :class:`string` (optional)
         ``\"snap\"`` or ``\"so3\"``, the descriptor used for the MLIP.
