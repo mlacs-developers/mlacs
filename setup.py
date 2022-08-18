@@ -13,6 +13,7 @@ install_requires = ["numpy>=1.17.0",
 extra_requires = ["icet>=1.4",
                   "sklearn"]
 
+
 if __name__ == "__main__":
     setup(
           name="mlacs",
@@ -20,6 +21,7 @@ if __name__ == "__main__":
           author="Aloïs Castellano",
           author_email="alois.castellano@uliege.be",
           packages=["mlacs", "test"],
+          entry_points={"console_scripts": ["mlacs=mlacs.cli.main:main"]},
           description="Machine-Learning Assisted Canonical Sampling",
           license_files=("LICENSE.txt",),
           long_description=long_description,

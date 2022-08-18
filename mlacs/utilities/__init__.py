@@ -5,9 +5,9 @@
 from mlacs.utilities.pdf import compute_pdf
 from mlacs.utilities.miscellanous import (get_elements_Z_and_masses,
                                           create_random_structures,
-                                          write_lammps_data_full)
+                                          compute_correlation)
 
 __all__ = ['compute_pdf',
            'get_elements_Z_and_masses',
            'create_random_structures',
-           'write_lammps_data_full']
+           'compute_correlation']

@@ -11,7 +11,7 @@ from ase.calculators.lammps import Prism
 from ase.calculators.lammpsrun import LAMMPS
 from ase.units import GPa
 
-from mlacs.utilities import write_lammps_data_full
+from mlacs.utilities.io_lammps import write_lammps_data_full
 
 
 default_snap = {"twojmax": 8,

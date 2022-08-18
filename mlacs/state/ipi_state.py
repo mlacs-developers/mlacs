@@ -16,8 +16,8 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
 from mlacs.state import LammpsState
-from mlacs.utilities import (get_elements_Z_and_masses,
-                             write_lammps_data_full)
+from mlacs.utilities import get_elements_Z_and_masses
+from mlacs.utilities.io_lammps import write_lammps_data_full
 
 
 # ========================================================================== #
