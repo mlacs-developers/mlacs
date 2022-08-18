@@ -298,11 +298,10 @@ class LammpsMlipInterface:
                 f.write("bnormflag    1\n")
 
 # ========================================================================== #
-    def write_mlip_model_polynomial(self, coefficients):
+    def write_mlip_model(self, coefficients):
         """
         Function to write the mliap.model parameter files of the MLIP
         """
-        assert self.model in ["linear", "quadratic"]
         # We get the reference potential to write it in the file
         pair_style, pair_coeff, model_post = \
             self.get_pair_coeff_and_style(coefficients[-1])
@@ -342,100 +341,6 @@ class LammpsMlipInterface:
             if self.model in ["linear", "quadratic"]:
                 f.write(f"{len(self.elements)}  {self.ndescriptors+1}\n")
                 np.savetxt(f, coefficients, fmt="%35.30f")
-
-# ========================================================================== #
-    def write_mlip_model_nn(self,
-                            scale0,
-                            scale1,
-                            results,
-                            nnodes,
-                            activation):
-        """
-        Function to write the mliap.model parameter files of the MLIP
-        """
-        assert self.model == "nn"
-
-        # First we count the number of parameters
-        nparams = 0
-        nlayer = len(nnodes)
-        for ilay in range(nlayer):
-            name = f"layer{ilay}"
-            param = results[name]
-            nparams += param.size
-
-        # We get the reference potential to write it in the file
-        pair_style, pair_coeff, model_post = \
-            self.get_pair_coeff_and_style()
-        atom_style, bond_style, bond_coeff, angle_style, angle_coeff = \
-            self.get_bond_angle_coeff_and_style()
-
-        with open("MLIP.model", "w") as f:
-            f.write("# ")
-            # Adding a commment line to know what elements are fitted here
-            for elements in self.elements:
-                f.write("{:} ".format(elements))
-            # One line to tell what are the parameters of the MLIP
-            f.write("MLIP parameters\n")
-            f.write("# Descriptor:  " + self.style + "\n")
-            f.write("# Model:       " + self.model + "\n")
-
-            # If there is a reference potential
-            # add some lines showing the LAMMPS parameters
-            f.write("# Parameters to be used in LAMMPS :\n")
-            if self.bond_style is not None:
-                f.write(f"#bond_style     {bond_style}\n")
-                for bc in bond_coeff:
-                    f.write(f"#bond_coeff    {bc}\n")
-                f.write(f"#angle_style     {angle_style}\n")
-                for angc in bond_coeff:
-                    f.write(f"#angle_coeff    {angc}\n")
-            f.write(f"# pair_style    {pair_style}\n")
-            for pc in pair_coeff:
-                f.write(f"# pair_coeff   {pc}\n")
-            if model_post is not None:
-                for mp in model_post:
-                    f.write(f"# {mp}")
-            f.write(f"# atom_style   {self.atom_style}\n")
-
-            f.write("\n")
-            f.write("# nelems   ncoefs\n")
-            f.write(f"{len(self.elements)}  {nparams}\n")
-            f.write(f"NET {self.ndescriptors} {len(nnodes)} ")
-            for func, num in zip(activation, nnodes):
-                f.write(f"{func} {num} ")
-            f.write("\n")
-            f.write("# scale0\n")
-            i = 0
-            # We write the rescaling parameters
-            for smin in scale0:
-                if i == 10:
-                    f.write("\n")
-                    i = 0
-                f.write(f"{smin:15.10f} ")
-                i += 1
-            f.write("\n")
-            f.write("# scale1\n")
-            i = 0
-            for smax in scale1:
-                if i == 10:
-                    f.write("\n")
-                    i = 0
-                f.write(f"{smax:15.10f} ")
-                i += 1
-            f.write("\n")
-
-            for ilay in range(nlayer):
-                name = f"layer{ilay}"
-                param = results[name]
-                f.write(f"# {name}\n")
-                i = 0
-                for p in param:
-                    if i == 10:
-                        f.write("\n")
-                        i = 0
-                    f.write(f"{p:15.10f} ")
-                    i += 1
-                f.write("\n")
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):

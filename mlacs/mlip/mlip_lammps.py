@@ -63,13 +63,13 @@ class LammpsMlip(LinearMlip):
                  rcut=5.0,
                  model="linear",
                  style="snap",
-                 mlip_parameters=None,
+                 descriptor_parameters=None,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
                  fit_dielectric=False,
                  nthrow=10,
-                 parameters=None,
+                 fit_parameters=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
@@ -80,17 +80,13 @@ class LammpsMlip(LinearMlip):
                             atoms,
                             rcut,
                             nthrow,
-                            parameters,
+                            fit_parameters,
                             energy_coefficient,
                             forces_coefficient,
                             stress_coefficient,
                             rescale_energy=True,
                             rescale_forces=True,
                             rescale_stress=True)
-        if model == "nn":
-            msg = "Neural network models are interfaced using the " + \
-                  "LampsMlipNn class"
-            raise RuntimeError(msg)
 
         self.lammps_interface = LammpsMlipInterface(self.elements,
                                                     self.masses,
@@ -98,7 +94,7 @@ class LammpsMlip(LinearMlip):
                                                     self.rcut,
                                                     model,
                                                     style,
-                                                    mlip_parameters,
+                                                    descriptor_parameters,
                                                     radelems,
                                                     welems,
                                                     reference_potential,
@@ -128,7 +124,7 @@ class LammpsMlip(LinearMlip):
     def write_mlip(self):
         """
         """
-        self.lammps_interface.write_mlip_model_polynomial(self.coefficients)
+        self.lammps_interface.write_mlip_model(self.coefficients)
 
 # ========================================================================== #
     def init_calc(self):

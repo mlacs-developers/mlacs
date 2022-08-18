@@ -188,17 +188,17 @@ class LinearMlip(MlipManager):
                  " True Energy           Predicted Energy"
         np.savetxt("MLIP-Energy_comparison.dat",
                    np.vstack((e_true, e_mlip)).T,
-                   header=header)
+                   header=header, fmt="%25.20f  %25.20f")
         header = f"rmse: {rmse_forces:.5f} eV/angs   " + \
                  f"mae: {mae_forces:.5f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
         np.savetxt("MLIP-Forces_comparison.dat",
                    np.vstack((f_true.flatten(), f_mlip.flatten())).T,
-                   header=header)
+                   header=header, fmt="%25.20f  %25.20f")
         header = f"rmse: {rmse_stress:.5f} GPa       " + \
                  f"mae: {mae_stress:.5f} GPa\n" + \
                  " True Stress           Predicted Stress"
         np.savetxt("MLIP-Stress_comparison.dat",
                    np.vstack((s_true.flatten(), s_mlip.flatten())).T,
-                   header=header)
+                   header=header, fmt="%25.20f  %25.20f")
         return msg
