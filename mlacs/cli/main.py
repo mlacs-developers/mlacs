@@ -1,5 +1,6 @@
 import argparse
 import textwrap
+from argparse import RawTextHelpFormatter
 from importlib import import_module
 
 from mlacs.version import __version__
@@ -11,7 +12,8 @@ commands = [('correlation', 'mlacs.cli.correlation')]
 def main(prog='mlacs', description='MLACS command line tool',
          version=__version__, commands=commands, hook=None, args=None):
     parser = argparse.ArgumentParser(prog=prog,
-                                     description=description)
+                                     description=description,
+                                     formatter_class=RawTextHelpFormatter)
     parser.add_argument('--version', action='version',
                         version=f"{prog}-{__version__}")
     subparsers = parser.add_subparsers(title="Sub-commands",
@@ -26,16 +28,13 @@ def main(prog='mlacs', description='MLACS command line tool',
         cmd = import_module(module_name).CLICommand
         docstring = cmd.__doc__
         parts = docstring.split("\n", 1)
-        if len(parts) == 1:
-            short = docstring
-            long = docstring
-        else:
-            short, body = parts
-            long = short + "\n" + textwrap.dedent(body)
+        short, body = parts
+        long = short + "\n" + textwrap.dedent(body)
         subparser = subparsers.add_parser(
             command,
             help=short,
-            description=long)
+            description=long,
+            formatter_class=RawTextHelpFormatter)
     cmd.add_arguments(subparser)
     function[command] = cmd.run
     parsers[command] = subparser

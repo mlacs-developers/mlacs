@@ -98,4 +98,7 @@ def compute_correlation(data):
     datatest = data[:, 1]
     rmse = np.sqrt(np.mean((datatrue - datatest)**2))
     mae = np.mean(np.abs(datatrue - datatest))
-    return rmse, mae
+    sse = ((datatrue - datatest)**2).sum()
+    sst = ((datatrue - datatrue.mean())**2).sum()
+    rsquared = 1 - sse / sst
+    return rmse, mae, rsquared

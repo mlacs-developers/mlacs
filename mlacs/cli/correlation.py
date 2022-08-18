@@ -11,6 +11,15 @@ def main(args, parser):
     if args.datatype not in ["energy", "forces", "stress", None]:
         raise ValueError("The type argument has to be "
                          "energy, forces or stress")
+    rmse = True
+    if args.normse:
+        rmse = False
+    mae = True
+    if args.nomae:
+        mae = False
+    rsquared = True
+    if args.nor2:
+        rsquared = False
     figsize = (float(args.figsize), float(args.figsize))
     fig = plt.figure(figsize=figsize, constrained_layout=True)
     init_rcParams()
@@ -18,8 +27,9 @@ def main(args, parser):
     plot_correlation(ax,
                      data,
                      datatype=args.datatype,
-                     rmse=args.rmse,
-                     mae=args.mae)
+                     showrmse=rmse,
+                     showmae=mae,
+                     showrsquared=rsquared)
     ax.set_aspect("equal")
     if args.save is not None:
         plt.savefig(args.save)
@@ -28,8 +38,10 @@ def main(args, parser):
 
 
 class CLICommand:
-    """
-    Plot correlation function
+    """Plot correlation function
+
+    Read data points in the file and plot the correlation along with 
+    the RMSE, MAE and M^2
 
     Example:
 
@@ -46,12 +58,14 @@ class CLICommand:
         parser.add_argument('--datatype', default=None,
                             help="Type of data in the file. Can be "
                             "energy, forces or stress")
-        parser.add_argument('--mae', default=True,
-                            help="Set to true to plot the mean absolute error")
-        parser.add_argument('--rmse', default=True,
-                            help="Set to true to plot the root "
-                                 "mean squared error")
-        parser.add_argument("--figsize", default="10")
+        parser.add_argument('--nomae', action="store_true",
+                            help="To remove the MAE from the plot")
+        parser.add_argument('--normse', action="store_true",
+                            help="To remove rmse from the plot")
+        parser.add_argument('--nor2', action="store_true",
+                            help="to remove the r^2 from the plot")
+        parser.add_argument("--figsize", default="10",
+                            help="Size of the figure for matplotlib")
 
     @staticmethod
     def run(args, parser):

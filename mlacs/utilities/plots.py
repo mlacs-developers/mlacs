@@ -17,8 +17,9 @@ def plot_correlation(ax,
                      data,
                      color=blue,
                      datatype=None,
-                     rmse=True,
-                     mae=True):
+                     showrmse=True,
+                     showmae=True,
+                     showrsquared=True):
 
     datatrue = data[:, 0]
     datatest = data[:, 1]
@@ -27,7 +28,7 @@ def plot_correlation(ax,
     maxdata = data.max()
     minmax = [mindata, maxdata]
 
-    rmse, mae = compute_correlation(data)
+    rmse, mae, rsquared = compute_correlation(data)
 
     ax.plot(datatrue, datatest, ls="", marker="o")
     ax.plot(minmax, minmax, ls="--", alpha=0.75, c=grey)
@@ -36,18 +37,35 @@ def plot_correlation(ax,
         if datatype == "energy":
             labelx = "True energy [eV/at]"
             labely = "Model energy [eV/at]"
+            unit = "[eV/at]"
         elif datatype == "forces":
             labelx = "True forces [eV/angs]"
             labely = "Model forces [eV/angs]"
+            unit = "[eV/angs]"
         elif datatype == "stress":
             labelx = "True stress [GPa]"
             labely = "Model stress [GPa]"
+            unit = "[GPa]"
         else:
             msg = "datatype should be energy, forces or stress"
             raise ValueError(msg)
     else:
         labelx = None
         labely = None
+        unit = ""
+
+    if showrmse:
+        ax.text(0.01, 0.9, f"RMSE = {rmse:5.4f} {unit}",
+                fontsize=30,
+                transform=ax.transAxes)
+    if showmae:
+        ax.text(0.01, 0.8, f"MAE = {mae:5.4f} {unit}",
+                fontsize=30,
+                transform=ax.transAxes)
+    if showrsquared:
+        ax.text(0.01, 0.7, f"R$^2$ = {rsquared:5.4f}",
+                fontsize=30,
+                transform=ax.transAxes,)
 
     ax.set_xlabel(labelx)
     ax.set_ylabel(labely)
