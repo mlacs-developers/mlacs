@@ -19,7 +19,7 @@ def compute_centroid_atoms(confs, temperature):
 
     Returns
     -------
-    
+
     atoms: :class:`ase.Atoms`
         The centroid of the quantum polymer
     """
