@@ -6,7 +6,8 @@ from importlib import import_module
 from mlacs.version import __version__
 
 
-commands = [('correlation', 'mlacs.cli.correlation')]
+commands = [('correlation', 'mlacs.cli.correlation'),
+            ('plot_error', 'mlacs.cli.plot_error')]
 
 
 def main(prog='mlacs', description='MLACS command line tool',
@@ -35,9 +36,9 @@ def main(prog='mlacs', description='MLACS command line tool',
             help=short,
             description=long,
             formatter_class=RawTextHelpFormatter)
-    cmd.add_arguments(subparser)
-    function[command] = cmd.run
-    parsers[command] = subparser
+        cmd.add_arguments(subparser)
+        function[command] = cmd.run
+        parsers[command] = subparser
 
     if hook:
         args = hook(parser, args)

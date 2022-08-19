@@ -1,3 +1,5 @@
+import numpy as np
+from scipy.stats import gaussian_kde
 import matplotlib as mpl
 
 from mlacs.utilities import compute_correlation
@@ -71,6 +73,72 @@ def plot_correlation(ax,
     ax.set_ylabel(labely)
     ax.set_xlim(minmax)
     ax.set_ylim(minmax)
+    return ax
+
+
+def plot_error(ax,
+               data,
+               color=blue,
+               datatype=None,
+               showrmse=True,
+               showmae=True,
+               showrsquared=True):
+    """
+    """
+    dataerror = data[:, 0] - data[:, 1]
+
+    if datatype is not None:
+        if datatype == "energy":
+            dataerror *= 1000
+            labelx = "Energy error [meV/at]"
+            unit = "[meV/at]"
+        elif datatype == "forces":
+            dataerror *= 1000
+            labelx = "Forces error [meV/angs]"
+            unit = "[meV/angs]"
+        elif datatype == "stress":
+            labelx = "Stress error [GPa]"
+            unit = "[GPa]"
+        else:
+            msg = "datatype should be energy, forces or stress"
+            raise ValueError(msg)
+    else:
+        labelx = None
+        unit = ""
+
+    errmin = -3 * dataerror.std()
+    errmax = 3 * dataerror.std()
+    errmean = dataerror.mean()
+    minmax = [errmin - errmean, errmean + errmax]
+
+    rmse, mae, rsquared = compute_correlation(data)
+
+    kdeerror = gaussian_kde(dataerror)
+
+    x = np.linspace(errmin, errmax, 1000)
+    kde_pred = kdeerror(x)
+    kde_pred *= 100 / (kde_pred).sum()
+    ax.axvline(errmean, c=grey, ls="--")
+    ax.plot(x, kde_pred, c="k")
+    ax.fill_between(x, kde_pred, alpha=0.75)
+
+    if showrmse:
+        ax.text(0.01, 0.9, f"RMSE = {rmse:5.4f} {unit}",
+                fontsize=30,
+                transform=ax.transAxes)
+    if showmae:
+        ax.text(0.01, 0.8, f"MAE = {mae:5.4f} {unit}",
+                fontsize=30,
+                transform=ax.transAxes)
+    if showrsquared:
+        ax.text(0.01, 0.7, f"R$^2$ = {rsquared:5.4f}",
+                fontsize=30,
+                transform=ax.transAxes,)
+
+    ax.set_xlabel(labelx)
+    ax.set_ylabel("Density [%]")
+    ax.set_xlim(minmax)
+    ax.set_ylim(0)
     return ax
 
 

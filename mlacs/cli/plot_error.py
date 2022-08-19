@@ -5,7 +5,7 @@
 def main(args, parser):
     import numpy as np
     import matplotlib.pyplot as plt
-    from mlacs.utilities.plots import (plot_correlation,
+    from mlacs.utilities.plots import (plot_error,
                                        init_rcParams)
     data = np.loadtxt(args.file)
     if args.datatype not in ["energy", "forces", "stress", None]:
@@ -24,13 +24,12 @@ def main(args, parser):
     fig = plt.figure(figsize=figsize, constrained_layout=True)
     init_rcParams()
     ax = fig.add_subplot()
-    plot_correlation(ax,
-                     data,
-                     datatype=args.datatype,
-                     showrmse=rmse,
-                     showmae=mae,
-                     showrsquared=rsquared)
-    ax.set_aspect("equal")
+    plot_error(ax,
+               data,
+               datatype=args.datatype,
+               showrmse=rmse,
+               showmae=mae,
+               showrsquared=rsquared)
     if args.save is not None:
         plt.savefig(args.save)
     if not args.noshow:
@@ -38,14 +37,12 @@ def main(args, parser):
 
 
 class CLICommand:
-    """Plot correlation of DFT and MLIP data
+    """Plot the distribution of error for the MLIP
 
-    Read data points in the file and plot the correlation along with
-    the RMSE, MAE and M^2
 
     Example:
 
-        $ mlacs correlation MLIP-Energy_comparison.dat -datatype energy
+        $ mlacs error MLIP-Energy_comparison.dat -datatype energy
     """
     @staticmethod
     def add_arguments(parser):
