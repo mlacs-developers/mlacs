@@ -40,7 +40,7 @@ def main(args, parser):
 class CLICommand:
     """Plot correlation function
 
-    Read data points in the file and plot the correlation along with 
+    Read data points in the file and plot the correlation along with
     the RMSE, MAE and M^2
 
     Example:
