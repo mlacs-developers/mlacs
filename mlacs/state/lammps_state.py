@@ -128,7 +128,7 @@ class LammpsState(StateManager):
 
         self.t_stop = t_stop
         self.p_stop = p_stop
-        if self.p_stop is None:
+        if self.p_stop is not None:
             if self.pressure is None:
                 msg = "You need to put a pressure with p_stop"
                 raise ValueError(msg)
