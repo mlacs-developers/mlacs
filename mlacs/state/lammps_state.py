@@ -78,8 +78,8 @@ class LammpsState(StateManager):
     """
     def __init__(self,
                  temperature,
-                 t_stop=None,
                  pressure=None,
+                 t_stop=None,
                  p_stop=None,
                  damp=None,
                  langevin=True,
@@ -302,7 +302,7 @@ class LammpsState(StateManager):
             f.write(input_string)
 
 # ========================================================================== #
-    def get_thermostat_input(self, eq, temp):
+    def get_thermostat_input(self, eq, temp, press):
         """
         Function to write the thermostat of the mlmd run
         """
