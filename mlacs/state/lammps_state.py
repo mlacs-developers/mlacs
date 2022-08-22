@@ -206,8 +206,7 @@ class LammpsState(StateManager):
                                 model_post,
                                 nsteps,
                                 temp,
-                                press,
-                                eq)
+                                press)
 
         lammps_command = self.cmd + " -in " + self.lammpsfname + \
             " -sc out.lmp"
@@ -264,8 +263,7 @@ class LammpsState(StateManager):
                            model_post,
                            nsteps,
                            temp,
-                           press,
-                           eq):
+                           press):
         """
         Write the LAMMPS input for the MD simulation
         """
@@ -285,7 +283,7 @@ class LammpsState(StateManager):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += self.get_thermostat_input(eq, temp, press)
+        input_string += self.get_thermostat_input(temp, press)
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
@@ -302,7 +300,7 @@ class LammpsState(StateManager):
             f.write(input_string)
 
 # ========================================================================== #
-    def get_thermostat_input(self, eq, temp, press):
+    def get_thermostat_input(self, temp, press):
         """
         Function to write the thermostat of the mlmd run
         """

@@ -257,7 +257,9 @@ class IpiState(LammpsState):
                                 pair_style,
                                 pair_coeff,
                                 model_post,
-                                1000000)
+                                1000000,
+                                self.temperature,
+                                self.pressure)
         self.write_ipi_input(atoms, nsteps)
         ipi_command = f"{self.cmdipi} {self.ipifname} > {self.workdir}ipi.log"
         # We start by running ipi alone
@@ -567,7 +569,7 @@ class IpiState(LammpsState):
         return self.temperature
 
 # ========================================================================== #
-    def get_thermostat_input(self):
+    def get_thermostat_input(self, temp=None, press=None):
         """
         """
         if self.socketmode == 'inet':
