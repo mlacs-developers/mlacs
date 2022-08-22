@@ -72,13 +72,7 @@ def get_general_input(pbc, masses, charges, atom_style):
     input_string += "units        metal\n"
     input_string += "boundary     " + \
         "{0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-    if atom_style == "full":
-        input_string += "atom_style   full\n"
-    else:
-        if charges is None:
-            input_string += "atom_style   atomic\n"
-        else:
-            input_string += "atom_style   charge\n"
+    input_string += f"atom_style {atom_style}\n"
     input_string += "read_data    atoms.in\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
