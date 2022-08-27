@@ -270,7 +270,6 @@ class LammpsState(StateManager):
         elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
         pbc = atoms.get_pbc()
 
-
         input_string = ""
         input_string += get_general_input(pbc,
                                           masses,
@@ -311,7 +310,6 @@ class LammpsState(StateManager):
         pdamp = self.pdamp
         if self.pdamp is None:
             pdamp = "$(1000*dt)"
-
 
         input_string = "#####################################\n"
         input_string += "#      Thermostat/Integrator\n"
