@@ -238,7 +238,7 @@ class LammpsMlipInterface:
             input_string += "bikflag 1 dgradflag 1 "
             if self.params["chemflag"] == 1:
                 nel = len(self.elements)
-                input_string += f"chemflag {nel} "
+                input_string += f"chem {nel} "
                 for iel in range(nel):
                     input_string += f"{iel} "
             input_string += "\n"

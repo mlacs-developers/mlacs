@@ -10,6 +10,7 @@ try:
     from torch import nn
     from torch import optim
     from torch.autograd import grad
+    from torch.utils.data import Dataset, DataLoader
 except ImportError:
     msg = "You need PyTorch installed to use Neural Networks model"
     raise ImportError(msg)
@@ -17,11 +18,10 @@ except ImportError:
 
 default_parameters = {"hiddenlayers": [],
                       "activation": "linear",
-                      "alpha": 1e-8,
                       "epoch": 5000,
                       "optimizer": "l-bfgs",
                       "learning_rate": 1e-2,
-                      "batch_size": 100,
+                      "batch_size": 5,
                       "normalization": "norm",
                       "loss_function": "mse"}
 
@@ -89,43 +89,57 @@ class NeuralNetworkMlip(MlipManager):
         msg = "number of atomic environment for training:  " + \
               f"{amat_e.shape[0]}\n"
 
-        optimizer = get_optimizers(self.parameters["optimizer"],
-                                   self.neuralnetwork.parameters(),
-                                   self.parameters["learning_rate"])
-        loss_fn = get_loss(self.parameters["loss_function"])
+        optimizer = _get_optimizers(self.parameters["optimizer"],
+                                    self.neuralnetwork.parameters(),
+                                    self.parameters["learning_rate"])
+        loss_fn = _get_loss_fn(self.parameters["loss_function"])
 
-        x_e = torch.from_numpy(amat_e.astype(np.float32)).requires_grad_()
-        x_f = torch.from_numpy(amat_f.astype(np.float32))
-        y_e = torch.from_numpy(ymat_e.astype(np.float32))
-        y_f = torch.from_numpy(ymat_f.astype(np.float32))
-        idx_df = torch.from_numpy(idx_df.astype(np.int64))
-        idx_e = torch.from_numpy(idx_e.astype(np.int64))
+        dataset = Data(amat_e, amat_f, ymat_e, ymat_f, idx_e, idx_df)
+        loader = DataLoader(dataset,
+                            batch_size=self.parameters["batch_size"],
+                            shuffle=False,
+                            collate_fn=_collat_fn)
 
-        # First let's try without batch, we'll see that later
+        iepoch = []
+        ilosse = []
+        ilossf = []
         for epoch in range(self.parameters["epoch"]):
-            if self.parameters["optimizer"] == "l-bfgs":
-                def closure():
+            for data in loader:
+                x_e = data[0].requires_grad_()
+                x_f = data[1]
+                y_e = data[2]
+                y_f = data[3]
+                idx_e = data[4]
+                idx_f = data[5]
+                nat = data[6]
+                emean = y_e.mean()
+                if self.parameters["optimizer"] == "l-bfgs":
+                    def closure():
+                        pred_e, pred_f = self.neuralnetwork(x_e, x_f,
+                                                            idx_f, idx_e)
+                        loss_e = ecoef * loss_fn((pred_e - emean) / nat,
+                                                 (y_e - emean) / nat)
+                        loss_f = fcoef * loss_fn(pred_f.flatten(),
+                                                 y_f.flatten())
+                        loss = loss_e + loss_f
+                        optimizer.zero_grad()
+                        loss.backward()
+                        return loss
+                    optimizer.step(closure)
+                else:
                     pred_e, pred_f = self.neuralnetwork(x_e, x_f,
-                                                        idx_df, idx_e)
-                    loss = ecoef * loss_fn((pred_e) / torch.from_numpy(self.natoms),
-                                           (y_e) / torch.from_numpy(self.natoms))
-                    loss = loss + fcoef * loss_fn(pred_f, y_f)
+                                                        idx_f, idx_e)
+                    loss_e = ecoef * loss_fn((pred_e - emean) / nat,
+                                             (y_e - emean) / nat)
+                    loss_f = fcoef * loss_fn(pred_f.flatten(),
+                                             y_f.flatten())
+                    loss = loss_e + loss_f
                     optimizer.zero_grad()
                     loss.backward()
-                    print(epoch, loss.item(),
-                          pred_f[0, 0].item(), y_f[0, 0].item())
-                    return loss
-                optimizer.step(closure)
-            else:
-                (pred_e, pred_f) = self.neuralnetwork(x_e, x_f,
-                                                      idx_df, idx_e)
-                loss = ecoef * loss_fn((pred_e) / torch.from_numpy(self.natoms),
-                                       (y_e) / torch.from_numpy(self.natoms))
-                loss = loss + fcoef * loss_fn(pred_f, y_f)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                print(epoch, loss.item())
+                    optimizer.step()
+            iepoch.append(epoch)
+            ilosse.append(loss_e.item())
+            ilossf.append(loss_f.item())
 
         # We need to reorganize results so that parameter are printed right :
         # lay0.node0.bias then lay0.node0.weight then layer0.nod1.bias then ...
@@ -146,43 +160,42 @@ class NeuralNetworkMlip(MlipManager):
                     nparams += param.size
             results[el] = results_el
 
-        amat_e = self.amat_e
-        amat_f = self.amat_f
-        ymat_e = self.ymat_e
-        ymat_f = self.ymat_f
-        amat_e = (amat_e - scale0) / scale1
-        amat_f = amat_f / scale1
+        loader = DataLoader(dataset,
+                            batch_size=len(dataset) + 1,
+                            shuffle=False,
+                            collate_fn=_collat_fn)
 
-        x_e = torch.from_numpy(amat_e.astype(np.float32)).requires_grad_()
-        x_f = torch.from_numpy(amat_f.astype(np.float32))
-        y_e = torch.from_numpy(ymat_e.astype(np.float32))
-        y_f = torch.from_numpy(ymat_f.astype(np.float32))
-
-        msg = self.compute_tests(x_e, x_f, y_e, y_f,
-                                 idx_df, idx_e, msg)
         self.write_mlip(results, nparams,
                         self.neuralnetwork.network[0].nnodes[1:],
                         self.neuralnetwork.network[0].func)
+        msg = self.compute_tests(loader, msg)
+
+        epochloss = np.c_[iepoch, ilosse, ilossf]
+        header = "epoch    Energy loss      Forces loss"
+        np.savetxt("MLIP-Loss.dat",
+                   epochloss,
+                   header=header, fmt="%6d  %15.10f  %15.10f")
+
         self.init_calc()
         return msg
 
 # ========================================================================== #
-    def compute_tests(self, amat_e, amat_f, ymat_e, ymat_f,
-                      idx_df, idx_e,  msg):
+    def compute_tests(self, loader, msg):
         """
         """
-        (pred_e, pred_f) = self.neuralnetwork(amat_e, amat_f, idx_df, idx_e)
+        for data in loader:
+            x_e = data[0].requires_grad_()
+            x_f = data[1]
+            y_e = data[2]
+            y_f = data[3]
+            idx_e = data[4]
+            idx_f = data[5]
+            nat = data[6]
+            (pred_e, pred_f) = self.neuralnetwork(x_e, x_f, idx_f, idx_e)
 
-        confs = np.unique(idx_e[:, 0])
-        nconfs = confs.shape[0]
-        nat = []
-        for iconf in range(nconfs):
-            idx_confe = idx_e[:, 0] == iconf
-            nat.append(len(np.unique(idx_e[idx_confe, 1])))
-        nat = np.array(nat)
-        e_true = ymat_e.detach().numpy() / nat
-        e_mlip = pred_e.detach().numpy() / nat
-        f_true = ymat_f.detach().numpy()
+        e_true = y_e.detach().numpy() / nat.detach().numpy()
+        e_mlip = pred_e.detach().numpy() / nat.detach().numpy()
+        f_true = y_f.detach().numpy()
         f_mlip = pred_f.detach().numpy()
 
         # Compute RMSE and MAE
@@ -284,7 +297,7 @@ class NeuralNetwork(nn.Module):
     def forward(self,  x_e, x_f, idx_df, idx_e):
         """
         """
-        confs = np.unique(idx_df[:, 0])
+        confs = np.unique(idx_e[:, 0])
         nconfs = confs.shape[0]
 
         pred_e = torch.zeros((nconfs))
@@ -338,18 +351,19 @@ class NeuralNetworkPerElement(nn.Module):
         -> This means that everything is index-related -> a bit hard to read
         Sorry
         """
-        confs = np.unique(idx_df[:, 0])
+        confs = np.unique(idx_e[:, 0])
         nconfs = confs.shape[0]
 
         # We need a mask to compute stuff only for current element
-        mask_e = idx_e[:, 2] == iel
+        mask_e = idx_e[:, 1] == iel
 
         # We prepare the tensors for the results
         pred_e = torch.zeros((nconfs))
         pred_f = torch.zeros((x_e.shape[0], 3))
 
         # We start by computing the energy, with the element mask
-        pred_e.index_add_(0, idx_e[:, 0], self.layers(x_e).squeeze() * mask_e)
+        pred_e.index_add_(0, idx_e[:, 0].to(torch.int64),
+                          self.layers(x_e).squeeze() * mask_e)
 
         # Now we compute dF(x)/x -> create array of size (natom, ndesc)
         dedx = grad(self.layers(x_e), x_e,
@@ -357,31 +371,14 @@ class NeuralNetworkPerElement(nn.Module):
                     create_graph=True)[0]
         dedx = dedx * mask_e[:, None]  # We mask to have only der of f(x(R_j))
 
-        # Now we need to organize everything in shape
-        # -> create indices from dxdr to iat_iconf
-        # TODO have all indices before in order to remove the loop
-        # This can be done with the batch part
-        idx = torch.Tensor([])
-        idx_neigh = torch.Tensor([])
-        ii = 0
-        for iconf in confs:
-            idx_conf = idx_df[:, 0] == iconf
-            nat = len(np.unique(idx_df[idx_conf, 1]))
-            tmp_idx = idx_df[idx_conf][:, 2] + ii
-            idx = torch.concat((idx, tmp_idx))
-            tmp_idx_neigh = idx_df[idx_conf][:, 1] + ii
-            idx_neigh = torch.concat((idx_neigh, tmp_idx_neigh))
-            ii += nat
-
-        # -> we get dF(x(R_i))/dx
-        dedx_neigh = dedx[idx_neigh.to(torch.int64)]
+        dedx_neigh = dedx[idx_df[:, 0].to(torch.int64)]
         dedx_neigh = dedx_neigh.unsqueeze(1).repeat(1, 3, 1)  # shape dxdr
 
         # And boom, we have sum_k dF(x(R)_k)/dx(R)_k * dX(R)_k/dR_j
         f_contrib = torch.mul(dedx_neigh, x_f).sum(dim=2)
 
         # And voila, the predicted forces in shape (natoms, 3)
-        pred_f.index_add_(0, idx.to(torch.int64), f_contrib)
+        pred_f.index_add_(0, idx_df[:, 1].to(torch.int64), f_contrib)
         return pred_e, pred_f
 
 # ========================================================================== #
@@ -405,7 +402,80 @@ class NeuralNetworkPerElement(nn.Module):
 
 # ========================================================================== #
 # ========================================================================== #
-def get_optimizers(method, param, learning_rate):
+class Data(Dataset):
+    """
+    """
+    def __init__(self, amat_e, amat_f, ymat_e, ymat_f, idx_e, idx_df):
+        self.amat_e = torch.from_numpy(amat_e.astype(np.float32))
+        self.amat_f = torch.from_numpy(amat_f.astype(np.float32))
+        self.ymat_e = torch.from_numpy(ymat_e.astype(np.float32))
+        self.ymat_f = torch.from_numpy(ymat_f.astype(np.float32))
+        self.idx_df = torch.from_numpy(idx_df.astype(np.int64))
+        self.idx_e = torch.from_numpy(idx_e.astype(np.int64))
+
+        self._length = np.max(idx_e[:, 0])
+
+    def __len__(self):
+        return self._length
+
+    def __getitem__(self, idx):
+        conf_e = self.idx_e[:, 0] == idx
+        conf_df = self.idx_df[:, 0] == idx
+
+        amat_e = self.amat_e[conf_e]
+        amat_f = self.amat_f[conf_df]
+        ymat_e = self.ymat_e[idx]
+        ymat_f = self.ymat_f[conf_e]
+        idx_e = self.idx_e[conf_e]
+        idx_df = self.idx_df[conf_df]
+        return amat_e, amat_f, ymat_e, ymat_f, idx_e, idx_df
+
+
+# ========================================================================== #
+# ========================================================================== #
+def _collat_fn(batch):
+    """
+    """
+    amat_e = torch.cat([data[0] for data in batch], dim=0)
+    amat_f = torch.cat([data[1] for data in batch], dim=0)
+    ymat_e = torch.cat([torch.Tensor([data[2]]) for data in batch], dim=0)
+    ymat_f = torch.cat([data[3] for data in batch], dim=0)
+    idx_e = torch.cat([data[4] for data in batch], dim=0)
+    idx_df = torch.cat([data[5] for data in batch], dim=0)
+
+    confs = torch.unique(idx_e[:, 0])
+    idx_conf_e = torch.Tensor([])
+    idx_conf_dfi = torch.Tensor([])
+    idx_conf_dfj = torch.Tensor([])
+    natoms = torch.Tensor([])
+    ii = 0
+    jj = 0
+    for iconf in confs:
+        bool_conf_df = idx_df[:, 0] == iconf
+        nat = torch.unique(idx_df[bool_conf_df, 1]).shape[0]
+
+        tmp_idx_e = torch.ones(nat, dtype=torch.int) * int(ii)
+        tmp_idx_dfi = idx_df[bool_conf_df][:, 1] + int(jj)
+        tmp_idx_dfj = idx_df[bool_conf_df][:, 2] + int(jj)
+
+        idx_conf_e = torch.cat((idx_conf_e, tmp_idx_e))
+        idx_conf_dfi = torch.cat((idx_conf_dfi, tmp_idx_dfi))
+        idx_conf_dfj = torch.cat((idx_conf_dfj, tmp_idx_dfj))
+
+        natoms = torch.cat((natoms, torch.Tensor([nat])))
+        ii += 1
+        jj += nat
+
+    new_idx_e = torch.column_stack((idx_conf_e, idx_e[:, 2]))
+    new_idx_e = new_idx_e.to(torch.int64)
+    new_idx_df = torch.column_stack((idx_conf_dfi, idx_conf_dfj))
+    new_idx_df = new_idx_df.to(torch.int64)
+
+    return amat_e, amat_f, ymat_e, ymat_f, new_idx_e, new_idx_df, natoms
+
+
+# ========================================================================== #
+def _get_optimizers(method, param, learning_rate):
     """
     Function to get the optimizer for the gradient descent
     """
@@ -418,6 +488,9 @@ def get_optimizers(method, param, learning_rate):
     elif method == "adam":
         optimizer = optim.Adam(param,
                                lr=learning_rate)
+    elif method == "adadelta":
+        optimizer = optim.Adadelta(param,
+                                   lr=learning_rate)
     else:
         msg = "The selected optimizer is not implemented"
         raise NotImplementedError(msg)
@@ -426,7 +499,7 @@ def get_optimizers(method, param, learning_rate):
 
 # ========================================================================== #
 # ========================================================================== #
-def get_loss(method):
+def _get_loss_fn(method):
     """
     """
     if method == "mse":
