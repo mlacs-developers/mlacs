@@ -65,6 +65,7 @@ class NeuralNetworkMlip(MlipManager):
         idx_e = self.idx_e
 
         # We start by scaling the data
+        # TODO scale with respect to elements
         if self.parameters["normalization"] == "min-max":
             scale0 = amat_e.min(axis=0)
             scale1 = amat_e.max(axis=0) - scale0
@@ -82,8 +83,8 @@ class NeuralNetworkMlip(MlipManager):
         amat_e = (amat_e - scale0) / scale1
         amat_f = amat_f / scale1
 
-        sigma_e = self.energy_coefficient / np.std(ymat_e) / len(ymat_e)
-        sigma_f = 100000 / np.std(ymat_f) / len(ymat_f)
+        ecoef = self.energy_coefficient / np.std(ymat_e)
+        fcoef = self.forces_coefficient / np.std(ymat_f)
 
         msg = "number of atomic environment for training:  " + \
               f"{amat_e.shape[0]}\n"
@@ -106,8 +107,9 @@ class NeuralNetworkMlip(MlipManager):
                 def closure():
                     pred_e, pred_f = self.neuralnetwork(x_e, x_f,
                                                         idx_df, idx_e)
-                    loss = sigma_e * loss_fn(pred_e, y_e)
-                    loss = loss + sigma_f * loss_fn(pred_f, y_f)
+                    loss = ecoef * loss_fn((pred_e) / torch.from_numpy(self.natoms),
+                                           (y_e) / torch.from_numpy(self.natoms))
+                    loss = loss + fcoef * loss_fn(pred_f, y_f)
                     optimizer.zero_grad()
                     loss.backward()
                     print(epoch, loss.item(),
@@ -117,8 +119,9 @@ class NeuralNetworkMlip(MlipManager):
             else:
                 (pred_e, pred_f) = self.neuralnetwork(x_e, x_f,
                                                       idx_df, idx_e)
-                loss = sigma_e * loss_fn(pred_e, y_e)
-                loss = loss + sigma_f * loss_fn(pred_f, y_f)
+                loss = ecoef * loss_fn((pred_e) / torch.from_numpy(self.natoms),
+                                       (y_e) / torch.from_numpy(self.natoms))
+                loss = loss + fcoef * loss_fn(pred_f, y_f)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -127,14 +130,21 @@ class NeuralNetworkMlip(MlipManager):
         # We need to reorganize results so that parameter are printed right :
         # lay0.node0.bias then lay0.node0.weight then layer0.nod1.bias then ...
         results = {}
-        ilay = 0
-        for i, lay in enumerate(self.neuralnetwork.layers):
-            if hasattr(lay, "weight"):  # The act layers don't have weight
-                bias = lay.bias.detach().numpy()
-                weight = lay.weight.detach().numpy()
-                param = np.c_[bias[:, None], weight]
-                results[f"layer{ilay}"] = param.flatten()
-                ilay += 1
+        for iel, el in enumerate(self.elements):
+            nparams = 0
+            results_el = {}
+            ilay = 0
+            results_el["scale0"] = scale0  # TODO scale per element
+            results_el["scale1"] = scale1  # TODO scale per element
+            for i, lay in enumerate(self.neuralnetwork.network[iel].layers):
+                if hasattr(lay, "weight"):  # The act layers don't have weight
+                    bias = lay.bias.detach().numpy()
+                    weight = lay.weight.detach().numpy()
+                    param = np.c_[bias[:, None], weight]
+                    results_el[f"layer{ilay}"] = param.flatten()
+                    ilay += 1
+                    nparams += param.size
+            results[el] = results_el
 
         amat_e = self.amat_e
         amat_f = self.amat_f
@@ -150,9 +160,9 @@ class NeuralNetworkMlip(MlipManager):
 
         msg = self.compute_tests(x_e, x_f, y_e, y_f,
                                  idx_df, idx_e, msg)
-        self.write_mlip(scale0, scale1, results,
-                        self.neuralnetwork.nnodes[1:],
-                        self.neuralnetwork.func)
+        self.write_mlip(results, nparams,
+                        self.neuralnetwork.network[0].nnodes[1:],
+                        self.neuralnetwork.network[0].func)
         self.init_calc()
         return msg
 
@@ -183,10 +193,10 @@ class NeuralNetworkMlip(MlipManager):
         mae_forces = np.mean(np.abs(f_true - f_mlip))
 
         # Prepare message to the log
-        msg += "RMSE Energy    {:.4f} eV/at\n".format(rmse_energy)
-        msg += "MAE Energy     {:.4f} eV/at\n".format(mae_energy)
-        msg += "RMSE Forces    {:.4f} eV/angs\n".format(rmse_forces)
-        msg += "MAE Forces     {:.4f} eV/angs\n".format(mae_forces)
+        msg += f"RMSE Energy    {rmse_energy:.4f} eV/at\n"
+        msg += f"MAE Energy     {mae_energy:.4f} eV/at\n"
+        msg += f"RMSE Forces    {rmse_forces:.4f} eV/angs\n"
+        msg += f"MAE Forces     {mae_forces:.4f} eV/angs\n"
         header = f"rmse: {rmse_energy:.5f} eV/at,    " + \
                  f"mae: {mae_energy:.5f} eV/at\n" + \
                  " True Energy           Predicted Energy"
@@ -215,15 +225,15 @@ class NeuralNetworkMlip(MlipManager):
         ymat_f = data[1].reshape(-1, 3)
 
         # Now we need the arrays to get everything right
-        # idx_df -> array with iconf, iat, jat
+        # idx_df -> array with iconf, iat, jat, iel
         idx_df = np.array(descriptor[2], dtype=int)[::3]
         idx_df = np.c_[np.ones(idx_df.shape[0], dtype=int) * self.nconfs,
                        idx_df]
 
-        # idx_e -> array with iconf, iat
-        idx_e = np.zeros((natoms, 2), dtype=int)
-        idx_e[:, 0] = self.nconfs
-        idx_e[:, 1] = np.arange(natoms)
+        # idx_e -> array with iconf, iat, iel
+        idx_e = np.array(descriptor[3], dtype=int)
+        idx_e = np.c_[np.ones(natoms, dtype=int) * self.nconfs,
+                      idx_e]
 
         if self.nconfs == 0:
             self.amat_e = amat_e
@@ -249,15 +259,51 @@ class NeuralNetworkMlip(MlipManager):
         """
         self.neuralnetwork = NeuralNetwork(self.parameters["hiddenlayers"],
                                            self.parameters["activation"],
-                                           self._get_ncolumns())
+                                           self.perat_desc,
+                                           len(self.elements))
 
 
 # ========================================================================== #
 class NeuralNetwork(nn.Module):
     """
     """
-    def __init__(self, hiddenlayers, activation, ndescriptor):
+    def __init__(self, hiddenlayers, activation,
+                 ndescriptor, nelements):
         super(NeuralNetwork, self).__init__()
+        self.activation = []
+        self.nelements = nelements
+        self.ndescriptor = ndescriptor
+
+        self.network = nn.ModuleList()
+        for i in range(nelements):
+            self.network.append(NeuralNetworkPerElement(hiddenlayers,
+                                                        activation,
+                                                        ndescriptor))
+
+# ========================================================================== #
+    def forward(self,  x_e, x_f, idx_df, idx_e):
+        """
+        """
+        confs = np.unique(idx_df[:, 0])
+        nconfs = confs.shape[0]
+
+        pred_e = torch.zeros((nconfs))
+        pred_f = torch.zeros((x_e.shape[0], 3))
+        for iel in range(self.nelements):
+            el_pred = self.network[iel](x_e, x_f,
+                                        idx_df, idx_e, iel)
+            pred_e = pred_e + el_pred[0]
+            pred_f = pred_f + el_pred[1]
+        return pred_e, pred_f
+
+
+# ========================================================================== #
+# ========================================================================== #
+class NeuralNetworkPerElement(nn.Module):
+    """
+    """
+    def __init__(self, hiddenlayers, activation, ndescriptor):
+        super(NeuralNetworkPerElement, self).__init__()
         self.activation = []
 
         self.nnodes = [ndescriptor]
@@ -283,7 +329,7 @@ class NeuralNetwork(nn.Module):
                 nn.init.xavier_uniform_(lay.weight)
 
 # ========================================================================== #
-    def forward(self, x_e, x_f, idx_df, idx_e):
+    def forward(self, x_e, x_f, idx_df, idx_e, iel):
         """
         Does the forward stuff and return the energy and the forces
         Since the forces need the derivative of the output wrt the descriptor,
@@ -295,17 +341,21 @@ class NeuralNetwork(nn.Module):
         confs = np.unique(idx_df[:, 0])
         nconfs = confs.shape[0]
 
+        # We need a mask to compute stuff only for current element
+        mask_e = idx_e[:, 2] == iel
+
         # We prepare the tensors for the results
         pred_e = torch.zeros((nconfs))
         pred_f = torch.zeros((x_e.shape[0], 3))
 
-        # We start by computing the energy
-        pred_e.index_add_(0, idx_e[:, 0], self.layers(x_e).squeeze())  # tadaaa
+        # We start by computing the energy, with the element mask
+        pred_e.index_add_(0, idx_e[:, 0], self.layers(x_e).squeeze() * mask_e)
 
         # Now we compute dF(x)/x -> create array of size (natom, ndesc)
         dedx = grad(self.layers(x_e), x_e,
                     grad_outputs=torch.ones_like(self.layers(x_e)),
                     create_graph=True)[0]
+        dedx = dedx * mask_e[:, None]  # We mask to have only der of f(x(R_j))
 
         # Now we need to organize everything in shape
         # -> create indices from dxdr to iat_iconf
@@ -328,7 +378,6 @@ class NeuralNetwork(nn.Module):
         dedx_neigh = dedx_neigh.unsqueeze(1).repeat(1, 3, 1)  # shape dxdr
 
         # And boom, we have sum_k dF(x(R)_k)/dx(R)_k * dX(R)_k/dR_j
-        # -> but shaped as dxdr
         f_contrib = torch.mul(dedx_neigh, x_f).sum(dim=2)
 
         # And voila, the predicted forces in shape (natoms, 3)
@@ -351,7 +400,6 @@ class NeuralNetwork(nn.Module):
             msg = "Only linear, tanh, relu or sigmoid " + \
                   "activation functions are available"
             raise NotImplementedError(msg)
-
         return activation_func
 
 

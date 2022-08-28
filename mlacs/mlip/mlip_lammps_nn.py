@@ -79,6 +79,7 @@ class LammpsMlipNn(NeuralNetworkMlip):
                                                     radelems,
                                                     welems,
                                                     reference_potential)
+        self.perat_desc = self.lammps_interface.get_perat_desc()
         self._initialize_nn()
 
         self.pair_style, self.pair_coeff, self.model_post = \
@@ -103,12 +104,11 @@ class LammpsMlipNn(NeuralNetworkMlip):
         return self.lammps_interface.compute_fit_matrix(atoms)
 
 # ========================================================================== #
-    def write_mlip(self, amin, amax, nn_weights, nnodes, activation):
+    def write_mlip(self, results, nparams, nnodes, activation):
         """
         """
-        self.lammps_interface.write_mlip_model_nn(amin,
-                                                  amax,
-                                                  nn_weights,
+        self.lammps_interface.write_mlip_model_nn(results,
+                                                  nparams,
                                                   nnodes,
                                                   activation)
 

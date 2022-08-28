@@ -108,6 +108,7 @@ class LammpsMlipInterface:
         else:
             self.welems = welems
 
+        """
         # Initialize the descriptor dimension, depending on the descriptor
         if self.style == "so3":
             nmax = self.params['nmax']
@@ -128,6 +129,8 @@ class LammpsMlipInterface:
         if self.model == "quadratic":
             self.ndescriptors += \
                 int(self.ndescriptors * (self.ndescriptors + 1) / 2)
+        """
+        self.ndescriptors = self.get_perat_desc()
 
         self.ncolumns = int(len(self.elements) * (self.ndescriptors + 1))
         if self.fit_dielectric:
@@ -371,9 +374,8 @@ class LammpsMlipInterface:
 
 # ========================================================================== #
     def write_mlip_model_nn(self,
-                            scale0,
-                            scale1,
                             results,
+                            nparams,
                             nnodes,
                             activation):
         """
@@ -381,13 +383,7 @@ class LammpsMlipInterface:
         """
         assert self.model == "nn"
 
-        # First we count the number of parameters
-        nparams = 0
-        nlayer = len(nnodes)
-        for ilay in range(nlayer):
-            name = f"layer{ilay}"
-            param = results[name]
-            nparams += param.size
+        nlayers = len(nnodes)
 
         # We get the reference potential to write it in the file
         pair_style, pair_coeff, model_post = \
@@ -430,38 +426,43 @@ class LammpsMlipInterface:
             for func, num in zip(activation, nnodes):
                 f.write(f"{func} {num} ")
             f.write("\n")
-            f.write("# scale0\n")
-            i = 0
-            # We write the rescaling parameters
-            for s0 in scale0:
-                if i == 10:
-                    f.write("\n")
-                    i = 0
-                f.write(f"{s0:15.10f} ")
-                i += 1
-            f.write("\n")
-            f.write("# scale1\n")
-            i = 0
-            for s1 in scale1:
-                if i == 10:
-                    f.write("\n")
-                    i = 0
-                f.write(f"{s1:15.10f} ")
-                i += 1
-            f.write("\n")
-
-            for ilay in range(nlayer):
-                name = f"layer{ilay}"
-                param = results[name]
-                f.write(f"# {name}\n")
+            # And now we write the parameters per atom
+            for el in self.elements:
+                f.write(f"# Parameters for {el}\n")
+                scale0 = results[el]["scale0"]
+                scale1 = results[el]["scale1"]
+                f.write("# scale0\n")
                 i = 0
-                for p in param:
+                # We write the rescaling parameters
+                for s0 in scale0:
                     if i == 10:
                         f.write("\n")
                         i = 0
-                    f.write(f"{p:15.10f} ")
+                    f.write(f"{s0:15.10f} ")
                     i += 1
                 f.write("\n")
+                f.write("# scale1\n")
+                i = 0
+                for s1 in scale1:
+                    if i == 10:
+                        f.write("\n")
+                        i = 0
+                    f.write(f"{s1:15.10f} ")
+                    i += 1
+                f.write("\n")
+
+                for ilay in range(nlayers):
+                    name = f"layer{ilay}"
+                    param = results[el][name]
+                    f.write(f"# {name}\n")
+                    i = 0
+                    for p in param:
+                        if i == 10:
+                            f.write("\n")
+                            i = 0
+                        f.write(f"{p:15.10f} ")
+                        i += 1
+                    f.write("\n")
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
@@ -576,6 +577,15 @@ class LammpsMlipInterface:
             # and the derivative of bispectrum of atom i, with respect
             # to atom j
 
+            # We need the elements of each column
+            chemsymb = atoms.get_chemical_symbols()
+            idx_el = np.zeros(natoms)
+            for iel, el in enumerate(self.elements):
+                boolidx = [symb == el for symb in chemsymb]
+                idx_el[boolidx] = iel
+            idx_e = np.c_[np.arange(natoms),
+                          idx_el]
+
             # First we get the energy part, it's easy
             amat_e = bispectrum[:natoms, 4:]
 
@@ -583,7 +593,8 @@ class LammpsMlipInterface:
             # with respect to each atoms is computed, the matrix is huge
             # So we need to remove the vanishing elements
             bis_f = bispectrum[natoms:-1]
-            idx_row = np.all(bis_f[:, 4:] != 0.0, axis=1)
+            # idx_row = np.all(bis_f[:, 4:] != 0.0, axis=1)
+            idx_row = np.any(bis_f[:, 4:] != 0.0, axis=1)
 
             amat_f = bis_f[idx_row, 4:]  # In this matrix -> dB_k/drj
             idx_f = bis_f[idx_row, 1:3]  # In this matrix -> iat, jat
@@ -591,7 +602,7 @@ class LammpsMlipInterface:
             ymat_e = data_true[0]
             ymat_f = data_true[1:3*natoms+1]
 
-            amatrix = (amat_e, amat_f, idx_f)
+            amatrix = (amat_e, amat_f, idx_f, idx_e)
             data_true = (ymat_e, ymat_f)
 
         self.cleanup()
@@ -802,6 +813,29 @@ class LammpsMlipInterface:
                         self.kspace = mp.split()[1:]
             if self.atom_style not in ["full", "charge"]:
                 self.atom_style = "charge"
+
+# ========================================================================== #
+    def get_perat_desc(self):
+        """
+        """
+        if self.style == "so3":
+            nmax = self.params['nmax']
+            lmax = self.params['lmax']
+            ndescriptors = int(nmax * (nmax + 1) * (lmax + 1) / 2)
+        elif self.style == "snap":
+            twojmax = self.params['twojmax']
+            chemflag = self.params['chemflag']
+            if twojmax % 2 == 0:
+                m = 0.5 * twojmax + 1
+                ndescriptors = int(m * (m+1) * (2*m+1) / 6)
+            else:
+                m = 0.5 * (twojmax + 1)
+                ndescriptors = int(m * (m+1) * (m+2) / 3)
+            if chemflag == 1:
+                ndescriptors *= len(self.elements)**3
+        if self.model == "quadratic":
+            ndescriptors += int(ndescriptors * (ndescriptors + 1) / 2)
+        return ndescriptors
 
 # ========================================================================== #
     def _get_mlip_params(self, mlip_params):
