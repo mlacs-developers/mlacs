@@ -16,8 +16,8 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
 from mlacs.state import LammpsState
-from mlacs.utilities import (get_elements_Z_and_masses,
-                             write_lammps_data_full)
+from mlacs.utilities import get_elements_Z_and_masses
+from mlacs.utilities.io_lammps import write_lammps_data_full
 
 
 # ========================================================================== #
@@ -37,7 +37,7 @@ class IpiState(LammpsState):
     stress : (3x3) array (optional)
         Stress for the simulation, in GPa
         Default 0 GPa for the nine coefficients.
-                Pressure matrice if pressure is not None.
+        Pressure matrice if pressure is not None.
     ensemble : 'nve', 'nvt', 'npt' or 'nst'
         Define the ensemble that will be sampled.
         Default 'nvt'
@@ -46,7 +46,6 @@ class IpiState(LammpsState):
         Default 1, to do classical MD.
     paralbeads : int (optional)
         Reduce parallelisation over breads.
-            MPI_PROCESS = nbeads/paralbeads
         Default None, means full parallelisation.
     socketname : str (optional)
         Name of sockets.
@@ -72,7 +71,7 @@ class IpiState(LammpsState):
         Default None.
     pilelambda : float (optional)
         Scaling for the PILE damping relative to the critical damping.
-            gamma_k = 2*pilelambda*omega_k
+        gamma_k = 2*pilelambda*omega_k
         Default 0.5, 0.2 is another typical value.
     dt : float (optional)
         Timestep, in fs. Default 1.5 fs.
@@ -258,7 +257,9 @@ class IpiState(LammpsState):
                                 pair_style,
                                 pair_coeff,
                                 model_post,
-                                1000000)
+                                1000000,
+                                self.temperature,
+                                self.pressure)
         self.write_ipi_input(atoms, nsteps)
         ipi_command = f"{self.cmdipi} {self.ipifname} > {self.workdir}ipi.log"
         # We start by running ipi alone
@@ -568,7 +569,7 @@ class IpiState(LammpsState):
         return self.temperature
 
 # ========================================================================== #
-    def get_thermostat_input(self):
+    def get_thermostat_input(self, temp=None, press=None):
         """
         """
         if self.socketmode == 'inet':

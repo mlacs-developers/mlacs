@@ -37,3 +37,11 @@ free_energy_uhlenbeck_ford
 **************************
 
 .. autofunction:: free_energy_uhlenbeck_ford
+
+Path Integral
+-------------
+
+compute_centroid_atoms
+**********************
+
+.. autofunction:: mlacs.utilities.path_integral.compute_centroid_atoms

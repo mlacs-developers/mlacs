@@ -9,14 +9,18 @@ from subprocess import run, PIPE
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.lammps import Prism
 from ase.calculators.lammpsrun import LAMMPS
-from ase.units import GPa
 
-from mlacs.utilities import write_lammps_data_full
+from mlacs.utilities.io_lammps import write_lammps_data_full
 
 
 default_snap = {"twojmax": 8,
+                "rfac0": 0.99363,
+                "rmin0": 0.0,
                 "chemflag": 0,
-                "bnormflag": 0}
+                "bnormflag": 0,
+                "switchflag": 1,
+                "bzeroflag": 1,
+                "wselfallflag": 0}
 default_so3 = {"nmax": 4,
                "lmax": 3,
                "alpha": 1.0}
@@ -40,7 +44,8 @@ class LammpsMlipInterface:
     rcut: :class:`float` (optional)
         Cutoff radius for the MLIP. Default ``5.0``.
     model: :class:`string` (optional)
-        ``\"linear\"``, ``\"quadratic\"`` or ``\"nn\"``, the model used for the MLIP.
+        ``\"linear\"``, ``\"quadratic\"`` or ``\"nn\"``,
+        the model used for the MLIP.
         Default ``\"linear\"``.
     style: :class:`string` (optional)
         ``\"snap\"`` or ``\"so3\"``, the descriptor used for the MLIP.
@@ -103,6 +108,7 @@ class LammpsMlipInterface:
         else:
             self.welems = welems
 
+        """
         # Initialize the descriptor dimension, depending on the descriptor
         if self.style == "so3":
             nmax = self.params['nmax']
@@ -123,6 +129,8 @@ class LammpsMlipInterface:
         if self.model == "quadratic":
             self.ndescriptors += \
                 int(self.ndescriptors * (self.ndescriptors + 1) / 2)
+        """
+        self.ndescriptors = self.get_perat_desc()
 
         self.ncolumns = int(len(self.elements) * (self.ndescriptors + 1))
         if self.fit_dielectric:
@@ -138,6 +146,10 @@ class LammpsMlipInterface:
             raise ValueError
         if len(self.radelems) != len(self.elements):
             raise ValueError
+        if self.model == "nn" and not self.style == "snap":
+            msg = "The Neural Network model is only available with the " + \
+                  "SNAP descriptor"
+            raise ValueError(msg)
 
 # ========================================================================== #
     def _write_lammps_input(self):
@@ -202,22 +214,40 @@ class LammpsMlipInterface:
         elif self.style == "so3":
             style = "so3"
 
-        if self.model in ["linear", "nn"]:
-            model = "linear"
-        elif self.model == "quadratic":
-            model = "quadratic"
-
-        input_string += "compute          ml all mliap  descriptor " + \
-                        f"{style} MLIP.descriptor  model " + \
-                        model + " gradgradflag 1\n"
+        if self.model in ["linear", "quadratic"]:
+            input_string += "compute          ml all mliap  descriptor " + \
+                            f"{style} MLIP.descriptor  model {self.model}\n"
+        elif self.model == "nn":
+            # If we are in neural network mode, the descriptor is snap
+            rfac0 = self.params["rfac0"]
+            twojmax = self.params["twojmax"]
+            rmin0 = self.params["rmin0"]
+            switchflag = self.params["switchflag"]
+            wselfallflag = self.params["wselfallflag"]
+            bzeroflag = self.params["bzeroflag"]
+            input_string += f"compute          ml all snap {self.rcut} "
+            input_string += f"{rfac0} {twojmax} "
+            for rad in self.radelems:
+                input_string += f"{rad} "
+            for wel in self.welems:
+                input_string += f"{wel} "
+            input_string += f"rmin0 {rmin0} "
+            input_string += f"switchflag {switchflag} "
+            input_string += f"bzeroflag {bzeroflag} "
+            input_string += f"wselfallflag {wselfallflag} "
+            input_string += "bikflag 1 dgradflag 1 "
+            if self.params["chemflag"] == 1:
+                nel = len(self.elements)
+                input_string += f"chem {nel} "
+                for iel in range(nel):
+                    input_string += f"{iel} "
+            input_string += "\n"
         input_string += "fix          ml all ave/time 1 1 1 c_ml[*] " + \
-                        "file descriptor.out mode vector \n"
-
+                        "file descriptor.out mode vector format \"%25.20f \"\n"
         input_string += "run              0\n"
 
-        f_lmp = open('base.in', "w")
-        f_lmp.write(input_string)
-        f_lmp.close()
+        with open("base.in", "w") as fd:
+            fd.write(input_string)
 
 # ========================================================================== #
     def _run_lammps(self, lmp_atoms_fname):
@@ -297,10 +327,11 @@ class LammpsMlipInterface:
                 f.write("bnormflag    1\n")
 
 # ========================================================================== #
-    def write_mlip_coeff(self, coefficients):
+    def write_mlip_model(self, coefficients):
         """
         Function to write the mliap.model parameter files of the MLIP
         """
+        assert self.model in ["linear", "quadratic"]
         # We get the reference potential to write it in the file
         pair_style, pair_coeff, model_post = \
             self.get_pair_coeff_and_style(coefficients[-1])
@@ -342,13 +373,106 @@ class LammpsMlipInterface:
                 np.savetxt(f, coefficients, fmt="%35.30f")
 
 # ========================================================================== #
+    def write_mlip_model_nn(self,
+                            results,
+                            nparams,
+                            nnodes,
+                            activation):
+        """
+        Function to write the mliap.model parameter files of the MLIP
+        """
+        assert self.model == "nn"
+
+        nlayers = len(nnodes)
+
+        # We get the reference potential to write it in the file
+        pair_style, pair_coeff, model_post = \
+            self.get_pair_coeff_and_style()
+        atom_style, bond_style, bond_coeff, angle_style, angle_coeff = \
+            self.get_bond_angle_coeff_and_style()
+
+        with open("MLIP.model", "w") as f:
+            f.write("# ")
+            # Adding a commment line to know what elements are fitted here
+            for elements in self.elements:
+                f.write("{:} ".format(elements))
+            # One line to tell what are the parameters of the MLIP
+            f.write("MLIP parameters\n")
+            f.write("# Descriptor:  " + self.style + "\n")
+            f.write("# Model:       " + self.model + "\n")
+
+            # If there is a reference potential
+            # add some lines showing the LAMMPS parameters
+            f.write("# Parameters to be used in LAMMPS :\n")
+            if self.bond_style is not None:
+                f.write(f"#bond_style     {bond_style}\n")
+                for bc in bond_coeff:
+                    f.write(f"#bond_coeff    {bc}\n")
+                f.write(f"#angle_style     {angle_style}\n")
+                for angc in bond_coeff:
+                    f.write(f"#angle_coeff    {angc}\n")
+            f.write(f"# pair_style    {pair_style}\n")
+            for pc in pair_coeff:
+                f.write(f"# pair_coeff   {pc}\n")
+            if model_post is not None:
+                for mp in model_post:
+                    f.write(f"# {mp}")
+            f.write(f"# atom_style   {self.atom_style}\n")
+
+            f.write("\n")
+            f.write("# nelems   ncoefs\n")
+            f.write(f"{len(self.elements)}  {nparams}\n")
+            f.write(f"NET {self.ndescriptors} {len(nnodes)} ")
+            for func, num in zip(activation, nnodes):
+                f.write(f"{func} {num} ")
+            f.write("\n")
+            # And now we write the parameters per atom
+            for el in self.elements:
+                f.write(f"# Parameters for {el}\n")
+                scale0 = results[el]["scale0"]
+                scale1 = results[el]["scale1"]
+                f.write("# scale0\n")
+                i = 0
+                # We write the rescaling parameters
+                for s0 in scale0:
+                    if i == 10:
+                        f.write("\n")
+                        i = 0
+                    f.write(f"{s0:15.10f} ")
+                    i += 1
+                f.write("\n")
+                f.write("# scale1\n")
+                i = 0
+                for s1 in scale1:
+                    if i == 10:
+                        f.write("\n")
+                        i = 0
+                    f.write(f"{s1:15.10f} ")
+                    i += 1
+                f.write("\n")
+
+                for ilay in range(nlayers):
+                    name = f"layer{ilay}"
+                    param = results[el][name]
+                    f.write(f"# {name}\n")
+                    i = 0
+                    for p in param:
+                        if i == 10:
+                            f.write("\n")
+                            i = 0
+                        f.write(f"{p:15.10f} ")
+                        i += 1
+                    f.write("\n")
+
+# ========================================================================== #
     def compute_fit_matrix(self, atoms):
         """
         Function to extract the descriptor and gradient values,
         as well as the true data
         Takes in input an atoms with a calculator attached
         """
-        nrows = 3 * len(atoms) + 7
+        natoms = len(atoms)
+        nrows = 3 * natoms + 7
 
         lmp_atoms_fname = "atoms.lmp"
         self._write_lammps_input()
@@ -397,58 +521,91 @@ class LammpsMlipInterface:
                               atom_style=self.atom_style)
         self._run_lammps(lmp_atoms_fname)
 
-        # I definitely hate stress units in LAMMPS
-        # ASE gives eV/angs**3 - LAMMPS are in bar (WTF ?)
-        # and bispectrum component are in ??????
         bispectrum = np.loadtxt("descriptor.out", skiprows=4)
-        bispectrum[-6:, 1:-1] /= atoms.get_volume()
-        bispectrum[-6:, -1] *= 1e-4 * GPa
-        data_bispectrum = bispectrum[:, 1:-1]
+        if self.model in ["linear", "quadratic"]:
+            # I definitely hate stress units in LAMMPS
+            # ASE gives eV/angs**3 - LAMMPS are in bar (WTF ?)
+            # and bispectrum component are in ??????
+            bispectrum[-6:, 1:-1] /= atoms.get_volume()
+            data_bispectrum = bispectrum[:, 1:-1]
 
-        # We need to remove the reference potential values from the data
-        data_true -= bispectrum[:, -1]
+            # We need to remove the reference potential values from the data
+            data_true -= bispectrum[:, -1]
 
-        if self.fit_dielectric:
-            coul_calc = LAMMPS(pair_style=f"coul/long {self.rcut+0.01}",
-                               pair_coeff=["* *"],
-                               model_post=[f"kspace_style {self.kspace}\n",
-                                           "dielectric 1\n"],
-                               atom_style="charge",
-                               keep_alive=False)
-            coul_at = atoms.copy()
-            coul_at.calc = coul_calc
+            if self.fit_dielectric:
+                coul_calc = LAMMPS(pair_style=f"coul/long {self.rcut+0.01}",
+                                   pair_coeff=["* *"],
+                                   model_post=[f"kspace_style {self.kspace}\n",
+                                               "dielectric 1\n"],
+                                   atom_style="charge",
+                                   keep_alive=False)
+                coul_at = atoms.copy()
+                coul_at.calc = coul_calc
 
-            coul_energy = coul_at.get_potential_energy()
-            coul_forces = coul_at.get_forces()
-            coul_stress = coul_at.get_stress()
+                coul_energy = coul_at.get_potential_energy()
+                coul_forces = coul_at.get_forces()
+                coul_stress = coul_at.get_stress()
 
-            # We need to reorganize the forces from ase to LAMMPS vector
-            # because of the weird non orthogonal LAMMPS input
-            for iat in range(coul_forces.shape[0]):
-                coul_forces[iat] = prism.vector_to_lammps(coul_forces[iat])
+                # We need to reorganize the forces from ase to LAMMPS vector
+                # because of the weird non orthogonal LAMMPS input
+                for iat in range(coul_forces.shape[0]):
+                    coul_forces[iat] = prism.vector_to_lammps(coul_forces[iat])
 
-            # Same thing for the stress
-            xx, yy, zz, yz, xz, xy = coul_stress
-            str_ten = np.array([[xx, xy, xz],
-                                [xy, yy, yz],
-                                [xz, yz, zz]])
+                # Same thing for the stress
+                xx, yy, zz, yz, xz, xy = coul_stress
+                str_ten = np.array([[xx, xy, xz],
+                                    [xy, yy, yz],
+                                    [xz, yz, zz]])
 
-            rot_mat = prism.rot_mat
-            str_ten = rot_mat @ str_ten
-            str_ten = str_ten @ rot_mat.T
-            stress = str_ten[[0, 1, 2, 1, 0, 0],
-                             [0, 1, 2, 2, 2, 1]]
-            coul_stress = -stress
+                rot_mat = prism.rot_mat
+                str_ten = rot_mat @ str_ten
+                str_ten = str_ten @ rot_mat.T
+                stress = str_ten[[0, 1, 2, 1, 0, 0],
+                                 [0, 1, 2, 2, 2, 1]]
+                coul_stress = -stress
 
-            data_coul = np.append(coul_energy, coul_forces.flatten(order="C"))
-            data_coul = np.append(data_coul, coul_stress)
+                data_coul = np.append(coul_energy,
+                                      coul_forces.flatten(order="C"))
+                data_coul = np.append(data_coul, coul_stress)
 
-            data_bispectrum = np.hstack((data_bispectrum,
-                                         data_coul[:, np.newaxis]))
-        amatrix[:] = data_bispectrum
+                data_bispectrum = np.hstack((data_bispectrum,
+                                             data_coul[:, np.newaxis]))
+            amatrix[:] = data_bispectrum
+        else:
+            # For the neural networks, we need to reorganise everything
+            # in order to have the bispectrums for each atoms
+            # and the derivative of bispectrum of atom i, with respect
+            # to atom j
+
+            # We need the elements of each column
+            chemsymb = atoms.get_chemical_symbols()
+            idx_el = np.zeros(natoms)
+            for iel, el in enumerate(self.elements):
+                boolidx = [symb == el for symb in chemsymb]
+                idx_el[boolidx] = iel
+            idx_e = np.c_[np.arange(natoms),
+                          idx_el]
+
+            # First we get the energy part, it's easy
+            amat_e = bispectrum[:natoms, 4:]
+
+            # Now the forces part. Since the derivative of each descriptor
+            # with respect to each atoms is computed, the matrix is huge
+            # So we need to remove the vanishing elements
+            bis_f = bispectrum[natoms:-1]
+            # idx_row = np.all(bis_f[:, 4:] != 0.0, axis=1)
+            idx_row = np.any(bis_f[:, 4:] != 0.0, axis=1)
+
+            amat_f = bis_f[idx_row, 4:]  # In this matrix -> dB_k/drj
+            idx_f = bis_f[idx_row, 1:3]  # In this matrix -> iat, jat
+
+            ymat_e = data_true[0]
+            ymat_f = data_true[1:3*natoms+1]
+
+            amatrix = (amat_e, amat_f, idx_f, idx_e)
+            data_true = (ymat_e, ymat_f)
 
         self.cleanup()
-
         return amatrix, data_true
 
 # ========================================================================== #
@@ -656,6 +813,29 @@ class LammpsMlipInterface:
                         self.kspace = mp.split()[1:]
             if self.atom_style not in ["full", "charge"]:
                 self.atom_style = "charge"
+
+# ========================================================================== #
+    def get_perat_desc(self):
+        """
+        """
+        if self.style == "so3":
+            nmax = self.params['nmax']
+            lmax = self.params['lmax']
+            ndescriptors = int(nmax * (nmax + 1) * (lmax + 1) / 2)
+        elif self.style == "snap":
+            twojmax = self.params['twojmax']
+            chemflag = self.params['chemflag']
+            if twojmax % 2 == 0:
+                m = 0.5 * twojmax + 1
+                ndescriptors = int(m * (m+1) * (2*m+1) / 6)
+            else:
+                m = 0.5 * (twojmax + 1)
+                ndescriptors = int(m * (m+1) * (m+2) / 3)
+            if chemflag == 1:
+                ndescriptors *= len(self.elements)**3
+        if self.model == "quadratic":
+            ndescriptors += int(ndescriptors * (ndescriptors + 1) / 2)
+        return ndescriptors
 
 # ========================================================================== #
     def _get_mlip_params(self, mlip_params):

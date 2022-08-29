@@ -16,7 +16,6 @@ temperature = 300  # K
 nconfs = 50
 nsteps = 1000
 nsteps_eq = 100
-nsteps_ref = 5000
 neq = 5
 cell_size = 2
 rcut = 4.2

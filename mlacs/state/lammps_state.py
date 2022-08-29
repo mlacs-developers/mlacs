@@ -13,12 +13,12 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state.state import StateManager
 from mlacs.utilities import get_elements_Z_and_masses
-from mlacs.utilities import write_lammps_data_full
 from mlacs.utilities.io_lammps import (get_general_input,
                                        get_log_input,
                                        get_traj_input,
                                        get_interaction_input,
-                                       get_last_dump_input)
+                                       get_last_dump_input,
+                                       write_lammps_data_full)
 
 
 # ========================================================================== #
@@ -79,6 +79,8 @@ class LammpsState(StateManager):
     def __init__(self,
                  temperature,
                  pressure=None,
+                 t_stop=None,
+                 p_stop=None,
                  damp=None,
                  langevin=True,
                  gjf="vhalf",
@@ -124,6 +126,13 @@ class LammpsState(StateManager):
         self.pdamp = pdamp
         self.ptype = ptype
 
+        self.t_stop = t_stop
+        self.p_stop = p_stop
+        if self.p_stop is not None:
+            if self.pressure is None:
+                msg = "You need to put a pressure with p_stop"
+                raise ValueError(msg)
+
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
@@ -148,6 +157,27 @@ class LammpsState(StateManager):
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
+        if self.t_stop is None:
+            temp = self.temperature
+        else:
+            if eq:
+                temp = self.t_stop
+            else:
+                temp = self.rng.uniform(self.temperature, self.t_stop)
+
+        if self.p_stop is None:
+            press = self.pressure
+        else:
+            if eq:
+                press = self.pressure
+            else:
+                press = self.rng.uniform(self.pressure, self.p_stop)
+
+        if self.t_stop is not None:
+            MaxwellBoltzmannDistribution(atoms,
+                                         temperature_K=temp,
+                                         rng=self.rng)
+
         if atom_style == 'full':
             write_lammps_data_full(self.workdir + self.atomsfname,
                                    atoms,
@@ -155,15 +185,10 @@ class LammpsState(StateManager):
                                    angles=angles,
                                    velocities=True)
         else:
-            if charges is None:
-                write_lammps_data(self.workdir + self.atomsfname,
-                                  supercell,
-                                  velocities=True)
-            else:
-                write_lammps_data(self.workdir + self.atomsfname,
-                                  supercell,
-                                  velocities=True,
-                                  atom_style="charge")
+            write_lammps_data(self.workdir + self.atomsfname,
+                              atoms,
+                              velocities=True,
+                              atom_style=atom_style)
 
         if eq:
             nsteps = self.nsteps_eq
@@ -179,7 +204,9 @@ class LammpsState(StateManager):
                                 pair_style,
                                 pair_coeff,
                                 model_post,
-                                nsteps)
+                                nsteps,
+                                temp,
+                                press)
 
         lammps_command = self.cmd + " -in " + self.lammpsfname + \
             " -sc out.lmp"
@@ -234,7 +261,9 @@ class LammpsState(StateManager):
                            pair_style,
                            pair_coeff,
                            model_post,
-                           nsteps):
+                           nsteps,
+                           temp,
+                           press):
         """
         Write the LAMMPS input for the MD simulation
         """
@@ -253,7 +282,7 @@ class LammpsState(StateManager):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += self.get_thermostat_input()
+        input_string += self.get_thermostat_input(temp, press)
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
@@ -270,7 +299,7 @@ class LammpsState(StateManager):
             f.write(input_string)
 
 # ========================================================================== #
-    def get_thermostat_input(self):
+    def get_thermostat_input(self, temp, press):
         """
         Function to write the thermostat of the mlmd run
         """
@@ -288,30 +317,30 @@ class LammpsState(StateManager):
         input_string += "timestep      {0}\n".format(self.dt / 1000)
         if self.pressure is None:
             if self.langevin:
-                input_string += f"fix  f1 all langevin {self.temperature} " + \
-                                f"{self.temperature}  {damp} " + \
+                input_string += f"fix  f1 all langevin {temp} " + \
+                                f"{temp}  {damp} " + \
                                 f"{self.rng.integers(999999)} " + \
                                 f"gjf {self.gjf} zero yes\n"
                 input_string += "fix   f2 all nve\n"
             else:
-                input_string += f"fix  f1 all nvt temp {self.temperature} " + \
-                                f"{self.temperature}  {damp}\n"
+                input_string += f"fix  f1 all nvt temp {temp} " + \
+                                f"{temp}  {damp}\n"
         else:
             if self.langevin:
                 # Langevin part
-                input_string += f"fix  f1 all langevin {self.temperature} " + \
-                                f"{self.temperature}  {damp} " + \
+                input_string += f"fix  f1 all langevin {temp} " + \
+                                f"{temp}  {damp} " + \
                                 f"{self.rng.integers(999999)} " + \
                                 f"gjf {self.gjf} zero yes\n"
                 # Barostat part
                 input_string += f"fix    f2 all nph  {self.ptype} " + \
-                                f"{self.pressure*10000} " + \
-                                f"{self.pressure*10000} {pdamp}\n"
+                                f"{press*10000} " + \
+                                f"{press*10000} {pdamp}\n"
             else:
-                input_string += f"fix  f1 all npt temp {self.temperature} " + \
-                                f"{self.temperature}  {damp} {self.ptype} " + \
-                                f"{self.pressure*10000} " + \
-                                f"{self.pressure*10000} {pdamp}\n"
+                input_string += f"fix  f1 all npt temp {temp} " + \
+                                f"{temp}  {damp} {self.ptype} " + \
+                                f"{press*10000} " + \
+                                f"{press*10000} {pdamp}\n"
         if self.fixcm:
             input_string += "fix    fcm all recenter INIT INIT INIT\n"
         input_string += "#####################################\n"

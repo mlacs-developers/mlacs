@@ -8,9 +8,9 @@ from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
 # ========================================================================== #
 # ========================================================================== #
-class LampsMlipNeuralNetwork(NeuralNetworkMlip):
+class LammpsMlipNn(NeuralNetworkMlip):
     """
-    MLIP Manager Class to interface with the Neural Network par of the 
+    MLIP Manager Class to interface with the Neural Network par of the
     ML-IAP package
 
     Parameters
@@ -55,11 +55,11 @@ class LampsMlipNeuralNetwork(NeuralNetworkMlip):
                  radelems=None,
                  welems=None,
                  reference_potential=None,
-                 fit_dielectric=False,
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0):
+
         NeuralNetworkMlip.__init__(self,
                                    atoms,
                                    rcut,
@@ -73,13 +73,14 @@ class LampsMlipNeuralNetwork(NeuralNetworkMlip):
                                                     self.masses,
                                                     self.Z,
                                                     self.rcut,
-                                                    model="nn",
+                                                    "nn",
                                                     style,
-                                                    mlip_parameters,
+                                                    descriptor_parameters,
                                                     radelems,
                                                     welems,
-                                                    reference_potential,
-                                                    fit_dielectric)
+                                                    reference_potential)
+        self.perat_desc = self.lammps_interface.get_perat_desc()
+        self._initialize_nn()
 
         self.pair_style, self.pair_coeff, self.model_post = \
             self.lammps_interface.get_pair_coeff_and_style()
@@ -87,11 +88,14 @@ class LampsMlipNeuralNetwork(NeuralNetworkMlip):
             self.angle_style, self.angle_coeff = \
             self.lammps_interface.get_bond_angle_coeff_and_style()
         self.bonds, self.angles = self.lammps_interface.get_bonds_angles()
-        self.fit_dielectric = fit_dielectric
 
 # ========================================================================== #
     def _get_nelem(self):
         return len(self.lammps_interface.elements)
+
+# ========================================================================== #
+    def _get_ncolumns(self):
+        return self.lammps_interface.ncolumns - 1
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
@@ -100,22 +104,21 @@ class LampsMlipNeuralNetwork(NeuralNetworkMlip):
         return self.lammps_interface.compute_fit_matrix(atoms)
 
 # ========================================================================== #
-    def write_mlip(self):
+    def write_mlip(self, results, nparams, nnodes, activation):
         """
         """
-        self.lammps_interface.write_mlip_coeff(self.coefficients)
+        self.lammps_interface.write_mlip_model_nn(results,
+                                                  nparams,
+                                                  nnodes,
+                                                  activation)
 
 # ========================================================================== #
     def init_calc(self):
         """
         """
-        if self.lammps_interface.fit_dielectric:
-            self.calc = self.lammps_interface.load_mlip(self.coefficients[-1])
-        else:
-            self.calc = self.lammps_interface.load_mlip()
-        coeffs = self.coefficients[-1]
+        self.calc = self.lammps_interface.load_mlip()
         self.pair_style, self.pair_coeff, self.model_post = \
-            self.lammps_interface.get_pair_coeff_and_style(coeffs)
+            self.lammps_interface.get_pair_coeff_and_style()
 
 # ========================================================================== #
     def get_mlip_dict(self):

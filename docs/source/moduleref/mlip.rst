@@ -16,22 +16,12 @@ LinearMlip
 
 .. autoclass:: LinearMlip
 
-LammpsSnapInterface
--------------------
-
-.. autoclass:: LammpsSnapInterface
-
-LammpsSnap
--------------------
-
-.. autoclass:: LammpsSnap
-
 LammpsMlipInterface
 -------------------
 
-.. autoclass:: LammpsMlipInterface
+.. autoclass:: mlacs.mlip.mlip_lammps_interface.LammpsMlipInterface
 
 LammpsMlip
--------------------
+----------
 
 .. autoclass:: LammpsMlip

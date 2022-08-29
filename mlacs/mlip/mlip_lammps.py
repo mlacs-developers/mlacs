@@ -124,7 +124,7 @@ class LammpsMlip(LinearMlip):
     def write_mlip(self):
         """
         """
-        self.lammps_interface.write_mlip_coeff(self.coefficients)
+        self.lammps_interface.write_mlip_model(self.coefficients)
 
 # ========================================================================== #
     def init_calc(self):
