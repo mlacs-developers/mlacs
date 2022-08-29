@@ -97,12 +97,11 @@ class NeuralNetworkMlip(MlipManager):
         dataset = Data(amat_e, amat_f, ymat_e, ymat_f, idx_e, idx_df)
         loader = DataLoader(dataset,
                             batch_size=self.parameters["batch_size"],
-                            shuffle=False,
+                            shuffle=True,
                             collate_fn=_collat_fn)
 
         iepoch = []
-        ilosse = []
-        ilossf = []
+        iloss = []
         for epoch in range(self.parameters["epoch"]):
             for data in loader:
                 x_e = data[0].requires_grad_()
@@ -112,25 +111,24 @@ class NeuralNetworkMlip(MlipManager):
                 idx_e = data[4]
                 idx_f = data[5]
                 nat = data[6]
-                emean = y_e.mean()
                 if self.parameters["optimizer"] == "l-bfgs":
                     def closure():
                         pred_e, pred_f = self.neuralnetwork(x_e, x_f,
                                                             idx_f, idx_e)
-                        loss_e = ecoef * loss_fn((pred_e - emean) / nat,
-                                                 (y_e - emean) / nat)
-                        loss_f = fcoef * loss_fn(pred_f.flatten(),
-                                                 y_f.flatten())
+                        loss_e =  ecoef * loss_fn(pred_e / nat,
+                                                  y_e / nat)
+                        loss_f =  fcoef * loss_fn(pred_f.flatten(),
+                                                  y_f.flatten())
                         loss = loss_e + loss_f
                         optimizer.zero_grad()
                         loss.backward()
                         return loss
-                    optimizer.step(closure)
+                    loss = optimizer.step(closure).data
                 else:
                     pred_e, pred_f = self.neuralnetwork(x_e, x_f,
                                                         idx_f, idx_e)
-                    loss_e = ecoef * loss_fn((pred_e - emean) / nat,
-                                             (y_e - emean) / nat)
+                    loss_e = ecoef * loss_fn(pred_e / nat,
+                                             y_e / nat)
                     loss_f = fcoef * loss_fn(pred_f.flatten(),
                                              y_f.flatten())
                     loss = loss_e + loss_f
@@ -138,8 +136,7 @@ class NeuralNetworkMlip(MlipManager):
                     loss.backward()
                     optimizer.step()
             iepoch.append(epoch)
-            ilosse.append(loss_e.item())
-            ilossf.append(loss_f.item())
+            iloss.append(loss.item())
 
         # We need to reorganize results so that parameter are printed right :
         # lay0.node0.bias then lay0.node0.weight then layer0.nod1.bias then ...
@@ -170,11 +167,11 @@ class NeuralNetworkMlip(MlipManager):
                         self.neuralnetwork.network[0].func)
         msg = self.compute_tests(loader, msg)
 
-        epochloss = np.c_[iepoch, ilosse, ilossf]
-        header = "epoch    Energy loss      Forces loss"
+        epochloss = np.c_[iepoch, iloss]
+        header = "epoch    Total loss"
         np.savetxt("MLIP-Loss.dat",
                    epochloss,
-                   header=header, fmt="%6d  %15.10f  %15.10f")
+                   header=header, fmt="%6d  %15.10f")
 
         self.init_calc()
         return msg
