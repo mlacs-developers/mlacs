@@ -21,8 +21,8 @@ from mlacs.utilities.io_lammps import (get_general_input,
                                        get_last_dump_input,
                                        write_lammps_data_full)
 
-#========================================================================================================================#
-#========================================================================================================================#
+# ========================================================================== #
+# ========================================================================== #
 class PafiLammpsState(LammpsState):
     """
     """
@@ -92,42 +92,38 @@ class PafiLammpsState(LammpsState):
         self._get_lammps_command_replica()
         self._Finit = 0
 
-#========================================================================================================================#
-    def write_lammps_input(self, 
-                           atoms, 
-                           atom_style,
-                           bond_style,
-                           bond_coeff,
-                           angle_style,
-                           angle_coeff,
-                           pair_style,
-                           pair_coeff,
-                           model_post,
-                           nsteps,
-                           temp,
-                           rep=''):
+
+# ========================================================================== #
+    def write_lammps_pafi_input(self, 
+                                atoms, 
+                                atom_style,
+                                bond_style,
+                                bond_coeff,
+                                angle_style,
+                                angle_coeff,
+                                pair_style,
+                                pair_coeff,
+                                model_post,
+                                nsteps,
+                                temp,
+                                rep=''):
         """
         Write the LAMMPS input for the constrained MD simulation
         """
         elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
         pbc = atoms.get_pbc()
 
-        if self.damp is None:
-            damp = "$(10*dt)"
-
-        input_string  = ""
         custom  = "atom_modify  map array sort 0 0.0\n"
         custom += "neigh_modify every 2 delay 10 check yes page 1000000 one 100000\n\n"
         custom += "fix 1 all property/atom d_nx d_ny d_nz d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        filename = self.atomsfname + rep + " fix 1 NULL PafiPath\n"
+        filename = self.atomsfname + rep + " fix 1 NULL PafiPath"
+        input_string  = ""
         input_string += get_general_input(pbc,
                                           masses,
                                           charges,
                                           atom_style,
                                           filename,
                                           custom)
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
         input_string += get_interaction_input(bond_style,
                                               bond_coeff,
                                               angle_style,
@@ -135,35 +131,14 @@ class PafiLammpsState(LammpsState):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += "#####################################\n"
-        input_string += "# Compute relevant field for PAFI simulation\n"
-        input_string += "#####################################\n"
-        input_string += "timestep  {0}\n".format(self.dt/ 1000)
-        input_string += "thermo    1\n"
-        input_string += "min_style fire\n"
-        input_string += "compute   1 all property/atom d_nx d_ny d_nz d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        input_string += "run 0\n"
-        input_string += "\n"
-
-        input_string += "# Set up PAFI Langevin/Brownian integration in hyperplane\n"
-        if self.brownian:
-            input_string += "fix       pafihp all pafi 1 {0} {1} {2} overdamped {3} com yes\n".format(self.temperature, damp, self.rng.integers(99999), "yes")
-        else:
-            input_string += "fix       pafihp all pafi 1 {0} {1} {2} overdamped {3} com yes\n".format(self.temperature, damp, self.rng.integers(99999), "no")
-        input_string += "\n"
-        input_string += "run 0\n"
-        input_string += "\n"
-        input_string += "minimize 0 0 250 250\n"
-        input_string += "reset_timestep  0\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
+        input_string += get_pafi_input()
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
             input_string += get_traj_input(self.loginterval,
                                            self.trajfile,
                                            elem)
-        input_string += self._log_pafi(rep)
+        input_string += self.get_pafilogging_input(rep)
         input_string += get_last_dump_input(self.workdir,
                                             elem,
                                             nsteps)
@@ -173,45 +148,190 @@ class PafiLammpsState(LammpsState):
             f.write(input_string)
 
 
-#========================================================================================================================#
-    def write_lammps_input_NEB(self, atoms, pair_style, pair_coeff):
+# ========================================================================== #
+    def write_lammps_input_NEB(self, 
+                               atoms,
+                               atom_style,
+                               bond_style,
+                               bond_coeff,
+                               angle_style,
+                               angle_coeff,
+                               pair_style,
+                               pair_coeff,
+                               model_post):
         """
+        Write the LAMMPS input for NEB simulation
         """
-        elem, Z, masses = get_elements_Z_and_masses(atoms)
-        
-        input_string  = "# LAMMPS input file to run a MLNEB simulation\n"
-        input_string += "units      metal\n"
-
+        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
         pbc = atoms.get_pbc()
-        input_string += "boundary     {0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-        input_string += "atom_style   atomic\n"
-        input_string += "atom_modify  map array sort 0 0.0\n"
-        input_string += "neigh_modify every 2 delay 10 check yes page 1000000 one 100000\n\n"
-        input_string += "read_data atoms-0.data\n\n"
-        for i, mass in enumerate(masses):
-            input_string += "mass  " + str(i + 1) + "  " + str(mass) + "\n"
+        
+        custom = "neigh_modify every 2 delay 10 check yes page 1000000 one 100000\n\n"
+        filename = "atoms-0.data" 
+        input_string  = ""
+        input_string += get_general_input(pbc,
+                                          masses,
+                                          charges,
+                                          atom_style,
+                                          filename,
+                                          custom)
+        input_string += get_interaction_input(bond_style,
+                                              bond_coeff,
+                                              angle_style,
+                                              angle_coeff,
+                                              pair_style,
+                                              pair_coeff,
+                                              model_post)
+        input_string += get_neb_input()
+        
+        with open(self.lammpsNEBfname, "w") as f:
+            f.write(input_string)
+
+
+# ========================================================================== #
+    def get_neb_input(self):
+        """
+        Function to write the general parameters for PAFI dynamics
+        """
+        input_string  = "#####################################\n"
+        input_string += "# Compute relevant field for PAFI simulation\n"
+        input_string += "#####################################\n"
+        input_string += "timestep  {0}\n".format(self.dt/ 1000)
+        input_string += "thermo    1\n"
+        input_string += "min_style fire\n"
+        input_string += "compute   1 all property/atom d_nx d_ny d_nz" 
+        input_string += "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
+        input_string += "run 0\n"
         input_string += "\n"
-        input_string += "# Interactions\n"
-        input_string += "pair_style    {0}\n".format(pair_style)
-        input_string += "pair_coeff    {0}\n".format(pair_coeff)
+
+        input_string += "# Set up PAFI Langevin/Brownian integration in hyperplane\n"
+        if self.damp is None:
+            damp = "$(10*dt)"
+        else:
+            damp = self.damp
+        seed = self.rng.integers(99999)
+        if self.brownian:
+            input_string += f"fix       pafihp all pafi 1 {self.temperature} " +
+                            f"{damp} {seed} overdamped yes com yes\n"
+        else:
+            input_string += f"fix       pafihp all pafi 1 {self.temperature} " +
+                            f"{damp} {seed} overdamped no com yes\n"
         input_string += "\n"
+        input_string += "run 0\n"
+        input_string += "\n"
+        input_string += "minimize 0 0 250 250\n"
+        input_string += "reset_timestep  0\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+
+# ========================================================================== #
+    def get_neb_input(self):
+        """
+        Function to write the general parameters for NEB
+        """
+        input_string  = "#####################################\n"
         input_string += "# Compute relevant field for NEB simulation\n"
+        input_string += "#####################################\n"
         input_string += "timestep    {0}\n".format(self.dt/ (fs * 1000))
         input_string += "thermo      1\n"
-        input_string += "fix         neb all neb {0} parallel ideal\n".format(self.Kspring)
+        input_string += f"fix         neb all neb {self.Kspring} parallel ideal\n"
         input_string += "run 100\n"
         input_string += "reset_timestep  0\n\n"
         input_string += "variable    i equal part\n"
         input_string += "min_style   quickmin\n"
         input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
         input_string += "write_data  neb.$i\n"
-        
-        with open(self.lammpsNEBfname, "w") as f:
-            f.write(input_string)
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
 
 
-#========================================================================================================================#
-    def run_NEB(self, pair_style, pair_coeff):
+# ========================================================================== #
+    def run_dynamics(self,
+                     supercell,
+                     pair_style,
+                     pair_coeff,
+                     model_post=None,
+                     atom_style="atomic",
+                     bonds=None,
+                     angles=None,
+                     bond_style=None,
+                     bond_coeff=None,
+                     angle_style=None,
+                     angle_coeff=None,
+                     eq=False):
+        """
+        Function to run the PAFI dynamics
+        """
+        if not os.path.exists(self.workdir):
+            os.makedirs(self.workdir)
+
+        if atom_style is None:
+            atom_style = "atomic"
+
+        atoms = supercell.copy()
+
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+
+        if self.t_stop is None:
+            temp = self.temperature
+        else:
+            if eq:
+                temp = self.t_stop
+            else:
+                temp = self.rng.uniform(self.temperature, self.t_stop)
+
+        if eq:
+            nsteps = self.nsteps_eq
+        else:
+            nsteps = self.nsteps
+
+        self.write_lammps_pafi_input(atoms,
+                                     atom_style,
+                                     bond_style,
+                                     bond_coeff,
+                                     angle_style,
+                                     angle_coeff,
+                                     pair_style,
+                                     pair_coeff,
+                                     model_post,
+                                     nsteps,
+                                     temp)
+
+        lammps_command = self.cmd + " -in " + self.lammpsfname + \
+            " -sc out.lmp"
+        lmp_handle = run(lammps_command,
+                         shell=True,
+                         cwd=self.workdir,
+                         stderr=PIPE)
+
+        if lmp_handle.returncode != 0:
+            msg = "LAMMPS stopped with the exit code \n" + \
+                  f"{lmp_handle.stderr.decode()}"
+            raise RuntimeError(msg)
+
+        if charges is not None:
+            init_charges = atoms.get_initial_charges()
+        atoms = read(self.workdir + "configurations.out")
+        if charges is not None:
+            atoms.set_initial_charges(init_charges)
+
+        return atoms.copy()
+
+
+# ========================================================================== #
+    def run_NEB(self,
+                pair_style,
+                pair_coeff,
+                model_post=None,
+                atom_style="atomic",
+                bonds=None,
+                angles=None,
+                bond_style=None,
+                bond_coeff=None,
+                angle_style=None,
+                angle_coeff=None)
         """
         Run a NEB calculation with lammps. Use replicas.
         """
@@ -219,13 +339,47 @@ class PafiLammpsState(LammpsState):
         write_lammps_data(self.NEBworkdir+'atoms-0.data', self.confNEB[0])
         write_lammps_NEB_ASCIIfile(self.NEBworkdir+'atoms-1.data', self.confNEB[1])
 
-        self.write_lammps_input_NEB(self.confNEB[0], pair_style, pair_coeff)
-        lammps_command = self.cmdreplica + "-in " + self.lammpsNEBfname + "> log"
-        call(lammps_command, shell=True, cwd=self.NEBworkdir)
+        self.write_lammps_input_NEB(self.confNEB[0],
+                                    atom_style,
+                                    bond_style,
+                                    bond_coeff,
+                                    angle_style,
+                                    angle_coeff,
+                                    pair_style,
+                                    pair_coeff,
+                                    model_post)
+        lammps_command = self.cmdreplica + " -in " + self.lammpsNEBfname + \
+            " -sc out.lmp"
+        lmp_handle = run(lammps_command,
+                         shell=True,
+                         cwd=self.NEBworkdir,
+                         stderr=PIPE)
+
+        if lmp_handle.returncode != 0:
+            msg = "LAMMPS stopped with the exit code \n" + \
+                  f"{lmp_handle.stderr.decode()}"
+            raise RuntimeError(msg)
 
 
-#========================================================================================================================#
-    def run_MFEP(self, pair_style, pair_coeff, restart=0, fstop=0.001, xi=None, nsteps=10000, interval=10, nthrow=2000, mpi=None):
+# ========================================================================== #
+    def run_MFEP(self,
+                 pair_style,
+                 pair_coeff,
+                 model_post=None,
+                 atom_style="atomic",
+                 bonds=None,
+                 angles=None,
+                 bond_style=None,
+                 bond_coeff=None,
+                 angle_style=None,
+                 angle_coeff=None,
+                 restart=0, 
+                 fstop=0.001, 
+                 xi=None, 
+                 nsteps=10000, 
+                 interval=10, 
+                 nthrow=2000, 
+                 mpi=None):
         """
         Run a MFEP calculation with lammps. Use replicas.
         """
@@ -266,7 +420,7 @@ class PafiLammpsState(LammpsState):
         return F
 
 
-#========================================================================================================================#
+# ========================================================================== #
     def extract_NEB_configurations(self):
         """
         Step 1
@@ -295,14 +449,15 @@ class PafiLammpsState(LammpsState):
         if self.print: write(self.NEBworkdir + 'pos_neb_path_{}.xyz'.format(self.mfepstep), true_atoms, format='extxyz')
 
 
-#========================================================================================================================#
+# ========================================================================== #
     def compute_spline(self, xi=None):
         """
         Step 2
         Compute a 1D CubicSpline interpolation from a NEB calculation. 
         The function also set up the lammps data file for a constrained MD.
             - Three first columns: atomic positons at reaction coordinate xi.
-            - Three next columns:  normalized atomic first derivatives at reaction coordinate xi, with the corrections of the COM.
+            - Three next columns:  normalized atomic first derivatives at reaction coordinate xi, 
+                                   with the corrections of the COM.
             - Three last columns:  normalized atomic second derivatives at reaction coordinate xi.
         """
         Z = self.confNEB[0].get_atomic_numbers()
@@ -346,7 +501,7 @@ class PafiLammpsState(LammpsState):
         if self.print: write(self.NEBworkdir + 'pos_neb_spline_{}.xyz'.format(self.mfepstep), self.spline_atoms, format='extxyz')
 
 
-#========================================================================================================================#
+# ========================================================================== #
     def _set_PAFI_MD_cmd(self, rep, pair_style, pair_coeff, spatoms, sppositions, nsteps=10000, nthrow=0, mpi=None):
         """
         Post-MLACS
@@ -362,7 +517,7 @@ class PafiLammpsState(LammpsState):
         return lammps_command
 
 
-#========================================================================================================================#
+# ========================================================================== #
     def _create_ASE_object(self, Z, positions, cell, energy):
         """
         Create ASE Atoms object.  
@@ -375,7 +530,8 @@ class PafiLammpsState(LammpsState):
         atoms.set_calculator(calc)
         return atoms
 
-#========================================================================================================================#
+
+# ========================================================================== #
     def _COM_corrections(self, spline):
         """
         Correction of the path tangent to have zero center of mass
@@ -393,12 +549,13 @@ class PafiLammpsState(LammpsState):
         return spline
 
 
-#========================================================================================================================#
+# ========================================================================== #
     def _write_PafiPath_atoms(self, filename, atoms, spline):
         """
         Write the lammps data file for a constrained MD, from an Atoms object.
             - Three first columns: atomic positons at reaction coordinate xi.
-            - Three next columns:  normalized atomic first derivatives at reaction coordinate xi, with the corrections of the COM.
+            - Three next columns:  normalized atomic first derivatives at reaction coordinate xi, 
+                                   with the corrections of the COM.
             - Three last columns:  normalized atomic second derivatives at reaction coordinate xi.
         """
         symbol  = atoms.get_chemical_symbols()
@@ -422,7 +579,7 @@ class PafiLammpsState(LammpsState):
         with open(filename, 'w') as w:
             w.write(instr)
 
-#========================================================================================================================#
+# ========================================================================== #
     def _read_lammpsdata_truepositions(self, filename, wrap=True):
         """
         Extract positions from lammpsdata files with memory of periodicity.
@@ -493,7 +650,8 @@ class PafiLammpsState(LammpsState):
 
         return positions, cell
 
-#========================================================================================================================#
+
+# ========================================================================== #
     def initialize_momenta(self, atoms):
         """
         """
@@ -502,7 +660,8 @@ class PafiLammpsState(LammpsState):
         else:
             atoms.set_momenta(self.init_momenta)
 
-#========================================================================================================================#
+
+# ========================================================================== #
     def log_free_energy(self, xi):
         """
         """
@@ -535,11 +694,14 @@ class PafiLammpsState(LammpsState):
         return Fcor
 
 
-#========================================================================================================================#
-    def _log_pafi(self, rep=''):
+# ========================================================================== #
+    def get_pafilogging_input(self, rep=''):
         """
+        Function to write several PAFI outputs
         """
-        input_string  = "# Logging\n"
+        input_string  = "#####################################\n"
+        input_string += "#          Logging\n"
+        input_string += "#####################################\n"
         input_string += "variable    dU    equal f_pafihp[1]\n"
         input_string += "variable    dUerr equal f_pafihp[2]\n"
         input_string += "variable    psi   equal f_pafihp[3]\n"
@@ -553,9 +715,11 @@ class PafiLammpsState(LammpsState):
         else:
             input_string += 'fix logpafi all print 1 "${dU}  ${dUerr} ${psi} ${err} ${maxjump}" file pafi.log' + rep + ' title "# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'.format(rep)
         input_string += "\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
         return input_string
 
-#========================================================================================================================#
+# ========================================================================== #
     def log_recap_state(self):
         """
         Function to return a string describing the state for the log
@@ -581,38 +745,3 @@ class PafiLammpsState(LammpsState):
         msg += "\n"
         return msg
 
-#========================================================================================================================#
-#    def compute_averaged_configurations(self, pair_style, pair_coeff, nsteps=10000, interval=10, nthrow=0):
-#        """
-#        Post-MLACS
-#        CALL run_averageDM: Run a constrained MD and compute the average atomic positions and energies.
-#        Construct Free energy derivative. 
-#        """
-#        self.isappend     = False
-#        self.loginterval  = interval
-#        self.trajinterval = interval
-#
-#        if nthrow is not 0:
-#            nthrow = int(nthrow/interval)
-#        
-#        if self.logfile is None:
-#            raise TypeError('You need to define the MD output file: \n - Invalid variable name logfile={}'.format(self.logfile))
-#        if self.trajfile is None:
-#            raise TypeError('You need to define the MD trajectory file: \n - Invalid variable name trajfile={}'.format(self.trajfile))
-#        self.average_atoms     = []
-#        self.average_energy    = []
-#        self.average_positions = []
-#        if self.print: write('pos_spline.xyz', self.spline_atoms, 'extxyz')
-#        self.pafi = []
-#        for rep in range(len(self.spline_atoms)):
-#            atoms, energy, positions = self.run_averageDM(pair_style, pair_coeff, 
-#                                                          self.spline_atoms[rep],
-#                                                          self.spline_coordinates[rep,:,:], 
-#                                                          nsteps, nthrow)
-#            self.pafi.append(np.loadtxt(self.workdir+'pafi.log').T.tolist())
-#            self.average_atoms.append(atoms)
-#            self.average_energy.append(energy)
-#            self.average_positions.append(positions)
-#        if self.print: write('pos_averaged.xyz', self.average_atoms, 'extxyz')
-#        self.pafi = np.array(self.pafi)
-#        return np.array(self.average_atoms), np.array(self.average_energy), np.array(self.average_positions)
