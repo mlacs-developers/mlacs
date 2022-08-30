@@ -139,7 +139,7 @@ class LammpsState(StateManager):
                      pair_style,
                      pair_coeff,
                      model_post=None,
-                     atom_style=None,
+                     atom_style="atomic",
                      bonds=None,
                      angles=None,
                      bond_style=None,
@@ -152,6 +152,9 @@ class LammpsState(StateManager):
         """
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
+
+        if atom_style is None:
+            atom_style = "atomic"
 
         atoms = supercell.copy()
 
