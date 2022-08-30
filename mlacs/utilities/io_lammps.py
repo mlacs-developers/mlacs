@@ -1,3 +1,8 @@
+import os
+
+import numpy as np
+from ase.io.lammpsdata import write_lammps_data
+
 
 # ========================================================================== #
 def get_log_input(loginterval, logfile):
@@ -67,13 +72,7 @@ def get_general_input(pbc, masses, charges, atom_style):
     input_string += "units        metal\n"
     input_string += "boundary     " + \
         "{0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
-    if atom_style == "full":
-        input_string += "atom_style   full\n"
-    else:
-        if charges is None:
-            input_string += "atom_style   atomic\n"
-        else:
-            input_string += "atom_style   charge\n"
+    input_string += f"atom_style {atom_style}\n"
     input_string += "read_data    atoms.in\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
@@ -135,3 +134,48 @@ def get_last_dump_input(workdir, elem, nsteps):
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
+
+
+# ========================================================================== #
+def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
+    """
+    Write lammps data file with bonds and angles
+
+    Parameters
+    ----------
+    name : :class:`str`
+        name of the output file
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+    bonds: :class:`numpy.array`
+        array of bonds list
+    nconfs: :class:`numpy.array`
+        array of angles list
+    Return
+    ------
+    """
+    write_lammps_data('coord_tmp.lmp',
+                      atoms,
+                      atom_style="full",
+                      velocities=velocities)
+    with open('coord_tmp.lmp', 'r') as file:
+        lines = file.readlines()
+
+    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
+    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
+    lines.insert(ind+2, str(len(angles)) + ' angles \n')
+
+    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
+    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
+    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
+
+    with open(name, 'w') as fd:
+        for line in lines:
+            fd.write(line)
+        fd.write("\n")
+        fd.write(" Bonds \n \n")
+        np.savetxt(fd, bonds, fmt='%s')
+        fd.write("\n")
+        fd.write(" Angles \n \n")
+        np.savetxt(fd, angles, fmt='%s')
+    os.remove('coord_tmp.lmp')

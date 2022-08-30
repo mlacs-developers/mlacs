@@ -368,18 +368,16 @@ class OtfMlacs:
             self.log.logger_log.info(msg)
             return False
 
-        # We need to write atoms after computation,
-        # in case the simulation stops before all beads are computed
-        # or one of the true calc computation fails
-        for i, at in enumerate(atoms_true):
+        # And now we can write the configurations in the trajectory files
+        for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
             if at is not None:
-                self.mlip.update_matrices(at)
-                self.traj[i].write(at)
-                self.atoms[i] = at
+                self.mlip.update_matrices(attrue)
+                self.traj[i].write(attrue)
+                self.atoms[i] = attrue
                 with open(self.prefix_output[i] + "_potential.dat", "a") as f:
                     f.write("{:20.15f}   {:20.15f}\n".format(
-                             at.get_potential_energy(),
-                             at.get_potential_energy()))
+                             attrue.get_potential_energy(),
+                             atmlip.get_potential_energy()))
                 if not self.pimd:
                     self.nconfs[i] += 1
         if self.pimd:
@@ -413,6 +411,8 @@ class OtfMlacs:
         # and write the configuration to the trajectory
         self.traj = []  # To initialize the trajectories for each state
 
+        msg = "Running initial step"
+        self.log.logger_log.info(msg)
         # Once each computation is done, we need to correctly assign each atom
         # to the right state, this is done using the idx_computed list of list
         uniq_at = []
@@ -431,12 +431,16 @@ class OtfMlacs:
                     uniq_at.append(self.atoms[istate])
                     idx_computed.append([istate])
 
+        msg = f"There are {len(uniq_at)} unique configuration in the states "
+        self.log.logger_log.info(msg)
         # And finally we compute the properties for each unique atoms
         tmp_state = ["Initial"] * len(uniq_at)
         tmp_step = np.linspace(0, len(uniq_at), len(uniq_at), dtype=int)
         uniq_at = self.calc.compute_true_potential(uniq_at,
                                                    tmp_state,
                                                    tmp_step)
+        msg = "Computation done, creating trajectorys"
+        self.log.logger_log.info(msg)
 
         # And now, we dispatch each atoms to the right trajectory
         for iun, at in enumerate(uniq_at):
@@ -444,7 +448,6 @@ class OtfMlacs:
                 msg = "True potential calculation failed or " + \
                       "didn't converge"
                 raise TruePotentialError(msg)
-            self.mlip.update_matrices(at)
             for icop in idx_computed[iun]:
                 newat = at.copy()
                 epot = at.get_potential_energy()
@@ -488,51 +491,61 @@ class OtfMlacs:
 
             self.nconfs[istate] += 1
 
-        # Training configurations
-        msg = "\nComputing energy with true potential " + \
-              "on training configurations"
-        self.log.logger_log.info(msg)
-        # Check number of training configurations and create them if needed
-        if self.confs_init is None:
-            confs_init = create_random_structures(uniq_at,
-                                                  self.std_init,
-                                                  1)
-        elif isinstance(self.confs_init, (int, float)):
-            confs_init = create_random_structures(self.atoms[0],
-                                                  self.std_init,
-                                                  self.confs_init)
-        elif isinstance(self.confs_init, list):
-            confs_init = self.confs_init
-
-        if os.path.isfile("Training_configurations.traj"):
-            msg = "Training configurations found\n"
-            msg += "Adding them to the training data"
+        # If there is no configurations in the database,
+        # we need to create some and run the true potential
+        if self.mlip.nconfs == 0:
+            msg = "\nComputing energy with true potential " + \
+                  "on training configurations"
             self.log.logger_log.info(msg)
+            # Check number of training configurations and create them if needed
+            if self.confs_init is None:
+                confs_init = create_random_structures(uniq_at,
+                                                      self.std_init,
+                                                      1)
+            elif isinstance(self.confs_init, (int, float)):
+                confs_init = create_random_structures(self.atoms[0],
+                                                      self.std_init,
+                                                      self.confs_init)
+            elif isinstance(self.confs_init, list):
+                confs_init = self.confs_init
 
-            confs_init = read("Training_configurations.traj", index=":")
-            for conf in confs_init:
-                self.mlip.update_matrices(conf)
+            if os.path.isfile("Training_configurations.traj"):
+                msg = "Training configurations found\n"
+                msg += "Adding them to the training data"
+                self.log.logger_log.info(msg)
+
+                confs_init = read("Training_configurations.traj", index=":")
+                for conf in confs_init:
+                    self.mlip.update_matrices(conf)
+            else:
+                init_traj = Trajectory("Training_configurations.traj",
+                                       mode="w")
+                tmp_state = ["Training"] * len(confs_init)
+                tmp_step = np.linspace(0,
+                                       len(confs_init)-1,
+                                       len(confs_init),
+                                       dtype=int)
+                confs_init = self.calc.compute_true_potential(confs_init,
+                                                              tmp_state,
+                                                              tmp_step)
+                for i, conf in enumerate(confs_init):
+                    if conf is None:
+                        msg = "True potential calculation failed or " + \
+                              "didn't converge"
+                        raise TruePotentialError(msg)
+
+                    self.mlip.update_matrices(conf)
+                    init_traj.write(conf)
+                # We dont need the initial configurations anymore
+                del self.confs_init
+            self.log.logger_log.info("")
         else:
-            init_traj = Trajectory("Training_configurations.traj", mode="w")
-            tmp_state = ["Training"] * len(confs_init)
-            tmp_step = np.linspace(0,
-                                   len(confs_init)-1,
-                                   len(confs_init),
-                                   dtype=int)
-            confs_init = self.calc.compute_true_potential(confs_init,
-                                                          tmp_state,
-                                                          tmp_step)
-            for i, conf in enumerate(confs_init):
-                if conf is None:
-                    msg = "True potential calculation failed or " + \
-                          "didn't converge"
-                    raise TruePotentialError(msg)
-
-                self.mlip.update_matrices(conf)
-                init_traj.write(conf)
-            # We dont need the initial configurations anymore
-            del self.confs_init
-        self.log.logger_log.info("")
+            msg = f"There are already {self.mlip.nconfs} configurations " + \
+                  "in the database, no need to start training computations\n"
+            self.log.logger_log.info(msg)
+        # And now we add the starting configurations in the fit matrices
+        for at in uniq_at:
+            self.mlip.update_matrices(at)
         self.launched = True
 
 # ========================================================================== #
@@ -546,7 +559,6 @@ class OtfMlacs:
         if isinstance(state, list):
             self.state = state
 
-        print(nbeads)
         npimd = 0
         for s in self.state:
             if s.ispimd and nbeads > 1:
@@ -563,7 +575,7 @@ class OtfMlacs:
         self.nstate = len(self.state)
         if self.pimd:
             # We get the number of beads here
-            self.nbeads = nbeads  # self.state[0].get_nbeads()
+            self.nbeads = nbeads
             # We need to store the masses for isotope purposes
             self.masses = atoms.get_masses()
             # We need the temperature for centroid computation purposes

@@ -2,11 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
-
 import numpy as np
 from ase.atoms import Atoms
-from ase.io.lammpsdata import write_lammps_data
 
 
 # ========================================================================== #
@@ -82,23 +79,22 @@ def create_random_structures(atoms, std, nconfs):
 
 
 # ========================================================================== #
-def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
+def compute_correlation(data):
     """
-    Write lammps data file with bonds and angles
+    Function to compute the RMSE and MAE
 
     Parameters
     ----------
-    name : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-    bonds: :class:`numpy.array`
-        array of bonds list
-    nconfs: :class:`numpy.array`
-        array of angles list
-    Return
-    ------
+
+    data: :class:`numpy.ndarray` of shape (ndata, 2)
+        The data for which to compute the correlation.
+        The first column should be the gound truth and the second column
+        should be the prediction of the model
+    datatype: :class:`str`
+        The type of data to which the correlation are to be computed.
+        Can be either energy, forces or stress
     """
+<<<<<<< HEAD
     write_lammps_data('coord_tmp.lmp',
                       atoms,
                       atom_style="full",
@@ -124,6 +120,14 @@ def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
         fd.write(" Angles \n \n")
         np.savetxt(fd, angles, fmt='%s')
     os.remove('coord_tmp.lmp')
+    datatrue = data[:, 0]
+    datatest = data[:, 1]
+    rmse = np.sqrt(np.mean((datatrue - datatest)**2))
+    mae = np.mean(np.abs(datatrue - datatest))
+    sse = ((datatrue - datatest)**2).sum()
+    sst = ((datatrue - datatrue.mean())**2).sum()
+    rsquared = 1 - sse / sst
+    return rmse, mae, rsquared
 
 
 # ========================================================================== #

@@ -2,8 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import numpy as np
-
 from mlacs.mlip.linear_mlip import LinearMlip
 from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
@@ -41,7 +39,6 @@ class LammpsMlip(LinearMlip):
         Number of initial configuration to throw
         as the simulation runs (Counting the training configurations).
         Default ``10``.
-    regularization: :class:`float`
     energy_coefficient : :class:`float` (optional)
         Parameter controlling the importance of energy
         in the fitting of the MLIP. Default ``1.0``.
@@ -66,13 +63,13 @@ class LammpsMlip(LinearMlip):
                  rcut=5.0,
                  model="linear",
                  style="snap",
-                 mlip_parameters=None,
+                 descriptor_parameters=None,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
                  fit_dielectric=False,
                  nthrow=10,
-                 regularization=None,
+                 fit_parameters=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
@@ -83,7 +80,7 @@ class LammpsMlip(LinearMlip):
                             atoms,
                             rcut,
                             nthrow,
-                            regularization,
+                            fit_parameters,
                             energy_coefficient,
                             forces_coefficient,
                             stress_coefficient,
@@ -97,7 +94,7 @@ class LammpsMlip(LinearMlip):
                                                     self.rcut,
                                                     model,
                                                     style,
-                                                    mlip_parameters,
+                                                    descriptor_parameters,
                                                     radelems,
                                                     welems,
                                                     reference_potential,
@@ -114,15 +111,8 @@ class LammpsMlip(LinearMlip):
         self.fit_dielectric = fit_dielectric
 
 # ========================================================================== #
-    def get_regularization_vector(self):
-        """
-        Get the non zero entries for the  regularization vector, so everything
-        that is no the intercept
-        """
-        nelem = len(self.lammps_interface.elements)
-        regul = np.zeros(self.lammps_interface.ncolumns)
-        regul[nelem:] = 1.0
-        return regul
+    def _get_nelem(self):
+        return len(self.lammps_interface.elements)
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
@@ -134,19 +124,19 @@ class LammpsMlip(LinearMlip):
     def write_mlip(self):
         """
         """
-        self.lammps_interface.write_mlip_coeff(self.coefficients)
+        self.lammps_interface.write_mlip_model(self.coefficients)
 
 # ========================================================================== #
     def init_calc(self):
         """
         """
         if self.lammps_interface.fit_dielectric:
-            self.calc = self.lammps_interface.load_mlip(self.coefficients[-1])
+            diel = self.coefficients[-1]
         else:
-            self.calc = self.lammps_interface.load_mlip()
-        coeffs = self.coefficients[-1]
+            diel = None
+        self.calc = self.lammps_interface.load_mlip(diel)
         self.pair_style, self.pair_coeff, self.model_post = \
-            self.lammps_interface.get_pair_coeff_and_style(coeffs)
+            self.lammps_interface.get_pair_coeff_and_style(diel)
 
 # ========================================================================== #
     def get_mlip_dict(self):
@@ -154,5 +144,5 @@ class LammpsMlip(LinearMlip):
         mlip_dict['energy_coefficient'] = self.energy_coefficient
         mlip_dict['forces_coefficient'] = self.forces_coefficient
         mlip_dict['stress_coefficient'] = self.stress_coefficient
-        mlip_dict['regularization'] = self.regularization
+        mlip_dict['regularization'] = None
         return mlip_dict
