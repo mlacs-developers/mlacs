@@ -94,7 +94,6 @@ def compute_correlation(data):
         The type of data to which the correlation are to be computed.
         Can be either energy, forces or stress
     """
-<<<<<<< HEAD
     write_lammps_data('coord_tmp.lmp',
                       atoms,
                       atom_style="full",

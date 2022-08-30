@@ -505,7 +505,8 @@ class IpiState(LammpsState):
                                        ffsocket,
                                        system])
         tree = ET.ElementTree(simulation)
-        ET.indent(tree)
+        if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
+            ET.indent(tree)
         tree.write(self.ipifname, encoding='unicode', xml_declaration=True)
 
 # ========================================================================== #
