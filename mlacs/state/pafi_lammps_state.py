@@ -12,7 +12,14 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.singlepoint import SinglePointCalculator as SPC
 
 from mlacs.state import LammpsState
-from mlacs.utilities import get_elements_Z_and_masses, write_lammps_NEB_ASCIIfile
+from mlacs.utilities import (get_elements_Z_and_masses, 
+                             write_lammps_NEB_ASCIIfile)
+from mlacs.utilities.io_lammps import (get_general_input,
+                                       get_log_input,
+                                       get_traj_input,
+                                       get_interaction_input,
+                                       get_last_dump_input,
+                                       write_lammps_data_full)
 
 #========================================================================================================================#
 #========================================================================================================================#
@@ -86,31 +93,51 @@ class PafiLammpsState(LammpsState):
         self._Finit = 0
 
 #========================================================================================================================#
-    def write_lammps_input(self, atoms, pair_style, pair_coeff, nsteps, rep=''):
+    def write_lammps_input(self, 
+                           atoms, 
+                           atom_style,
+                           bond_style,
+                           bond_coeff,
+                           angle_style,
+                           angle_coeff,
+                           pair_style,
+                           pair_coeff,
+                           model_post,
+                           nsteps,
+                           temp,
+                           rep=''):
         """
+        Write the LAMMPS input for the constrained MD simulation
         """
-        elem, Z, masses = get_elements_Z_and_masses(atoms)
+        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        pbc = atoms.get_pbc()
 
         if self.damp is None:
             damp = "$(10*dt)"
 
-        input_string  = "# LAMMPS input file to run a MLMD simulation\n"
-        input_string += "units        metal\n"
-
-        pbc = atoms.get_pbc()
-        input_string += "atom_style   atomic\n"
-        input_string += "atom_modify  map array sort 0 0.0\n"
-        input_string += "neigh_modify every 2 delay 10 check yes page 1000000 one 100000\n\n"
-        input_string += "fix 1 all property/atom d_nx d_ny d_nz d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        input_string += "read_data {0} fix 1 NULL PafiPath\n\n".format(self.atomsfname+rep)
-        for i, mass in enumerate(masses):
-            input_string += "mass  " + str(i + 1) + "  " + str(mass) + "\n"
-        input_string += "\n"
-        input_string += "# Interactions\n"
-        input_string += "pair_style    {0}\n".format(pair_style)
-        input_string += "pair_coeff    {0}\n".format(pair_coeff)
-        input_string += "\n"
+        input_string  = ""
+        custom  = "atom_modify  map array sort 0 0.0\n"
+        custom += "neigh_modify every 2 delay 10 check yes page 1000000 one 100000\n\n"
+        custom += "fix 1 all property/atom d_nx d_ny d_nz d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
+        filename = self.atomsfname + rep + " fix 1 NULL PafiPath\n"
+        input_string += get_general_input(pbc,
+                                          masses,
+                                          charges,
+                                          atom_style,
+                                          filename,
+                                          custom)
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        input_string += get_interaction_input(bond_style,
+                                              bond_coeff,
+                                              angle_style,
+                                              angle_coeff,
+                                              pair_style,
+                                              pair_coeff,
+                                              model_post)
+        input_string += "#####################################\n"
         input_string += "# Compute relevant field for PAFI simulation\n"
+        input_string += "#####################################\n"
         input_string += "timestep  {0}\n".format(self.dt/ 1000)
         input_string += "thermo    1\n"
         input_string += "min_style fire\n"
@@ -123,33 +150,26 @@ class PafiLammpsState(LammpsState):
             input_string += "fix       pafihp all pafi 1 {0} {1} {2} overdamped {3} com yes\n".format(self.temperature, damp, self.rng.integers(99999), "yes")
         else:
             input_string += "fix       pafihp all pafi 1 {0} {1} {2} overdamped {3} com yes\n".format(self.temperature, damp, self.rng.integers(99999), "no")
-
         input_string += "\n"
         input_string += "run 0\n"
         input_string += "\n"
         input_string += "minimize 0 0 250 250\n"
-        input_string += "reset_timestep  0\n\n"
-
-
+        input_string += "reset_timestep  0\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
         if self.logfile is not None:
-            input_string += self.get_log_in()
+            input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
-            input_string += self.get_traj_in(elem)
+            input_string += get_traj_input(self.loginterval,
+                                           self.trajfile,
+                                           elem)
         input_string += self._log_pafi(rep)
+        input_string += get_last_dump_input(self.workdir,
+                                            elem,
+                                            nsteps)
+        input_string += f"run  {nsteps}"
 
-
-        input_string += "# Dump last step\n"
-        input_string += "dump last all custom {0} ".format(nsteps) + self.workdir + "configurations.out  id type xu yu zu vx vy vz fx fy fz element\n"
-        input_string += "dump_modify last element "
-        input_string += " ".join([p for p in elem])
-        input_string += "\n"
-        input_string += "dump_modify last delay {0}\n".format(nsteps)
-        input_string += "\n"
-
-        input_string += "run  {0}".format(nsteps)
-
-
-        with open(self.lammpsfname+rep, "w") as f:
+        with open(self.workdir + "lammps_input.in" + rep, "w") as f:
             f.write(input_string)
 
 

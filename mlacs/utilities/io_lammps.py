@@ -60,7 +60,7 @@ def get_traj_input(loginterval, trajfile, elem):
 
 
 # ========================================================================== #
-def get_general_input(pbc, masses, charges, atom_style):
+def get_general_input(pbc, masses, charges, atom_style, filename='atoms.in', custom=''):
     """
     Function to write the general parameters in the input
     """
@@ -73,7 +73,8 @@ def get_general_input(pbc, masses, charges, atom_style):
     input_string += "boundary     " + \
         "{0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
     input_string += f"atom_style {atom_style}\n"
-    input_string += "read_data    atoms.in\n"
+    input_string += custom
+    input_string += f"read_data    {filename}\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
     input_string += "#####################################\n"
