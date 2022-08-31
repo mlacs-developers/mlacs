@@ -283,7 +283,7 @@ class OtfMlacs:
                                self.nbeads)
         else:
             if type(self.state[istate]).__name__ == 'PafiLammpsState':
-                self.state[istate].run_NEB(self.mlip.pair_style, 
+                self.state[istate].run_NEB(self.mlip.pair_style,
                                            self.mlip.pair_coeff,
                                            self.mlip.model_post,
                                            self.mlip.atom_style,
@@ -298,7 +298,7 @@ class OtfMlacs:
                 self.state[istate].isrestart = False
             # Reset Atoms to sample from the perfect atomic structures
             if self.state[istate].isrestart:
-                msg = "Starting from first configuration\n" 
+                msg = "Starting from first configuration\n"
                 self.log.logger_log.info(msg)
                 atoms_mlip[istate] = self.atoms_start[istate].copy()
                 self.state[istate].initialize_momenta(atoms_mlip[istate])
