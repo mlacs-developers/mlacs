@@ -381,19 +381,31 @@ class PafiLammpsState(LammpsState):
         for rep in range(restart, nrep):
             if mpi is None:
                 lmp = self._set_mpicmd(rep,
-                                       pair_style,
-                                       pair_coeff,
                                        self.spline_atoms[rep],
                                        self.spline_coordinates[rep, :, :],
+                                       atom_style,
+                                       bond_style,
+                                       bond_coeff,
+                                       angle_style,
+                                       angle_coeff,
+                                       pair_style,
+                                       pair_coeff,
+                                       model_post,
                                        nsteps,
                                        nthrow)
                 call(lmp, shell=True, cwd=self.workdir)
             else:
                 lmp += self._set_mpicmd(rep,
-                                        pair_style,
-                                        pair_coeff,
                                         self.spline_atoms[rep],
                                         self.spline_coordinates[rep, :, :],
+                                        atom_style,
+                                        bond_style,
+                                        bond_coeff,
+                                        angle_style,
+                                        angle_coeff,
+                                        pair_style,
+                                        pair_coeff,
+                                        model_post,
                                         nsteps,
                                         mpi)
                 cnt += 1
@@ -503,7 +515,7 @@ class PafiLammpsState(LammpsState):
                     self.spline_coordinates).round(8)
             for rep in range(len(xi)):
                 self.spline_atoms.append(self._create_ASE_object(
-                    Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0], 
+                    Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
                     self.confNEB[0].get_cell(), self.spline_energies[rep]))
         if isinstance(xi, float):
             self._write_PafiPath_atoms(self.atomsfname,
@@ -516,10 +528,16 @@ class PafiLammpsState(LammpsState):
 # ========================================================================== #
     def _set_mpicmd(self,
                     rep,
-                    pair_style,
-                    pair_coeff,
                     spatoms,
                     sppositions,
+                    atom_style,
+                    bond_style,
+                    bond_coeff,
+                    angle_style,
+                    angle_coeff,
+                    pair_style,
+                    pair_coeff,
+                    model_post,
                     nsteps=10000,
                     nthrow=0,
                     mpi=None):
@@ -544,8 +562,8 @@ class PafiLammpsState(LammpsState):
         lammps_command = self.cmd + " -in " + self.lammpsfname + \
             f".{rep} -sc out.lmp.{rep}"
         if mpi is not None:
-#            lammps_command = "srun -n 1 " + self.exe + \
-#                " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
+            # lammps_command = "srun -n 1 " + self.exe + \
+            #    " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
             lammps_command = "ccc_mprun -E'--exclusive' -n 1 " + self.exe + \
                 " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
         return lammps_command
@@ -553,13 +571,13 @@ class PafiLammpsState(LammpsState):
 # ========================================================================== #
     def _create_ASE_object(self, Z, positions, cell, energy):
         """
-        Create ASE Atoms object.  
+        Create ASE Atoms object.
         """
         atoms = Atoms(numbers=Z,
                       positions=positions,
                       cell=cell)
-        calc  = SPC(atoms  = atoms,
-                    energy = energy)
+        calc = SPC(atoms=atoms,
+                   energy=energy)
         atoms.set_calculator(calc)
         return atoms
 
@@ -570,14 +588,14 @@ class PafiLammpsState(LammpsState):
         """
         N = len(self.confNEB[0])
         pos, der, der2 = np.hsplit(np.array(spline), 3)
-        com  = np.array([np.average(der[:,i]) for i in range(3)])
+        com = np.array([np.average(der[:, i]) for i in range(3)])
         norm = 0
         for i in range(N):
-            norm += np.sum([ (der[i,j]-com[j])**2 for j in range(3)])
+            norm += np.sum([(der[i, j] - com[j])**2 for j in range(3)])
         norm = np.sqrt(norm)
         for i in range(N):
-            spline[i].extend([(der[i,j] - com[j])/norm for j in range(3)]) 
-            spline[i].extend([der2[i,j]/norm/norm for j in range(3)]) 
+            spline[i].extend([(der[i, j] - com[j]) / norm for j in range(3)])
+            spline[i].extend([der2[i, j] / norm / norm for j in range(3)])
         return spline
 
 # ========================================================================== #
@@ -585,29 +603,30 @@ class PafiLammpsState(LammpsState):
         """
         Write the lammps data file for a constrained MD, from an Atoms object.
             - Three first columns: atomic positons at reaction coordinate xi.
-            - Three next columns:  normalized atomic first derivatives at 
+            - Three next columns:  normalized atomic first derivatives at
                 reaction coordinate xi, with the corrections of the COM.
             - Three last columns:  normalized atomic second derivatives at
                 reaction coordinate xi.
         """
-        symbol  = atoms.get_chemical_symbols()
+        symbol = atoms.get_chemical_symbols()
         species = sorted(set(symbol))
-        N       = len(symbol)
-        cell    = atoms.get_cell()
-        instr  = '#{0} (written by MLACS)\n\n'.format(filename)
+        N = len(symbol)
+        cell = atoms.get_cell()
+        instr = '#{0} (written by MLACS)\n\n'.format(filename)
         instr += '{0} atoms\n'.format(N)
         instr += '{0} atom types\n'.format(len(species))
-        instr += '0 {0} xlo xhi\n'.format(cell[0,0])
-        instr += '0 {0} ylo yhi\n'.format(cell[1,1])
-        instr += '0 {0} zlo zhi\n'.format(cell[2,2])
+        instr += '0 {0} xlo xhi\n'.format(cell[0, 0])
+        instr += '0 {0} ylo yhi\n'.format(cell[1, 1])
+        instr += '0 {0} zlo zhi\n'.format(cell[2, 2])
         instr += '\nAtoms\n\n'
-        for i in range(N): 
-            strformat = '{:>6} '+ '{:>3} ' + ('{:12.8f} ' *3) + '\n'
-            instr += strformat.format(i+1, species.index(symbol[i]) + 1, *spline[i,:3])
+        for i in range(N):
+            strformat = '{:>6} ' + '{:>3} ' + ('{:12.8f} ' * 3) + '\n'
+            instr += strformat.format(i+1, species.index(symbol[i]) + 1,
+                                      *spline[i, :3])
         instr += '\nPafiPath\n\n'
-        for i in range(N): 
-            strformat = '{:>6} '+ ('{:12.8f} ' *9) + '\n'
-            instr += strformat.format(i+1, *spline[i,:3], *spline[i,9:])
+        for i in range(N):
+            strformat = '{:>6} ' + ('{:12.8f} ' * 9) + '\n'
+            instr += strformat.format(i+1, *spline[i, :3], *spline[i, 9:])
         with open(filename, 'w') as w:
             w.write(instr)
 
@@ -617,34 +636,36 @@ class PafiLammpsState(LammpsState):
         Extract positions from lammpsdata files with memory of periodicity.
         Inspired from ASE.
         """
-        
         (xy, xz, yz) = None, None, None
         (section, style) = None, None
         pos_in = {}
         travel_in = {}
 
         with open(filename, 'r') as r:
-            for l in r:
-                if 'atoms' in l: N = int(l.split()[0])
-                if 'Atoms' in l: 
-                    (section, _, style) = l.split()
+            for _ in r:
+                if 'atoms' in _:
+                    N = int(_.split()[0])
+                if 'Atoms' in _:
+                    (section, _, style) = _.split()
                     continue
-                if 'Velocities' in l: 
-                    (section) = l.split()
+                if 'Velocities' in _:
+                    (section) = _.split()
                     continue
-                if 'xlo xhi' in l:
-                    (xlo, xhi) = [float(x) for x in l.split()[0:2]]
-                if 'ylo yhi' in l:
-                    (ylo, yhi) = [float(x) for x in l.split()[0:2]]
-                if 'zlo zhi' in l:
-                    (zlo, zhi) = [float(x) for x in l.split()[0:2]]
-                if 'xy xz yz' in l:
-                    (xy, xz, yz) = [float(x) for x in l.split()[0:3]]
+                if 'xlo xhi' in _:
+                    (xlo, xhi) = [float(x) for x in _.split()[0:2]]
+                if 'ylo yhi' in _:
+                    (ylo, yhi) = [float(x) for x in _.split()[0:2]]
+                if 'zlo zhi' in _:
+                    (zlo, zhi) = [float(x) for x in _.split()[0:2]]
+                if 'xy xz yz' in _:
+                    (xy, xz, yz) = [float(x) for x in _.split()[0:3]]
                 if section == 'Atoms':
-                    fields = l.split()
-                    if len(fields)==0: continue
+                    fields = _.split()
+                    lenght = len(fields)
+                    if lenght == 0:
+                        continue
                     id = int(fields[0])
-                    if style == "atomic" and (len(fields) == 5 or len(fields) == 8):
+                    if style == "atomic" and (lenght == 5 or lenght == 8):
                         # id type x y z [tx ty tz]
                         pos_in[id] = (
                             int(fields[1]),
@@ -652,14 +673,15 @@ class PafiLammpsState(LammpsState):
                             float(fields[3]),
                             float(fields[4]),
                         )
-                        if len(fields) == 8:
+                        if lenght == 8:
                             travel_in[id] = (
                                 int(fields[5]),
                                 int(fields[6]),
                                 int(fields[7]),
                             )
                     else:
-                        msg = "Style '{}' not supported or invalid number of fields {}".format(style, len(fields))
+                        msg = f"Style '{style}' not supported or" + \
+                              f"invalid number of fields {lenght}"
                         raise RuntimeError(msg)
 
         # set cell
@@ -674,12 +696,11 @@ class PafiLammpsState(LammpsState):
         if yz is not None:
             cell[2, 1] = yz
         positions = np.zeros((N, 3))
-        for id in pos_in.keys(): 
+        for id in pos_in.keys():
             ind = id - 1
             positions[ind, :] = [pos_in[id][1]+cell[0, 0]*travel_in[id][0],
-                                 pos_in[id][2]+cell[1, 1]*travel_in[id][1], 
-                                 pos_in[id][3]+cell[2, 2]*travel_in[id][2]]            
-
+                                 pos_in[id][2]+cell[1, 1]*travel_in[id][1],
+                                 pos_in[id][3]+cell[2, 2]*travel_in[id][2]]
         return positions, cell
 
 # ========================================================================== #
@@ -687,7 +708,9 @@ class PafiLammpsState(LammpsState):
         """
         """
         if self.init_momenta is None:
-            MaxwellBoltzmannDistribution(atoms, temperature_K=self.temperature, rng=self.rng)
+            MaxwellBoltzmannDistribution(atoms,
+                                         temperature_K=self.temperature,
+                                         rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
 
@@ -697,30 +720,40 @@ class PafiLammpsState(LammpsState):
         """
 
         from mlacs.utilities.miscellanous import integrate_points as IntP
-        from mlacs.utilities.miscellanous import interpolate_points as IP
 
-        dF  = []
+        dF = []
         psi = []
         cor = []
         maxjump = []
         for rep in range(len(xi)):
             dF.append(np.average(self.pafi[rep, 0]))
             psi.append(np.average(self.pafi[rep, 2]))
-            cor.append(np.average(np.log(np.abs(self.pafi[rep, 2]/self.pafi[0,2]))))
-            maxjump.append([x for x in self.pafi[rep,4].tolist() if x >= self.maxjump])
-        dF   = np.array(dF)
-        cor  = np.array(cor)
-        psi  = np.array(psi)
+            cor.append(np.average(
+                np.log(np.abs(self.pafi[rep, 2] / self.pafi[0, 2]))))
+            maxjump.append(
+                [x for x in self.pafi[rep, 4].tolist() if x >= self.maxjump])
+        dF = np.array(dF)
+        cor = np.array(cor)
+        psi = np.array(psi)
         maxjump = np.array(maxjump)
-        F    = -np.array(IntP(xi, dF, xi))
-        Fcor = -np.array(IntP(xi, dF+kB*self.temperature*cor, xi))
-        Ipsi = np.array(IntP(xi, psi, xi))
+        F = -np.array(IntP(xi, dF, xi))
+        Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
+        # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
             with open('free_energy.dat', 'w') as w:
-                w.write('##  Free energy barier: {} eV  ##  xi  <dF/dxi>  <F(xi)>  <psi>  cor  Fcor(xi)  Nmaxjump  ##\n'.format(max(F) - min(F)))
+                dFM = max(F) - min(F)
+                w.write(f'##  Free energy barier: {dFM} eV  ' +
+                        '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
+                        'cor  Fcor(xi)  Nmaxjump  ##\n')
                 strformat = ('{:12.8f} ' * 7) + '\n'
                 for i in range(len(xi)):
-                    w.write(strformat.format(xi[i], dF[i], F[i], psi[i], kB*self.temperature*cor[i], Fcor[i], len(maxjump[i])))
+                    w.write(strformat.format(xi[i],
+                                             dF[i],
+                                             F[i],
+                                             psi[i],
+                                             kB * self.temperature * cor[i],
+                                             Fcor[i],
+                                             len(maxjump[i])))
         return Fcor
 
 # ========================================================================== #
@@ -728,7 +761,7 @@ class PafiLammpsState(LammpsState):
         """
         Function to write several PAFI outputs
         """
-        input_string  = "#####################################\n"
+        input_string = "#####################################\n"
         input_string += "#          Logging\n"
         input_string += "#####################################\n"
         input_string += "variable    dU    equal f_pafihp[1]\n"
@@ -740,9 +773,15 @@ class PafiLammpsState(LammpsState):
         input_string += "variable    maxjump equal sqrt(c_maxdisp)\n"
 
         if self.isappend:
-            input_string += 'fix logpafi all print 1 "${dU}  ${dUerr} ${psi} ${err} ${maxjump}" append pafi.log' + rep + ' title "# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'.format(rep)
+            input_string += 'fix logpafi all print 1 ' + \
+                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}"' + \
+                            f'append pafi.log.{rep} title ' + \
+                            '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
         else:
-            input_string += 'fix logpafi all print 1 "${dU}  ${dUerr} ${psi} ${err} ${maxjump}" file pafi.log' + rep + ' title "# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'.format(rep)
+            input_string += 'fix logpafi all print 1 ' + \
+                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}"' + \
+                            f'file pafi.log.{rep} title ' + \
+                            '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
         input_string += "\n"
         input_string += "#####################################\n"
         input_string += "\n\n\n"
@@ -760,17 +799,16 @@ class PafiLammpsState(LammpsState):
         if coord is None:
             coord = 0.5
 
-        msg  = "NEB calculation as implemented in LAMMPS\n"
-        msg += "Number of replicas :                     {0}\n".format(self.nreplica)
-        msg += "String constant :                        {0}\n".format(self.Kspring)
+        msg = "NEB calculation as implemented in LAMMPS\n"
+        msg += f"Number of replicas :                     {self.nreplica}\n"
+        msg += f"String constant :                        {self.Kspring}\n"
         msg += "\n"
         msg += "Constrain dynamics as implemented in LAMMPS with fix PAFI\n"
-        msg += "Temperature (in Kelvin) :                {0}\n".format(self.temperature)
-        msg += "Number of MLMD equilibration steps :     {0}\n".format(self.nsteps_eq)
-        msg += "Number of MLMD production steps :        {0}\n".format(self.nsteps)
-        msg += "Timestep (in fs) :                       {0}\n".format(self.dt)
-        msg += "Themostat damping parameter (in fs) :    {0}\n".format(damp)
-        msg += "Reaction coordinate :                    {0}\n".format(coord)
+        msg += f"Temperature (in Kelvin) :                {self.temperature}\n"
+        msg += f"Number of MLMD equilibration steps :     {self.nsteps_eq}\n"
+        msg += f"Number of MLMD production steps :        {self.nsteps}\n"
+        msg += f"Timestep (in fs) :                       {self.dt}\n"
+        msg += f"Themostat damping parameter (in fs) :    {damp}\n"
+        msg += f"Reaction coordinate :                    {coord}\n"
         msg += "\n"
         return msg
-
