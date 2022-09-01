@@ -1,6 +1,7 @@
 # Todo list
 ===========
 
+* update some printing to the log (mlip, calculator, ...)
 * make a directory by DFT calculation
 * give the possibility to restart at the begining of the trajectory
 * give the possibility to run DFT calculation in parallel

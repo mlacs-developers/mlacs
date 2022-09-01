@@ -1,16 +1,17 @@
 """
-// (c) 2021 Aloïs Castellano
+// (c) 2022 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from mlacs.mlip.linear_mlip import LinearMlip
+from mlacs.mlip.neural_network import NeuralNetworkMlip
 from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
 
 
 # ========================================================================== #
 # ========================================================================== #
-class LammpsMlip(LinearMlip):
+class LammpsMlipNn(NeuralNetworkMlip):
     """
-    MLIP Manager Class to interface with the ML-IAP package
+    MLIP Manager Class to interface with the Neural Network par of the
+    ML-IAP package
 
     Parameters
     ----------
@@ -18,10 +19,6 @@ class LammpsMlip(LinearMlip):
         Should contains the same elements as the main simulation
     rcut : :class:`float` (optional)
         Cutoff radius, in angstrom. Default 5.0.
-    model : ``\"linear\"`` or ``\"quadratic\"`` (optional)
-        Model of the MLIP. Quadratic increase accuracy at the cost
-        of an exponential augmentation of the number of coefficients.
-        Default ``\"linear\"``.
     style : \"snap\"`` or ``\"so3\"`` (optional)
         Style of the descriptor. 'snap' is based on the extension of
         the atomic environment on the 4-sphere.
@@ -48,59 +45,42 @@ class LammpsMlip(LinearMlip):
     stress_coefficient : :class:`float` (optional)
         Parameter controlling the importance of stress
         in the fitting of the MLIP. Default ``0.0``.
-    rescale_energy : :class:`Bool` (optional)
-        If true, the energy data are divided by
-        its standard deviation before the fit. Default ``True``.
-    rescale_forces : :class:`Bool` (optional)
-        If true, the forces data are divided by
-        its standard deviation before the fit. Default ``True``.
-    rescale_stress : :class:`Bool` (optional)
-        If true, the stress data are divided by
-        its standard deviation before the fit. Default ``True``.
     """
     def __init__(self,
                  atoms,
                  rcut=5.0,
-                 model="linear",
                  style="snap",
                  descriptor_parameters=None,
+                 nn_parameters=None,
                  radelems=None,
                  welems=None,
                  reference_potential=None,
-                 fit_dielectric=False,
                  nthrow=10,
-                 fit_parameters=None,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 stress_coefficient=0.0,
-                 rescale_energy=True,
-                 rescale_forces=True,
-                 rescale_stress=True):
-        LinearMlip.__init__(self,
-                            atoms,
-                            rcut,
-                            nthrow,
-                            fit_parameters,
-                            energy_coefficient,
-                            forces_coefficient,
-                            stress_coefficient,
-                            rescale_energy=True,
-                            rescale_forces=True,
-                            rescale_stress=True)
+                 stress_coefficient=1.0):
+
+        NeuralNetworkMlip.__init__(self,
+                                   atoms,
+                                   rcut,
+                                   nthrow,
+                                   nn_parameters,
+                                   energy_coefficient,
+                                   forces_coefficient,
+                                   stress_coefficient)
 
         self.lammps_interface = LammpsMlipInterface(self.elements,
                                                     self.masses,
                                                     self.Z,
                                                     self.rcut,
-                                                    model,
+                                                    "nn",
                                                     style,
                                                     descriptor_parameters,
                                                     radelems,
                                                     welems,
-                                                    reference_potential,
-                                                    fit_dielectric)
-
-        self.ncolumns = self.lammps_interface.ncolumns
+                                                    reference_potential)
+        self.perat_desc = self.lammps_interface.get_perat_desc()
+        self._initialize_nn()
 
         self.pair_style, self.pair_coeff, self.model_post = \
             self.lammps_interface.get_pair_coeff_and_style()
@@ -108,11 +88,14 @@ class LammpsMlip(LinearMlip):
             self.angle_style, self.angle_coeff = \
             self.lammps_interface.get_bond_angle_coeff_and_style()
         self.bonds, self.angles = self.lammps_interface.get_bonds_angles()
-        self.fit_dielectric = fit_dielectric
 
 # ========================================================================== #
     def _get_nelem(self):
         return len(self.lammps_interface.elements)
+
+# ========================================================================== #
+    def _get_ncolumns(self):
+        return self.lammps_interface.ncolumns - 1
 
 # ========================================================================== #
     def compute_fit_matrix(self, atoms):
@@ -121,22 +104,21 @@ class LammpsMlip(LinearMlip):
         return self.lammps_interface.compute_fit_matrix(atoms)
 
 # ========================================================================== #
-    def write_mlip(self):
+    def write_mlip(self, results, nparams, nnodes, activation):
         """
         """
-        self.lammps_interface.write_mlip_model(self.coefficients)
+        self.lammps_interface.write_mlip_model_nn(results,
+                                                  nparams,
+                                                  nnodes,
+                                                  activation)
 
 # ========================================================================== #
     def init_calc(self):
         """
         """
-        if self.lammps_interface.fit_dielectric:
-            diel = self.coefficients[-1]
-        else:
-            diel = None
-        self.calc = self.lammps_interface.load_mlip(diel)
+        self.calc = self.lammps_interface.load_mlip()
         self.pair_style, self.pair_coeff, self.model_post = \
-            self.lammps_interface.get_pair_coeff_and_style(diel)
+            self.lammps_interface.get_pair_coeff_and_style()
 
 # ========================================================================== #
     def get_mlip_dict(self):

@@ -52,38 +52,40 @@ class LinearMlip(MlipManager):
     def train_mlip(self):
         """
         """
-        idx = self._get_idx_fit()
+        idx_e, idx_f, idx_s = self._get_idx_fit()
 
         sigma_e = 1.0
         if self.rescale_energy:
-            sigma_e = np.std(self.amatrix_energy[idx:])
+            sigma_e = np.std(self.amat_e[idx_e:])
         sigma_f = 1.0
         if self.rescale_forces:
-            sigma_f = np.std(self.amatrix_forces[idx*3*self.natoms:])
+            sigma_f = np.std(self.amat_f[idx_f:])
         sigma_s = 1.0
         if self.rescale_stress:
-            sigma_s = np.std(self.amatrix_stress[idx*6:])
+            sigma_s = np.std(self.amat_s[idx_s:])
 
         ecoef = self.energy_coefficient / sigma_e / \
-            len(self.amatrix_energy[idx:])
+            len(self.ymat_e[idx_e:])
         fcoef = self.forces_coefficient / sigma_f / \
-            len(self.amatrix_forces[idx*3*self.natoms:])
+            len(self.ymat_f[idx_f:])
         scoef = self.stress_coefficient / sigma_s / \
-            len(self.amatrix_stress[idx*6:])
+            len(self.ymat_s[idx_s:])
 
-        amatrix = np.vstack((ecoef * self.amatrix_energy[idx:],
-                             fcoef * self.amatrix_forces[idx*3*self.natoms:],
-                             scoef * self.amatrix_stress[idx*6:]))
-        ymatrix = np.hstack((ecoef * self.ymatrix_energy[idx:],
-                             fcoef * self.ymatrix_forces[idx*3*self.natoms:],
-                             scoef * self.ymatrix_stress[idx*6:]))
+        amat = np.r_[self.amat_e[idx_e:] * ecoef,
+                     self.amat_f[idx_f:] * fcoef,
+                     self.amat_s[idx_s:] * scoef]
+        ymat = np.r_[self.ymat_e[idx_e:] * ecoef,
+                     self.ymat_f[idx_f:] * fcoef,
+                     self.ymat_s[idx_s:] * scoef]
 
-        msg = "number of configurations for training:  " + \
-              f"{len(self.amatrix_energy[idx:])}\n"
+        msg = "number of configurations for training: " + \
+              f"{len(self.natoms[idx_e:]):}\n"
+        msg += "number of atomic environments for training: " + \
+               f"{self.natoms[idx_e:].sum():}\n"
 
         if self.parameters["method"] == "ols":
-            self.coefficients = np.linalg.lstsq(amatrix,
-                                                ymatrix,
+            self.coefficients = np.linalg.lstsq(amat,
+                                                ymat,
                                                 rcond=None)[0]
         else:
             if lin_mod is None:
@@ -92,16 +94,16 @@ class LinearMlip(MlipManager):
                 raise ModuleNotFoundError(msg)
 
             nelem = self._get_nelem()
-            intercept_col = self.amatrix_energy[idx:, :nelem].mean(axis=0)
+            intercept_col = self.amat_e[idx_e:, :nelem].mean(axis=0)
 
             fitmethod = getattr(lin_mod, self.parameters["method"])
             fitlin = fitmethod(**self.parameters["hyperparameters"])
             if self.parameters["gridcv"] is None:
-                fitlin.fit(amatrix, ymatrix)
+                fitlin.fit(amat, ymat)
             else:
                 fitgcv = GridSearchCV(fitlin,
                                       self.parameters["gridcv"], verbose=0)
-                fitgcv.fit(amatrix, ymatrix)
+                fitgcv.fit(amat, ymat)
                 fitlin = fitgcv.best_estimator_
 
                 msg += "Hyperparameters found by Grid Seach Cross Validation\n"
@@ -112,9 +114,9 @@ class LinearMlip(MlipManager):
             # have been modified with the regularization method
             # If LinearRegression is used, this method recovers the
             # usual Ordinary Least Square solution as with np.linalg.lstsq
-            mean_e = self.ymatrix_energy[idx:].mean()
+            mean_e = self.ymat_e[idx_e:].mean()
             intercept = np.einsum("ij,j->i",
-                                  self.amatrix_energy[idx:, nelem:],
+                                  self.amat_e[idx_e:, nelem:],
                                   fitlin.coef_[nelem:]).mean()
             intercept_col /= intercept_col.sum()
             intercept = intercept_col * (mean_e - intercept)
@@ -122,7 +124,7 @@ class LinearMlip(MlipManager):
             self.coefficients = fitlin.coef_
             self.coefficients[:nelem] = intercept
 
-        msg = self.compute_tests(idx, msg)
+        msg = self.compute_tests(idx_e, idx_f, idx_s, msg)
         self.write_mlip()
         self.init_calc()
         return msg
@@ -152,17 +154,17 @@ class LinearMlip(MlipManager):
         return mlip_dict
 
 # ========================================================================== #
-    def compute_tests(self, idx, msg):
+    def compute_tests(self, idx_e, idx_f, idx_s, msg):
         # Prepare some data to check accuracy of the fit
-        e_true = self.ymatrix_energy[idx:]
+        e_true = self.ymat_e[idx_e:]
         e_mlip = np.einsum('i,ki->k', self.coefficients,
-                           self.amatrix_energy[idx:])
-        f_true = self.ymatrix_forces[idx*3*self.natoms:]
+                           self.amat_e[idx_e:])
+        f_true = self.ymat_f[idx_f:]
         f_mlip = np.einsum('i,ki->k', self.coefficients,
-                           self.amatrix_forces[idx*3*self.natoms:])
-        s_true = self.ymatrix_stress[idx*6:] / GPa
+                           self.amat_f[idx_f:])
+        s_true = self.ymat_s[idx_s:] / GPa
         s_mlip = np.einsum('i,ki->k', self.coefficients,
-                           self.amatrix_stress[idx*6:]) / GPa
+                           self.amat_s[idx_s:]) / GPa
 
         # Compute RMSE and MAE
         rmse_energy = np.sqrt(np.mean((e_true - e_mlip)**2))

@@ -12,31 +12,24 @@ The State Classes are object managing the state being simulated by the MLMD simu
 StateManager
 ------------
 
-.. autoclass:: StateManager
+.. autoclass:: mlacs.state.state.StateManager
 
 LammpsState
 -----------
 
 .. autoclass:: LammpsState
- 
-PimdLammpsState
----------------
-
-.. autoclass:: PimdLammpsState
 
 CustomLammpsState
 -----------------
 
 .. autoclass:: CustomLammpsState
 
+IpiState
+--------
+
+.. autoclass:: IpiState
+
 LangevinState
 -------------
 
 .. autoclass:: LangevinState
- 
-VerletState
------------
-
-.. autoclass:: VerletState
- 
- 

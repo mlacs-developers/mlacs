@@ -2,11 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
-
 import numpy as np
 from ase.atoms import Atoms
-from ase.io.lammpsdata import write_lammps_data
 
 
 # ========================================================================== #
@@ -82,45 +79,26 @@ def create_random_structures(atoms, std, nconfs):
 
 
 # ========================================================================== #
-def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
+def compute_correlation(data):
     """
-    Write lammps data file with bonds and angles
+    Function to compute the RMSE and MAE
 
     Parameters
     ----------
-    name : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-    bonds: :class:`numpy.array`
-        array of bonds list
-    nconfs: :class:`numpy.array`
-        array of angles list
-    Return
-    ------
+
+    data: :class:`numpy.ndarray` of shape (ndata, 2)
+        The data for which to compute the correlation.
+        The first column should be the gound truth and the second column
+        should be the prediction of the model
+    datatype: :class:`str`
+        The type of data to which the correlation are to be computed.
+        Can be either energy, forces or stress
     """
-    write_lammps_data('coord_tmp.lmp',
-                      atoms,
-                      atom_style="full",
-                      velocities=velocities)
-    with open('coord_tmp.lmp', 'r') as file:
-        lines = file.readlines()
-
-    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
-    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
-    lines.insert(ind+2, str(len(angles)) + ' angles \n')
-
-    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
-    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
-    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
-
-    with open(name, 'w') as fd:
-        for line in lines:
-            fd.write(line)
-        fd.write("\n")
-        fd.write(" Bonds \n \n")
-        np.savetxt(fd, bonds, fmt='%s')
-        fd.write("\n")
-        fd.write(" Angles \n \n")
-        np.savetxt(fd, angles, fmt='%s')
-    os.remove('coord_tmp.lmp')
+    datatrue = data[:, 0]
+    datatest = data[:, 1]
+    rmse = np.sqrt(np.mean((datatrue - datatest)**2))
+    mae = np.mean(np.abs(datatrue - datatest))
+    sse = ((datatrue - datatest)**2).sum()
+    sst = ((datatrue - datatrue.mean())**2).sum()
+    rsquared = 1 - sse / sst
+    return rmse, mae, rsquared
