@@ -16,6 +16,7 @@ from mlacs.utilities import get_elements_Z_and_masses
 from mlacs.utilities.io_lammps import (get_general_input,
                                        get_log_input,
                                        get_traj_input,
+                                       get_diffusion_input,
                                        get_interaction_input,
                                        get_last_dump_input,
                                        write_lammps_data_full)
@@ -93,6 +94,7 @@ class LammpsState(StateManager):
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
+                 msdfile=None,
                  rng=None,
                  init_momenta=None,
                  workdir=None):
@@ -292,6 +294,8 @@ class LammpsState(StateManager):
             input_string += get_traj_input(self.loginterval,
                                            self.trajfile,
                                            elem)
+        if self.msdfile is not None:
+            input_string += get_diffusion_input(self.msdfile)
 
         input_string += get_last_dump_input(self.workdir,
                                             elem,

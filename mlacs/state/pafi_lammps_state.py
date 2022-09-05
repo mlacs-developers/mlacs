@@ -48,7 +48,6 @@ class PafiLammpsState(LammpsState):
                  NEBworkdir=None,
                  prt=True,
                  workdir=None):
-
         LammpsState.__init__(self,
                              dt,
                              nsteps,
@@ -62,6 +61,7 @@ class PafiLammpsState(LammpsState):
                              rng,
                              init_momenta,
                              workdir)
+
         self.isrestart = False
         self.isappend = False
         self.temperature = temperature
@@ -70,12 +70,13 @@ class PafiLammpsState(LammpsState):
         self.print = prt
         self.Kspring = Kspring
         self.maxjump = maxjump
+        self.dt = dt
         self.damp = damp
         self.brownian = brownian
         self.NEBworkdir = NEBworkdir
         self.confNEB = configurations
         if self.NEBworkdir is None:
-            self.NEBworkdir = os.getcwd() + "/LammpsMLNEB/"
+            self.NEBworkdir = self.workdir + "NEB/"
         if self.NEBworkdir[-1] != "/":
             self.NEBworkdir[-1] += "/"
         if not os.path.exists(self.NEBworkdir):
@@ -425,6 +426,77 @@ class PafiLammpsState(LammpsState):
         return F
 
 # ========================================================================== #
+    def run_threadMFEP(self,
+                       pair_style,
+                       pair_coeff,
+                       model_post=None,
+                       atom_style="atomic",
+                       bonds=None,
+                       angles=None,
+                       bond_style=None,
+                       bond_coeff=None,
+                       angle_style=None,
+                       angle_coeff=None,
+                       workdir=None,
+                       ncpus=1,
+                       restart=0,
+                       fstop=0.001,
+                       xi=None,
+                       nsteps=10000,
+                       interval=10,
+                       nthrow=2000):
+        """
+        Run a MFEP calculation with lammps. Use replicas.
+        """
+        if workdir is None:
+            cwd = self.workdir + 'MFEP/'
+        if not os.path.exists(cwd):
+            os.makedirs(cwd)
+        if xi is None:
+            xi = np.arange(0, 1.1, 0.1)
+        if not hasattr(self, 'true_atoms'):
+            self.run_NEB(pair_style,
+                         pair_coeff,
+                         model_post,
+                         atom_style,
+                         bonds,
+                         angles,
+                         bond_style,
+                         bond_coeff,
+                         angle_style,
+                         angle_coeff)
+            self.extract_NEB_configurations()
+        self.compute_spline(xi)
+        nrep = len(self.spline_atoms)
+        for rep in range(restart, nrep):
+            for rep in range(restart, nrep):
+                lmp = self._set_mpicmd(rep,
+                                       self.spline_atoms[rep],
+                                       self.spline_coordinates[rep, :, :],
+                                       atom_style,
+                                       bond_style,
+                                       bond_coeff,
+                                       angle_style,
+                                       angle_coeff,
+                                       pair_style,
+                                       pair_coeff,
+                                       model_post,
+                                       nsteps)
+                executor.submit(call,
+                                lmp,
+                                cwd=cwd,
+                                stdout=PIPE,
+                                stderr=PIPE)
+        self.pafi = []
+        for rep in range(nrep):
+            logfile = cwd + f'pafi.log.{rep}'
+            data = np.loadtxt(logfile).T[:, nthrow:].tolist()
+            self.pafi.append(data)
+        self.pafi = np.array(self.pafi)
+        F = self.log_free_energy(xi)
+        return F
+
+# ========================================================================== #
     def extract_NEB_configurations(self):
         """
         Step 1
@@ -526,6 +598,27 @@ class PafiLammpsState(LammpsState):
                   self.spline_atoms, format='extxyz')
 
 # ========================================================================== #
+    def _get_lammps_command_replica(self):
+        '''
+        Function to load the batch command to run LAMMPS with replica
+        '''
+        envvar = "ASE_LAMMPSREPLICA_COMMAND"
+        cmdreplica = os.environ.get(envvar)
+        self.cmdreplica = cmdreplica
+        self.nreplica = None
+        if cmdreplica is None:
+            if 'lmp_mpi' in self.cmd:
+                index = self.cmd.split().index('-n')+1
+                self.nreplica = int(self.cmd.split()[index])
+                self.cmdreplica = self.cmd + f' -partition {self.nreplica}x1 '
+            else:
+                msg = "ASE_LAMMPSREPLICA_COMMAND variable not defined"
+                raise TypeError(msg)
+        if self.nreplica is None:
+            index = self.cmdreplica.split().index('-partition')+1
+            self.nreplica = int(self.cmdreplica.split()[index].split('x')[0])
+
+# ========================================================================== #
     def _set_mpicmd(self,
                     rep,
                     spatoms,
@@ -538,9 +631,7 @@ class PafiLammpsState(LammpsState):
                     pair_style,
                     pair_coeff,
                     model_post,
-                    nsteps=10000,
-                    nthrow=0,
-                    mpi=None):
+                    nsteps=10000):
         """
         Post-MLACS
         Run a constrained MD.
@@ -561,11 +652,11 @@ class PafiLammpsState(LammpsState):
                                      rep)
         lammps_command = self.cmd + " -in " + self.lammpsfname + \
             f".{rep} -sc out.lmp.{rep}"
-        if mpi is not None:
+        # if mpi is not None:
             # lammps_command = "srun -n 1 " + self.exe + \
             #    " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
-            lammps_command = "ccc_mprun -E'--exclusive' -n 1 " + self.exe + \
-                " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
+            # lammps_command = "ccc_mprun -E'--exclusive' -n 1 " + self.exe + \
+            #    " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
         return lammps_command
 
 # ========================================================================== #
