@@ -60,7 +60,12 @@ def get_traj_input(loginterval, trajfile, elem):
 
 
 # ========================================================================== #
-def get_general_input(pbc, masses, charges, atom_style, filename='atoms.in', custom=''):
+def get_general_input(pbc,
+                      masses,
+                      charges,
+                      atom_style,
+                      filename='atoms.in',
+                      custom=''):
     """
     Function to write the general parameters in the input
     """

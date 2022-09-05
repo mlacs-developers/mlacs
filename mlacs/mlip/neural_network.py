@@ -115,10 +115,10 @@ class NeuralNetworkMlip(MlipManager):
                     def closure():
                         pred_e, pred_f = self.neuralnetwork(x_e, x_f,
                                                             idx_f, idx_e)
-                        loss_e =  ecoef * loss_fn(pred_e / nat,
-                                                  y_e / nat)
-                        loss_f =  fcoef * loss_fn(pred_f.flatten(),
-                                                  y_f.flatten())
+                        loss_e = ecoef * loss_fn(pred_e / nat,
+                                                 y_e / nat)
+                        loss_f = fcoef * loss_fn(pred_f.flatten(),
+                                                 y_f.flatten())
                         loss = loss_e + loss_f
                         optimizer.zero_grad()
                         loss.backward()

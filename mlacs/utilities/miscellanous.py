@@ -3,6 +3,10 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import numpy as np
+
+from scipy import interpolate
+from scipy.optimize import minimize
+
 from ase.atoms import Atoms
 
 
@@ -94,31 +98,6 @@ def compute_correlation(data):
         The type of data to which the correlation are to be computed.
         Can be either energy, forces or stress
     """
-    write_lammps_data('coord_tmp.lmp',
-                      atoms,
-                      atom_style="full",
-                      velocities=velocities)
-    with open('coord_tmp.lmp', 'r') as file:
-        lines = file.readlines()
-
-    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
-    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
-    lines.insert(ind+2, str(len(angles)) + ' angles \n')
-
-    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
-    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
-    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
-
-    with open(name, 'w') as fd:
-        for line in lines:
-            fd.write(line)
-        fd.write("\n")
-        fd.write(" Bonds \n \n")
-        np.savetxt(fd, bonds, fmt='%s')
-        fd.write("\n")
-        fd.write(" Angles \n \n")
-        np.savetxt(fd, angles, fmt='%s')
-    os.remove('coord_tmp.lmp')
     datatrue = data[:, 0]
     datatest = data[:, 1]
     rmse = np.sqrt(np.mean((datatrue - datatest)**2))
@@ -143,7 +122,7 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
     Return
     ------
     '''
-    instr  = '# Final coordinates of the NEB calculation.\n'
+    instr = '# Final coordinates of the NEB calculation.\n'
     instr += '{0}\n'.format(len(supercell))
     for atoms in supercell:
         instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
@@ -171,7 +150,7 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
     periodic : :class:`int`
         Activate periodic function boundary conditions
     border : :class:`bol`
-        Impose a zero derivative condition at the function boundaries 
+        Impose a zero derivative condition at the function boundaries
     atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
         ASE atoms objects to be rattled
     Return
@@ -187,7 +166,7 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
 
     tck = interpolate.splrep(x, y, s=smooth, per=periodic)
     if border is not None:
-        t, c0, k  = tck
+        t, c0, k = tck
         x0 = (x[0], x[-1])
         con = {'type': 'eq',
                'fun': lambda c: interpolate.splev(x0, (t, c, k), der=1),
@@ -195,7 +174,7 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         opt = minimize(err, c0, (x, y, t, k), constraints=con)
         copt = opt.x
         tck = (t, copt, k)
-            
+
     if isinstance(xf, list):
         yf = [interpolate.splev(_, tck, der=order) for _ in xf]
         return yf
@@ -226,7 +205,7 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
     periodic : :class:`int`
         Activate periodic function boundary conditions
     border : :class:`bol`
-        Impose a zero derivative condition at the function boundaries 
+        Impose a zero derivative condition at the function boundaries
     atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
         ASE atoms objects to be rattled
     Return
@@ -250,7 +229,7 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
 
     tck = interpolate.splrep(x, y, s=smooth, per=periodic)
     if border is not None:
-        t, c0, k  = tck
+        t, c0, k = tck
         x0 = (x[0], x[-1])
         con = {'type': 'eq',
                'fun': lambda c: interpolate.splev(x0, (t, c, k), der=1),
