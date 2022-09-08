@@ -1,5 +1,6 @@
 import os
 from subprocess import call, run, PIPE
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
@@ -45,7 +46,6 @@ class PafiLammpsState(LammpsState):
                  trajinterval=50,
                  rng=None,
                  init_momenta=None,
-                 NEBworkdir=None,
                  prt=True,
                  workdir=None):
         LammpsState.__init__(self,
@@ -73,12 +73,8 @@ class PafiLammpsState(LammpsState):
         self.dt = dt
         self.damp = damp
         self.brownian = brownian
-        self.NEBworkdir = NEBworkdir
         self.confNEB = configurations
-        if self.NEBworkdir is None:
-            self.NEBworkdir = self.workdir + "NEB/"
-        if self.NEBworkdir[-1] != "/":
-            self.NEBworkdir[-1] += "/"
+        self.NEBworkdir = self.workdir + "NEB/"
         if not os.path.exists(self.NEBworkdir):
             os.makedirs(self.NEBworkdir)
         if len(self.confNEB) != 2:
@@ -101,6 +97,8 @@ class PafiLammpsState(LammpsState):
                                 pair_coeff,
                                 model_post,
                                 nsteps,
+                                fname,
+                                atfname,
                                 rep=''):
         """
         Write the LAMMPS input for the constrained MD simulation
@@ -113,7 +111,7 @@ class PafiLammpsState(LammpsState):
                   " check yes page 1000000 one 100000\n\n"
         custom += "fix 1 all property/atom d_nx d_ny d_nz" + \
                   " d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        filename = self.atomsfname + rep + " fix 1 NULL PafiPath"
+        filename = atfname + " fix 1 NULL PafiPath"
         input_string = ""
         input_string += get_general_input(pbc,
                                           masses,
@@ -141,7 +139,7 @@ class PafiLammpsState(LammpsState):
                                             nsteps)
         input_string += f"run  {nsteps}"
 
-        with open(self.workdir + "lammps_input.in" + rep, "w") as f:
+        with open(fname, "w") as f:
             f.write(input_string)
 
 # ========================================================================== #
@@ -161,8 +159,9 @@ class PafiLammpsState(LammpsState):
         elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
         pbc = atoms.get_pbc()
 
-        custom = "neigh_modify every 2 delay 10" + \
-                 "check yes page 1000000 one 100000\n\n"
+        custom = "atom_modify  map array sort 0 0.0\n"
+        custom += "neigh_modify every 2 delay 10" + \
+                  " check yes page 1000000 one 100000\n\n"
         filename = "atoms-0.data"
         input_string = ""
         input_string += get_general_input(pbc,
@@ -194,7 +193,7 @@ class PafiLammpsState(LammpsState):
         input_string += "timestep  {0}\n".format(self.dt / 1000)
         input_string += "thermo    1\n"
         input_string += "min_style fire\n"
-        input_string += "compute   1 all property/atom d_nx d_ny d_nz"
+        input_string += "compute   1 all property/atom d_nx d_ny d_nz "
         input_string += "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
         input_string += "run 0\n"
         input_string += "\n"
@@ -207,11 +206,11 @@ class PafiLammpsState(LammpsState):
         seed = self.rng.integers(99999)
         if self.brownian:
             input_string += "fix       pafihp all pafi 1" + \
-                            f"{self.temperature} {damp} {seed}" + \
+                            f"{self.temperature} {damp} {seed} " + \
                             "overdamped yes com yes\n"
         else:
             input_string += "fix       pafihp all pafi 1" + \
-                            f"{self.temperature} {damp} {seed}" + \
+                            f"{self.temperature} {damp} {seed} " + \
                             "overdamped no com yes\n"
         input_string += "\n"
         input_string += "run 0\n"
@@ -232,7 +231,7 @@ class PafiLammpsState(LammpsState):
         input_string += "#####################################\n"
         input_string += "timestep    {0}\n".format(self.dt / (fs * 1000))
         input_string += "thermo      1\n"
-        input_string += f"fix         neb all neb {self.Kspring}" + \
+        input_string += f"fix         neb all neb {self.Kspring} " + \
                         "parallel ideal\n"
         input_string += "run 100\n"
         input_string += "reset_timestep  0\n\n"
@@ -276,6 +275,11 @@ class PafiLammpsState(LammpsState):
         else:
             nsteps = self.nsteps
 
+        fname = self.workdir + self.lammpsfname
+        atfname = self.workdir + self.atomsfname
+        self._write_PafiPath_atoms(atfname,
+                                   self.spline_atoms[0],
+                                   self.spline_coordinates[0])
         self.write_lammps_input_pafi(atoms,
                                      atom_style,
                                      bond_style,
@@ -285,7 +289,9 @@ class PafiLammpsState(LammpsState):
                                      pair_style,
                                      pair_coeff,
                                      model_post,
-                                     nsteps)
+                                     nsteps,
+                                     fname,
+                                     atfname)
 
         lammps_command = self.cmd + " -in " + self.lammpsfname + \
             " -sc out.lmp"
@@ -448,10 +454,10 @@ class PafiLammpsState(LammpsState):
         """
         Run a MFEP calculation with lammps. Use replicas.
         """
-        if workdir is None:
-            cwd = self.workdir + 'MFEP/'
-        if not os.path.exists(cwd):
-            os.makedirs(cwd)
+        if self.MFEPworkdir is None:
+            self.MFEPworkdir = self.workdir + "MFEP/"
+        if not os.path.exists(self.NEBworkdir):
+            os.makedirs(self.NEBworkdir)
         if xi is None:
             xi = np.arange(0, 1.1, 0.1)
         if not hasattr(self, 'true_atoms'):
@@ -468,7 +474,7 @@ class PafiLammpsState(LammpsState):
             self.extract_NEB_configurations()
         self.compute_spline(xi)
         nrep = len(self.spline_atoms)
-        for rep in range(restart, nrep):
+        with ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
                 lmp = self._set_mpicmd(rep,
                                        self.spline_atoms[rep],
@@ -484,12 +490,12 @@ class PafiLammpsState(LammpsState):
                                        nsteps)
                 executor.submit(call,
                                 lmp,
-                                cwd=cwd,
+                                cwd=self.MFEPworkdir,
                                 stdout=PIPE,
                                 stderr=PIPE)
         self.pafi = []
         for rep in range(nrep):
-            logfile = cwd + f'pafi.log.{rep}'
+            logfile = self.MFEPworkdir, + f'pafi.log.{rep}'
             data = np.loadtxt(logfile).T[:, nthrow:].tolist()
             self.pafi.append(data)
         self.pafi = np.array(self.pafi)
@@ -526,6 +532,7 @@ class PafiLammpsState(LammpsState):
         # RB check float
         self.true_energies = np.array([true_atoms[i].get_potential_energy()
                                        for i in range(self.nreplica)])
+        self.true_energies = self.true_energies.astype(float)
         if self.print:
             write(self.NEBworkdir + f'pos_neb_path_{self.mfepstep}.xyz',
                   true_atoms, format='extxyz')
@@ -589,10 +596,6 @@ class PafiLammpsState(LammpsState):
                 self.spline_atoms.append(self._create_ASE_object(
                     Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
                     self.confNEB[0].get_cell(), self.spline_energies[rep]))
-        if isinstance(xi, float):
-            self._write_PafiPath_atoms(self.atomsfname,
-                                       self.spline_atoms[0],
-                                       self.spline_coordinates[0])
         if self.print:
             write(self.NEBworkdir + f'pos_neb_spline_{self.mfepstep}.xyz',
                   self.spline_atoms, format='extxyz')
@@ -636,7 +639,9 @@ class PafiLammpsState(LammpsState):
         Post-MLACS
         Run a constrained MD.
         """
-        self._write_PafiPath_atoms(self.atomsfname + f'.{rep}',
+        fname = self.MFEPworkdir + self.lammpsfname
+        atfname = self.MFEPworkdir + self.atomsfname + f'.{rep}'
+        self._write_PafiPath_atoms(atfname,
                                    spatoms,
                                    sppositions)
         self.write_lammps_input_pafi(spatoms,
@@ -649,14 +654,16 @@ class PafiLammpsState(LammpsState):
                                      pair_coeff,
                                      model_post,
                                      nsteps,
+                                     fname,
+                                     atfname,
                                      rep)
-        lammps_command = self.cmd + " -in " + self.lammpsfname + \
+        lammps_command = self.cmd + " -in " + fname + \
             f".{rep} -sc out.lmp.{rep}"
         # if mpi is not None:
-            # lammps_command = "srun -n 1 " + self.exe + \
-            #    " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
-            # lammps_command = "ccc_mprun -E'--exclusive' -n 1 " + self.exe + \
-            #    " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
+        #     lammps_command = "srun -n 1 " + self.exe + \
+        #        " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
+        #     lammps_command = "ccc_mprun -E'--exclusive' -n 1 " + self.exe + \
+        #        " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
         return lammps_command
 
 # ========================================================================== #
