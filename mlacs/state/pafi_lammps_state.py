@@ -66,6 +66,7 @@ class PafiLammpsState(LammpsState):
         self.isappend = False
         self.temperature = temperature
         self.nsteps = nsteps
+        self.nsteps_eq = nsteps_eq
         self.NEBcoord = reaction_coordinate
         self.print = prt
         self.Kspring = Kspring
@@ -84,164 +85,6 @@ class PafiLammpsState(LammpsState):
         self.lammpsNEBfname = self.NEBworkdir + "lammps_input.in"
         self._get_lammps_command_replica()
         self._Finit = 0
-
-# ========================================================================== #
-    def write_lammps_input_pafi(self,
-                                atoms,
-                                atom_style,
-                                bond_style,
-                                bond_coeff,
-                                angle_style,
-                                angle_coeff,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                nsteps,
-                                fname,
-                                atfname,
-                                rep=''):
-        """
-        Write the LAMMPS input for the constrained MD simulation
-        """
-        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        pbc = atoms.get_pbc()
-
-        custom = "atom_modify  map array sort 0 0.0\n"
-        custom += "neigh_modify every 2 delay 10" + \
-                  " check yes page 1000000 one 100000\n\n"
-        custom += "fix 1 all property/atom d_nx d_ny d_nz" + \
-                  " d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        filename = atfname + " fix 1 NULL PafiPath"
-        input_string = ""
-        input_string += get_general_input(pbc,
-                                          masses,
-                                          charges,
-                                          atom_style,
-                                          filename,
-                                          custom)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
-                                              pair_coeff,
-                                              model_post)
-        input_string += self.get_pafi_input()
-        if self.logfile is not None:
-            input_string += get_log_input(self.loginterval, self.logfile)
-        if self.trajfile is not None:
-            input_string += get_traj_input(self.loginterval,
-                                           self.trajfile,
-                                           elem)
-        input_string += self.get_pafilogging_input(rep)
-        input_string += get_last_dump_input(self.workdir,
-                                            elem,
-                                            nsteps)
-        input_string += f"run  {nsteps}"
-
-        with open(fname, "w") as f:
-            f.write(input_string)
-
-# ========================================================================== #
-    def write_lammps_input_NEB(self,
-                               atoms,
-                               atom_style,
-                               bond_style,
-                               bond_coeff,
-                               angle_style,
-                               angle_coeff,
-                               pair_style,
-                               pair_coeff,
-                               model_post):
-        """
-        Write the LAMMPS input for NEB simulation
-        """
-        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        pbc = atoms.get_pbc()
-
-        custom = "atom_modify  map array sort 0 0.0\n"
-        custom += "neigh_modify every 2 delay 10" + \
-                  " check yes page 1000000 one 100000\n\n"
-        filename = "atoms-0.data"
-        input_string = ""
-        input_string += get_general_input(pbc,
-                                          masses,
-                                          charges,
-                                          atom_style,
-                                          filename,
-                                          custom)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
-                                              pair_coeff,
-                                              model_post)
-        input_string += self.get_neb_input()
-
-        with open(self.lammpsNEBfname, "w") as f:
-            f.write(input_string)
-
-# ========================================================================== #
-    def get_pafi_input(self):
-        """
-        Function to write the general parameters for PAFI dynamics
-        """
-        input_string = "#####################################\n"
-        input_string += "# Compute relevant field for PAFI simulation\n"
-        input_string += "#####################################\n"
-        input_string += "timestep  {0}\n".format(self.dt / 1000)
-        input_string += "thermo    1\n"
-        input_string += "min_style fire\n"
-        input_string += "compute   1 all property/atom d_nx d_ny d_nz "
-        input_string += "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        input_string += "run 0\n"
-        input_string += "\n"
-
-        input_string += "# Set up PAFI Langevin/Brownian integration\n"
-        if self.damp is None:
-            damp = "$(10*dt)"
-        else:
-            damp = self.damp
-        seed = self.rng.integers(99999)
-        if self.brownian:
-            input_string += "fix       pafihp all pafi 1" + \
-                            f"{self.temperature} {damp} {seed} " + \
-                            "overdamped yes com yes\n"
-        else:
-            input_string += "fix       pafihp all pafi 1" + \
-                            f"{self.temperature} {damp} {seed} " + \
-                            "overdamped no com yes\n"
-        input_string += "\n"
-        input_string += "run 0\n"
-        input_string += "\n"
-        input_string += "minimize 0 0 250 250\n"
-        input_string += "reset_timestep  0\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
-
-# ========================================================================== #
-    def get_neb_input(self):
-        """
-        Function to write the general parameters for NEB
-        """
-        input_string = "#####################################\n"
-        input_string += "# Compute relevant field for NEB simulation\n"
-        input_string += "#####################################\n"
-        input_string += "timestep    {0}\n".format(self.dt / (fs * 1000))
-        input_string += "thermo      1\n"
-        input_string += f"fix         neb all neb {self.Kspring} " + \
-                        "parallel ideal\n"
-        input_string += "run 100\n"
-        input_string += "reset_timestep  0\n\n"
-        input_string += "variable    i equal part\n"
-        input_string += "min_style   quickmin\n"
-        input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
-        input_string += "write_data  neb.$i\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -501,6 +344,164 @@ class PafiLammpsState(LammpsState):
         self.pafi = np.array(self.pafi)
         F = self.log_free_energy(xi)
         return F
+
+# ========================================================================== #
+    def write_lammps_input_pafi(self,
+                                atoms,
+                                atom_style,
+                                bond_style,
+                                bond_coeff,
+                                angle_style,
+                                angle_coeff,
+                                pair_style,
+                                pair_coeff,
+                                model_post,
+                                nsteps,
+                                fname,
+                                atfname,
+                                rep='0'):
+        """
+        Write the LAMMPS input for the constrained MD simulation
+        """
+        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        pbc = atoms.get_pbc()
+
+        custom = "atom_modify  map array sort 0 0.0\n"
+        custom += "neigh_modify every 2 delay 10" + \
+                  " check yes page 1000000 one 100000\n\n"
+        custom += "fix 1 all property/atom d_nx d_ny d_nz" + \
+                  " d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
+        filename = atfname + " fix 1 NULL PafiPath"
+        input_string = ""
+        input_string += get_general_input(pbc,
+                                          masses,
+                                          charges,
+                                          atom_style,
+                                          filename,
+                                          custom)
+        input_string += get_interaction_input(bond_style,
+                                              bond_coeff,
+                                              angle_style,
+                                              angle_coeff,
+                                              pair_style,
+                                              pair_coeff,
+                                              model_post)
+        input_string += self.get_pafi_input()
+        if self.logfile is not None:
+            input_string += get_log_input(self.loginterval, self.logfile)
+        if self.trajfile is not None:
+            input_string += get_traj_input(self.loginterval,
+                                           self.trajfile,
+                                           elem)
+        input_string += self.get_pafilogging_input(rep)
+        input_string += get_last_dump_input(self.workdir,
+                                            elem,
+                                            nsteps)
+        input_string += f"run  {nsteps}"
+
+        with open(fname, "w") as f:
+            f.write(input_string)
+
+# ========================================================================== #
+    def write_lammps_input_NEB(self,
+                               atoms,
+                               atom_style,
+                               bond_style,
+                               bond_coeff,
+                               angle_style,
+                               angle_coeff,
+                               pair_style,
+                               pair_coeff,
+                               model_post):
+        """
+        Write the LAMMPS input for NEB simulation
+        """
+        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        pbc = atoms.get_pbc()
+
+        custom = "atom_modify  map array sort 0 0.0\n"
+        custom += "neigh_modify every 2 delay 10" + \
+                  " check yes page 1000000 one 100000\n\n"
+        filename = "atoms-0.data"
+        input_string = ""
+        input_string += get_general_input(pbc,
+                                          masses,
+                                          charges,
+                                          atom_style,
+                                          filename,
+                                          custom)
+        input_string += get_interaction_input(bond_style,
+                                              bond_coeff,
+                                              angle_style,
+                                              angle_coeff,
+                                              pair_style,
+                                              pair_coeff,
+                                              model_post)
+        input_string += self.get_neb_input()
+
+        with open(self.lammpsNEBfname, "w") as f:
+            f.write(input_string)
+
+# ========================================================================== #
+    def get_pafi_input(self):
+        """
+        Function to write the general parameters for PAFI dynamics
+        """
+        input_string = "#####################################\n"
+        input_string += "# Compute relevant field for PAFI simulation\n"
+        input_string += "#####################################\n"
+        input_string += "timestep  {0}\n".format(self.dt / 1000)
+        input_string += "thermo    1\n"
+        input_string += "min_style fire\n"
+        input_string += "compute   1 all property/atom d_nx d_ny d_nz "
+        input_string += "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
+        input_string += "run 0\n"
+        input_string += "\n"
+
+        input_string += "# Set up PAFI Langevin/Brownian integration\n"
+        if self.damp is None:
+            damp = "$(10*dt)"
+        else:
+            damp = self.damp
+        seed = self.rng.integers(99999)
+        if self.brownian:
+            input_string += "fix       pafihp all pafi 1 " + \
+                            f"{self.temperature} {damp} {seed} " + \
+                            "overdamped yes com yes\n"
+        else:
+            input_string += "fix       pafihp all pafi 1 " + \
+                            f"{self.temperature} {damp} {seed} " + \
+                            "overdamped no com yes\n"
+        input_string += "\n"
+        input_string += "run 0\n"
+        input_string += "\n"
+        input_string += "minimize 0 0 250 250\n"
+        input_string += "reset_timestep  0\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
+# ========================================================================== #
+    def get_neb_input(self):
+        """
+        Function to write the general parameters for NEB
+        """
+        input_string = "#####################################\n"
+        input_string += "# Compute relevant field for NEB simulation\n"
+        input_string += "#####################################\n"
+        input_string += "timestep    {0}\n".format(self.dt / (fs * 1000))
+        input_string += "thermo      1\n"
+        input_string += f"fix         neb all neb {self.Kspring} " + \
+                        "parallel ideal\n"
+        input_string += "run 100\n"
+        input_string += "reset_timestep  0\n\n"
+        input_string += "variable    i equal part\n"
+        input_string += "min_style   quickmin\n"
+        input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
+        input_string += "write_data  neb.$i\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
 
 # ========================================================================== #
     def extract_NEB_configurations(self):
@@ -855,7 +856,7 @@ class PafiLammpsState(LammpsState):
         return Fcor
 
 # ========================================================================== #
-    def get_pafilogging_input(self, rep=''):
+    def get_pafilogging_input(self, rep='0'):
         """
         Function to write several PAFI outputs
         """
@@ -872,12 +873,12 @@ class PafiLammpsState(LammpsState):
 
         if self.isappend:
             input_string += 'fix logpafi all print 1 ' + \
-                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}"' + \
+                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" ' + \
                             f'append pafi.log.{rep} title ' + \
                             '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
         else:
             input_string += 'fix logpafi all print 1 ' + \
-                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}"' + \
+                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" ' + \
                             f'file pafi.log.{rep} title ' + \
                             '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
         input_string += "\n"
