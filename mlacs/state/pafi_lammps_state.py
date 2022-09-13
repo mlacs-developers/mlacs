@@ -99,7 +99,8 @@ class PafiLammpsState(LammpsState):
                      bond_coeff=None,
                      angle_style=None,
                      angle_coeff=None,
-                     eq=False):
+                     eq=False,
+                     rep=None):
         """
         Function to run the PAFI dynamics
         """
@@ -118,11 +119,22 @@ class PafiLammpsState(LammpsState):
         else:
             nsteps = self.nsteps
 
-        fname = self.workdir + self.lammpsfname
-        atfname = self.workdir + self.atomsfname
+        if rep is None:
+            fname = self.workdir + self.lammpsfname
+            atfname = self.workdir + self.atomsfname
+            spatoms = self.spline_atoms[0]
+            spcoord = self.spline_coordinates[0]
+            rep = 0
+        else:
+            fname = self.MFEPworkdir + self.lammpsfname + f'.{rep}'
+            atfname = self.MFEPworkdir + self.atomsfname + f'.{rep}'
+            spatoms = atoms
+# RB        spcoord = self.spline_coordinates[rep]
+            spcoord = self.spline_coordinates[rep, :, :]
+
         self._write_PafiPath_atoms(atfname,
-                                   self.spline_atoms[0],
-                                   self.spline_coordinates[0])
+                                   spatoms,
+                                   spcoord)
         self.write_lammps_input_pafi(atoms,
                                      atom_style,
                                      bond_style,
@@ -134,13 +146,18 @@ class PafiLammpsState(LammpsState):
                                      model_post,
                                      nsteps,
                                      fname,
-                                     atfname)
+                                     atfname,
+                                     rep)
 
-        lammps_command = self.cmd + " -in " + self.lammpsfname + \
+        lammps_command = self.cmd + " -in " + fname + \
             " -sc out.lmp"
+        cwd = self.workdir
+        if rep is not None:
+            lammps_command += f'.{rep}'
+            cwd = self.MFEPworkdir
         lmp_handle = run(lammps_command,
                          shell=True,
-                         cwd=self.workdir,
+                         cwd=cwd,
                          stderr=PIPE)
 
         if lmp_handle.returncode != 0:
@@ -297,12 +314,12 @@ class PafiLammpsState(LammpsState):
         """
         Run a MFEP calculation with lammps. Use replicas.
         """
-        if self.MFEPworkdir is None:
-            self.MFEPworkdir = self.workdir + "MFEP/"
-        if not os.path.exists(self.NEBworkdir):
-            os.makedirs(self.NEBworkdir)
+        self.nsteps = nsteps
+        self.MFEPworkdir = self.workdir + "MFEP/"
+        if not os.path.exists(self.MFEPworkdir):
+            os.makedirs(self.MFEPworkdir)
         if xi is None:
-            xi = np.arange(0, 1.1, 0.1)
+            xi = np.arange(0, 1.01, 0.01)
         if not hasattr(self, 'true_atoms'):
             self.run_NEB(pair_style,
                          pair_coeff,
@@ -317,28 +334,40 @@ class PafiLammpsState(LammpsState):
             self.extract_NEB_configurations()
         self.compute_spline(xi)
         nrep = len(self.spline_atoms)
+        futures = []
         with ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
-                lmp = self._set_mpicmd(rep,
-                                       self.spline_atoms[rep],
-                                       self.spline_coordinates[rep, :, :],
-                                       atom_style,
-                                       bond_style,
-                                       bond_coeff,
-                                       angle_style,
-                                       angle_coeff,
-                                       pair_style,
-                                       pair_coeff,
-                                       model_post,
-                                       nsteps)
-                executor.submit(call,
-                                lmp,
-                                cwd=self.MFEPworkdir,
-                                stdout=PIPE,
-                                stderr=PIPE)
+#                lmp = self._set_mpicmd(rep,
+#                                       self.spline_atoms[rep],
+#                                       self.spline_coordinates[rep, :, :],
+#                                       atom_style,
+#                                       bond_style,
+#                                       bond_coeff,
+#                                       angle_style,
+#                                       angle_coeff,
+#                                       pair_style,
+#                                       pair_coeff,
+#                                       model_post,
+#                                       nsteps)
+                atoms = self.spline_atoms[rep].copy()
+                atoms.set_pbc([1, 1, 1])
+                executor.submit(self.run_dynamics,
+                                *(atoms,
+                                  pair_style,
+                                  pair_coeff,
+                                  model_post,
+                                  atom_style,
+                                  bonds,
+                                  angles,
+                                  bond_style,
+                                  bond_coeff,
+                                  angle_style,
+                                  angle_coeff,
+                                  False,
+                                  rep))
         self.pafi = []
         for rep in range(nrep):
-            logfile = self.MFEPworkdir, + f'pafi.log.{rep}'
+            logfile = self.MFEPworkdir + f'pafi.log.{rep}'
             data = np.loadtxt(logfile).T[:, nthrow:].tolist()
             self.pafi.append(data)
         self.pafi = np.array(self.pafi)
@@ -640,7 +669,7 @@ class PafiLammpsState(LammpsState):
         Post-MLACS
         Run a constrained MD.
         """
-        fname = self.MFEPworkdir + self.lammpsfname
+        fname = self.MFEPworkdir + self.lammpsfname + f'.{rep}'
         atfname = self.MFEPworkdir + self.atomsfname + f'.{rep}'
         self._write_PafiPath_atoms(atfname,
                                    spatoms,
@@ -659,7 +688,8 @@ class PafiLammpsState(LammpsState):
                                      atfname,
                                      rep)
         lammps_command = self.cmd + " -in " + fname + \
-            f".{rep} -sc out.lmp.{rep}"
+            f" -sc out.lmp.{rep}"
+        print(lammps_command)
         # if mpi is not None:
         #     lammps_command = "srun -n 1 " + self.exe + \
         #        " -in " + self.lammpsfname + ".{rep} -log log.{rep} &"
