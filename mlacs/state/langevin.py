@@ -80,6 +80,7 @@ class LangevinState(StateManager):
         self.friction = friction
         self.init_momenta = init_momenta
         self.rng = rng
+        self.isrestart = False
         if self.rng is None:
             self.rng = np.random.default_rng()
 

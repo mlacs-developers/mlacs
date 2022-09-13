@@ -42,7 +42,7 @@ neb[1].pop(1)
 
 asewrite('pos.xyz', neb, format='extxyz')
 
-os.environ["ASE_LAMMPSRUN_COMMAND"] = 'lammps '
+os.environ["ASE_LAMMPSRUN_COMMAND"] = 'mpirun -n 1 lammps '
 os.environ["ASE_LAMMPSREPLICA_COMMAND"] = 'mpirun -n 7 lammps -partition 7x1 '
 
 calc = EMT()
@@ -65,3 +65,4 @@ sampling = OtfMlacs(neb[0], state, calc, mlip, neq=neq)
 
 # Run the simulation
 sampling.run(nconfs)
+state.run_threadMFEP(sampling.mlip.pair_style, sampling.mlip.pair_coeff)

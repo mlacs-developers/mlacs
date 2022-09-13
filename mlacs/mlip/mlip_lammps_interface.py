@@ -272,7 +272,7 @@ class LammpsMlipInterface:
         envvar = "ASE_LAMMPSRUN_COMMAND"
         cmd = os.environ.get(envvar)
         if cmd is None:
-            cmd = "lmp"
+            cmd = "lmp_serial"
         self.cmd = cmd
 
 # ========================================================================== #
