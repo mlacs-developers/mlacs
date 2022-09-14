@@ -60,7 +60,12 @@ def get_traj_input(loginterval, trajfile, elem):
 
 
 # ========================================================================== #
-def get_general_input(pbc, masses, charges, atom_style):
+def get_general_input(pbc,
+                      masses,
+                      charges,
+                      atom_style,
+                      filename='atoms.in',
+                      custom=''):
     """
     Function to write the general parameters in the input
     """
@@ -73,7 +78,8 @@ def get_general_input(pbc, masses, charges, atom_style):
     input_string += "boundary     " + \
         "{0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
     input_string += f"atom_style {atom_style}\n"
-    input_string += "read_data    atoms.in\n"
+    input_string += custom
+    input_string += f"read_data    {filename}\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
     input_string += "#####################################\n"
@@ -131,6 +137,29 @@ def get_last_dump_input(workdir, elem, nsteps):
     input_string += " ".join([p for p in elem])
     input_string += "\n"
     input_string += f"dump_modify last delay {nsteps}\n"
+    input_string += "#####################################\n"
+    input_string += "\n\n\n"
+    return input_string
+
+
+# ========================================================================== #
+def get_diffusion_input(msdfile):
+    """
+    Function to compute and output the diffusion coefficient
+    """
+    input_string = "#####################################\n"
+    input_string += "# Compute MSD and diffusion coef\n"
+    input_string += "#####################################\n"
+    input_string += "variable t equal step\n"
+    input_string += "compute  msd all msd\n"
+    input_string += "variable msd equal c_msd[4]\n"
+    input_string += "variable twopoint equal c_msd[4]/6/(step*dt+1.0e-6)\n"
+    input_string += "fix      msd all vector 1000 c_msd[4]\n"
+    input_string += "variable fitslope equal slope(f_msd)/6/(10000*dt)\n"
+    input_string += "fix      D all print 1000 " + \
+                    '"${t} ${msd} ${twopoint} ${fitslope}" ' + \
+                    f"append {msdfile} title " + \
+                    '"# Step   MSD   D(start)   D(slope)"\n'
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string

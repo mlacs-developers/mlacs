@@ -168,8 +168,6 @@ class AbinitManager(CalcManager):
             os.remove(confdir + "abinito_GSR.nc")
         if os.path.exists(confdir + "abinito_OUT.nc"):
             os.remove(confdir + "abinito_OUT.nc")
-        if os.path.exists(confdir + "abinito_OUT.nc"):
-            os.remove(confdir + "abinito_OUT.nc")
         if os.path.exists(confdir + "abinito_DEN"):
             os.remove(confdir + "abinito_DEN")
         if os.path.exists(confdir + "abinito_WF"):

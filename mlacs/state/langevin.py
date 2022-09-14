@@ -84,6 +84,7 @@ class LangevinState(StateManager):
             self.rng = np.random.default_rng()
 
         self.ispimd = False
+        self.isrestart = False
 
 # ========================================================================== #
     def run_dynamics(self,
