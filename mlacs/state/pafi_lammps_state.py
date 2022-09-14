@@ -1,12 +1,11 @@
 import os
-from subprocess import call, run, PIPE
+from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
 from ase import Atoms
 from ase.units import fs, kB
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.io import read, write
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.singlepoint import SinglePointCalculator as SPC
@@ -32,10 +31,10 @@ class PafiLammpsState(LammpsState):
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
     configurations: :class:`list`
-        List of ase.Atoms object, the list contain initial and final 
+        List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
     reaction_coordinate: :class:`numpy.array` or `float`
-        Value of the reaction coordinate for the constrained MD. 
+        Value of the reaction coordinate for the constrained MD.
         Default ``0.5``
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
@@ -175,7 +174,6 @@ class PafiLammpsState(LammpsState):
             atfname = self.MFEPworkdir + self.atomsfname + f'.{rep}'
             spatoms = atoms
             spcoord = self.spline_coordinates[rep]
-# RB        spcoord = self.spline_coordinates[rep, :, :]
 
         self._write_PafiPath_atoms(atfname,
                                    spatoms,
@@ -307,7 +305,6 @@ class PafiLammpsState(LammpsState):
             self.extract_NEB_configurations()
         self.compute_spline(xi)
         nrep = len(self.spline_atoms)
-        futures = []
         with ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
                 atoms = self.spline_atoms[rep].copy()
@@ -322,7 +319,7 @@ class PafiLammpsState(LammpsState):
                                   angles,
                                   bond_style,
                                   bond_coeff,
-                                 angle_style,
+                                  angle_style,
                                   angle_coeff,
                                   False,
                                   rep))
@@ -559,7 +556,7 @@ class PafiLammpsState(LammpsState):
                                        for i in range(self.nreplica)])
         self.true_energies = self.true_energies.astype(float)
         if self.print:
-            write(self.NEBworkdir + f'pos_neb_path.xyz',
+            write(self.NEBworkdir + 'pos_neb_path.xyz',
                   true_atoms, format='extxyz')
 
 # ========================================================================== #
@@ -622,7 +619,7 @@ class PafiLammpsState(LammpsState):
                     Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
                     self.confNEB[0].get_cell(), self.spline_energies[rep]))
         if self.print:
-            write(self.NEBworkdir + f'pos_neb_spline.xyz',
+            write(self.NEBworkdir + 'pos_neb_spline.xyz',
                   self.spline_atoms, format='extxyz')
 
 # ========================================================================== #
