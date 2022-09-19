@@ -175,7 +175,6 @@ class PafiLammpsState(LammpsState):
             atfname = self.MFEPworkdir + self.atomsfname + f'.{rep}'
             spatoms = atoms
             spcoord = self.spline_coordinates[rep]
-# RB        spcoord = self.spline_coordinates[rep, :, :]
 
         self._write_PafiPath_atoms(atfname,
                                    spatoms,

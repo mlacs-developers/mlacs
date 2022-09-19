@@ -9,6 +9,7 @@ import numpy as np
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
+from ase.units import kB
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from mlacs.state.state import StateManager
@@ -90,6 +91,7 @@ class LammpsState(StateManager):
                  dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
+                 invtemp=False,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
@@ -129,6 +131,7 @@ class LammpsState(StateManager):
         self.pdamp = pdamp
         self.ptype = ptype
 
+        self.invtemp = invtemp
         self.t_stop = t_stop
         self.p_stop = p_stop
         if self.p_stop is not None:
@@ -169,7 +172,12 @@ class LammpsState(StateManager):
             if eq:
                 temp = self.t_stop
             else:
-                temp = self.rng.uniform(self.temperature, self.t_stop)
+                if self.invtemp:
+                    temp = self.rng.uniform(1.0 / (kB * self.t_stop),
+                                            1.0 / (kB * self.temperature))
+                    temp = 1.0 / (kB * temp)
+                else:
+                    temp = self.rng.uniform(self.temperature, self.t_stop)
 
         if self.p_stop is None:
             press = self.pressure
@@ -231,6 +239,12 @@ class LammpsState(StateManager):
         atoms = read(self.workdir + "configurations.out")
         if charges is not None:
             atoms.set_initial_charges(init_charges)
+
+        if self.t_stop is not None:
+            t_at = atoms.get_temperature()
+            mom = atoms.get_momenta()
+            mom = mom * np.sqrt(temp / t_at)
+            atoms.set_momenta(mom)
 
         return atoms.copy()
 
