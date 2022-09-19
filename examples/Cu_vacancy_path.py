@@ -30,9 +30,7 @@ mlip_params = {"twojmax": 4}
 
 # Supercell creation ----------------------------------------------------------
 atoms = bulk("Cu", cubic=True).repeat(3)
-#potentiel = "/home/bejaudr/software/Mlacs/otf_mlacs/examples/test_pafi/Si_vacancy/Si.tersoff.mod" 
-#calc = LAMMPS(pair_style="tersoff/mod",
-#              pair_coeff=[f"* * {potentiel} Si"])
+atoms.set_pbc([1, 1, 1])
 
 neb = [atoms.copy(),
        atoms.copy()]
@@ -42,8 +40,9 @@ neb[1].pop(1)
 
 asewrite('pos.xyz', neb, format='extxyz')
 
-os.environ["ASE_LAMMPSRUN_COMMAND"] = 'mpirun -n 1 lammps '
-os.environ["ASE_LAMMPSREPLICA_COMMAND"] = 'mpirun -n 7 lammps -partition 7x1 '
+lmp_exe = 'lammps'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
+os.environ["ASE_LAMMPSREPLICA_COMMAND"] = f'mpirun -n 7 {lmp_exe} -partition 7x1'
 
 calc = EMT()
 
@@ -65,4 +64,7 @@ sampling = OtfMlacs(neb[0], state, calc, mlip, neq=neq)
 
 # Run the simulation
 sampling.run(nconfs)
-state.run_threadMFEP(sampling.mlip.pair_style, sampling.mlip.pair_coeff)
+
+# Run the MFEP calculation
+xi = np.arange(0, 1.1, 0.1)
+state.run_MFEP(mlip.pair_style, mlip.pair_coeff, ncpus=6, xi=xi)

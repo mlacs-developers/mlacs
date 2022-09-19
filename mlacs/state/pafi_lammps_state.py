@@ -12,7 +12,8 @@ from ase.calculators.singlepoint import SinglePointCalculator as SPC
 
 from mlacs.state import LammpsState
 from mlacs.utilities import (get_elements_Z_and_masses,
-                             write_lammps_NEB_ASCIIfile)
+                             write_lammps_NEB_ASCIIfile,
+                             _create_ASE_object)
 from mlacs.utilities.io_lammps import (get_general_input,
                                        get_log_input,
                                        get_traj_input,
@@ -547,7 +548,7 @@ class PafiLammpsState(LammpsState):
                         break
                     if 'initial, next-to-last, final =' in _:
                         check = True
-            atoms = self._create_ASE_object(Z, positions, cell, etotal)
+            atoms = _create_ASE_object(Z, positions, cell, etotal)
             true_atoms.append(atoms)
         self.true_atoms = true_atoms
         self.path_coordinates = np.arange(self.nreplica)/(self.nreplica-1)
@@ -606,7 +607,7 @@ class PafiLammpsState(LammpsState):
             self.spline_coordinates.append(np.array(self._COM_corrections(
                 spline_coordinates.tolist())).round(8))
             self.spline_coordinates = np.array(self.spline_coordinates)
-            self.spline_atoms.append(self._create_ASE_object(
+            self.spline_atoms.append(_create_ASE_object(
                 Z, np.hsplit(self.spline_coordinates[0], 5)[0],
                 self.confNEB[0].get_cell(), self.spline_energies))
         else:
@@ -616,7 +617,7 @@ class PafiLammpsState(LammpsState):
             self.spline_coordinates = np.array(
                     self.spline_coordinates).round(8)
             for rep in range(len(xi)):
-                self.spline_atoms.append(self._create_ASE_object(
+                self.spline_atoms.append(_create_ASE_object(
                     Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
                     self.confNEB[0].get_cell(), self.spline_energies[rep]))
         if self.print:
@@ -643,20 +644,6 @@ class PafiLammpsState(LammpsState):
         if self.nreplica is None:
             index = self.cmdreplica.split().index('-partition')+1
             self.nreplica = int(self.cmdreplica.split()[index].split('x')[0])
-
-# ========================================================================== #
-    def _create_ASE_object(self, Z, positions, cell, energy):
-        """
-        Create ASE Atoms object.
-        """
-        atoms = Atoms(numbers=Z,
-                      positions=positions,
-                      cell=cell,
-                      pbc=True)
-        calc = SPC(atoms=atoms,
-                   energy=energy)
-        atoms.set_calculator(calc)
-        return atoms
 
 # ========================================================================== #
     def _COM_corrections(self, spline):
