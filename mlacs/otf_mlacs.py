@@ -14,6 +14,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 
 from mlacs.mlip import LammpsMlip
 from mlacs.calc import CalcManager
+from mlacs.prop import PropertyManager, CalcProperty
 from mlacs.state.state import StateManager
 from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
@@ -65,6 +66,7 @@ class OtfMlacs:
                  state,
                  calc,
                  mlip=None,
+                 prop=None,
                  neq=10,
                  nbeads=1,
                  prefix_output="Trajectory",
@@ -91,6 +93,16 @@ class OtfMlacs:
             self.mlip = LammpsMlip(self.atoms[0])  # Default MLIP Manager
         else:
             self.mlip = mlip
+
+        # Create property object
+        if isinstance(prop, CalcProperty):
+            self.prop = PropertyManager(prop, self.nstate)
+        elif isinstance(prop, list):
+            self.prop = PropertyManager(prop, len(prop))
+        elif prop is None:
+            self.prop = PropertyManager(None)
+        else:
+            self.prop = prop
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -207,6 +219,8 @@ class OtfMlacs:
             if not self.launched:
                 self._run_initial_step()
                 self.step += 1
+            elif self.prop.check_criterion:
+                break
             else:
                 step_done = self._run_step()
                 if not step_done:
@@ -396,6 +410,14 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
+
+        # Computing properties with ML potential.
+        if self.prop is not None and self.prop.compute(step):
+            msg = "Computing few properties with the ML potential\n\n"
+            self.log.logger_log.info(msg)
+            msg = self.prop.run
+            self.log.logger_log.info(msg)
+
         return True
 
 # ========================================================================== #

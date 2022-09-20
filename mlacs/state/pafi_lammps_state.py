@@ -229,10 +229,13 @@ class PafiLammpsState(LammpsState):
                 bond_style=None,
                 bond_coeff=None,
                 angle_style=None,
-                angle_coeff=None):
+                angle_coeff=None,
+                workdir=None):
         """
         Run a NEB calculation with lammps. Use replicas.
         """
+        if workdir is not None:
+            self.workdir = workdir
         self.NEBworkdir = self.workdir + "NEB/"
         if not os.path.exists(self.NEBworkdir):
             os.makedirs(self.NEBworkdir)
@@ -279,7 +282,6 @@ class PafiLammpsState(LammpsState):
                  workdir=None,
                  ncpus=1,
                  restart=0,
-                 fstop=0.001,
                  xi=None,
                  nsteps=10000,
                  interval=10,
@@ -288,6 +290,8 @@ class PafiLammpsState(LammpsState):
         Run a MFEP calculation with lammps. Use replicas.
         """
         self.nsteps = nsteps
+        if workdir is not None:
+            self.workdir = workdir
         self.MFEPworkdir = self.workdir + "MFEP/"
         if not os.path.exists(self.MFEPworkdir):
             os.makedirs(self.MFEPworkdir)
