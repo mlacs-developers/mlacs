@@ -70,7 +70,7 @@ class DlmCalcManager(CalcManager):
                                step=None):
         """
         """
-        confs = [at.copy for at in confs]
+        confs = [at.copy() for at in confs]
         result_confs = []
         for at in confs:
             sqs = generate_sqs_from_supercells(self.cs,
