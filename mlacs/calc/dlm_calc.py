@@ -3,6 +3,8 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import numpy as np
+from ase.calculators.singlepoint import SinglePointCalculator
+from ase.calculators.calculator import CalculatorError
 from icet import ClusterSpace
 from icet.tools.structure_generation import generate_sqs_from_supercells
 
@@ -62,23 +64,41 @@ class DlmCalcManager(CalcManager):
         self.target_concentrations = {"H": 0.5, "B": 0.5}
 
 # ========================================================================== #
-    def compute_true_potential(self, atoms):
+    def compute_true_potential(self,
+                               confs,
+                               state=None,
+                               step=None):
         """
         """
-        sqs = generate_sqs_from_supercells(self.cs,
-                                           [self.supercell],
-                                           self.target_concentrations,
-                                           n_steps=self.n_steps)
-        magmoms = np.zeros(len(self.supercell))
-        for i, c in enumerate(sqs.get_chemical_symbols()):
-            if c == "H":
-                magmoms[i] = self.mu_b
-            if c == "B":
-                magmoms[i] = -self.mu_b
-        atoms.set_initial_magnetic_moments(magmoms)
-        atoms.calc = self.calc
-        atoms.get_potential_energy()
-        return atoms
+        confs = [at.copy for at in confs]
+        result_confs = []
+        for at in confs:
+            sqs = generate_sqs_from_supercells(self.cs,
+                                               [self.supercell],
+                                               self.target_concentrations,
+                                               n_steps=self.n_steps)
+            magmoms = np.zeros(len(self.supercell))
+            for i, c in enumerate(sqs.get_chemical_symbols()):
+                if c == "H":
+                    magmoms[i] = self.mu_b
+                if c == "B":
+                    magmoms[i] = -self.mu_b
+            at.set_initial_magnetic_moments(magmoms)
+            at.calc = self.calc
+            try:
+                at.get_potential_energy()
+                energy = at.get_potential_energy()
+                forces = at.get_forces()
+                stress = at.get_stress()
+                sp_calc = SinglePointCalculator(at,
+                                                energy=energy,
+                                                forces=forces,
+                                                stress=stress)
+                at.calc = sp_calc
+                result_confs.append(at)
+            except CalculatorError:
+                result_confs.append(None)
+        return result_confs
 
 # ========================================================================== #
     def log_recap_state(self):
