@@ -3,7 +3,9 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
-mfep_default = {'pair_style': None,
+import numpy as np
+
+default_args = {'pair_style': None,
                 'pair_coeff': None,
                 'model_post': None,
                 'atom_style': "atomic",
@@ -14,11 +16,10 @@ mfep_default = {'pair_style': None,
                 'angle_style': None,
                 'angle_coeff': None}
 
-method_dict = {'mfep': mfep_default} 
 
 # ========================================================================== #
 # ========================================================================== #
-class CalcProperty:
+class CalcMfep:
     """
     Parent Class managing the true potential being simulated
 
@@ -31,28 +32,58 @@ class CalcProperty:
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
     """
-    
-    def __init__(self,
-                 method,
-                 parameter
-                 state=None):
 
-        if not method in method_dict.keys():
-            error = f'This {method} method is not implemented in MLACS'
-            raise AttributeError(error)
+    def __init__(method='maxf'
+                 criterion=0.001,
+                 freq=1,
+                 args):
+
+        from mlacs.state import PafiLammpsState
+        self.freq = freq
+        self.stop = criterion
         self.method = method
-        self.state = state
-        self.kwargs = method_dict[method]
-        for keys, values in parameter.item():
+        self.kwargs = default_args
+        for keys, values in args.item():
             self.kwargs[keys] = values
+        self.isfirst = True
 
-# ========================================================================== #
-    def run(self, step):
-        """
-        """
-        workdir = self._update_wkdir(step)
-        if self.method == 'mfep':
-            self.state.run_MFEP(**self.kwargs, workdir=workdir)
+        T = self.kwargs['temperature']
+        configs = self.kwargs['configurations']
+        del self.kwargs['temperature']
+        del self.kwargs['configurations']
+        self.state = PafiLammpsState(temperature=T,
+                                     configurations=configs)
+
+    def _exec(self, wdir):
+        self.kwargs['workdir'] = wdir
+        state.run_MFEP(**self.kwargs)
+        new = np.loadtxt(wdir + 'free_energy.dat').T[5]
+        if self.isfirst:
+            old = np.zero(len(new))
+            self.isfirst = False
+            results = (new, old) 
+        else:
+            results = (new, old)
+            old = new
+        return results
         
+    def _check(self, results):
+        new, old = results
+        self.maxf = max(new-old)
+        self.avef = np.average(new-old)
+        if self.method == 'max' and self.maxf < self.stop: 
+            return True
+        elif self.method == 'maxave' and self.avef < self.stop: 
+            return True
+        else:
+            return False
+
+    def log_recap(): 
+        msg = self.state.log_recap_state()
+        msg += 'Difference of free energy along the path with previous step:\n'
+        msg += '        - Maximum  : {self.maxf}\n'
+        msg += '        - Averaged : {self.avef}\n'
+        msg += '\n'
+        return msg
 
 

@@ -837,6 +837,12 @@ class PafiLammpsState(LammpsState):
         msg += f"Number of MLMD production steps :        {self.nsteps}\n"
         msg += f"Timestep (in fs) :                       {self.dt}\n"
         msg += f"Themostat damping parameter (in fs) :    {damp}\n"
-        msg += f"Reaction coordinate :                    {coord}\n"
+        if isinstance(coord, float):
+            msg += f"Reaction coordinate :                    {coord}\n"
+        else:
+            step = coord[1]-coord[0]
+            i, f = (coord[0], coord[-1])
+        msg += f"Reaction interval :                      [{i} : {f}]\n"
+        msg += f"Reaction step interval :                 {step}\n"
         msg += "\n"
         return msg

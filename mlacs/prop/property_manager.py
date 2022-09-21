@@ -9,7 +9,7 @@ from mlacs.prop import CalcProperty
 # ========================================================================== #
 class PropertyManager:
     """
-    Parent Class managing the true potential being simulated
+    Parent Class managing the calculation of differents properties
 
     Parameters
     ----------
@@ -21,17 +21,15 @@ class PropertyManager:
         Default ``None``.
     """
     def __init__(self,
-                 prop,
-                 nstate=None):
-        self.ncalc = nstate
+                 prop):
         if prop is None:
             self.check = [False]
-        elif isinstance(prop, CalcProperty):
-            self.manager = [calcprop for _ in range(self.ncalc)]
-            self.check = [False for _ in range(self.ncalc)]
-        else:
+        elif isinstance(prop, list):
             self.manager = prop
-            self.check = [False for _ in range(self.ncalc)]
+            self.check = [False for _ in range(len(prop))]
+        else:
+            self.manager = [prop]
+            self.check = [False]
 
 # ========================================================================== #
     @property
@@ -44,13 +42,16 @@ class PropertyManager:
         return True
 
 # ========================================================================== #
-    @property
-    def run(self):
+    def run(self, wdir, step):
         """
         """
         msg = ""
+        self.check = []
         for prop in self.manager:
-            prop.run()
-            msg += prop.log_recap()
+            if prop.freq:
+                results = prop._exec(wdir)
+                check = prop._check(results)
+                msg += prop.log_recap()
+                self.check.append(check)
         msg += '\n' 
         return msg
