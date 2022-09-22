@@ -3,7 +3,8 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
-from mlacs.prop import CalcProperty
+import os
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -22,14 +23,20 @@ class PropertyManager:
     """
     def __init__(self,
                  prop):
+
+        self.workdir = os.getcwd() + "/Properties/"
         if prop is None:
             self.check = [False]
         elif isinstance(prop, list):
             self.manager = prop
             self.check = [False for _ in range(len(prop))]
+            if not os.path.exists(self.workdir):
+                os.makedirs(self.workdir)
         else:
             self.manager = [prop]
             self.check = [False]
+            if not os.path.exists(self.workdir):
+                os.makedirs(self.workdir)
 
 # ========================================================================== #
     @property
@@ -42,16 +49,18 @@ class PropertyManager:
         return True
 
 # ========================================================================== #
-    def run(self, wdir, step):
+    def run(self, wdir):
         """
         """
         msg = ""
         self.check = []
+        if not os.path.exists(wdir):
+            os.makedirs(wdir)
         for prop in self.manager:
             if prop.freq:
                 results = prop._exec(wdir)
                 check = prop._check(results)
                 msg += prop.log_recap()
                 self.check.append(check)
-        msg += '\n' 
+        msg += '\n'
         return msg

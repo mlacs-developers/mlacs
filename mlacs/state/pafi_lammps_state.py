@@ -4,11 +4,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ase import Atoms
 from ase.units import fs, kB
 from ase.io import read, write
 from ase.io.lammpsdata import write_lammps_data
-from ase.calculators.singlepoint import SinglePointCalculator as SPC
 
 from mlacs.state import LammpsState
 from mlacs.utilities import (get_elements_Z_and_masses,

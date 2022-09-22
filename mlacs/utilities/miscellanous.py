@@ -10,7 +10,6 @@ from scipy.optimize import minimize
 from ase.atoms import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator as SPC
 
-#from mlacs.utilities import _create_ASE_object
 
 # ========================================================================== #
 def get_elements_Z_and_masses(supercell):
@@ -141,7 +140,7 @@ def compute_averaged(traj):
     Z = traj[-1].get_atomic_numbers()
     cell = np.average([at.get_cell()[:] for at in traj], axis=0)
     positions = np.average([at.get_positions() for at in traj], axis=0)
-    energy = np.average([at.get_potential_energy() for at in traj]) 
+    energy = np.average([at.get_potential_energy() for at in traj])
     atoms = _create_ASE_object(Z=Z,
                                positions=positions,
                                cell=cell,
