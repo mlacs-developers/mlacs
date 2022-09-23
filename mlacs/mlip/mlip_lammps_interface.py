@@ -9,6 +9,7 @@ from subprocess import run, PIPE
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.lammps import Prism
 from ase.calculators.lammpsrun import LAMMPS
+from ase.units import GPa
 
 from mlacs.utilities.io_lammps import write_lammps_data_full
 from mlacs.utilities import get_elements_Z_and_masses
@@ -532,6 +533,8 @@ class LammpsMlipInterface:
             # and bispectrum component are in ??????
             bispectrum[-6:, 1:-1] /= atoms.get_volume()
             data_bispectrum = bispectrum[:, 1:-1]
+            # Need also to correct the reference potential stress data
+            bispectrum[-6:, -1] *= GPa * 1e-4
 
             # We need to remove the reference potential values from the data
             data_true -= bispectrum[:, -1]
