@@ -14,7 +14,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 
 from mlacs.mlip import LammpsMlip
 from mlacs.calc import CalcManager
-from mlacs.prop import PropertyManager, CalcProperty
+from mlacs.properties import PropertyManager
 from mlacs.state.state import StateManager
 from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
@@ -95,14 +95,12 @@ class OtfMlacs:
             self.mlip = mlip
 
         # Create property object
-        if isinstance(prop, CalcProperty):
-            self.prop = PropertyManager(prop, self.nstate)
-        elif isinstance(prop, list):
-            self.prop = PropertyManager(prop, len(prop))
-        elif prop is None:
+        if prop is None:
             self.prop = PropertyManager(None)
-        else:
+        elif isinstance(prop, PropertyManager):
             self.prop = prop
+        else:
+            self.prop = PropertyManager(prop)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
