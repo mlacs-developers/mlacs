@@ -23,6 +23,10 @@ def plot_correlation(ax,
                      showmae=True,
                      showrsquared=True):
 
+    if datatype == "energy":
+        data[:, 0] -= data[:, 0].min()
+        data[:, 1] -= data[:, 1].min()
+
     datatrue = data[:, 0]
     datatest = data[:, 1]
 
