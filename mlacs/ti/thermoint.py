@@ -19,6 +19,8 @@ class ThermodynamicIntegration:
     ----------
     thermostate: :class:`thermostate` or :class:`list` of :class:`thermostate`
         State for which the thermodynamic integration should be performed
+    ninstance: : class:`int` 
+        Numer of forward and backward to be performed
     logfile: :class:`str` (optional)
         Name of the logfile. Default ``\"ThermoInt.log\"``
     """
@@ -34,10 +36,14 @@ class ThermodynamicIntegration:
         self.workdir = os.getcwd() + "/ThermoInt/"
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
-
+            
         # Create list of thermostate
         if isinstance(thermostate, ThermoState):
             self.state = [thermostate]
+            # Create ninstance state
+            if self.ninstance > 1:
+                state_replica = self.state
+                self.state.extend(state_replica * (self.ninstance-1))
         elif isinstance(thermostate, list):
             self.state = thermostate
         else:
@@ -46,7 +52,7 @@ class ThermodynamicIntegration:
             raise TypeError(msg)
         self.nstate = len(self.state)
         self.recap_state()
-
+        
 # ========================================================================== #
     def run(self):
         """
@@ -56,14 +62,15 @@ class ThermodynamicIntegration:
             for istate in range(self.nstate):
                 executor.submit(self._run_one_state, istate)
                 msg = f"State {istate+1}/{self.nstate} launched"
-                stateworkdir = self.workdir + self.state[istate].get_workdir()
+                stateworkdir = self.workdir + self.state[istate].get_workdir() + f"for_back_{istate+1}/"
                 msg += f"Working directory for this state : \n{stateworkdir}\n"
+                self.log.logger_log.info(msg)
 
 # ========================================================================== #
     def _run_one_state(self, istate):
         """
         """
-        stateworkdir = self.workdir + self.state[istate].get_workdir()
+        stateworkdir = self.workdir + self.state[istate].get_workdir() + f"for_back_{istate+1}/"
         self.state[istate].run(stateworkdir)
         msg = f"State {istate+1} : Molecular Dynamics Done\n"
         msg += "Starting post-process\n"
@@ -78,7 +85,7 @@ class ThermodynamicIntegration:
     def recap_state(self):
         """
         """
-        msg = ""
+        msg = "Total number of state:{0}. One state is equivalent to one f/b\n".format(self.nstate)
         for istate in range(self.nstate):
             msg += "State {0}/{1} :\n".format(istate+1, self.nstate)
             msg += self.state[istate].log_recap_state()
