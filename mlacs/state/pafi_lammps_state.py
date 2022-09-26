@@ -295,19 +295,18 @@ class PafiLammpsState(LammpsState):
             os.makedirs(self.MFEPworkdir)
         if xi is None:
             xi = np.arange(0, 1.01, 0.01)
-        if not hasattr(self, 'true_atoms'):
-            self.run_NEB(pair_style,
-                         pair_coeff,
-                         model_post,
-                         atom_style,
-                         bonds,
-                         angles,
-                         bond_style,
-                         bond_coeff,
-                         angle_style,
-                         angle_coeff,
-                         workdir)
-            self.extract_NEB_configurations()
+        self.run_NEB(pair_style,
+                     pair_coeff,
+                     model_post,
+                     atom_style,
+                     bonds,
+                     angles,
+                     bond_style,
+                     bond_coeff,
+                     angle_style,
+                     angle_coeff,
+                     workdir)
+        self.extract_NEB_configurations()
         self.compute_spline(xi)
         nrep = len(self.spline_atoms)
         with ThreadPoolExecutor(max_workers=ncpus) as executor:

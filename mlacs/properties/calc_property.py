@@ -47,7 +47,6 @@ class CalcMfep:
         self.pafi = {}
         self.kwargs = {}
         for keys, values in args.items():
-            print(keys, values)
             if keys in pafi_args:
                 self.pafi[keys] = values
             else:
@@ -60,7 +59,7 @@ class CalcMfep:
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.kwargs['workdir'] = wdir + '/Mfep_Calculation/'
+        self.kwargs['workdir'] = wdir + 'Mfep_Calculation/'
         self.state.run_MFEP(**self.kwargs)
         self.new = np.loadtxt(self.state.workdir + 'free_energy.dat').T[5]
         if self.isfirst:
@@ -132,6 +131,8 @@ class CalcNeb:
         self.freq = frequence
         self.stop = criterion
         self.method = method
+        self.pafi = {}
+        self.kwargs = {}
         for keys, values in args.items():
             if keys in pafi_args:
                 self.pafi[keys] = values
