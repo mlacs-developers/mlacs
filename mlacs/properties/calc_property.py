@@ -44,7 +44,10 @@ class CalcMfep:
         self.freq = frequence
         self.stop = criterion
         self.method = method
-        for keys, values in args.item():
+        self.pafi = {}
+        self.kwargs = {}
+        for keys, values in args.items():
+            print(keys, values)
             if keys in pafi_args:
                 self.pafi[keys] = values
             else:
@@ -58,25 +61,26 @@ class CalcMfep:
         Exec a MFEP calculation with lammps. Use replicas.
         """
         self.kwargs['workdir'] = wdir + '/Mfep_Calculation/'
-        self.state.run_NEB(**self.kwargs)
-        new = np.loadtxt(wdir + 'free_energy.dat').T[5]
+        self.state.run_MFEP(**self.kwargs)
+        self.new = np.loadtxt(self.state.workdir + 'free_energy.dat').T[5]
         if self.isfirst:
-            old = np.zero(len(new))
+            self.old = np.zeros(len(self.new))
+            check = self._check
+            self.old = self.new
             self.isfirst = False
-            results = (new, old)
         else:
-            results = (new, old)
-            old = new
-        return results
+            check = self._check
+            self.old = self.new
+        return check
 
 # ========================================================================== #
-    def _check(self, results):
+    @property
+    def _check(self):
         """
         Check if convergence is achived.
         """
-        new, old = results
-        self.maxf = max(new-old)
-        self.avef = np.average(new-old)
+        self.maxf = max(self.new-self.old)
+        self.avef = np.average(self.new-self.old)
         if self.method == 'max' and self.maxf < self.stop:
             return True
         elif self.method == 'ave' and self.avef < self.stop:
@@ -92,8 +96,8 @@ class CalcMfep:
         """
         msg = self.state.log_recap_state()
         msg += 'Difference of free energy along the path with previous step:\n'
-        msg += '        - Maximum  : {self.maxf}\n'
-        msg += '        - Averaged : {self.avef}\n'
+        msg += f'        - Maximum  : {self.maxf}\n'
+        msg += f'        - Averaged : {self.avef}\n'
         msg += '\n'
         return msg
 
@@ -128,7 +132,7 @@ class CalcNeb:
         self.freq = frequence
         self.stop = criterion
         self.method = method
-        for keys, values in args.item():
+        for keys, values in args.items():
             if keys in pafi_args:
                 self.pafi[keys] = values
             else:
@@ -139,29 +143,30 @@ class CalcNeb:
 # ========================================================================== #
     def _exec(self, wdir):
         """
-        Exec a MFEP calculation with lammps. Use replicas.
+        Exec a NEB calculation with lammps. Use replicas.
         """
         self.kwargs['workdir'] = wdir + '/NEB_Calculation/'
         self.state.run_NEB(**self.kwargs)
         self.state.extract_NEB_configurations()
-        new = self.state.true_energies
+        self.new = self.state.true_energies
         if self.isfirst:
-            old = np.zero(len(new))
+            self.old = np.zeros(len(self.new))
+            check = self._check
+            self.old = self.new
             self.isfirst = False
-            results = (new, old)
         else:
-            results = (new, old)
-            old = new
-        return results
+            check = self._check
+            self.old = self.new
+        return check
 
 # ========================================================================== #
-    def _check(self, results):
+    @property
+    def _check(self):
         """
         Check if convergence is achived.
         """
-        new, old = results
-        self.maxf = max(new-old)
-        self.avef = np.average(new-old)
+        self.maxf = max(self.new-self.old)
+        self.avef = np.average(self.new-self.old)
         if self.method == 'max' and self.maxf < self.stop:
             return True
         elif self.method == 'ave' and self.avef < self.stop:
@@ -177,7 +182,7 @@ class CalcNeb:
         """
         msg = self.state.log_recap_state()
         msg += 'Difference of free energy along the path with previous step:\n'
-        msg += '        - Maximum  : {self.maxf}\n'
-        msg += '        - Averaged : {self.avef}\n'
+        msg += f'        - Maximum  : {self.maxf}\n'
+        msg += f'        - Averaged : {self.avef}\n'
         msg += '\n'
         return msg

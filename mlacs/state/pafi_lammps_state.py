@@ -49,7 +49,7 @@ class PafiLammpsState(LammpsState):
         Number of MLMD steps for production runs. Default ``1000`` steps.
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
-    brownian: :class:`Bool`
+    BROWNian: :class:`Bool`
         If ``True``, a Brownian thermostat is used for the thermostat.
         Else, a Langevin thermostat is used
         Default ``True``
@@ -305,7 +305,8 @@ class PafiLammpsState(LammpsState):
                          bond_style,
                          bond_coeff,
                          angle_style,
-                         angle_coeff)
+                         angle_coeff,
+                         workdir)
             self.extract_NEB_configurations()
         self.compute_spline(xi)
         nrep = len(self.spline_atoms)
@@ -797,7 +798,7 @@ class PafiLammpsState(LammpsState):
         Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
         # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
-            with open('free_energy.dat', 'w') as w:
+            with open(self.workdir + 'free_energy.dat', 'w') as w:
                 dFM = max(F) - min(F)
                 w.write(f'##  Free energy barier: {dFM} eV  ' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
@@ -840,7 +841,7 @@ class PafiLammpsState(LammpsState):
         else:
             step = coord[1]-coord[0]
             i, f = (coord[0], coord[-1])
-        msg += f"Reaction interval :                      [{i} : {f}]\n"
-        msg += f"Reaction step interval :                 {step}\n"
+            msg += f"Reaction interval :                      [{i} : {f}]\n"
+            msg += f"Reaction step interval :                 {step}\n"
         msg += "\n"
         return msg

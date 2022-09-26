@@ -58,8 +58,7 @@ class PropertyManager:
             os.makedirs(wdir)
         for prop in self.manager:
             if prop.freq:
-                results = prop._exec(wdir)
-                check = prop._check(results)
+                check = prop._exec(wdir)
                 msg += prop.log_recap()
                 self.check.append(check)
         msg += '\n'
