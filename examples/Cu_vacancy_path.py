@@ -8,6 +8,7 @@ from ase.calculators.lammpsrun import LAMMPS
 
 from mlacs.mlip import LammpsMlip
 from mlacs.state import PafiLammpsState
+from mlacs.properties import CalcMfep
 from mlacs import OtfMlacs
 
 
@@ -18,7 +19,7 @@ The true potential is the EMT as implemented in ASE
 
 # Parameters-------------------------------------------------------------------
 temperature = 10  # K
-nconfs = 50
+nconfs = 10
 nsteps = 1000
 nsteps_eq = 100
 neq = 30
@@ -51,6 +52,21 @@ calc = EMT()
 # Creation of the MLIP Manager
 mlip = LammpsMlip(neb[0], rcut=rcut, descriptor_parameters=mlip_params)
 
+# Creation of the Property Manager
+xi = np.arange(0, 1.1, 0.1)
+mfep_param = {'temperature' : temperature,
+              'configurations' : neb,
+              'dt' : dt,
+              'pair_style' : mlip.pair_style,
+              'pair_coeff' : mlip.pair_coeff,
+              'ncpus' : 8,
+              'xi' : xi,
+              'nsteps' : 2000,
+              'interval' : 5,
+              'nthrow' : 500}
+              
+properties = CalcMfep(mfep_param)
+
 # Creation of the State Manager
 state = PafiLammpsState(temperature, 
                         neb, 
@@ -60,11 +76,11 @@ state = PafiLammpsState(temperature,
                         nsteps_eq=nsteps_eq)
 
 # Creation of the OtfMLACS object
-sampling = OtfMlacs(neb[0], state, calc, mlip, neq=neq)
+sampling = OtfMlacs(neb[0], state, calc, mlip, properties, neq=neq)
 
 # Run the simulation
 sampling.run(nconfs)
 
 # Run the MFEP calculation
 xi = np.arange(0, 1.1, 0.1)
-state.run_MFEP(mlip.pair_style, mlip.pair_coeff, ncpus=6, xi=xi)
+state.run_MFEP(mlip.pair_style, mlip.pair_coeff, ncpus=8, xi=xi)

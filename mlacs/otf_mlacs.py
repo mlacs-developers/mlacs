@@ -410,7 +410,7 @@ class OtfMlacs:
             self.nconfs[0] += 1
 
         # Computing properties with ML potential.
-        if self.prop is not None: 
+        if self.prop is not None:
             if not self.prop.check_criterion:
                 msg = "Computing few properties with the ML potential\n"
                 self.log.logger_log.info(msg)
@@ -418,9 +418,8 @@ class OtfMlacs:
                 self.log.logger_log.info(msg)
             else:
                 msg = "All convergence criterions are achieved, " + \
-                      "stopping the calculations\n"     
+                      "stopping the calculations\n"
                 self.log.logger_log.info(msg)
-
 
         return True
 
