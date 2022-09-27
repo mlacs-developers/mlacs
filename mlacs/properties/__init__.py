@@ -4,7 +4,9 @@
 """
 
 from mlacs.properties.property_manager import PropertyManager
-from mlacs.properties.calc_property import CalcMfep
+from mlacs.properties.calc_property import (CalcMfep,
+                                           CalcNeb)
 
 __all__ = ['PropertyManager',
-           'CalcMfep']
+           'CalcMfep',
+           'CalcNeb']

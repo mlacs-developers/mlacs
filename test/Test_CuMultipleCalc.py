@@ -8,7 +8,7 @@ from ase.calculators.lammpsrun import LAMMPS
 
 from mlacs.mlip import LammpsMlip
 from mlacs.state import PafiLammpsState
-from mlacs.properties import CalcMfep
+from mlacs.properties import CalcMfep, CalcNeb
 from mlacs import OtfMlacs
 
 
@@ -19,7 +19,7 @@ The true potential is the EMT as implemented in ASE
 
 # Parameters-------------------------------------------------------------------
 temperature = 10  # K
-nconfs = 10
+nconfs = 50
 nsteps = 1000
 nsteps_eq = 100
 neq = 30
@@ -64,8 +64,12 @@ mfep_param = {'temperature' : temperature,
               'nsteps' : 2000,
               'interval' : 5,
               'nthrow' : 500}
+cneb_param = {'temperature' : temperature,
+              'configurations' : neb,
+              'pair_style' : mlip.pair_style,
+              'pair_coeff' : mlip.pair_coeff}
               
-properties = CalcMfep(mfep_param)
+properties = [CalcMfep(mfep_param), CalcNeb(cneb_param)]
 
 # Creation of the State Manager
 state = PafiLammpsState(temperature, 
@@ -82,5 +86,5 @@ sampling = OtfMlacs(neb[0], state, calc, mlip, properties, neq=neq)
 sampling.run(nconfs)
 
 # Run the MFEP calculation
-xi = np.arange(0, 1.1, 0.1)
-state.run_MFEP(mlip.pair_style, mlip.pair_coeff, ncpus=8, xi=xi)
+#xi = np.arange(0, 1.1, 0.1)
+#state.run_MFEP(mlip.pair_style, mlip.pair_coeff, ncpus=8, xi=xi)

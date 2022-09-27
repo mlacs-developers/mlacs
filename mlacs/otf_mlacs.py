@@ -213,12 +213,12 @@ class OtfMlacs:
         # Initialize ntry in case of failing computation
         self.ntry = 0
         while self.step < nsteps:
+            if self.prop.check_criterion:
+                break
             self.log.init_new_step(self.step)
             if not self.launched:
                 self._run_initial_step()
                 self.step += 1
-            elif self.prop.check_criterion:
-                break
             else:
                 step_done = self._run_step()
                 if not step_done:
@@ -411,12 +411,11 @@ class OtfMlacs:
 
         # Computing properties with ML potential.
         if self.prop is not None:
-            if not self.prop.check_criterion:
-                msg = "Computing few properties with the ML potential\n"
-                self.log.logger_log.info(msg)
-                msg = self.prop.run(self.prop.workdir + f"Step{self.step}/")
-                self.log.logger_log.info(msg)
-            else:
+            msg = "Computing few properties with the ML potential\n"
+            self.log.logger_log.info(msg)
+            msg = self.prop.run(self.prop.workdir + f"Step{self.step}/")
+            self.log.logger_log.info(msg)
+            if self.prop.check_criterion:
                 msg = "All convergence criterions are achieved, " + \
                       "stopping the calculations\n"
                 self.log.logger_log.info(msg)

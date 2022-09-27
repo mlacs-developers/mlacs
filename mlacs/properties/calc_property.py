@@ -78,8 +78,8 @@ class CalcMfep:
         """
         Check if convergence is achived.
         """
-        self.maxf = max(self.new-self.old)
-        self.avef = np.average(self.new-self.old)
+        self.maxf = np.abs(max(self.new-self.old))
+        self.avef = np.abs(np.average(self.new-self.old))
         if self.method == 'max' and self.maxf < self.stop:
             return True
         elif self.method == 'ave' and self.avef < self.stop:
@@ -94,10 +94,9 @@ class CalcMfep:
         property.
         """
         msg = self.state.log_recap_state()
-        msg += 'Difference of free energy along the path with previous step:\n'
+        msg += 'Free energy difference along the path with previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n'
-        msg += '\n'
         return msg
 
 
@@ -166,8 +165,8 @@ class CalcNeb:
         """
         Check if convergence is achived.
         """
-        self.maxf = max(self.new-self.old)
-        self.avef = np.average(self.new-self.old)
+        self.maxf = np.abs(max(self.new-self.old))
+        self.avef = np.abs(np.average(self.new-self.old))
         if self.method == 'max' and self.maxf < self.stop:
             return True
         elif self.method == 'ave' and self.avef < self.stop:
@@ -182,8 +181,7 @@ class CalcNeb:
         property.
         """
         msg = self.state.log_recap_state()
-        msg += 'Difference of free energy along the path with previous step:\n'
+        msg += 'Energy difference along the reaction path with previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n'
-        msg += '\n'
         return msg
