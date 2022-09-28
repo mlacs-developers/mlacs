@@ -411,13 +411,12 @@ class OtfMlacs:
 
         # Computing properties with ML potential.
         if self.prop is not None:
-            msg = "Computing few properties with the ML potential\n"
-            self.log.logger_log.info(msg)
-            msg = self.prop.run(self.prop.workdir + f"Step{self.step}/")
+            msg = self.prop.run(self.prop.workdir + f"Step{self.step}/",
+                                self.step)
             self.log.logger_log.info(msg)
             if self.prop.check_criterion:
-                msg = "All convergence criterions are achieved, " + \
-                      "stopping the calculations\n"
+                msg = "All property calculations are converged, " + \
+                      "stopping MLACS ...\n"
                 self.log.logger_log.info(msg)
 
         return True

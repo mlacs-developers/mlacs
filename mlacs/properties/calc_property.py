@@ -93,10 +93,11 @@ class CalcMfep:
         Return a string for the log with informations of the calculated
         property.
         """
-        msg = self.state.log_recap_state()
+        msg = 'Computing the minimum free energy path:\n'
+        msg += self.state.log_recap_state()
         msg += 'Free energy difference along the path with previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
-        msg += f'        - Averaged : {self.avef}\n'
+        msg += f'        - Averaged : {self.avef}\n\n'
         return msg
 
 
@@ -180,8 +181,9 @@ class CalcNeb:
         Return a string for the log with informations of the calculated
         property.
         """
-        msg = self.state.log_recap_state()
+        msg = 'Computing the minimum energy path from a NEB calculation:\n'
+        msg += self.state.log_recap_state()
         msg += 'Energy difference along the reaction path with previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
-        msg += f'        - Averaged : {self.avef}\n'
+        msg += f'        - Averaged : {self.avef}\n\n'
         return msg

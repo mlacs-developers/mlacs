@@ -49,17 +49,18 @@ class PropertyManager:
         return True
 
 # ========================================================================== #
-    def run(self, wdir):
+    def run(self, wdir, step):
         """
         """
-        msg = ""
-        self.check = []
-        if not os.path.exists(wdir):
-            os.makedirs(wdir)
+        dircheck = False
         for prop in self.manager:
-            if prop.freq:
-                check = prop._exec(wdir)
-                msg += prop.log_recap()
-                self.check.append(check)
-        msg += '\n'
+            if step % prop.freq == 0:
+                dircheck = True
+        if not os.path.exists(wdir) and dircheck:
+            os.makedirs(wdir)
+        msg = ""
+        for i in range(len(self.manager)):
+            if step % self.manager[i].freq == 0:
+                self.check[i] = self.manager[i]._exec(wdir)
+                msg += self.manager[i].log_recap()
         return msg
