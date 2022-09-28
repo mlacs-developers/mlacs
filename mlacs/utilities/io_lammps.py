@@ -29,10 +29,10 @@ def get_log_input(loginterval, logfile):
     input_string += "variable    mypxz equal pxz/(vol*10000)\n"
     input_string += "variable    mypyz equal pyz/(vol*10000)\n"
     input_string += f'fix mythermofile all print {loginterval} ' + \
-                    '"$t ${myetot}  ${mype} ${myke} ' + \
+                    '"$t ${vol} ${myetot}  ${mype} ${myke} ' + \
                     '${mytemp}  ${mypress} ${mypxx} ${mypyy} ' + \
                     '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
-                    f'append {logfile} title "# Step  Etot  ' + \
+                    f'append {logfile} title "# Step  Vol  Etot  ' + \
                     'Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
     input_string += "#####################################\n"
     input_string += "\n\n\n"

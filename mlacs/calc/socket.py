@@ -5,29 +5,31 @@
 
 from ase.calculators.socketio import SocketIOCalculator
 
-#===================================================================================================================================================#
-#===================================================================================================================================================#
+from mlacs.calc.calc_manager import CalcManager
+
+
+# =========================================================================== #
+# =========================================================================== #
 class SocketCalcManager(CalcManager):
     """
     Class for managing the true potential through the SocketIO calculator
-    
+
     Parameters
     ----------
     """
     def __init__(self,
                  calc=None,
-                 magmoms=None
+                 magmoms=None,
                  socketlog=None,
                  unixsocket=None,
-                 port=None,
-                ):
-        self.calc    = calc
+                 port=None):
+        self.calc = calc
         self.magmoms = magmoms
 
         # This will launch the server
         SocketIOCalculator(unixsocket=unixsocket, port=port, log=socketlog)
 
-#===================================================================================================================================================#
+# =========================================================================== #
     def compute_true_potential(self, atoms):
         """
         """

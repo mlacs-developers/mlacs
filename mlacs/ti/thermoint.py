@@ -24,7 +24,6 @@ class ThermodynamicIntegration:
     """
     def __init__(self,
                  thermostate,
-                 nb_backfor=5,
                  ninstance=10,
                  logfile=None):
 
@@ -45,10 +44,6 @@ class ThermodynamicIntegration:
             msg = "state should be a ThermoState object or " + \
                   "a list of ThermoState objects"
             raise TypeError(msg)
-        nb_backfor -= 1
-        _ = self.state
-        for i in range(nb_backfor):
-            self.state = self.state + _ 
         self.nstate = len(self.state)
         self.recap_state()
 
