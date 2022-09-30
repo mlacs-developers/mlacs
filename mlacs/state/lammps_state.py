@@ -106,6 +106,7 @@ class LammpsState(StateManager):
                               logfile,
                               trajfile,
                               loginterval,
+                              msdfile,
                               workdir)
 
         self.rng = rng
