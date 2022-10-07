@@ -411,7 +411,7 @@ class OtfMlacs:
             self.nconfs[0] += 1
 
         # Computing properties with ML potential.
-        if self.prop is not None:
+        if self.prop.manager is not None:
             msg = self.prop.run(self.prop.workdir + f"Step{self.step}/",
                                 self.step)
             self.log.logger_log.info(msg)
