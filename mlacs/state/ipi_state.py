@@ -113,6 +113,7 @@ class IpiState(LammpsState):
                  prefix='simulation',
                  thermostyle='pile_l',
                  barostyle='isotropic',
+                 diagonal=True,
                  damp=None,
                  pdamp=None,
                  pilelambda=0.5,
@@ -155,6 +156,7 @@ class IpiState(LammpsState):
             self.stress = np.zeros((3, 3))
             if pressure is not None:
                 self.stress = -np.identity(3)*pressure/3
+        self.diagonal = diagonal
 
         self.nbeads = nbeads  # Default value to do classical MD
         if self.nbeads > 1:
@@ -164,8 +166,8 @@ class IpiState(LammpsState):
             self.paralbeads = 1
         self.prefix = prefix
 
-        self.ipiatomsfname = self.workdir + "ipi_atoms.xyz"
-        self.ipifname = self.workdir + "ipi_input.xml"
+        self.ipiatomsfname = "ipi_atoms.xyz"
+        self.ipifname = "ipi_input.xml"
 
         self._get_ipi_cmd()
 
@@ -248,7 +250,7 @@ class IpiState(LammpsState):
 
         atomswrite = atoms.copy()
         atomswrite.positions = atoms.get_positions() / Bohr
-        write(self.ipiatomsfname, atomswrite, format='xyz')
+        write(self.workdir + self.ipiatomsfname, atomswrite, format='xyz')
         self.write_lammps_input(atoms,
                                 atom_style,
                                 bond_style,
@@ -262,7 +264,7 @@ class IpiState(LammpsState):
                                 self.temperature,
                                 self.pressure)
         self.write_ipi_input(atoms, nsteps)
-        ipi_command = f"{self.cmdipi} {self.ipifname} > {self.workdir}ipi.log"
+        ipi_command = f"{self.cmdipi} {self.ipifname} > ipi.log"
         # We start by running ipi alone
         ipi_handle = Popen(ipi_command, shell=True, cwd=self.workdir,
                            stderr=PIPE)
@@ -471,7 +473,14 @@ class IpiState(LammpsState):
             pdamp = _add_textxml(ET.Element('tau',
                                             attrib={'units': 'femtosecond'}),
                                  str(pdamp))
-            barostat = _add_Subelements(barostat, [thermostatb, pdamp, h0])
+            if self.diagonal:
+                diagonal = _add_textxml(ET.Element('hfix'),
+                                        "[offdiagonal]")
+                barostat = _add_Subelements(barostat,
+                                            [thermostatb, pdamp, h0, diagonal])
+            else:
+                barostat = _add_Subelements(barostat,
+                                            [thermostatb, pdamp, h0])
             dynamics.append(barostat)
 
         # Setup Thermostats
@@ -508,7 +517,8 @@ class IpiState(LammpsState):
         tree = ET.ElementTree(simulation)
         if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
             ET.indent(tree)
-        tree.write(self.ipifname, encoding='unicode', xml_declaration=True)
+        tree.write(self.workdir + self.ipifname, encoding='unicode',
+                   xml_declaration=True)
 
 # ========================================================================== #
     def create_ase_atom(self, pbc, nbeads_return):
@@ -620,8 +630,8 @@ class IpiState(LammpsState):
         """
         """
         self.workdir = workdir
-        self.ipiatomsfname = self.workdir + "ipi_atoms.xyz"
-        self.ipifname = self.workdir + "ipi_input.xml"
+        self.ipiatomsfname = "ipi_atoms.xyz"
+        self.ipifname = "ipi_input.xml"
 
 
 if __name__ == '__main__':
