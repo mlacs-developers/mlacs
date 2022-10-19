@@ -20,6 +20,10 @@ def main(args, parser):
     rsquared = True
     if args.nor2:
         rsquared = False
+    density = False
+    if args.density:
+        density = True
+    cmap = args.cmap
     figsize = (float(args.figsize), float(args.figsize))
     fig = plt.figure(figsize=figsize, constrained_layout=True)
     init_rcParams()
@@ -27,9 +31,11 @@ def main(args, parser):
     plot_correlation(ax,
                      data,
                      datatype=args.datatype,
+                     density=density,
                      showrmse=rmse,
                      showmae=mae,
-                     showrsquared=rsquared)
+                     showrsquared=rsquared,
+                     cmap=cmap)
     ax.set_aspect("equal")
     if args.save is not None:
         plt.savefig(args.save)
@@ -58,6 +64,8 @@ class CLICommand:
         parser.add_argument('--datatype', default=None,
                             help="Type of data in the file. Can be "
                             "energy, forces or stress")
+        parser.add_argument('--density', action="store_true",
+                            help="Color points according to the density")
         parser.add_argument('--nomae', action="store_true",
                             help="To remove the MAE from the plot")
         parser.add_argument('--normse', action="store_true",
@@ -66,6 +74,8 @@ class CLICommand:
                             help="to remove the r^2 from the plot")
         parser.add_argument("--figsize", default="10",
                             help="Size of the figure for matplotlib")
+        parser.add_argument("--cmap", default="inferno",
+                            help="Colormap for the density plot")
 
     @staticmethod
     def run(args, parser):
