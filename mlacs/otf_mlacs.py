@@ -14,6 +14,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 
 from mlacs.mlip import LammpsMlip
 from mlacs.calc import CalcManager
+from mlacs.properties import PropertyManager
 from mlacs.state.state import StateManager
 from mlacs.utilities.log import MlacsLog
 from mlacs.utilities import create_random_structures
@@ -65,6 +66,7 @@ class OtfMlacs:
                  state,
                  calc,
                  mlip=None,
+                 prop=None,
                  neq=10,
                  nbeads=1,
                  prefix_output="Trajectory",
@@ -91,6 +93,14 @@ class OtfMlacs:
             self.mlip = LammpsMlip(self.atoms[0])  # Default MLIP Manager
         else:
             self.mlip = mlip
+
+        # Create property object
+        if prop is None:
+            self.prop = PropertyManager(None)
+        elif isinstance(prop, PropertyManager):
+            self.prop = prop
+        else:
+            self.prop = PropertyManager(prop)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -203,6 +213,8 @@ class OtfMlacs:
         # Initialize ntry in case of failing computation
         self.ntry = 0
         while self.step < nsteps:
+            if self.prop.check_criterion:
+                break
             self.log.init_new_step(self.step)
             if not self.launched:
                 self._run_initial_step()
@@ -282,26 +294,27 @@ class OtfMlacs:
                                eq[istate],
                                self.nbeads)
         else:
-            if type(self.state[istate]).__name__ == 'PafiLammpsState':
-                self.state[istate].run_NEB(self.mlip.pair_style,
-                                           self.mlip.pair_coeff,
-                                           self.mlip.model_post,
-                                           self.mlip.atom_style,
-                                           self.mlip.bonds,
-                                           self.mlip.angles,
-                                           self.mlip.bond_style,
-                                           self.mlip.bond_coeff,
-                                           self.mlip.angle_style,
-                                           self.mlip.angle_coeff)
-                self.state[istate].extract_NEB_configurations()
-                self.state[istate].compute_spline()
-                self.state[istate].isrestart = False
-            # Reset Atoms to sample from the perfect atomic structures
-            if self.state[istate].isrestart:
-                msg = "Starting from first configuration\n"
-                self.log.logger_log.info(msg)
-                atoms_mlip[istate] = self.atoms_start[istate].copy()
-                self.state[istate].initialize_momenta(atoms_mlip[istate])
+            for istate in range(self.nstate):
+                if type(self.state[istate]).__name__ == 'PafiLammpsState':
+                    self.state[istate].run_NEB(self.mlip.pair_style,
+                                               self.mlip.pair_coeff,
+                                               self.mlip.model_post,
+                                               self.mlip.atom_style,
+                                               self.mlip.bonds,
+                                               self.mlip.angles,
+                                               self.mlip.bond_style,
+                                               self.mlip.bond_coeff,
+                                               self.mlip.angle_style,
+                                               self.mlip.angle_coeff)
+                    self.state[istate].extract_NEB_configurations()
+                    self.state[istate].compute_spline()
+                    self.state[istate].isrestart = False
+                # Reset Atoms to sample from the perfect atomic structures
+                if self.state[istate].isrestart:
+                    msg = "Starting from first configuration\n"
+                    self.log.logger_log.info(msg)
+                    atoms_mlip[istate] = self.atoms_start[istate].copy()
+                    self.state[istate].initialize_momenta(atoms_mlip[istate])
             # With those thread, we can execute all the states in parallell
             futures = []
             with ThreadPoolExecutor() as executor:
@@ -396,6 +409,17 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
+
+        # Computing properties with ML potential.
+        if self.prop.manager is not None:
+            msg = self.prop.run(self.prop.workdir + f"Step{self.step}/",
+                                self.step)
+            self.log.logger_log.info(msg)
+            if self.prop.check_criterion:
+                msg = "All property calculations are converged, " + \
+                      "stopping MLACS ...\n"
+                self.log.logger_log.info(msg)
+
         return True
 
 # ========================================================================== #

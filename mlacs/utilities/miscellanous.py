@@ -8,6 +8,7 @@ from scipy import interpolate
 from scipy.optimize import minimize
 
 from ase.atoms import Atoms
+from ase.calculators.singlepoint import SinglePointCalculator as SPC
 
 
 # ========================================================================== #
@@ -106,6 +107,45 @@ def compute_correlation(data):
     sst = ((datatrue - datatrue.mean())**2).sum()
     rsquared = 1 - sse / sst
     return rmse, mae, rsquared
+
+
+# ========================================================================== #
+def _create_ASE_object(Z, positions, cell, energy):
+    """
+    Create ASE Atoms object.
+    """
+    atoms = Atoms(numbers=Z,
+                  positions=positions,
+                  cell=cell,
+                  pbc=True)
+    calc = SPC(atoms=atoms,
+               energy=energy)
+    atoms.set_calculator(calc)
+    return atoms
+
+
+# ========================================================================== #
+def compute_averaged(traj):
+    """
+    Function to compute the averaged Atoms configuration from a Trajectory.
+
+    Parameters
+    ----------
+
+    data: :class:`ase.Trajectory`
+        List of ase.Atoms object.
+    """
+    if isinstance(traj, Atoms):
+        traj = [traj]
+    Z = traj[-1].get_atomic_numbers()
+    cell = np.average([at.get_cell()[:] for at in traj], axis=0)
+    positions = np.average([at.get_positions() for at in traj], axis=0)
+    energy = np.average([at.get_potential_energy() for at in traj])
+    atoms = _create_ASE_object(Z=Z,
+                               positions=positions,
+                               cell=cell,
+                               energy=energy)
+    return atoms.copy()
 
 
 # ========================================================================== #

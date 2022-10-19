@@ -19,47 +19,9 @@ def plot_correlation(ax,
                      data,
                      color=blue,
                      datatype=None,
-                     density=False,
-                     cmap="inferno",
                      showrmse=True,
                      showmae=True,
                      showrsquared=True):
-    """
-    Function to plot the correlation between true and model data on an axes
-
-    Parameters:
-    -----------
-    ax: Axes.axes
-        The axes on which to plot the data
-    data: `np.ndarray` 
-        The data to plot. Has to be of shape (n, 2) 
-        with n the number of datapoint
-    color:
-        The color of the marker in the scatter plot.
-        Ignored if density is True.
-    datatype: `None` or `str`
-        The type of data. Can be either "energy", "forces" or "stress"
-    density: `Bool`
-        If True, each datapoint is colored according to the density
-        of data
-    cmap: `str`
-        The colormap used if density is True.
-        Ignored if density is False
-    showrmse: `Bool`
-        Whether to show the RMSE on the plot
-    showmae: `Bool`
-        Whether to show the MAE on the plot
-    showrsquared: `Bool`
-        Whether to show the R^2 on the plot
-
-    Returns:
-    --------
-    ax
-    """
-
-    if datatype == "energy":
-        data[:, 0] -= data[:, 0].min()
-        data[:, 1] -= data[:, 1].min()
 
     datatrue = data[:, 0]
     datatest = data[:, 1]
@@ -70,15 +32,7 @@ def plot_correlation(ax,
 
     rmse, mae, rsquared = compute_correlation(data)
 
-    if density:
-        xy = np.vstack([datatrue, datatest])
-        z = gaussian_kde(xy)(xy)
-        norm = mpl.colors.LogNorm(z.min(), z.max())
-        idx = z.argsort()
-        ax.scatter(datatrue[idx], datatest[idx], c=z[idx],
-                   linewidths=5, norm=norm, s=50, cmap=cmap)
-    else:
-        ax.plot(datatrue, datatest, ls="", marker="o")
+    ax.plot(datatrue, datatest, ls="", marker="o")
     ax.plot(minmax, minmax, ls="--", alpha=0.75, c=grey)
 
     if datatype is not None:
@@ -195,7 +149,6 @@ def init_rcParams():
     mpl.rcParams["lines.markeredgecolor"] = "k"
     mpl.rcParams["lines.markersize"] = 25
     mpl.rcParams["lines.markeredgewidth"] = 5
-    #mpl.rcParams["scatter.edgecolors"] = "k"
 
     mpl.rcParams["font.size"] = 30
 
