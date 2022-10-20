@@ -4,7 +4,7 @@
 """
 import os
 import shlex
-from subprocess import call, PIPE
+from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -85,7 +85,7 @@ class AbinitManager(CalcManager):
         # Yeah for threading
         with ThreadPoolExecutor(max_workers=self.ninstance) as executor:
             for cdir in confdir:
-                executor.submit(call,
+                executor.submit(run,
                                 self.cmd,
                                 cwd=cdir,
                                 stdout=PIPE,
