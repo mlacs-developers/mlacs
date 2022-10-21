@@ -8,8 +8,8 @@ from subprocess import call
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from mlacs.ti.thermostate import ThermoState
-from mlacs.utilities.thermo import (free_energy_uhlenbeck_ford,
+from .thermostate import ThermoState
+from ..utilities.thermo import (free_energy_uhlenbeck_ford,
                                     free_energy_ideal_gas)
 
 

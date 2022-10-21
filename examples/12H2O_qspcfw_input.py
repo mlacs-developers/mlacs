@@ -101,7 +101,7 @@ ref_pot = {"atom_style": "full",
 
 mlip = LammpsMlip(atom,
                   rcut=rcut,
-                  mlip_parameters=mlip_params,
+                  descriptor_parameters=mlip_params,
                   stress_coefficient=scoeff,
                   reference_potential=ref_pot,
                   style=style)

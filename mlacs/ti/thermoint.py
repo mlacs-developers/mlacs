@@ -4,8 +4,8 @@
 """
 import os
 
-from mlacs.utilities.thermolog import ThermoLog
-from mlacs.ti.thermostate import ThermoState
+from ..utilities.thermolog import ThermoLog
+from .thermostate import ThermoState
 from concurrent.futures import ThreadPoolExecutor
 
 

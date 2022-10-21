@@ -12,13 +12,13 @@ from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from mlacs.mlip import LammpsMlip
-from mlacs.calc import CalcManager
-from mlacs.properties import PropertyManager
-from mlacs.state.state import StateManager
-from mlacs.utilities.log import MlacsLog
-from mlacs.utilities import create_random_structures
-from mlacs.utilities.path_integral import compute_centroid_atoms
+from .mlip import LammpsMlip
+from .calc import CalcManager
+from .properties import PropertyManager
+from .state import StateManager
+from .utilities.log import MlacsLog
+from .utilities import create_random_structures
+from .utilities.path_integral import compute_centroid_atoms
 
 
 # ========================================================================== #

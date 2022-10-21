@@ -13,7 +13,7 @@ from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
 
-from mlacs.calc.calc_manager import CalcManager
+from .calc_manager import CalcManager
 
 
 # ========================================================================== #

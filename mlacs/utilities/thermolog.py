@@ -5,7 +5,7 @@
 import os
 import logging
 import datetime
-from mlacs.version import __version__
+from .. import __version__
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
