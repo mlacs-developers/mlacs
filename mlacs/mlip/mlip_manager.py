@@ -4,7 +4,7 @@
 """
 import numpy as np
 
-from mlacs.utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses
 
 
 # ========================================================================== #

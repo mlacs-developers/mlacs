@@ -1,12 +1,12 @@
 """
 """
 
+import numpy as np
+import matplotlib.pyplot as plt
+from ..utilities.plots import plot_correlation, init_rcParams
 
 def main(args, parser):
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from mlacs.utilities.plots import (plot_correlation,
-                                       init_rcParams)
+
     data = np.loadtxt(args.file)
     if args.datatype not in ["energy", "forces", "stress", None]:
         raise ValueError("The type argument has to be "

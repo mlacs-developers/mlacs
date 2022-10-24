@@ -8,8 +8,8 @@ import numpy as np
 from scipy.integrate import cumtrapz
 from ase.units import kB
 
-from mlacs.utilities.miscellanous import get_elements_Z_and_masses
-from mlacs.ti.thermostate import ThermoState
+from ..utilities.miscellanous import get_elements_Z_and_masses
+from .thermostate import ThermoState
 
 
 # ========================================================================== #

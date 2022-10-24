@@ -11,9 +11,9 @@ from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from mlacs.state.state import StateManager
-from mlacs.utilities import get_elements_Z_and_masses
-from mlacs.utilities.io_lammps import (get_general_input,
+from .state import StateManager
+from ..utilities import get_elements_Z_and_masses
+from ..utilities.io_lammps import (get_general_input,
                                        get_log_input,
                                        get_traj_input,
                                        get_diffusion_input,

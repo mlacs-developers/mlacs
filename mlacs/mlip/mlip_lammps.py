@@ -2,8 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from mlacs.mlip.linear_mlip import LinearMlip
-from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
+from .linear_mlip import LinearMlip
+from .mlip_lammps_interface import LammpsMlipInterface
 
 
 # ========================================================================== #

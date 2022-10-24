@@ -1,4 +1,13 @@
-__pycache__/
-/token
-mlacs.egg-info/
+# Files produced by the setup script or direct import
+*.pyc
+*.egg-info
+build
+build/*
+dist
+dist/*/
+dist/*.egg
 docs/build/
+__pycache__/
+
+# local files
+/token

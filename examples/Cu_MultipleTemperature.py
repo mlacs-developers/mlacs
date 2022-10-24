@@ -30,7 +30,7 @@ calc = EMT()
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms, rcut=rcut, mlip_parameters=mlip_params)
+mlip = LammpsMlip(atoms, rcut=rcut, descriptor_parameters=mlip_params)
 
 # Creation of the State Manager
 state = []

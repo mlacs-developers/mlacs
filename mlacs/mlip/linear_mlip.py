@@ -5,7 +5,7 @@
 import numpy as np
 from ase.units import GPa
 
-from mlacs.mlip import MlipManager
+from . import MlipManager
 try:
     import sklearn.linear_model as lin_mod
     from sklearn.model_selection import GridSearchCV

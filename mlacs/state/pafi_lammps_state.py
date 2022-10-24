@@ -8,15 +8,23 @@ from ase.units import fs, kB
 from ase.io import read, write
 from ase.io.lammpsdata import write_lammps_data
 
-from mlacs.state import LammpsState
-from mlacs.utilities import (get_elements_Z_and_masses,
-                             write_lammps_NEB_ASCIIfile,
-                             _create_ASE_object)
-from mlacs.utilities.io_lammps import (get_general_input,
-                                       get_log_input,
-                                       get_traj_input,
-                                       get_interaction_input,
-                                       get_last_dump_input)
+from .lammps_state import LammpsState
+
+from ..utilities import (get_elements_Z_and_masses,
+                             write_lammps_NEB_ASCIIfile)
+
+from ..utilities import (get_elements_Z_and_masses,
+                         write_lammps_NEB_ASCIIfile,
+                         _create_ASE_object)
+
+from ..utilities.io_lammps import (get_general_input,
+                                   get_log_input,
+                                   get_traj_input,
+                                   get_interaction_input,
+                                   get_last_dump_input)
+
+from ..utilities import integrate_points as IntP
+from ..utilities import interpolate_points as IP
 
 
 # ========================================================================== #
@@ -577,8 +585,6 @@ class PafiLammpsState(LammpsState):
         Z = self.confNEB[0].get_atomic_numbers()
         N = len(self.confNEB[0])
 
-        from mlacs.utilities import interpolate_points as IP
-
         if xi is None:
             xi = self.NEBcoord
 
@@ -774,8 +780,6 @@ class PafiLammpsState(LammpsState):
         Extract the MFEP gradient from log files.
         Integrate the MFEP and compute the Free energy barier.
         """
-
-        from mlacs.utilities.miscellanous import integrate_points as IntP
 
         dF = []
         psi = []

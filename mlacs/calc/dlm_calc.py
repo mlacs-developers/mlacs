@@ -8,7 +8,7 @@ from ase.calculators.calculator import CalculatorError
 from icet import ClusterSpace
 from icet.tools.structure_generation import generate_sqs_from_supercells
 
-from mlacs.calc import CalcManager
+from . import CalcManager
 
 
 # ========================================================================== #

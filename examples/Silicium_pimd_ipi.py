@@ -50,7 +50,7 @@ mlip = LammpsMlip(atoms,
                   rcut=rcut,
                   stress_coefficient=scoef,
                   style=style,
-                  mlip_parameters=mlip_params)
+                  descriptor_parameters=mlip_params)
 
 # Creation of the State Manager
 state = IpiState(temperature,
