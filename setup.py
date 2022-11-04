@@ -4,8 +4,8 @@ from setuptools import setup, find_packages
 with open("README.md") as f:
     long_description = f.read()
 
-verisonfile = os.path.join('mlacs', 'version.py')
-with open() as f:
+versionfile = os.path.join('mlacs', 'version.py')
+with open(versionfile) as f:
     code = compile(f.read(), versionfile, 'exec')
     exec(code)
 
