@@ -1,0 +1,44 @@
+# LAMMPS input file to run a MLMD simulation for MLACS
+#####################################
+#           General parameters
+#####################################
+units        metal
+boundary     p p p
+atom_style atomic
+read_data    atoms.in
+mass      1  63.546
+#####################################
+
+
+
+#####################################
+#           Interactions
+#####################################
+pair_style     mliap  model linear /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.model  descriptor sna /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.descriptor 
+pair_coeff    * * Cu 
+#####################################
+
+
+
+#####################################
+#      Thermostat/Integrator
+#####################################
+timestep      0.0015
+fix  f1 all langevin 300 300  $(100*dt) 426105 gjf vhalf zero yes
+fix   f2 all nve
+fix    fcm all recenter INIT INIT INIT
+#####################################
+
+
+
+#####################################
+#         Dump last step
+#####################################
+dump last all custom 100 configurations.out  id type xu yu zu vx vy vz fx fy fz element
+dump_modify last element Cu
+dump_modify last delay 100
+#####################################
+
+
+
+run  100

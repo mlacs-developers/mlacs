@@ -1,0 +1,42 @@
+# LAMMPS input file to run a MLMD simulation for MLACS
+#####################################
+#           General parameters
+#####################################
+units        metal
+boundary     p p p
+atom_style atomic
+atom_modify  map array sort 0 0.0
+neigh_modify every 2 delay 10 check yes page 1000000 one 100000
+
+read_data    atoms-0.data
+mass      1  63.546
+#####################################
+
+
+
+#####################################
+#           Interactions
+#####################################
+pair_style     mliap  model linear /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.model  descriptor sna /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.descriptor 
+pair_coeff    * * Cu 
+#####################################
+
+
+
+#####################################
+# Compute relevant field for NEB simulation
+#####################################
+timestep    0.010180505671156723
+thermo      1
+fix         neb all neb 1.0 parallel ideal
+run 100
+reset_timestep  0
+
+variable    i equal part
+min_style   quickmin
+neb         0.0 0.001 200 100 10 final atoms-1.data
+write_data  neb.$i
+#####################################
+
+
+

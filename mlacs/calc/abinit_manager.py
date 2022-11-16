@@ -6,6 +6,10 @@ import os
 import shlex
 from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor
+#DEBUG
+from subprocess import Popen
+from concurrent.futures import wait, ALL_COMPLETED
+import time
 
 import numpy as np
 from ase.symbols import symbols2numbers
@@ -38,6 +42,12 @@ class AbinitManager(CalcManager):
     workdir: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
+    logfile: :class:`str` (optional)
+        The name of the Abinit log file inside the workdir folder
+        Default 'abi.log'
+    errfile: :class:`str` (optional)
+        The name of the Abinit error file inside the workdir folder
+        Default 'abi.err'
     ninstance: :class:`int` (optional)
         Number of instance of abinit to run in parallel.
         Default 1
@@ -48,6 +58,8 @@ class AbinitManager(CalcManager):
                  abinit_cmd="abinit",
                  magmoms=None,
                  workdir=None,
+                 logfile="abinit.log",
+                 errfile="abinit.err",
                  ninstance=1):
 
         CalcManager.__init__(self, "dummy", magmoms)
@@ -57,6 +69,8 @@ class AbinitManager(CalcManager):
                                posix=(os.name == "posix"))
         self.ninstance = ninstance
 
+        self.logfile = logfile
+        self.errfile = errfile
         self.workdir = workdir
         if self.workdir is None:
             self.workdir = os.getcwd() + "/DFT/"
@@ -81,16 +95,28 @@ class AbinitManager(CalcManager):
             confdir.append(cdir)
             self._write_input(at, cdir)
 
-        # Now we can execute everything, ninstance at a time
-        # Yeah for threading
-        with ThreadPoolExecutor(max_workers=self.ninstance) as executor:
-            for cdir in confdir:
-                executor.submit(run,
-                                self.cmd,
-                                cwd=cdir,
-                                stdout=PIPE,
-                                stderr=PIPE)
+        # I assume there is a possibility to have multiple Abinit Calculation at the same time
+        # I simply distribute the number of processor equally between the task
+        # ninstance = Number of processors to use
+        # len(confdir) = Number of different simulation to start
 
+        # Define the function to call by every process.
+        # Context : We need this function so the "with open logfile" doesn't close the logfile right after the calculation is submitted
+        def submit_abinit_calc(cmd, cdir, logfile, errfile, nproc):
+            cmd = cmd[0] + " " + cdir + cmd[1]
+            mpi_cmd= "mpirun -np {nproc} {cmd}".format(nproc=proc_per_task, cmd=cmd)
+            with open(cdir + logfile, 'w') as lfile, open(cdir + errfile, 'w') as efile:
+                proc = Popen(mpi_cmd, cwd=cdir, stderr=efile, stdout=lfile, shell=True)
+                proc.wait()
+        
+        ntask = len(confdir)
+        nproc = self.ninstance
+        proc_per_task = 1 if nproc <= ntask else nproc//ntask # Divide the number of processor equally between the task.
+
+        # Yeah for threading
+        with ThreadPoolExecutor(max_workers=ntask) as executor:
+            futures = [executor.submit(submit_abinit_calc, self.cmd, cdir, self.logfile, self.errfile, proc_per_task) for cdir in confdir]
+        
         # Now we can read everything
         results_confs = []
         for cdir in confdir:
@@ -98,6 +124,15 @@ class AbinitManager(CalcManager):
         # Tada !
         return results_confs
 
+# ========================================================================== #
+    #def _submit_abinit_calc(self, cmd, cdir, logfile, errfile):
+    #    """
+    #    Open the logfile and the errfile and start the computation
+    #    """
+    #    print(cmd, cdir, self.logfile, self.errfile)
+    #    with open(cdir+logfile, 'w') as lfile, open(cdir+errfile, 'w') as efile:
+    #        run(cmd, cwd=cdir, stdout=lfile, stderr=efile)
+        
 # ========================================================================== #
     def _write_input(self, atoms, confdir):
         """

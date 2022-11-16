@@ -1,0 +1,112 @@
+LAMMPS (23 Jun 2022 - Update 1)
+# LAMMPS input file to run a MLMD simulation for MLACS
+#####################################
+#           General parameters
+#####################################
+units        metal
+boundary     p p p
+atom_style atomic
+read_data    atoms.in
+Reading data file ...
+  orthogonal box = (0 0 0) to (7.22 7.22 7.22)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  32 atoms
+  reading velocities ...
+  32 velocities
+  read_data CPU = 0.003 seconds
+mass      1  63.546
+#####################################
+
+
+
+#####################################
+#           Interactions
+#####################################
+pair_style     mliap  model linear /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.model  descriptor sna /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.descriptor
+SNAP keyword rcutfac 4.2 
+SNAP keyword twojmax 4 
+SNAP keyword rfac0 0.99363 
+SNAP keyword rmin0 0.0 
+SNAP keyword chemflag 0 
+SNAP keyword bnormflag 0 
+SNAP keyword switchflag 1 
+SNAP keyword bzeroflag 1 
+SNAP keyword wselfallflag 0 
+SNAP keyword nelems 1 
+SNAP keyword elems       Cu 
+SNAP keyword radelems    0.5 
+SNAP keyword welems      1.0 
+pair_coeff    * * Cu
+#####################################
+
+
+
+#####################################
+#      Thermostat/Integrator
+#####################################
+timestep      0.0015
+fix  f1 all langevin 300 300  $(100*dt) 426105 gjf vhalf zero yes
+fix  f1 all langevin 300 300  0.14999999999999999445 426105 gjf vhalf zero yes
+fix   f2 all nve
+fix    fcm all recenter INIT INIT INIT
+#####################################
+
+
+
+#####################################
+#         Dump last step
+#####################################
+dump last all custom 100 configurations.out  id type xu yu zu vx vy vz fx fy fz element
+dump_modify last element Cu
+dump_modify last delay 100
+#####################################
+
+
+
+run  100
+Neighbor list info ...
+  update every 1 steps, delay 10 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 6.2
+  ghost atom cutoff = 6.2
+  binsize = 3.1, bins = 3 3 3
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair mliap, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 9.513 | 9.513 | 9.513 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press     
+         0   395.20577     -0.19041319     0              1.3932018     -1021357.8    
+       100   230.93904      0.8838802      0              1.8092678     -1006744.3    
+Loop time of 0.10682 on 1 procs for 100 steps with 32 atoms
+
+Performance: 121.326 ns/day, 0.198 hours/ns, 936.155 timesteps/s
+77.1% CPU use with 1 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.10475    | 0.10475    | 0.10475    |   0.0 | 98.06
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00026088 | 0.00026088 | 0.00026088 |   0.0 |  0.24
+Output  | 0.0013568  | 0.0013568  | 0.0013568  |   0.0 |  1.27
+Modify  | 0.00038871 | 0.00038871 | 0.00038871 |   0.0 |  0.36
+Other   |            | 6.458e-05  |            |       |  0.06
+
+Nlocal:             32 ave          32 max          32 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            633 ave         633 max         633 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:         2496 ave        2496 max        2496 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 2496
+Ave neighs/atom = 78
+Neighbor list builds = 0
+Dangerous builds = 0
+Total wall time: 0:00:00

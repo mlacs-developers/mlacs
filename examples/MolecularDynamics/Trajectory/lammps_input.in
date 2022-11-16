@@ -1,0 +1,73 @@
+# LAMMPS input file to run a MLMD simulation for MLACS
+#####################################
+#           General parameters
+#####################################
+units        metal
+boundary     p p p
+atom_style atomic
+atom_modify  map array sort 0 0.0
+neigh_modify every 2 delay 10 check yes page 1000000 one 100000
+
+fix 1 all property/atom d_nx d_ny d_nz d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz
+read_data    /Users/oliviernadeau/Software/otf_mlacs/examples/MolecularDynamics/Trajectory/atoms.in fix 1 NULL PafiPath
+mass      1  63.546
+#####################################
+
+
+
+#####################################
+#           Interactions
+#####################################
+pair_style     mliap  model linear /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.model  descriptor sna /Users/oliviernadeau/Software/otf_mlacs/examples/MLIP.descriptor 
+pair_coeff    * * Cu 
+#####################################
+
+
+
+#####################################
+# Compute relevant field for PAFI simulation
+#####################################
+timestep  0.001
+thermo    1
+min_style fire
+compute   1 all property/atom d_nx d_ny d_nz d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz
+run 0
+
+# Set up PAFI Langevin/Brownian integration
+fix       pafihp all pafi 1 10 $(10*dt) 94188 overdamped yes com yes
+
+run 0
+
+minimize 0 0 250 250
+reset_timestep  0
+#####################################
+
+
+
+#####################################
+#          Logging
+#####################################
+variable    dU    equal f_pafihp[1]
+variable    dUerr equal f_pafihp[2]
+variable    psi   equal f_pafihp[3]
+variable    err   equal f_pafihp[4]
+compute     disp    all displace/atom
+compute     maxdisp all reduce max c_disp[4]
+variable    maxjump equal sqrt(c_maxdisp)
+fix logpafi all print 1 "${dU}  ${dUerr} ${psi} ${err} ${maxjump}" file pafi.log.0 title "# dU/dxi  (dU/dxi)^2  psi  err  maxjump"
+
+#####################################
+
+
+
+#####################################
+#         Dump last step
+#####################################
+dump last all custom 100 configurations.out  id type xu yu zu vx vy vz fx fy fz element
+dump_modify last element Cu
+dump_modify last delay 100
+#####################################
+
+
+
+run  100
