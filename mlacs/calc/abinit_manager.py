@@ -44,13 +44,18 @@ class AbinitManager(CalcManager):
         Default 'DFT'
     logfile: :class:`str` (optional)
         The name of the Abinit log file inside the workdir folder
-        Default 'abi.log'
+        Default 'abinit.log'
     errfile: :class:`str` (optional)
         The name of the Abinit error file inside the workdir folder
-        Default 'abi.err'
-    ninstance: :class:`int` (optional)
-        Number of instance of abinit to run in parallel.
+        Default 'abinit.err'
+    nproc: :class:`int` (optional)
+        Number of processor available by abinit.
+        Used to start multiple calculation in parallel and use mpi if some proc are still available
         Default 1
+    nomp_thread :class: `int` (optional)
+        Number of OpenMP thread to use per processor.
+        Default 1
+
     """
     def __init__(self,
                  parameters,
@@ -60,14 +65,16 @@ class AbinitManager(CalcManager):
                  workdir=None,
                  logfile="abinit.log",
                  errfile="abinit.err",
-                 ninstance=1):
+                 nproc=1,
+                 nomp_thread=1):
 
         CalcManager.__init__(self, "dummy", magmoms)
         self.parameters = parameters
         self._organize_pseudos(pseudos)
         self.cmd = shlex.split(abinit_cmd + " abinit.abi",
                                posix=(os.name == "posix"))
-        self.ninstance = ninstance
+        self.nproc = nproc
+        self.nomp_thread = nomp_thread
 
         self.logfile = logfile
         self.errfile = errfile
@@ -89,6 +96,8 @@ class AbinitManager(CalcManager):
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]
         confdir = []
+        # TESTING
+        confdir.append("/Users/oliviernadeau/Projects/MLACS/03-test_MLACS/ntask_2/")
         for i, at in enumerate(confs):
             at.set_initial_magnetic_moments(self.magmoms)
             cdir = self.workdir + state[i] + f"/Step{step[i]}/"
@@ -97,20 +106,20 @@ class AbinitManager(CalcManager):
 
         # I assume there is a possibility to have multiple Abinit Calculation at the same time
         # I simply distribute the number of processor equally between the task
-        # ninstance = Number of processors to use
+        # nproc = Number of processors to use
         # len(confdir) = Number of different simulation to start
 
         # Define the function to call by every process.
         # Context : We need this function so the "with open logfile" doesn't close the logfile right after the calculation is submitted
         def submit_abinit_calc(cmd, cdir, logfile, errfile, nproc):
             cmd = cmd[0] + " " + cdir + cmd[1]
-            mpi_cmd= "mpirun -np {nproc} {cmd}".format(nproc=proc_per_task, cmd=cmd)
+            mpi_cmd= "mpirun -np {nproc} {cmd} -j {nomp_thread}".format(nproc=proc_per_task, cmd=cmd, nomp_thread=self.nomp_thread)
             with open(cdir + logfile, 'w') as lfile, open(cdir + errfile, 'w') as efile:
                 proc = Popen(mpi_cmd, cwd=cdir, stderr=efile, stdout=lfile, shell=True)
                 proc.wait()
-        
+
         ntask = len(confdir)
-        nproc = self.ninstance
+        nproc = self.nproc
         proc_per_task = 1 if nproc <= ntask else nproc//ntask # Divide the number of processor equally between the task.
 
         # Yeah for threading
@@ -124,15 +133,6 @@ class AbinitManager(CalcManager):
         # Tada !
         return results_confs
 
-# ========================================================================== #
-    #def _submit_abinit_calc(self, cmd, cdir, logfile, errfile):
-    #    """
-    #    Open the logfile and the errfile and start the computation
-    #    """
-    #    print(cmd, cdir, self.logfile, self.errfile)
-    #    with open(cdir+logfile, 'w') as lfile, open(cdir+errfile, 'w') as efile:
-    #        run(cmd, cwd=cdir, stdout=lfile, stderr=efile)
-        
 # ========================================================================== #
     def _write_input(self, atoms, confdir):
         """
