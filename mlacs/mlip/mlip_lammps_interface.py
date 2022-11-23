@@ -9,8 +9,10 @@ from subprocess import run, PIPE
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.lammps import Prism
 from ase.calculators.lammpsrun import LAMMPS
+from ase.units import GPa
 
 from mlacs.utilities.io_lammps import write_lammps_data_full
+from mlacs.utilities import get_elements_Z_and_masses
 
 
 default_snap = {"twojmax": 8,
@@ -152,7 +154,7 @@ class LammpsMlipInterface:
             raise ValueError(msg)
 
 # ========================================================================== #
-    def _write_lammps_input(self):
+    def _write_lammps_input(self, masses):
         '''
         Write the LAMMPS input to extract the descriptor
         and gradient value needed to fit
@@ -194,7 +196,7 @@ class LammpsMlipInterface:
         input_string += f"atom_style      {self.atom_style}\n"
         input_string += "units            metal\n"
         input_string += "read_data        atoms.lmp\n"
-        for n1 in range(len(self.elements)):
+        for n1 in range(len(self.masses)):
             input_string += f"mass             {n1+1} {self.masses[n1]}\n"
         input_string += bond_style
         input_string += bond_coeff
@@ -473,9 +475,11 @@ class LammpsMlipInterface:
         """
         natoms = len(atoms)
         nrows = 3 * natoms + 7
+        
+        el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
         lmp_atoms_fname = "atoms.lmp"
-        self._write_lammps_input()
+        self._write_lammps_input(masses)
         self._write_mlip_params()
 
         amatrix = np.zeros((nrows, self.ncolumns))
@@ -518,7 +522,8 @@ class LammpsMlipInterface:
         else:
             write_lammps_data(lmp_atoms_fname,
                               atoms,
-                              atom_style=self.atom_style)
+                              atom_style=self.atom_style,
+                              specorder=self.elements.tolist())
         self._run_lammps(lmp_atoms_fname)
 
         bispectrum = np.loadtxt("descriptor.out", skiprows=4)
@@ -528,6 +533,8 @@ class LammpsMlipInterface:
             # and bispectrum component are in ??????
             bispectrum[-6:, 1:-1] /= atoms.get_volume()
             data_bispectrum = bispectrum[:, 1:-1]
+            # Need also to correct the reference potential stress data
+            bispectrum[-6:, -1] *= GPa * 1e-4
 
             # We need to remove the reference potential values from the data
             data_true -= bispectrum[:, -1]

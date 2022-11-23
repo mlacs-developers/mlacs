@@ -27,7 +27,6 @@ class PropertyManager:
         self.workdir = os.getcwd() + "/Properties/"
         if prop is None:
             self.check = [False]
-            self.manager = None
         elif isinstance(prop, list):
             self.manager = prop
             self.check = [False for _ in range(len(prop))]
