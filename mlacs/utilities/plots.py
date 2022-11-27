@@ -2,7 +2,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 import matplotlib as mpl
 
-from mlacs.utilities import compute_correlation
+from . import compute_correlation
 
 cyan = "#17becf"
 blue = "#1f77b4"

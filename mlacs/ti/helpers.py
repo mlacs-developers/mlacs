@@ -6,8 +6,8 @@ import numpy as np
 from ase.units import kB
 from ase.io import read
 
-from mlacs.ti.solids import EinsteinSolidState
-from mlacs.ti.liquids import UFLiquidState
+from .solids import EinsteinSolidState
+from .liquids import UFLiquidState
 
 
 # ========================================================================== #

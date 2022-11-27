@@ -4,7 +4,7 @@
 '''
 import numpy as np
 
-from mlacs.mlip import MlipManager
+from . import MlipManager
 try:
     import torch
     from torch import nn

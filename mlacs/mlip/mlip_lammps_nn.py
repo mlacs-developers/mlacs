@@ -2,8 +2,8 @@
 // (c) 2022 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from mlacs.mlip.neural_network import NeuralNetworkMlip
-from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
+from .neural_network import NeuralNetworkMlip
+from .mlip_lammps_interface import LammpsMlipInterface
 
 
 # ========================================================================== #

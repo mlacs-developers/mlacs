@@ -2,8 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from mlacs.state import LammpsState
-from mlacs.utilities import get_elements_Z_and_masses
+from . import LammpsState
+from ..utilities import get_elements_Z_and_masses
 
 
 # ========================================================================== #

@@ -9,9 +9,9 @@ import numpy as np
 from ase.units import kB
 from ase.io.lammpsdata import write_lammps_data
 
-from mlacs.utilities.thermo import (free_energy_harmonic_oscillator,
+from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                     free_energy_com_harmonic_oscillator)
-from mlacs.ti.thermostate import ThermoState
+from .thermostate import ThermoState
 
 
 eV = 1.602176634e-19  # eV
