@@ -57,7 +57,7 @@ class PafiLammpsState(LammpsState):
         Number of MLMD steps for production runs. Default ``1000`` steps.
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
-    BROWNian: :class:`Bool`
+    brownian: :class:`Bool`
         If ``True``, a Brownian thermostat is used for the thermostat.
         Else, a Langevin thermostat is used
         Default ``True``
@@ -87,7 +87,7 @@ class PafiLammpsState(LammpsState):
     def __init__(self,
                  temperature,
                  configurations,
-                 reaction_coordinate=0.5,
+                 reaction_coordinate=None,
                  Kspring=1.0,
                  maxjump=0.4,
                  dt=1.5,
@@ -123,6 +123,8 @@ class PafiLammpsState(LammpsState):
         self.nsteps = nsteps
         self.nsteps_eq = nsteps_eq
         self.NEBcoord = reaction_coordinate
+        if self.NEBcoord is None:
+            self.splprec = 1001
         self.print = prt
         self.Kspring = Kspring
         self.maxjump = maxjump
@@ -586,7 +588,16 @@ class PafiLammpsState(LammpsState):
         N = len(self.confNEB[0])
 
         if xi is None:
-            xi = self.NEBcoord
+            if self.NEBcoord is not None:
+                xi = self.NEBcoord
+            else:
+                x = np.linspace(0, 1, self.splprec)
+                y = IP(self.path_coordinates,
+                       self.true_energies,
+                       x, 0, border=1)
+                y = np.array(y)
+                xi = x[y.argmax()]
+                print(xi)
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,
