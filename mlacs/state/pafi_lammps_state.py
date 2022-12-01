@@ -88,6 +88,7 @@ class PafiLammpsState(LammpsState):
                  temperature,
                  configurations,
                  reaction_coordinate=None,
+                 neb_configurations=None,
                  Kspring=1.0,
                  maxjump=0.4,
                  dt=1.5,
@@ -125,6 +126,7 @@ class PafiLammpsState(LammpsState):
         self.NEBcoord = reaction_coordinate
         if self.NEBcoord is None:
             self.splprec = 1001
+        self.include_neb = neb_configurations
         self.print = prt
         self.Kspring = Kspring
         self.maxjump = maxjump
@@ -136,6 +138,7 @@ class PafiLammpsState(LammpsState):
             raise TypeError('First and last configurations are not defined')
         self._get_lammps_command_replica()
 
+        self.isneb = True
         self.ispimd = False
         self.isrestart = False
         self.isappend = False
@@ -570,7 +573,7 @@ class PafiLammpsState(LammpsState):
         self.true_energies = self.true_energies.astype(float)
         if self.print:
             write(self.NEBworkdir + 'pos_neb_path.xyz',
-                  true_atoms, format='extxyz')
+                      true_atoms, format='extxyz')
 
 # ========================================================================== #
     def compute_spline(self, xi=None):
@@ -826,6 +829,16 @@ class PafiLammpsState(LammpsState):
                                              Fcor[i],
                                              len(maxjump[i])))
         return Fcor
+
+# ========================================================================== #
+    @property
+    def get_images(self):
+        """
+        Function to return NEB true configurations
+        """
+        atoms = []
+        if self.include_neb is None:
+            return atoms
 
 # ========================================================================== #
     def log_recap_state(self):
