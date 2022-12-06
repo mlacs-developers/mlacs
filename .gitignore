@@ -8,6 +8,7 @@ dist/*/
 dist/*.egg
 docs/build/
 __pycache__/
+mlacs/tags
 
 # local files
 /token
