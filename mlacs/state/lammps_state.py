@@ -121,6 +121,7 @@ class LammpsState(StateManager):
         self._get_lammps_command()
         self.ispimd = False
         self.isrestart = False
+        self.isneb = False
 
         self.temperature = temperature
         self.langevin = langevin

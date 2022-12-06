@@ -693,16 +693,21 @@ class PafiLammpsState(LammpsState):
             - Three last columns:  normalized atomic second derivatives at
                 reaction coordinate xi.
         """
+        from ase.calculators.lammps import Prism, convert
         symbol = atoms.get_chemical_symbols()
         species = sorted(set(symbol))
         N = len(symbol)
-        cell = atoms.get_cell()
-        instr = '#{0} (written by MLACS)\n\n'.format(filename)
-        instr += '{0} atoms\n'.format(N)
-        instr += '{0} atom types\n'.format(len(species))
-        instr += '0 {0} xlo xhi\n'.format(cell[0, 0])
-        instr += '0 {0} ylo yhi\n'.format(cell[1, 1])
-        instr += '0 {0} zlo zhi\n'.format(cell[2, 2])
+        p = Prism(atoms.get_cell())
+        xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(), 
+                                            'distance', 'ASE', 'metal')
+        instr = f'#{filename} (written by MLACS)\n\n'
+        instr += f'{N} atoms\n'
+        instr += f'{len(species)} atom types\n'
+        instr += f'0 {xhi} xlo xhi\n'
+        instr += f'0 {yhi} ylo yhi\n'
+        instr += f'0 {zhi} zlo zhi\n'
+        if p.is_skewed():
+            instr += f'{xy} {xz} {yz}  xy xz yz\n'
         instr += '\nAtoms\n\n'
         for i in range(N):
             strformat = '{:>6} ' + '{:>3} ' + ('{:12.8f} ' * 3) + '\n'
