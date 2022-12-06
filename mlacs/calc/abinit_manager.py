@@ -4,6 +4,7 @@
 """
 import os
 import numpy as np
+import shlex
 
 from subprocess import Popen
 from concurrent.futures import ThreadPoolExecutor
@@ -112,7 +113,7 @@ class AbinitManager(CalcManager):
                                 cwd=cdir,
                                 stderr=efile,
                                 stdout=lfile,
-                                shell=True)
+                                shell=False)
                 process.wait()
 
         # Calculate the number of processor assigned to each task
@@ -152,6 +153,8 @@ class AbinitManager(CalcManager):
             mpi_cmd = ""
 
         full_cmd = "{} {} {}".format(omp_cmd, mpi_cmd, abinit_cmd)
+        full_cmd = shlex.split(full_cmd, posix=(os.name == "posix"))
+
         return full_cmd
 
 # ========================================================================== #
