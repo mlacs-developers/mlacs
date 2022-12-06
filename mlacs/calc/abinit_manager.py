@@ -3,16 +3,16 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
+import numpy as np
 import shlex
-from subprocess import run, PIPE
+
+from subprocess import Popen
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
 from ase.symbols import symbols2numbers
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
-
 from .calc_manager import CalcManager
 
 
@@ -31,6 +31,10 @@ class AbinitManager(CalcManager):
         {'O': /path/to/pseudo}
     abinit_cmd: :class:`str`
         The command to execute the abinit binary.
+    mpi_runner : :class:`str`
+        The command to call MPI.
+        I assume the number of processor is specified using -n argument
+        Default ``mpirun``
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
         If ``None``, no initial magnetization. (Non magnetic calculation)
@@ -38,25 +42,44 @@ class AbinitManager(CalcManager):
     workdir: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
-    ninstance: :class:`int` (optional)
-        Number of instance of abinit to run in parallel.
-        Default 1
+    logfile: :class:`str` (optional)
+        The name of the Abinit log file inside the workdir folder
+        Default 'abinit.log'
+    errfile: :class:`str` (optional)
+        The name of the Abinit error file inside the workdir folder
+        Default 'abinit.err'
+    nproc: :class:`int` (optional)
+        Number of processor available for Abinit.
+        Distributed equally over all submitted calculations
+        And start MPI abinit calculation if more than 1 processor
+    nomp_thread :class: `int` (optional)
+        Number of OpenMP thread to use per processor.
     """
     def __init__(self,
                  parameters,
                  pseudos,
                  abinit_cmd="abinit",
+                 mpi_runner="mpirun",
                  magmoms=None,
                  workdir=None,
-                 ninstance=1):
+                 logfile="abinit.log",
+                 errfile="abinit.err",
+                 nproc=1,
+                 nomp_thread=1):
 
         CalcManager.__init__(self, "dummy", magmoms)
         self.parameters = parameters
         self._organize_pseudos(pseudos)
-        self.cmd = shlex.split(abinit_cmd + " abinit.abi",
-                               posix=(os.name == "posix"))
-        self.ninstance = ninstance
+        self.abinit_cmd = abinit_cmd
+        self.mpi_runner = mpi_runner
 
+        if nomp_thread != 1:
+            print("Warning : OpenMP is still in development.")
+        self.nproc = nproc
+        self.nomp_thread = nomp_thread
+
+        self.logfile = logfile
+        self.errfile = errfile
         self.workdir = workdir
         if self.workdir is None:
             self.workdir = os.getcwd() + "/DFT/"
@@ -71,6 +94,7 @@ class AbinitManager(CalcManager):
                                state,
                                step):
         """
+        Create, execute and read the output of an Abinit calculation
         """
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]
@@ -81,15 +105,31 @@ class AbinitManager(CalcManager):
             confdir.append(cdir)
             self._write_input(at, cdir)
 
-        # Now we can execute everything, ninstance at a time
-        # Yeah for threading
-        with ThreadPoolExecutor(max_workers=self.ninstance) as executor:
-            for cdir in confdir:
-                executor.submit(run,
-                                self.cmd,
+        # Define the function to be called by every process.
+        def submit_abinit_calc(cmd, logfile, errfile):
+            with open(logfile, 'w') as lfile, \
+                 open(errfile, 'w') as efile:
+                process = Popen(cmd,
                                 cwd=cdir,
-                                stdout=PIPE,
-                                stderr=PIPE)
+                                stderr=efile,
+                                stdout=lfile,
+                                shell=False)
+                process.wait()
+
+        # Calculate the number of processor assigned to each task
+        # Divide them equally between each calculation.
+        ntask = len(confdir)
+        nproc = self.nproc
+        proc_per_task = 1 if nproc <= ntask else nproc//ntask
+
+        # Yeah for threading
+        with ThreadPoolExecutor(max_workers=ntask) as executor:
+            for cdir in confdir:
+                command = self._make_command(cdir, proc_per_task)
+                executor.submit(submit_abinit_calc,
+                                command,
+                                cdir+self.logfile,
+                                cdir+self.errfile)
 
         # Now we can read everything
         results_confs = []
@@ -97,6 +137,25 @@ class AbinitManager(CalcManager):
             self._read_output(cdir, results_confs)
         # Tada !
         return results_confs
+
+# ========================================================================== #
+    def _make_command(self, cdir, nproc):
+        """
+        Make the command to call Abinit including MPI and OpenMP :
+        env OMP_NUM_THREADS=1 mpirun -n 2 abinit /path/abinit.abi
+        """
+        abinit_cmd = self.abinit_cmd + " " + cdir + "abinit.abi"
+        omp_cmd = "env OMP_NUM_THREADS={n}".format(n=self.nomp_thread)
+
+        if nproc > 1:
+            mpi_cmd = "{} -n {}".format(self.mpi_runner, nproc)
+        else:
+            mpi_cmd = ""
+
+        full_cmd = "{} {} {}".format(omp_cmd, mpi_cmd, abinit_cmd)
+        full_cmd = shlex.split(full_cmd, posix=(os.name == "posix"))
+
+        return full_cmd
 
 # ========================================================================== #
     def _write_input(self, atoms, confdir):

@@ -4,7 +4,6 @@ import numpy as np
 from ase.build import bulk
 from ase.io import write as asewrite
 from ase.calculators.emt import EMT
-from ase.calculators.lammpsrun import LAMMPS
 
 from mlacs.mlip import LammpsMlip
 from mlacs.state import PafiLammpsState
@@ -26,7 +25,6 @@ rcut = 4.2
 dt = 1  # fs
 friction = 0.01
 mlip_params = {"twojmax": 4}
-
 
 # Supercell creation ----------------------------------------------------------
 atoms = bulk("Cu", cubic=True).repeat(3)
@@ -52,11 +50,11 @@ calc = EMT()
 mlip = LammpsMlip(neb[0], rcut=rcut, descriptor_parameters=mlip_params)
 
 # Creation of the State Manager
-state = PafiLammpsState(temperature, 
-                        neb, 
-                        reaction_coordinate=0.5, 
-                        dt=dt, 
-                        nsteps=nsteps, 
+state = PafiLammpsState(temperature,
+                        neb,
+                        reaction_coordinate=0.5,
+                        dt=dt,
+                        nsteps=nsteps,
                         nsteps_eq=nsteps_eq)
 
 # Creation of the OtfMLACS object

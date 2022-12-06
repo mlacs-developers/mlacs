@@ -14,7 +14,7 @@ The true potential is the EMT as implemented in ASE
 """
 
 # Parameters ------------------------------------------------------------------
-temperature = 300 # K
+temperature = 300  # K
 nconfs = 20
 nsteps = 1000
 nsteps_eq = 100
