@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from ..utilities.plots import plot_correlation, init_rcParams
 
+
 def main(args, parser):
 
     data = np.loadtxt(args.file)

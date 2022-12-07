@@ -40,7 +40,7 @@ def get_log_input(loginterval, logfile):
 
 
 # ========================================================================== #
-def get_pafi_log_input(rep=0, 
+def get_pafi_log_input(rep=0,
                        isappend=False):
     """
     Function to write several PAFI outputs

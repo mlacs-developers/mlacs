@@ -4,14 +4,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ase.units import fs, kB
+from ase.units import kB
 from ase.io import read, write
 from ase.io.lammpsdata import write_lammps_data
 
 from .lammps_state import LammpsState
-
-from ..utilities import (get_elements_Z_and_masses,
-                             write_lammps_NEB_ASCIIfile)
 
 from ..utilities import (get_elements_Z_and_masses,
                          write_lammps_NEB_ASCIIfile,
@@ -452,7 +449,7 @@ class PafiLammpsState(LammpsState):
                                            elem)
         if rep is None:
             rep = 0
-        input_string += get_pafi_log_input(rep, 
+        input_string += get_pafi_log_input(rep,
                                            self.isappend)
         input_string += get_last_dump_input(self.workdir,
                                             elem,
@@ -498,7 +495,7 @@ class PafiLammpsState(LammpsState):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += get_neb_input(self.dt /  1000,
+        input_string += get_neb_input(self.dt / 1000,
                                       self.Kspring)
 
         with open(fname, "w") as f:
@@ -537,7 +534,7 @@ class PafiLammpsState(LammpsState):
         self.true_energies = self.true_energies.astype(float)
         if self.print:
             write(self.NEBworkdir + 'pos_neb_path.xyz',
-                      true_atoms, format='extxyz')
+                  true_atoms, format='extxyz')
 
 # ========================================================================== #
     def compute_spline(self, xi=None):
@@ -662,7 +659,7 @@ class PafiLammpsState(LammpsState):
         species = sorted(set(symbol))
         N = len(symbol)
         p = Prism(atoms.get_cell())
-        xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(), 
+        xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(),
                                             'distance', 'ASE', 'metal')
         instr = f'#{filename} (written by MLACS)\n\n'
         instr += f'{N} atoms\n'
@@ -822,7 +819,7 @@ class PafiLammpsState(LammpsState):
         if isinstance(coord, float):
             msg += f"Reaction coordinate :                    {coord}\n"
         elif coord is None:
-            msg += f"Reaction coordinate :                    Automatic\n"
+            msg += "Reaction coordinate :                    Automatic\n"
         else:
             step = coord[1]-coord[0]
             i, f = (coord[0], coord[-1])

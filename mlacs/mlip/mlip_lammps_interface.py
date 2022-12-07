@@ -475,7 +475,7 @@ class LammpsMlipInterface:
         """
         natoms = len(atoms)
         nrows = 3 * natoms + 7
-        
+
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
         lmp_atoms_fname = "atoms.lmp"
