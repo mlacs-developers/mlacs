@@ -21,7 +21,10 @@ from ..utilities.io_lammps import (get_general_input,
                                    get_log_input,
                                    get_traj_input,
                                    get_interaction_input,
-                                   get_last_dump_input)
+                                   get_last_dump_input,
+                                   get_pafi_input,
+                                   get_neb_input,
+                                   get_pafi_log_input)
 
 from ..utilities import integrate_points as IntP
 from ..utilities import interpolate_points as IP
@@ -127,6 +130,7 @@ class PafiLammpsState(LammpsState):
         self.finder = None
         if self.NEBcoord is None:
             self.splprec = 1001
+            self.finder = []
         self.include_neb = neb_configurations
         self.print = prt
         self.Kspring = Kspring
@@ -435,7 +439,11 @@ class PafiLammpsState(LammpsState):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += self.get_pafi_input()
+        input_string += get_pafi_input(self.dt / 1000,
+                                       self.temperature,
+                                       self.rng.integers(99999),
+                                       self.damp,
+                                       self.brownian)
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
@@ -444,7 +452,8 @@ class PafiLammpsState(LammpsState):
                                            elem)
         if rep is None:
             rep = 0
-        input_string += self.get_pafilogging_input(rep)
+        input_string += get_pafi_log_input(rep, 
+                                           self.isappend)
         input_string += get_last_dump_input(self.workdir,
                                             elem,
                                             nsteps)
@@ -489,102 +498,11 @@ class PafiLammpsState(LammpsState):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += self.get_neb_input()
+        input_string += get_neb_input(self.dt /  1000,
+                                      self.Kspring)
 
         with open(fname, "w") as f:
             f.write(input_string)
-
-# ========================================================================== #
-    def get_pafi_input(self):
-        """
-        Function to write the general parameters for PAFI dynamics
-        """
-        input_string = "#####################################\n"
-        input_string += "# Compute relevant field for PAFI simulation\n"
-        input_string += "#####################################\n"
-        input_string += "timestep  {0}\n".format(self.dt / 1000)
-        input_string += "thermo    1\n"
-        input_string += "min_style fire\n"
-        input_string += "compute   1 all property/atom d_nx d_ny d_nz "
-        input_string += "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        input_string += "run 0\n"
-        input_string += "\n"
-
-        input_string += "# Set up PAFI Langevin/Brownian integration\n"
-        if self.damp is None:
-            damp = "$(10*dt)"
-        else:
-            damp = self.damp
-        seed = self.rng.integers(99999)
-        if self.brownian:
-            input_string += "fix       pafihp all pafi 1 " + \
-                            f"{self.temperature} {damp} {seed} " + \
-                            "overdamped yes com yes\n"
-        else:
-            input_string += "fix       pafihp all pafi 1 " + \
-                            f"{self.temperature} {damp} {seed} " + \
-                            "overdamped no com yes\n"
-        input_string += "\n"
-        input_string += "run 0\n"
-        input_string += "\n"
-        input_string += "minimize 0 0 250 250\n"
-        input_string += "reset_timestep  0\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
-
-# ========================================================================== #
-    def get_pafilogging_input(self, rep=0):
-        """
-        Function to write several PAFI outputs
-        """
-        input_string = "#####################################\n"
-        input_string += "#          Logging\n"
-        input_string += "#####################################\n"
-        input_string += "variable    dU    equal f_pafihp[1]\n"
-        input_string += "variable    dUerr equal f_pafihp[2]\n"
-        input_string += "variable    psi   equal f_pafihp[3]\n"
-        input_string += "variable    err   equal f_pafihp[4]\n"
-        input_string += "compute     disp    all displace/atom\n"
-        input_string += "compute     maxdisp all reduce max c_disp[4]\n"
-        input_string += "variable    maxjump equal sqrt(c_maxdisp)\n"
-
-        if self.isappend:
-            input_string += 'fix logpafi all print 1 ' + \
-                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" ' + \
-                            f'append pafi.log.{rep} title ' + \
-                            '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
-        else:
-            input_string += 'fix logpafi all print 1 ' + \
-                            '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" ' + \
-                            f'file pafi.log.{rep} title ' + \
-                            '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
-        input_string += "\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
-
-# ========================================================================== #
-    def get_neb_input(self):
-        """
-        Function to write the general parameters for NEB
-        """
-        input_string = "#####################################\n"
-        input_string += "# Compute relevant field for NEB simulation\n"
-        input_string += "#####################################\n"
-        input_string += "timestep    {0}\n".format(self.dt / (fs * 1000))
-        input_string += "thermo      1\n"
-        input_string += f"fix         neb all neb {self.Kspring} " + \
-                        "parallel ideal\n"
-        input_string += "run 100\n"
-        input_string += "reset_timestep  0\n\n"
-        input_string += "variable    i equal part\n"
-        input_string += "min_style   quickmin\n"
-        input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
-        input_string += "write_data  neb.$i\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
 
 # ========================================================================== #
     def extract_NEB_configurations(self):
@@ -646,7 +564,7 @@ class PafiLammpsState(LammpsState):
                        x, 0, border=1)
                 y = np.array(y)
                 xi = x[y.argmax()]
-                self.finder = xi
+                self.finder.append(xi)
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,
@@ -890,8 +808,6 @@ class PafiLammpsState(LammpsState):
         if damp is None:
             damp = 100 * self.dt
         coord = self.NEBcoord
-        if coord is None:
-            coord = self.finder
 
         msg = "NEB calculation as implemented in LAMMPS\n"
         msg += f"Number of replicas :                     {self.nreplica}\n"
@@ -905,6 +821,8 @@ class PafiLammpsState(LammpsState):
         msg += f"Themostat damping parameter (in fs) :    {damp}\n"
         if isinstance(coord, float):
             msg += f"Reaction coordinate :                    {coord}\n"
+        elif coord is None:
+            msg += f"Reaction coordinate :                    Automatic\n"
         else:
             step = coord[1]-coord[0]
             i, f = (coord[0], coord[-1])
