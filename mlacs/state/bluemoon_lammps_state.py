@@ -109,8 +109,6 @@ class BlueMoonState(CustomLammpsState):
         self.ispimd = False
         self.isrestart = False
         self.isappend = False
-        self.isneb = False
-
 
 # ========================================================================== #
     def run(self):

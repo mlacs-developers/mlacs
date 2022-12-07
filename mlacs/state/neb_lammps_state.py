@@ -82,7 +82,6 @@ class NebLammpsState(LammpsState):
             raise TypeError('First and last configurations are not defined')
         self._get_lammps_command_replica()
 
-        self.isneb = True
         self.ispimd = False
         self.isrestart = False
         self.isappend = False

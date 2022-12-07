@@ -124,6 +124,7 @@ class PafiLammpsState(LammpsState):
         self.nsteps = nsteps
         self.nsteps_eq = nsteps_eq
         self.NEBcoord = reaction_coordinate
+        self.finder = None
         if self.NEBcoord is None:
             self.splprec = 1001
         self.include_neb = neb_configurations
@@ -138,7 +139,6 @@ class PafiLammpsState(LammpsState):
             raise TypeError('First and last configurations are not defined')
         self._get_lammps_command_replica()
 
-        self.isneb = True
         self.ispimd = False
         self.isrestart = False
         self.isappend = False
@@ -157,7 +157,53 @@ class PafiLammpsState(LammpsState):
                      angle_style=None,
                      angle_coeff=None,
                      eq=False,
-                     rep=None):
+                     workdir=None):
+        """
+        Run state function.
+        """
+        self.run_NEB(pair_style,
+                     pair_coeff,
+                     model_post,
+                     atom_style,
+                     bonds,
+                     angles,
+                     bond_style,
+                     bond_coeff,
+                     angle_style,
+                     angle_coeff,
+                     workdir)
+        self.extract_NEB_configurations()
+        self.compute_spline()
+        self.isrestart = False
+        atoms = self.run_hpdynamics(supercell,
+                                    pair_style,
+                                    pair_coeff,
+                                    model_post,
+                                    atom_style,
+                                    bonds,
+                                    angles,
+                                    bond_style,
+                                    bond_coeff,
+                                    angle_style,
+                                    angle_coeff,
+                                    eq)
+        return atoms.copy()
+
+# ========================================================================== #
+    def run_hpdynamics(self,
+                       supercell,
+                       pair_style,
+                       pair_coeff,
+                       model_post=None,
+                       atom_style="atomic",
+                       bonds=None,
+                       angles=None,
+                       bond_style=None,
+                       bond_coeff=None,
+                       angle_style=None,
+                       angle_coeff=None,
+                       eq=False,
+                       rep=None):
         """
         Function to run the PAFI dynamics
         """
@@ -325,7 +371,7 @@ class PafiLammpsState(LammpsState):
             for rep in range(restart, nrep):
                 atoms = self.spline_atoms[rep].copy()
                 atoms.set_pbc([1, 1, 1])
-                executor.submit(self.run_dynamics,
+                executor.submit(self.run_hpdynamics,
                                 *(atoms,
                                   pair_style,
                                   pair_coeff,
@@ -600,7 +646,7 @@ class PafiLammpsState(LammpsState):
                        x, 0, border=1)
                 y = np.array(y)
                 xi = x[y.argmax()]
-                print(xi)
+                self.finder = xi
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,
@@ -836,16 +882,6 @@ class PafiLammpsState(LammpsState):
         return Fcor
 
 # ========================================================================== #
-    @property
-    def get_images(self):
-        """
-        Function to return NEB true configurations
-        """
-        atoms = []
-        if self.include_neb is None:
-            return atoms
-
-# ========================================================================== #
     def log_recap_state(self):
         """
         Function to return a string describing the state for the log
@@ -855,7 +891,7 @@ class PafiLammpsState(LammpsState):
             damp = 100 * self.dt
         coord = self.NEBcoord
         if coord is None:
-            coord = 0.5
+            coord = self.finder
 
         msg = "NEB calculation as implemented in LAMMPS\n"
         msg += f"Number of replicas :                     {self.nreplica}\n"

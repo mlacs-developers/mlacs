@@ -295,21 +295,22 @@ class OtfMlacs:
                                self.nbeads)
         else:
             for istate in range(self.nstate):
-                if self.state[istate].isneb:
-                    self.state[istate].run_NEB(self.mlip.pair_style,
-                                               self.mlip.pair_coeff,
-                                               self.mlip.model_post,
-                                               self.mlip.atom_style,
-                                               self.mlip.bonds,
-                                               self.mlip.angles,
-                                               self.mlip.bond_style,
-                                               self.mlip.bond_coeff,
-                                               self.mlip.angle_style,
-                                               self.mlip.angle_coeff)
-                    self.state[istate].extract_NEB_configurations()
-                    self.state[istate].compute_spline()
-                    self.state[istate].isrestart = False
-                    atoms_mlip.extend(self.state[istate].get_images)
+                # RB : New run_dynamics for Pafi States
+                #if self.state[istate].isneb:
+                #    self.state[istate].run_NEB(self.mlip.pair_style,
+                #                               self.mlip.pair_coeff,
+                #                               self.mlip.model_post,
+                #                               self.mlip.atom_style,
+                #                               self.mlip.bonds,
+                #                               self.mlip.angles,
+                #                               self.mlip.bond_style,
+                #                               self.mlip.bond_coeff,
+                #                               self.mlip.angle_style,
+                #                               self.mlip.angle_coeff)
+                #    self.state[istate].extract_NEB_configurations()
+                #    self.state[istate].compute_spline()
+                #    self.state[istate].isrestart = False
+                #    atoms_mlip.extend(self.state[istate].get_images)
                 # Reset Atoms to sample from the perfect atomic structures
                 if self.state[istate].isrestart:
                     msg = "Starting from first configuration\n"
