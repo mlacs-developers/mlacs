@@ -1,35 +1,27 @@
 import os
 from subprocess import run, PIPE
-from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ase.units import fs, kB
-from ase.io import read, write
+from ase.io import write
 from ase.io.lammpsdata import write_lammps_data
 
-from .lammps_state import LammpsState
-
-from ..utilities import (get_elements_Z_and_masses,
-                             write_lammps_NEB_ASCIIfile)
+from .state import StateManager
 
 from ..utilities import (get_elements_Z_and_masses,
                          write_lammps_NEB_ASCIIfile,
                          _create_ASE_object)
 
 from ..utilities.io_lammps import (get_general_input,
-                                   get_log_input,
-                                   get_traj_input,
                                    get_interaction_input,
-                                   get_last_dump_input)
+                                   get_neb_input)
 
-from ..utilities import integrate_points as IntP
 from ..utilities import interpolate_points as IP
 
 
 # ========================================================================== #
 # ========================================================================== #
-class NebLammpsState(LammpsState):
+class NebLammpsState(StateManager):
     """
     Class to manage NEB with LAMMPS
 
@@ -63,6 +55,8 @@ class NebLammpsState(LammpsState):
                  reaction_coordinate=None,
                  neb_configurations=1,
                  Kspring=1.0,
+                 dt=1.5,
+                 mode='col',
                  logfile=None,
                  trajfile=None,
                  interval=50,
@@ -70,10 +64,23 @@ class NebLammpsState(LammpsState):
                  trajinterval=50,
                  prt=True,
                  workdir=None):
+        StateManager.__init__(self,
+                              dt,
+                              1000,
+                              100,
+                              True,
+                              logfile,
+                              trajfile,
+                              loginterval,
+                              None,
+                              workdir)
 
         self.NEBcoord = reaction_coordinate
+        self.finder = None
         if self.NEBcoord is None:
             self.splprec = 1001
+            self.finder = []
+            self.mode = mode
         self.include_neb = neb_configurations
         self.print = prt
         self.Kspring = Kspring
@@ -85,6 +92,40 @@ class NebLammpsState(LammpsState):
         self.ispimd = False
         self.isrestart = False
         self.isappend = False
+
+# ========================================================================== #
+    def run_dynamics(self,
+                     supercell,
+                     pair_style,
+                     pair_coeff,
+                     model_post=None,
+                     atom_style="atomic",
+                     bonds=None,
+                     angles=None,
+                     bond_style=None,
+                     bond_coeff=None,
+                     angle_style=None,
+                     angle_coeff=None,
+                     eq=False,
+                     workdir=None):
+        """
+        Run state function.
+        """
+        self.run_NEB(pair_style,
+                     pair_coeff,
+                     model_post,
+                     atom_style,
+                     bonds,
+                     angles,
+                     bond_style,
+                     bond_coeff,
+                     angle_style,
+                     angle_coeff,
+                     workdir)
+        self.extract_NEB_configurations()
+        xi = self._xifinder(self.mode)
+        self.compute_spline(xi)
+        return self.spline_atoms.copy()
 
 # ========================================================================== #
     def run_NEB(self,
@@ -171,32 +212,11 @@ class NebLammpsState(LammpsState):
                                               pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += self.get_neb_input()
+        input_string += get_neb_input(self.dt / 1000,
+                                      self.Kspring)
 
         with open(fname, "w") as f:
             f.write(input_string)
-
-# ========================================================================== #
-    def get_neb_input(self):
-        """
-        Function to write the general parameters for NEB
-        """
-        input_string = "#####################################\n"
-        input_string += "# Compute relevant field for NEB simulation\n"
-        input_string += "#####################################\n"
-        input_string += "timestep    {0}\n".format(self.dt / (fs * 1000))
-        input_string += "thermo      1\n"
-        input_string += f"fix         neb all neb {self.Kspring} " + \
-                        "parallel ideal\n"
-        input_string += "run 100\n"
-        input_string += "reset_timestep  0\n\n"
-        input_string += "variable    i equal part\n"
-        input_string += "min_style   quickmin\n"
-        input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
-        input_string += "write_data  neb.$i\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
 
 # ========================================================================== #
     def extract_NEB_configurations(self):
@@ -304,6 +324,24 @@ class NebLammpsState(LammpsState):
                   self.spline_atoms, format='extxyz')
 
 # ========================================================================== #
+    def _xifinder(self, mode):
+        """
+        Return a reaction coordinate.
+        """
+        if self.NEBcoord is not None:
+            return self.NEBcoord
+        if mode == 'rdm_spl':
+            r = np.random.default_rng()
+            x = r.integers(self.splprec) / self.splprec
+            return x
+        elif mode == 'rdm_true':
+            r = np.random.default_rng()
+            x = r.integers(self.nreplica) / self.nreplica
+            return x
+        else:
+            return None
+
+# ========================================================================== #
     def _get_lammps_command_replica(self):
         '''
         Function to load the batch command to run LAMMPS with replica
@@ -396,16 +434,6 @@ class NebLammpsState(LammpsState):
                                  pos_in[id][2]+cell[1, 1]*travel_in[id][1],
                                  pos_in[id][3]+cell[2, 2]*travel_in[id][2]]
         return positions, cell
-
-# ========================================================================== #
-    @property
-    def get_images(self):
-        """
-        Function to return NEB true configurations
-        """
-        atoms = []
-        if self.include_neb is None:
-            return atoms
 
 # ========================================================================== #
     def log_recap_state(self):
