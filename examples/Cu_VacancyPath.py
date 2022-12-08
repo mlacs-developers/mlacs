@@ -41,6 +41,7 @@ neb[1].pop(1)
 
 asewrite('pos.xyz', neb, format='extxyz')
 
+# Lammps Exe ------------------------------------------------------------------
 lmp_exe = 'lammps'
 os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 os.environ["ASE_LAMMPSREPLICA_COMMAND"] = f'mpirun -n 7 {lmp_exe} -partition 7x1'
