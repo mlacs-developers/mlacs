@@ -78,7 +78,7 @@ class NebLammpsState(StateManager):
         self.finder = None
         if self.NEBcoord is None:
             self.splprec = 1001
-            self.finder = []
+            self.finder = [0.0, 1.0]
             self.mode = mode
         self.print = prt
         self.Kspring = Kspring
@@ -123,6 +123,9 @@ class NebLammpsState(StateManager):
         self.extract_NEB_configurations()
         xi = self._xifinder(self.mode)
         self.compute_spline(xi)
+        if self.print:
+            with open('Coordinate_sampling.dat', 'a') as a:
+                a.write(f'{xi}\n')
         return self.spline_atoms[-1].copy()
 
 # ========================================================================== #
@@ -277,8 +280,6 @@ class NebLammpsState(StateManager):
                 y = np.array(y)
                 xi = x[y.argmax()]
         self.finder.append(xi)
-        msg = f'Reaction coordinate :                    {self.finder[-1]}\n'
-        print(msg)
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,
@@ -328,14 +329,22 @@ class NebLammpsState(StateManager):
         """
         Return a reaction coordinate.
         """
+        def find_dist(l):
+            m = []
+            l.sort()
+            for i, val in enumerate(l[1:]):
+                m.append(np.abs(l[i+1] - l[i]))
+            i = np.array(m).argmax()
+            return l[i+1], l[i]
         if self.NEBcoord is not None:
             return self.NEBcoord
         if isinstance(mode, float):
             return mode
         elif mode == 'rdm_spl':
-            r = np.random.default_rng()
-            x = r.integers(self.splprec) / self.splprec
-            return x
+            return np.random.uniform(0, 1)
+        elif mode == 'rdm_memory':
+            x , y = find_dist(self.finder)
+            return np.random.uniform(x, y)
         elif mode == 'rdm_true':
             r = np.random.default_rng()
             x = r.integers(self.nreplica) / self.nreplica
