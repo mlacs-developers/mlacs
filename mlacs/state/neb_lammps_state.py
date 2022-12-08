@@ -53,7 +53,6 @@ class NebLammpsState(StateManager):
     def __init__(self,
                  configurations,
                  reaction_coordinate=None,
-                 neb_configurations=1,
                  Kspring=1.0,
                  dt=1.5,
                  mode='col',
@@ -81,7 +80,6 @@ class NebLammpsState(StateManager):
             self.splprec = 1001
             self.finder = []
             self.mode = mode
-        self.include_neb = neb_configurations
         self.print = prt
         self.Kspring = Kspring
         self.confNEB = configurations
@@ -125,7 +123,7 @@ class NebLammpsState(StateManager):
         self.extract_NEB_configurations()
         xi = self._xifinder(self.mode)
         self.compute_spline(xi)
-        return self.spline_atoms.copy()
+        return self.spline_atoms[-1].copy()
 
 # ========================================================================== #
     def run_NEB(self,
@@ -278,7 +276,9 @@ class NebLammpsState(StateManager):
                        x, 0, border=1)
                 y = np.array(y)
                 xi = x[y.argmax()]
-                print(xi)
+        self.finder.append(xi)
+        msg = f'Reaction coordinate :                    {self.finder[-1]}\n'
+        print(msg)
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,
@@ -330,7 +330,9 @@ class NebLammpsState(StateManager):
         """
         if self.NEBcoord is not None:
             return self.NEBcoord
-        if mode == 'rdm_spl':
+        if isinstance(mode, float):
+            return mode
+        elif mode == 'rdm_spl':
             r = np.random.default_rng()
             x = r.integers(self.splprec) / self.splprec
             return x
@@ -340,6 +342,23 @@ class NebLammpsState(StateManager):
             return x
         else:
             return None
+
+# ========================================================================== #
+    def _COM_corrections(self, spline):
+        """
+        Correction of the path tangent to have zero center of mass
+        """
+        N = len(self.confNEB[0])
+        pos, der, der2 = np.hsplit(np.array(spline), 3)
+        com = np.array([np.average(der[:, i]) for i in range(3)])
+        norm = 0
+        for i in range(N):
+            norm += np.sum([(der[i, j] - com[j])**2 for j in range(3)])
+        norm = np.sqrt(norm)
+        for i in range(N):
+            spline[i].extend([(der[i, j] - com[j]) / norm for j in range(3)])
+            spline[i].extend([der2[i, j] / norm / norm for j in range(3)])
+        return spline
 
 # ========================================================================== #
     def _get_lammps_command_replica(self):
@@ -440,23 +459,9 @@ class NebLammpsState(StateManager):
         """
         Function to return a string describing the state for the log
         """
-        damp = self.damp
-        if damp is None:
-            damp = 100 * self.dt
-        coord = self.NEBcoord
-        if coord is None:
-            coord = 0.5
-
         msg = "NEB calculation as implemented in LAMMPS\n"
         msg += f"Number of replicas :                     {self.nreplica}\n"
         msg += f"String constant :                        {self.Kspring}\n"
-        msg += "\n"
-        if isinstance(coord, float):
-            msg += f"Reaction coordinate :                    {coord}\n"
-        else:
-            step = coord[1]-coord[0]
-            i, f = (coord[0], coord[-1])
-            msg += f"Reaction interval :                      [{i} : {f}]\n"
-            msg += f"Reaction step interval :                 {step}\n"
+        msg += f"Sampling mode :                          {self.mode}\n"
         msg += "\n"
         return msg

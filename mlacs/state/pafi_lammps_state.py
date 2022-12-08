@@ -9,6 +9,7 @@ from ase.io import read, write
 from ase.io.lammpsdata import write_lammps_data
 
 from .lammps_state import LammpsState
+from .neb_lammps_state import NebLammpsState
 
 from ..utilities import (get_elements_Z_and_masses,
                          write_lammps_NEB_ASCIIfile,
@@ -29,6 +30,7 @@ from ..utilities import interpolate_points as IP
 
 # ========================================================================== #
 # ========================================================================== #
+#class PafiLammpsState(LammpsState, NebLammpsState):
 class PafiLammpsState(LammpsState):
     """
     Class to manage PafiStates with LAMMPS
@@ -119,6 +121,10 @@ class PafiLammpsState(LammpsState):
                              rng,
                              init_momenta,
                              workdir)
+        #NebLammpsState.__init__(self,
+        #                        configurations,
+        #                        reaction_coordinate=None,
+        #                        Kspring=1.0)
 
         self.temperature = temperature
         self.nsteps = nsteps
