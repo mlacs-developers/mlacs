@@ -36,6 +36,9 @@ class NebLammpsState(StateManager):
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
         Default ``1.0``
+    Kspring: :class:`float` or :class:`string`
+        Value of the reaction coordinate or sampling mode.
+        Default ``rdm_memory``
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
@@ -55,7 +58,7 @@ class NebLammpsState(StateManager):
                  reaction_coordinate=None,
                  Kspring=1.0,
                  dt=1.5,
-                 mode='col',
+                 mode='rdm_memory',
                  logfile=None,
                  trajfile=None,
                  interval=50,
