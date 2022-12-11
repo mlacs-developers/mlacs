@@ -4,7 +4,8 @@ from subprocess import run, PIPE
 import numpy as np
 
 from ase.io import write
-from ase.io.lammpsdata import write_lammps_data
+from ase.io.lammpsdata import (read_lammps_data, 
+                               write_lammps_data)
 
 from .state import StateManager
 
@@ -89,6 +90,7 @@ class NebLammpsState(StateManager):
         if len(self.confNEB) != 2:
             raise TypeError('First and last configurations are not defined')
         self._get_lammps_command_replica()
+        self.fixcell = configurations[0].get_cell()
 
         self.ispimd = False
         self.isrestart = False
@@ -234,7 +236,14 @@ class NebLammpsState(StateManager):
         Z = self.confNEB[0].get_atomic_numbers()
         for rep in range(int(self.nreplica)):
             nebfile = self.NEBworkdir + f'neb.{rep}'
-            positions, cell = self._read_lammpsdata(nebfile)
+            # RB
+            #positions, cell = _read_lammpsdata(nebfile)
+            at = read_lammps_data(nebfile, 
+                                  sort_by_id=True,
+                                  style='atomic')
+            positions = at.positions
+            cell = at.get_cell()
+            #cell = self.fixcell
             true_coordinates.append(positions)
             check = False
             with open(self.NEBworkdir + f'log.lammps.{rep}') as r:
