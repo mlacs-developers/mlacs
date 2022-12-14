@@ -4,7 +4,7 @@ from subprocess import run, PIPE
 import numpy as np
 
 from ase.io import write
-from ase.io.lammpsdata import (read_lammps_data, 
+from ase.io.lammpsdata import (read_lammps_data,
                                write_lammps_data)
 
 from .state import StateManager
@@ -237,13 +237,13 @@ class NebLammpsState(StateManager):
         for rep in range(int(self.nreplica)):
             nebfile = self.NEBworkdir + f'neb.{rep}'
             # RB
-            #positions, cell = _read_lammpsdata(nebfile)
-            at = read_lammps_data(nebfile, 
+            # positions, cell = _read_lammpsdata(nebfile)
+            at = read_lammps_data(nebfile,
                                   sort_by_id=True,
                                   style='atomic')
             positions = at.positions
             cell = at.get_cell()
-            #cell = self.fixcell
+            # cell = self.fixcell
             true_coordinates.append(positions)
             check = False
             with open(self.NEBworkdir + f'log.lammps.{rep}') as r:
@@ -341,13 +341,13 @@ class NebLammpsState(StateManager):
         """
         Return a reaction coordinate.
         """
-        def find_dist(l):
+        def find_dist(_l):
             m = []
-            l.sort()
-            for i, val in enumerate(l[1:]):
-                m.append(np.abs(l[i+1] - l[i]))
+            _l.sort()
+            for i, val in enumerate(_l[1:]):
+                m.append(np.abs(_l[i+1] - _l[i]))
             i = np.array(m).argmax()
-            return l[i+1], l[i]
+            return _l[i+1], _l[i]
         if self.NEBcoord is not None:
             return self.NEBcoord
         if isinstance(mode, float):
@@ -355,7 +355,7 @@ class NebLammpsState(StateManager):
         elif mode == 'rdm_spl':
             return np.random.uniform(0, 1)
         elif mode == 'rdm_memory':
-            x , y = find_dist(self.finder)
+            x, y = find_dist(self.finder)
             return np.random.uniform(x, y)
         elif mode == 'rdm_true':
             r = np.random.default_rng()

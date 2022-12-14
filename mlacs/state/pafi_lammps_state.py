@@ -5,15 +5,12 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 from ase.units import kB
-from ase.io import read, write
-from ase.io.lammpsdata import write_lammps_data
+from ase.io import read
 
 from .lammps_state import LammpsState
 from .neb_lammps_state import NebLammpsState
 
-from ..utilities import (get_elements_Z_and_masses,
-                         write_lammps_NEB_ASCIIfile,
-                         _create_ASE_object)
+from ..utilities import get_elements_Z_and_masses
 
 from ..utilities.io_lammps import (get_general_input,
                                    get_log_input,
@@ -21,11 +18,9 @@ from ..utilities.io_lammps import (get_general_input,
                                    get_interaction_input,
                                    get_last_dump_input,
                                    get_pafi_input,
-                                   get_neb_input,
                                    get_pafi_log_input)
 
 from ..utilities import integrate_points as IntP
-from ..utilities import interpolate_points as IP
 
 
 # ========================================================================== #
