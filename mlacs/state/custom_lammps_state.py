@@ -45,6 +45,9 @@ class CustomLammpsState(LammpsState):
     """
     def __init__(self,
                  custom_input,
+                 temperature,
+                 pressure,
+                 langevin=True,
                  dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
@@ -58,9 +61,11 @@ class CustomLammpsState(LammpsState):
 
         LammpsState.__init__(self,
                              temperature=300,
+                             pressure=None,
                              dt=dt,
                              nsteps=nsteps,
                              nsteps_eq=nsteps_eq,
+                             langevin=True,
                              fixcm=fixcm,
                              logfile=logfile,
                              trajfile=trajfile,

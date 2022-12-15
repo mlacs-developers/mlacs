@@ -4,10 +4,11 @@ import numpy as np
 from ase.build import bulk
 from ase.io import write as asewrite
 from ase.calculators.emt import EMT
+from ase.calculators.lammpsrun import LAMMPS
 
-from mlacs.mlip import LammpsMlip
-from mlacs.state import PafiLammpsState
 from mlacs import OtfMlacs
+from mlacs.mlip import LammpsMlip
+from mlacs.state import NebLammpsState
 
 
 """
@@ -17,7 +18,7 @@ The true potential is the EMT as implemented in ASE
 
 # Parameters-------------------------------------------------------------------
 temperature = 10  # K
-nconfs = 50
+nconfs = 10
 nsteps = 1000
 nsteps_eq = 100
 neq = 30
@@ -26,8 +27,9 @@ dt = 1  # fs
 friction = 0.01
 mlip_params = {"twojmax": 4}
 
+
 # Supercell creation ----------------------------------------------------------
-atoms = bulk("Cu", cubic=True).repeat(3)
+atoms = bulk("Ag", cubic=True).repeat(3)
 atoms.set_pbc([1, 1, 1])
 
 neb = [atoms.copy(),
@@ -47,22 +49,22 @@ calc = EMT()
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(neb[0], rcut=rcut, descriptor_parameters=mlip_params)
-
+mlip = LammpsMlip(neb[0], rcut=rcut, 
+                  stress_coefficient=1.0, 
+                  descriptor_parameters=mlip_params)
+              
 # Creation of the State Manager
-state = PafiLammpsState(temperature,
-                        neb,
-                        reaction_coordinate=0.5,
-                        dt=dt,
-                        nsteps=nsteps,
-                        nsteps_eq=nsteps_eq)
+mode = 'rdm_spl'  # Sampling method along the reaction path:
+                  #  - <float>: reaction coordinate
+                  #  - col: search the position of the energy maximum
+                  #  - rdm_spl: random, splined reaction path 
+                  #  - rdm_true: random, true reaction path 
+
+state = NebLammpsState(neb, 
+                       mode=mode)
 
 # Creation of the OtfMLACS object
 sampling = OtfMlacs(neb[0], state, calc, mlip, neq=neq)
 
 # Run the simulation
 sampling.run(nconfs)
-
-# Run the MFEP calculation
-xi = np.arange(0, 1.1, 0.1)
-state.run_MFEP(mlip.pair_style, mlip.pair_coeff, ncpus=6, xi=xi)

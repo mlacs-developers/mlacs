@@ -1,3 +1,5 @@
+import os
+
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
@@ -27,6 +29,10 @@ mlip_params = {"twojmax": 4}
 # Supercell creation ----------------------------------------------------------
 atoms = bulk('Cu', cubic=True).repeat(cell_size)
 calc = EMT()
+
+# Lammps Exe ------------------------------------------------------------------
+lmp_exe = 'lammps'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 # Creation of the MLIP Manager

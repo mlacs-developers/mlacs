@@ -1,3 +1,5 @@
+import os
+
 from ase.calculators.lammpsrun import LAMMPS
 from ase.build import bulk
 
@@ -43,6 +45,10 @@ nbeads = 4
 nbeads_sim = 2
 
 mlip_params = {"twojmax": twojmax}
+
+# Lammps Exe ------------------------------------------------------------------
+lmp_exe = 'lammps'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation---------
 
