@@ -10,7 +10,7 @@ from ase.units import kB
 from ase.io.lammpsdata import write_lammps_data
 
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
-                                    free_energy_com_harmonic_oscillator)
+                                free_energy_com_harmonic_oscillator)
 from .thermostate import ThermoState
 
 

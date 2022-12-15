@@ -10,7 +10,7 @@ from ase.io.lammpsdata import write_lammps_data
 
 from .thermostate import ThermoState
 from ..utilities.thermo import (free_energy_uhlenbeck_ford,
-                                    free_energy_ideal_gas)
+                                free_energy_ideal_gas)
 
 
 p_tabled = [1, 25, 50, 75, 100]

@@ -31,8 +31,8 @@ def plot_correlation(ax,
     -----------
     ax: Axes.axes
         The axes on which to plot the data
-    data: `np.ndarray` 
-        The data to plot. Has to be of shape (n, 2) 
+    data: `np.ndarray`
+        The data to plot. Has to be of shape (n, 2)
         with n the number of datapoint
     color:
         The color of the marker in the scatter plot.
