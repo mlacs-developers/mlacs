@@ -85,6 +85,7 @@ class LangevinState(StateManager):
 
         self.ispimd = False
         self.isrestart = False
+        self.isneb = False
 
 # ========================================================================== #
     def run_dynamics(self,

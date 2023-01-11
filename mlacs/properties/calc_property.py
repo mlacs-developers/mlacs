@@ -12,7 +12,9 @@ pafi_args = ['temperature',
              'dt',
              'damp',
              'brownian']
-
+neb_args = ['configurations',
+            'Kspring',
+            'dt']
 
 # ========================================================================== #
 # ========================================================================== #
@@ -127,19 +129,19 @@ class CalcNeb:
                  criterion=0.001,
                  frequence=1):
 
-        from mlacs.state import PafiLammpsState
+        from mlacs.state import NebLammpsState
         self.freq = frequence
         self.stop = criterion
         self.method = method
-        self.pafi = {}
+        self.neb = {}
         self.kwargs = {}
         for keys, values in args.items():
-            if keys in pafi_args:
-                self.pafi[keys] = values
+            if keys in neb_args:
+                self.neb[keys] = values
             else:
                 self.kwargs[keys] = values
         self.isfirst = True
-        self.state = PafiLammpsState(**self.pafi)
+        self.state = NebLammpsState(**self.neb)
 
 # ========================================================================== #
     def _exec(self, wdir):

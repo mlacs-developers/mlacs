@@ -14,12 +14,12 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from .state import StateManager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (get_general_input,
-                                       get_log_input,
-                                       get_traj_input,
-                                       get_diffusion_input,
-                                       get_interaction_input,
-                                       get_last_dump_input,
-                                       write_lammps_data_full)
+                                   get_log_input,
+                                   get_traj_input,
+                                   get_diffusion_input,
+                                   get_interaction_input,
+                                   get_last_dump_input,
+                                   write_lammps_data_full)
 
 
 # ========================================================================== #

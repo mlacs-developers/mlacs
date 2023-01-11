@@ -1,4 +1,6 @@
+import os
 import numpy as np
+
 from ase.io import read
 from ase.calculators.espresso import Espresso
 
@@ -28,6 +30,10 @@ pseudopotentials = {'O': 'O.blyp.UPF',
 calc = Espresso(input_data=input_data,
                 pseudopotentials=pseudopotentials,
                 kpts=None)
+
+# Lammps Exe ------------------------------------------------------------------
+lmp_exe = 'lammps'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 
 # MLACS Parameters :
 temperature = 300  # K
