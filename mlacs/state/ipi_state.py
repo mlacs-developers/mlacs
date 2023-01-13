@@ -205,7 +205,7 @@ class IpiState(LammpsState):
                      pair_style,
                      pair_coeff,
                      model_post=None,
-                     atom_style=None,
+                     atom_style="atomic",
                      bonds=None,
                      angles=None,
                      bond_style=None,
