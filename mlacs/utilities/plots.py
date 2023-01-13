@@ -78,7 +78,8 @@ def plot_correlation(ax,
         ax.scatter(datatrue[idx], datatest[idx], c=z[idx],
                    linewidths=5, norm=norm, s=50, cmap=cmap)
     else:
-        ax.plot(datatrue, datatest, ls="", marker="o")
+        ax.plot(datatrue, datatest, ls="", marker="o",
+                c=color, rasterized=True)
     ax.plot(minmax, minmax, ls="--", alpha=0.75, c=grey)
 
     if datatype is not None:

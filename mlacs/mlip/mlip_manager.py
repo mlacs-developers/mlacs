@@ -19,7 +19,8 @@ class MlipManager:
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 stress_coefficient=0.0):
+                 stress_coefficient=0.0,
+                 no_zstress=False):
 
         self.elements, self.Z, self.masses, self.charges = \
             get_elements_Z_and_masses(atoms)
@@ -28,6 +29,8 @@ class MlipManager:
         self.energy_coefficient = energy_coefficient
         self.forces_coefficient = forces_coefficient
         self.stress_coefficient = stress_coefficient
+
+        self.no_zstress = no_zstress
 
         self.nthrow = nthrow
         self.nconfs = 0
@@ -86,5 +89,8 @@ class MlipManager:
         else:
             idx_e = self.nthrow
         idx_f = 3 * self.natoms[:idx_e].sum()
-        idx_s = idx_e * 6
+        if self.no_zstress:
+            idx_s = idx_e * 3
+        else:
+            idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
