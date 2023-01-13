@@ -122,6 +122,7 @@ class IpiState(LammpsState):
                  nsteps_eq=100,
                  fixcm=True,
                  loginterval=50,
+                 printcentroid=True,
                  rng=None,
                  init_momenta=None,
                  workdir=None):
@@ -158,9 +159,12 @@ class IpiState(LammpsState):
                 self.stress = -np.identity(3)*pressure/3
         self.diagonal = diagonal
 
+        self.printcentroid = printcentroid
         self.nbeads = nbeads  # Default value to do classical MD
         if self.nbeads > 1:
             self.ispimd = True
+        else:
+            self.printcentroid = False
         self.paralbeads = paralbeads
         if self.paralbeads is None:
             self.paralbeads = 1
@@ -352,6 +356,35 @@ class IpiState(LammpsState):
                                                   attrib=attrib_tmp),
                                        'velocities{m/s}')
             trajarr.append(trajectory2)
+
+            if self.printcentroid:
+                attrib_tmp = {'stride': str(self.loginterval),
+                              'filename': 'pos_c',
+                              'format': 'xyz',
+                              'cell_units': 'angstrom'}
+                trajectory3 = _add_textxml(ET.Element('trajectory',
+                                                      attrib=attrib_tmp),
+                                           'x_centroid{angstrom}')
+                trajarr.append(trajectory3)
+
+                attrib_tmp = {'stride': str(self.loginterval),
+                              'filename': 'for_c',
+                              'format': 'xyz',
+                              'cell_units': 'angstrom'}
+                trajectory4 = _add_textxml(ET.Element('trajectory',
+                                                      attrib=attrib_tmp),
+                                           'f_centroid{ev/ang}')
+                trajarr.append(trajectory4)
+
+                attrib_tmp = {'stride': str(self.loginterval),
+                              'filename': 'vel_c',
+                              'format': 'xyz',
+                              'cell_units': 'angstrom'}
+                trajectory5 = _add_textxml(ET.Element('trajectory',
+                                                      attrib=attrib_tmp),
+                                           'v_centroid{m/s}')
+                trajarr.append(trajectory5)
+
 
         # Adding trajectory for outputs
         attrib_tmp = {'stride': str(nsteps),
