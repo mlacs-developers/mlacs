@@ -264,7 +264,7 @@ class IpiState(LammpsState):
                                 pair_style,
                                 pair_coeff,
                                 model_post,
-                                1000000,
+                                1000000000,
                                 self.temperature,
                                 self.pressure)
         self.write_ipi_input(atoms, nsteps)
