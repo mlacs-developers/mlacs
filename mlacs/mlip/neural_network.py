@@ -4,7 +4,7 @@
 '''
 import numpy as np
 
-from mlacs.mlip import MlipManager
+from . import MlipManager
 try:
     import torch
     from torch import nn
@@ -16,8 +16,8 @@ except ImportError:
     raise ImportError(msg)
 
 
-default_parameters = {"hiddenlayers": [],
-                      "activation": "linear",
+default_parameters = {"hiddenlayers": [8, 8],
+                      "activation": "sigmoid",
                       "epoch": 5000,
                       "optimizer": "l-bfgs",
                       "learning_rate": 1e-2,
@@ -97,8 +97,8 @@ class NeuralNetworkMlip(MlipManager):
         dataset = Data(amat_e, amat_f, ymat_e, ymat_f, idx_e, idx_df)
         loader = DataLoader(dataset,
                             batch_size=self.parameters["batch_size"],
-                            shuffle=True,
-                            collate_fn=_collat_fn)
+                            shuffle=False,
+                            collate_fn=_collate_fn)
 
         iepoch = []
         iloss = []
@@ -160,7 +160,7 @@ class NeuralNetworkMlip(MlipManager):
         loader = DataLoader(dataset,
                             batch_size=len(dataset) + 1,
                             shuffle=False,
-                            collate_fn=_collat_fn)
+                            collate_fn=_collate_fn)
 
         self.write_mlip(results, nparams,
                         self.neuralnetwork.network[0].nnodes[1:],
@@ -430,7 +430,7 @@ class Data(Dataset):
 
 # ========================================================================== #
 # ========================================================================== #
-def _collat_fn(batch):
+def _collate_fn(batch):
     """
     """
     amat_e = torch.cat([data[0] for data in batch], dim=0)
@@ -488,6 +488,12 @@ def _get_optimizers(method, param, learning_rate):
     elif method == "adadelta":
         optimizer = optim.Adadelta(param,
                                    lr=learning_rate)
+    elif method == "adamw":
+        optimizer = optim.AdamW(param,
+                                lr=learning_rate)
+    elif method == "asgd":
+        optimizer = optim.ASGD(param,
+                               lr=learning_rate)
     else:
         msg = "The selected optimizer is not implemented"
         raise NotImplementedError(msg)

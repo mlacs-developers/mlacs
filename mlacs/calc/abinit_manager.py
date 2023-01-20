@@ -4,7 +4,7 @@
 """
 import os
 import shlex
-from subprocess import call, PIPE
+from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -13,7 +13,7 @@ from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
 
-from mlacs.calc.calc_manager import CalcManager
+from .calc_manager import CalcManager
 
 
 # ========================================================================== #
@@ -85,7 +85,7 @@ class AbinitManager(CalcManager):
         # Yeah for threading
         with ThreadPoolExecutor(max_workers=self.ninstance) as executor:
             for cdir in confdir:
-                executor.submit(call,
+                executor.submit(run,
                                 self.cmd,
                                 cwd=cdir,
                                 stdout=PIPE,

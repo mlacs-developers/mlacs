@@ -16,9 +16,9 @@ from ase.io import read, write
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
-from mlacs.state import LammpsState
-from mlacs.utilities import get_elements_Z_and_masses
-from mlacs.utilities.io_lammps import write_lammps_data_full
+from . import LammpsState
+from ..utilities import get_elements_Z_and_masses
+from ..utilities.io_lammps import write_lammps_data_full
 
 
 # ========================================================================== #
@@ -113,6 +113,7 @@ class IpiState(LammpsState):
                  prefix='simulation',
                  thermostyle='pile_l',
                  barostyle='isotropic',
+                 diagonal=True,
                  damp=None,
                  pdamp=None,
                  pilelambda=0.5,
@@ -121,6 +122,7 @@ class IpiState(LammpsState):
                  nsteps_eq=100,
                  fixcm=True,
                  loginterval=50,
+                 printcentroid=True,
                  rng=None,
                  init_momenta=None,
                  workdir=None):
@@ -155,17 +157,21 @@ class IpiState(LammpsState):
             self.stress = np.zeros((3, 3))
             if pressure is not None:
                 self.stress = -np.identity(3)*pressure/3
+        self.diagonal = diagonal
 
+        self.printcentroid = printcentroid
         self.nbeads = nbeads  # Default value to do classical MD
         if self.nbeads > 1:
             self.ispimd = True
+        else:
+            self.printcentroid = False
         self.paralbeads = paralbeads
         if self.paralbeads is None:
             self.paralbeads = 1
         self.prefix = prefix
 
-        self.ipiatomsfname = self.workdir + "ipi_atoms.xyz"
-        self.ipifname = self.workdir + "ipi_input.xml"
+        self.ipiatomsfname = "ipi_atoms.xyz"
+        self.ipifname = "ipi_input.xml"
 
         self._get_ipi_cmd()
 
@@ -203,7 +209,7 @@ class IpiState(LammpsState):
                      pair_style,
                      pair_coeff,
                      model_post=None,
-                     atom_style=None,
+                     atom_style="atomic",
                      bonds=None,
                      angles=None,
                      bond_style=None,
@@ -248,7 +254,7 @@ class IpiState(LammpsState):
 
         atomswrite = atoms.copy()
         atomswrite.positions = atoms.get_positions() / Bohr
-        write(self.ipiatomsfname, atomswrite, format='xyz')
+        write(self.workdir + self.ipiatomsfname, atomswrite, format='xyz')
         self.write_lammps_input(atoms,
                                 atom_style,
                                 bond_style,
@@ -258,11 +264,11 @@ class IpiState(LammpsState):
                                 pair_style,
                                 pair_coeff,
                                 model_post,
-                                1000000,
+                                1000000000,
                                 self.temperature,
                                 self.pressure)
         self.write_ipi_input(atoms, nsteps)
-        ipi_command = f"{self.cmdipi} {self.ipifname} > {self.workdir}ipi.log"
+        ipi_command = f"{self.cmdipi} {self.ipifname} > ipi.log"
         # We start by running ipi alone
         ipi_handle = Popen(ipi_command, shell=True, cwd=self.workdir,
                            stderr=PIPE)
@@ -350,6 +356,35 @@ class IpiState(LammpsState):
                                                   attrib=attrib_tmp),
                                        'velocities{m/s}')
             trajarr.append(trajectory2)
+
+            if self.printcentroid:
+                attrib_tmp = {'stride': str(self.loginterval),
+                              'filename': 'pos_c',
+                              'format': 'xyz',
+                              'cell_units': 'angstrom'}
+                trajectory3 = _add_textxml(ET.Element('trajectory',
+                                                      attrib=attrib_tmp),
+                                           'x_centroid{angstrom}')
+                trajarr.append(trajectory3)
+
+                attrib_tmp = {'stride': str(self.loginterval),
+                              'filename': 'for_c',
+                              'format': 'xyz',
+                              'cell_units': 'angstrom'}
+                trajectory4 = _add_textxml(ET.Element('trajectory',
+                                                      attrib=attrib_tmp),
+                                           'f_centroid{ev/ang}')
+                trajarr.append(trajectory4)
+
+                attrib_tmp = {'stride': str(self.loginterval),
+                              'filename': 'vel_c',
+                              'format': 'xyz',
+                              'cell_units': 'angstrom'}
+                trajectory5 = _add_textxml(ET.Element('trajectory',
+                                                      attrib=attrib_tmp),
+                                           'v_centroid{m/s}')
+                trajarr.append(trajectory5)
+
 
         # Adding trajectory for outputs
         attrib_tmp = {'stride': str(nsteps),
@@ -471,7 +506,14 @@ class IpiState(LammpsState):
             pdamp = _add_textxml(ET.Element('tau',
                                             attrib={'units': 'femtosecond'}),
                                  str(pdamp))
-            barostat = _add_Subelements(barostat, [thermostatb, pdamp, h0])
+            if self.diagonal:
+                diagonal = _add_textxml(ET.Element('hfix'),
+                                        "[offdiagonal]")
+                barostat = _add_Subelements(barostat,
+                                            [thermostatb, pdamp, h0, diagonal])
+            else:
+                barostat = _add_Subelements(barostat,
+                                            [thermostatb, pdamp, h0])
             dynamics.append(barostat)
 
         # Setup Thermostats
@@ -508,7 +550,8 @@ class IpiState(LammpsState):
         tree = ET.ElementTree(simulation)
         if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
             ET.indent(tree)
-        tree.write(self.ipifname, encoding='unicode', xml_declaration=True)
+        tree.write(self.workdir + self.ipifname, encoding='unicode',
+                   xml_declaration=True)
 
 # ========================================================================== #
     def create_ase_atom(self, pbc, nbeads_return):
@@ -620,8 +663,8 @@ class IpiState(LammpsState):
         """
         """
         self.workdir = workdir
-        self.ipiatomsfname = self.workdir + "ipi_atoms.xyz"
-        self.ipifname = self.workdir + "ipi_input.xml"
+        self.ipiatomsfname = "ipi_atoms.xyz"
+        self.ipifname = "ipi_input.xml"
 
 
 if __name__ == '__main__':

@@ -1,11 +1,13 @@
-import re
-from setuptools import setup
+import os
+from setuptools import setup, find_packages
 
 with open("README.md") as f:
     long_description = f.read()
 
-with open("mlacs/version.py") as f:
-    version = re.search("__version__ = '(.*)'", f.read()).group(1)
+versionfile = os.path.join('mlacs', 'version.py')
+with open(versionfile) as f:
+    code = compile(f.read(), versionfile, 'exec')
+    exec(code)
 
 install_requires = ["numpy>=1.17.0",
                     "ase>=3.22"]
@@ -17,10 +19,10 @@ extra_requires = ["icet>=1.4",
 if __name__ == "__main__":
     setup(
           name="mlacs",
-          version=version,
+          version=__version__,
           author="Aloïs Castellano",
           author_email="alois.castellano@uliege.be",
-          packages=["mlacs", "test"],
+          packages=find_packages(),
           entry_points={"console_scripts": ["mlacs=mlacs.cli.main:main"]},
           description="Machine-Learning Assisted Canonical Sampling",
           license_files=("LICENSE.txt",),

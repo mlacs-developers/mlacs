@@ -2,8 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from mlacs.mlip.linear_mlip import LinearMlip
-from mlacs.mlip.mlip_lammps_interface import LammpsMlipInterface
+from .linear_mlip import LinearMlip
+from .mlip_lammps_interface import LammpsMlipInterface
 
 
 # ========================================================================== #
@@ -35,6 +35,9 @@ class LammpsMlip(LinearMlip):
         :class:`list` of the weight of each atomic type in the descriptor.
         If ``None``, the weight is given by
         :math: ̀\\frac{Z_i}{\\sum_i Z_i} ̀
+    no_zstress: :class:`bool` (optional)
+        If `True`, the Z components of the stress is not fitted.
+        Can be useful to study 2D materials (Default False)
     nthrow: :class:`int` (optional)
         Number of initial configuration to throw
         as the simulation runs (Counting the training configurations).
@@ -70,6 +73,7 @@ class LammpsMlip(LinearMlip):
                  fit_dielectric=False,
                  nthrow=10,
                  fit_parameters=None,
+                 no_zstress=False,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0,
@@ -81,12 +85,13 @@ class LammpsMlip(LinearMlip):
                             rcut,
                             nthrow,
                             fit_parameters,
+                            no_zstress,
                             energy_coefficient,
                             forces_coefficient,
                             stress_coefficient,
-                            rescale_energy=True,
-                            rescale_forces=True,
-                            rescale_stress=True)
+                            rescale_energy=rescale_energy,
+                            rescale_forces=rescale_forces,
+                            rescale_stress=rescale_stress)
 
         self.lammps_interface = LammpsMlipInterface(self.elements,
                                                     self.masses,
@@ -98,7 +103,8 @@ class LammpsMlip(LinearMlip):
                                                     radelems,
                                                     welems,
                                                     reference_potential,
-                                                    fit_dielectric)
+                                                    fit_dielectric,
+                                                    )
 
         self.ncolumns = self.lammps_interface.ncolumns
 

@@ -5,7 +5,7 @@
 import numpy as np
 from ase.units import GPa
 
-from mlacs.mlip import MlipManager
+from . import MlipManager
 try:
     import sklearn.linear_model as lin_mod
     from sklearn.model_selection import GridSearchCV
@@ -29,6 +29,7 @@ class LinearMlip(MlipManager):
                  rcut=5.0,
                  nthrow=10,
                  parameters=None,
+                 no_zstress=False,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
@@ -41,7 +42,8 @@ class LinearMlip(MlipManager):
                              nthrow,
                              energy_coefficient,
                              forces_coefficient,
-                             stress_coefficient)
+                             stress_coefficient,
+                             no_zstress)
 
         self._initialize_parameters(parameters)
         self.rescale_energy = rescale_energy

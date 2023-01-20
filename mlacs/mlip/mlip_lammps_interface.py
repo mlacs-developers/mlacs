@@ -9,9 +9,10 @@ from subprocess import run, PIPE
 from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.lammps import Prism
 from ase.calculators.lammpsrun import LAMMPS
+from ase.units import GPa
 
-from mlacs.utilities.io_lammps import write_lammps_data_full
-from mlacs.utilities import get_elements_Z_and_masses
+from ..utilities.io_lammps import write_lammps_data_full
+from ..utilities import get_elements_Z_and_masses
 
 
 default_snap = {"twojmax": 8,
@@ -85,7 +86,8 @@ class LammpsMlipInterface:
                  radelems=None,
                  welems=None,
                  reference_potential=None,
-                 fit_dielectric=False):
+                 fit_dielectric=False,
+                 no_zstress=True):
 
         # Store parameters
         self.elements = np.array(elements)
@@ -97,6 +99,7 @@ class LammpsMlipInterface:
         self._get_mlip_params(descriptor_parameters)
         self.fit_dielectric = fit_dielectric
         self.prepare_ref_pot(reference_potential)
+        self.no_zstress = no_zstress
 
         if radelems is None:
             self.radelems = np.array([0.5 for i in self.elements])
@@ -473,8 +476,11 @@ class LammpsMlipInterface:
         Takes in input an atoms with a calculator attached
         """
         natoms = len(atoms)
-        nrows = 3 * natoms + 7
-        
+        if self.no_zstress:
+            nrows = 3 * natoms + 4
+        else:
+            nrows = 3 * natoms + 7
+
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
         lmp_atoms_fname = "atoms.lmp"
@@ -506,6 +512,10 @@ class LammpsMlipInterface:
                          [0, 1, 2, 2, 2, 1]]
         true_stress = -stress
 
+        if self.no_zstress:
+            idx_zstress = [2, 3, 4]
+            true_stress = np.delete(true_stress, idx_zstress, 0)
+
         # Organize the data in the same order as in the LAMMPS output:
         # Energy, then 3*Nat forces,
         # then 6 stress in form xx, yy, zz, yz, xz and xy
@@ -532,6 +542,13 @@ class LammpsMlipInterface:
             # and bispectrum component are in ??????
             bispectrum[-6:, 1:-1] /= atoms.get_volume()
             data_bispectrum = bispectrum[:, 1:-1]
+            # Need also to correct the reference potential stress data
+            bispectrum[-6:, -1] *= GPa * 1e-4
+
+            if self.no_zstress:
+                idx_zstress = [-2, -3, -4]
+                bispectrum = np.delete(bispectrum, idx_zstress, 0)
+                data_bispectrum = np.delete(data_bispectrum, idx_zstress, 0)
 
             # We need to remove the reference potential values from the data
             data_true -= bispectrum[:, -1]
@@ -567,6 +584,10 @@ class LammpsMlipInterface:
                 stress = str_ten[[0, 1, 2, 1, 0, 0],
                                  [0, 1, 2, 2, 2, 1]]
                 coul_stress = -stress
+
+                if self.no_zstress:
+                    idx_zstress = [2, 3, 4]
+                    coul_stress = np.delete(coul_stress, idx_zstress, 0)
 
                 data_coul = np.append(coul_energy,
                                       coul_forces.flatten(order="C"))

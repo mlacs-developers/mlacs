@@ -3,7 +3,7 @@ import textwrap
 from argparse import RawTextHelpFormatter
 from importlib import import_module
 
-from mlacs.version import __version__
+from ..version import __version__
 
 
 commands = [('correlation', 'mlacs.cli.correlation'),

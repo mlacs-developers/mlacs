@@ -11,7 +11,7 @@ from ase.md import MDLogger
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.calculators.lammpsrun import LAMMPS
 
-from mlacs.state.state import StateManager
+from .state import StateManager
 
 
 # ========================================================================== #
@@ -85,6 +85,7 @@ class LangevinState(StateManager):
 
         self.ispimd = False
         self.isrestart = False
+        self.isneb = False
 
 # ========================================================================== #
     def run_dynamics(self,

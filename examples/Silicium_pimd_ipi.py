@@ -1,3 +1,5 @@
+import os
+
 from ase.calculators.lammpsrun import LAMMPS
 from ase.build import bulk
 
@@ -43,6 +45,10 @@ nbeads_sim = 2
 
 mlip_params = {"twojmax": twojmax}
 
+# Lammps Exe ------------------------------------------------------------------
+lmp_exe = 'lammps'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
+
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation---------
 
 # Creation of the MLIP Manager
@@ -50,7 +56,7 @@ mlip = LammpsMlip(atoms,
                   rcut=rcut,
                   stress_coefficient=scoef,
                   style=style,
-                  mlip_parameters=mlip_params)
+                  descriptor_parameters=mlip_params)
 
 # Creation of the State Manager
 state = IpiState(temperature,

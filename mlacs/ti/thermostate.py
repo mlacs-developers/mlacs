@@ -8,7 +8,7 @@ from subprocess import call
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from mlacs.utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses
 
 
 # ========================================================================== #
