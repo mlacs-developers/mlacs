@@ -67,6 +67,7 @@ class GaussianProcessInterface:
                   "predictions"
             raise RuntimeError(msg)
 
+        # We need to have everything as array so that sklearn is happy
         if isinstance(x, (float, int)):
             x = np.array([x])
         elif isinstance(x, list):

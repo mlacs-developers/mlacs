@@ -32,7 +32,7 @@ class GpThermoInt(GaussianProcessInterface):
             self.temp0 = ref_state[0]
             self.vol0 = ref_state[1]
             msg = "The NPT mode is not implemented yet"
-            #raise NotImplementedError(msg)
+            raise NotImplementedError(msg)
 
         GaussianProcessInterface.__init__(self,
                                           name=name,
@@ -89,7 +89,6 @@ class GpThermoInt(GaussianProcessInterface):
         if self.mode == "npt":
             delta_fe = self._volume_integration(vol, temp)
             fe -= delta_fe
-
         return fe
 
 # ========================================================================== #
