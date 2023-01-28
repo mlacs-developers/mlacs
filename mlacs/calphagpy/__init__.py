@@ -3,6 +3,6 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
-from .gpthermoint import GpThermoInt
+from .gpthermoint import GpThermoIntT, GpThermoIntVT
 
-__all__ = ["GpThermoInt"]
+__all__ = ["GpThermoIntT", "GpThermoIntVT"]
