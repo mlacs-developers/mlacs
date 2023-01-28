@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.integrate import quad
-from scipy.optimize import brentq
+from scipy.optimize import brentq, root_scalar
 from ase.units import GPa
 try:
     from sklearn.gaussian_process.kernels import (RBF,
@@ -20,6 +20,25 @@ available_modes = ["t", "vt"]
 # ========================================================================== #
 class GpThermoIntT(GaussianProcessInterface):
     """
+    Class to do thermodynamic integration with gaussian process on the
+    temperature dimension.
+
+
+    Parameters
+    ----------
+
+    ref_free_energy: :class:`float`
+        The free energy at the reference point, in eV/at
+    ref_temperature: :class:`float`
+        The temperature at the reference point, in K
+    kernel: :class:`Kernel`
+        The kernel of the gaussian process.
+        Default are :
+        RBF() * C() + WhiteKernel()
+    gp_parameters: :class:`dict`
+        Parameters for the GaussianProcessRegressor object.
+        The default parameters are :
+        {"n_restart_optimizer": 100, "normalyze_y": True, "alpha": 1e-10}
     """
     def __init__(self,
                  ref_free_energy,
@@ -35,17 +54,55 @@ class GpThermoIntT(GaussianProcessInterface):
         self.t0 = ref_temperature
 
 # ========================================================================== #
-    def get_helmholtz_free_energy(self, temperature):
+    def add_new_data(self, temperature, energy):
         """
+        Add data point to train the gaussian process
+
+        Parameters
+        ----------
+
+        temperature: :class:`np.ndarray`
+            The temperature points, in K
+        energy: :class:`float` or :class:`np.ndarray`
+            The energy, in eV/at
         """
-        # First ensure the right dimensions to prepare for sklearn
         if len(temperature.shape) == 1:
             temperature = temperature.reshape(-1, 1)
+        self._add_new_data(temperature, energy)
+
+# ========================================================================== #
+    def get_helmholtz_free_energy(self, temperature):
+        """
+        Function to get the Helmholtz free energy at a given temperature.
+
+        Parameters
+        ----------
+
+        temperature: :class:`float` or :class:`np.ndarray`
+            The temperature at which to compute the free energy, in K
+
+        Return
+        ------
+
+        fe: :class:`float` or :class:`np.ndarray`
+            The free energy at the desired temperature, in eV/at
+        """
+        if isinstance(temperature, (float, int)):
+            temperature = np.array([temperature])
 
         # Due to the integration, we have to launch one state after the other
         fe = np.zeros(temperature.shape[0])
-        for i, s in enumerate(temperature):
-            fe[i] = self._get_helmholtz_onestate(s)
+        for i, t in enumerate(temperature):
+            fe[i] = self._get_helmholtz_onestate(t)
+        return fe
+
+# ========================================================================== #
+    def _get_helmholtz_onestate(self, temperature):
+        """
+        """
+        # We start with temperature integration
+        delta_fe = self._temperature_integration(temperature)
+        fe = (self.f0 / self.t0 - delta_fe) * temperature
         return fe
 
 # ========================================================================== #
@@ -67,6 +124,28 @@ class GpThermoIntT(GaussianProcessInterface):
 # ========================================================================== #
 class GpThermoIntVT(GaussianProcessInterface):
     """
+    Class to do thermodynamic integration with gaussian process on the
+    volume/temperature dimensions.
+    Can compute the Helmholtz and Gibbs free energies.
+
+
+    Parameters
+    ----------
+
+    ref_free_energy: :class:`float`
+        The free energy at the reference point
+    ref_volume: :class:`float`
+        The volume at the reference point
+    ref_temperature: :class:`float`
+        The temperature at the reference point
+    kernel: :class:`Kernel`
+        The kernel of the gaussian process.
+        Default are :
+        RBF() * C() + WhiteKernel()
+    gp_parameters: :class:`dict`
+        Parameters for the GaussianProcessRegressor object.
+        The default parameters are :
+        {"n_restart_optimizer": 100, "normalyze_y": True, "alpha": 1e-10}
     """
     def __init__(self,
                  ref_free_energy,
@@ -91,6 +170,19 @@ class GpThermoIntVT(GaussianProcessInterface):
 # ========================================================================== #
     def add_new_data(self, volume, temperature, energy, pressure):
         """
+        Add data point to train the gaussian process
+
+        Parameters
+        ----------
+
+        volume: :class:`float` or :class:`np.ndarray`
+            The volume points, in angstrom**3
+        temperature: :class:`float` or :class:`np.ndarray`
+            The temperature points, in K
+        energy: :class:`float` or :class:`np.ndarray`
+            The energy, in eV/at
+        pressure: :class:`float` or :class:`np.ndarray`
+            The pressure, in GPa
         """
         x = np.c_[volume, temperature]
         y = np.c_[energy, pressure * GPa]
@@ -99,6 +191,22 @@ class GpThermoIntVT(GaussianProcessInterface):
 # ========================================================================== #
     def get_helmholtz_free_energy(self, volume, temperature):
         """
+        Function to get the Helmholtz free energy at a given volume
+        and temperature.
+
+        Parameters
+        ----------
+
+        volume: :class:`float` or :class:`np.ndarray`
+            The volume at which to compute the free energy, in angstrom**3
+        temperature: :class:`float` or :class:`np.ndarray`
+            The temperature at which to compute the free energy, in K
+
+        Return
+        ------
+
+        fe: :class:`float` or :class:`np.ndarray`
+            The free energy at the desired temperature, in eV/at
         """
         state = np.array([volume, temperature])
         state = state.reshape(1, -1)
@@ -112,6 +220,22 @@ class GpThermoIntVT(GaussianProcessInterface):
 # ========================================================================== #
     def get_gibbs_free_energy(self, pressure, temperature, lb=None, ub=None):
         """
+        Function to get the Gibbs free energy at a given pressure 
+        and temperature.
+
+        Parameters
+        ----------
+
+        pressure: :class:`float` or :class:`np.ndarray`
+            The pressure at which to compute the free energy, in GPa
+        temperature: :class:`float` or :class:`np.ndarray`
+            The temperature at which to compute the free energy, in K
+
+        Return
+        ------
+
+        fe: :class:`float` or :class:`np.ndarray`
+            The free energy at the desired temperature, in eV/at
         """
         state = np.array([pressure * GPa, temperature])
         state = state.reshape(1, -1)
@@ -126,6 +250,23 @@ class GpThermoIntVT(GaussianProcessInterface):
     def get_volume_from_press_temp(self, pressure, temperature,
                                    lb=None, ub=None):
         """
+        Function to get the volume corresponding to given temperature
+        and pressure points
+
+        Parameters
+        ----------
+
+        pressure: :class:`float` or :class:`np.ndarray`
+            The pressure at which to compute the free energy, in GPa
+        temperature: :class:`float` or :class:`np.ndarray`
+            The temperature at which to compute the free energy, in K
+
+        Return
+        ------
+
+        vol: :class:`float` or :class:`np.ndarray`
+            The volume at the desired pressure/temperature points, 
+            in angstrom**3
         """
         state = np.array([pressure * GPa, temperature])
         state = state.reshape(1, -1)
@@ -139,6 +280,23 @@ class GpThermoIntVT(GaussianProcessInterface):
     def get_thermal_expansion(self, pressure, temperature,
                               step=1e-8, lb=None, ub=None):
         """
+        Function to get the thermal expansion coefficient at given temperature
+        and pressure points
+
+        Parameters
+        ----------
+
+        pressure: :class:`float` or :class:`np.ndarray`
+            The pressure at which to compute the free energy, in GPa
+        temperature: :class:`float` or :class:`np.ndarray`
+            The temperature at which to compute the free energy, in K
+
+        Return
+        ------
+
+        alpha: :class:`float` or :class:`np.ndarray`
+            The thermal expansion coefficient  at the desired 
+            pressure/temperature points, in 1/K
         """
         state = np.array([pressure * GPa, temperature])
         state = state.reshape(1, -1)
