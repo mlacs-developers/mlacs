@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats.qmc import Sobol, LatinHypercube
 try:
     from sklearn.gaussian_process import GaussianProcessRegressor
     from sklearn.gaussian_process.kernels import (RBF,

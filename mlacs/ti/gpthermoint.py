@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.integrate import quad
-from scipy.optimize import brentq, root_scalar
+from scipy.optimize import brentq
 from ase.units import GPa
 try:
     from sklearn.gaussian_process.kernels import (RBF,
@@ -220,7 +220,7 @@ class GpThermoIntVT(GaussianProcessInterface):
 # ========================================================================== #
     def get_gibbs_free_energy(self, pressure, temperature, lb=None, ub=None):
         """
-        Function to get the Gibbs free energy at a given pressure 
+        Function to get the Gibbs free energy at a given pressure
         and temperature.
 
         Parameters
@@ -265,7 +265,7 @@ class GpThermoIntVT(GaussianProcessInterface):
         ------
 
         vol: :class:`float` or :class:`np.ndarray`
-            The volume at the desired pressure/temperature points, 
+            The volume at the desired pressure/temperature points,
             in angstrom**3
         """
         state = np.array([pressure * GPa, temperature])
@@ -295,7 +295,7 @@ class GpThermoIntVT(GaussianProcessInterface):
         ------
 
         alpha: :class:`float` or :class:`np.ndarray`
-            The thermal expansion coefficient  at the desired 
+            The thermal expansion coefficient  at the desired
             pressure/temperature points, in 1/K
         """
         state = np.array([pressure * GPa, temperature])
