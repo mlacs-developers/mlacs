@@ -63,16 +63,24 @@ class GaussianProcessInterface:
         y: :class:`np.ndarray`
             The target values, with dimension (nsamples, ndim)
         """
+        self._add_new_data(x, y)
+
+# ========================================================================== #
+    def _add_new_data(self, x, y):
+        """
+        """
         # We need to ensure that x and y has the right dimensions
-        if len(x.shape) == 1:
+        if len(x.shape) == 1 and self.ndim == 1:
             x = x.reshape(-1, 1)
+        elif len(x.shape) == 1 and self.ndim > 1:
+            x = x.reshape(1, -1)
 
         if self.x is None:
             self.x = x
             self.y = y
         else:
-            self.x = np.c_[self.x, x]
-            self.y = np.c_[self.y, y]
+            self.x = np.r_[self.x, x]
+            self.y = np.r_[self.y, y]
 
 # ========================================================================== #
     def train(self):

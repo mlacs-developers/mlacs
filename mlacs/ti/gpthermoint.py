@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import brentq
+from ase.units import GPa
 try:
     from sklearn.gaussian_process.kernels import (RBF,
                                                   ConstantKernel as C,
@@ -88,12 +89,19 @@ class GpThermoIntVT(GaussianProcessInterface):
         self.ub = 23
 
 # ========================================================================== #
-    def get_helmholtz_free_energy(self, state):
+    def add_new_data(self, volume, temperature, energy, pressure):
         """
         """
-        # First prepare the dimensions for sklearn
-        if len(state.shape) == 1:
-            state = state.reshape(1, -1)
+        x = np.c_[volume, temperature]
+        y = np.c_[energy, pressure * GPa]
+        self._add_new_data(x, y)
+
+# ========================================================================== #
+    def get_helmholtz_free_energy(self, volume, temperature):
+        """
+        """
+        state = np.array([volume, temperature])
+        state = state.reshape(1, -1)
 
         # Due to the integration, we have to launch one state after the other
         fe = np.zeros(state.shape[0])
@@ -102,12 +110,11 @@ class GpThermoIntVT(GaussianProcessInterface):
         return fe
 
 # ========================================================================== #
-    def get_gibbs_free_energy(self, state, lb=None, ub=None):
+    def get_gibbs_free_energy(self, pressure, temperature, lb=None, ub=None):
         """
         """
-        # First ensure the right dimensions to prepare for sklearn
-        if len(state.shape) == 1:
-            state = state.reshape(1, -1)
+        state = np.array([pressure * GPa, temperature])
+        state = state.reshape(1, -1)
 
         # Due to the integration, we have to launch one state after the other
         gb = np.zeros(state.shape[0])
@@ -116,12 +123,12 @@ class GpThermoIntVT(GaussianProcessInterface):
         return gb
 
 # ========================================================================== #
-    def get_volume_from_press_temp(self, state, lb=None, ub=None):
+    def get_volume_from_press_temp(self, pressure, temperature,
+                                   lb=None, ub=None):
         """
         """
-        # First ensure the right dimensions to prepare for sklearn
-        if len(state.shape) == 1:
-            state = state.reshape(1, -1)
+        state = np.array([pressure * GPa, temperature])
+        state = state.reshape(1, -1)
 
         vol = np.zeros(state.shape[0])
         for i, s in enumerate(state):
@@ -129,12 +136,12 @@ class GpThermoIntVT(GaussianProcessInterface):
         return vol
 
 # ========================================================================== #
-    def get_thermal_expansion(self, state, step=1e-8, lb=None, ub=None):
+    def get_thermal_expansion(self, pressure, temperature,
+                              step=1e-8, lb=None, ub=None):
         """
         """
-        # First ensure the right dimensions to prepare for sklearn
-        if len(state.shape) == 1:
-            state = state.reshape(1, -1)
+        state = np.array([pressure * GPa, temperature])
+        state = state.reshape(1, -1)
 
         alpha = np.zeros(state.shape[0])
         for i, s in enumerate(state):
@@ -201,9 +208,7 @@ class GpThermoIntVT(GaussianProcessInterface):
         # First we need to get the volume for this pressure/temperature point
         vol = self._get_volume_from_one_pt(pres, temp, lb, ub)
 
-        state = np.array([vol, temp])
-        state = state.reshape(1, -1)
-        fe = self.get_helmholtz_free_energy(state)
+        fe = self.get_helmholtz_free_energy(vol, temp)
 
         gb = fe + pres * vol
         return gb
