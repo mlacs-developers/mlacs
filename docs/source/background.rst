@@ -44,3 +44,7 @@ It is possible to show that this minization can be formulated as an equivalent f
 .. math::
     \widetilde{\mathcal{F}} \overset{\mathrm{def}}{=} \widetilde{\mathcal{F}}_0 + \braket{V(\mathbf{R}) - \widetilde{V}(\mathbf{R})}_{\widetilde{V}}
 
+
+Gaussian process Learning of thermodynamic integration
+------------------------------------------------------
+

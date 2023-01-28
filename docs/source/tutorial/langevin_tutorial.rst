@@ -15,13 +15,22 @@ Setting the simulation
 We start by importing the packages
 
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
-    :lines: 1-6
+    :lines: 1-8
 
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
-    :lines: 14-24
+    :lines: 16-26
 
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
-    :lines: 27-30
+    :lines: 29-35
 
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
-    :lines: 33-44
+    :lines: 39-40
+
+.. literalinclude:: ../../../examples/Langevin_Cu300K.py
+    :lines: 42-43
+
+.. literalinclude:: ../../../examples/Langevin_Cu300K.py
+    :lines: 45-46
+
+.. literalinclude:: ../../../examples/Langevin_Cu300K.py
+    :lines: 48-49

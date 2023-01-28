@@ -16,7 +16,7 @@ Miscellanous
 Thermo
 ------
 
-Function to compute thermodynamic properties
+Functions to compute some thermodynamic properties
 
 free_energy_harmonic_oscillator
 *******************************
