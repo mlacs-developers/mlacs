@@ -66,6 +66,9 @@ class LammpsState(StateManager):
         If ``None``, no traj file is created. Default ``None``.
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
+    msdfile : :class:`str` (optional)
+        Name of the file for diffusion coefficient calculation.
+        If ``None``, no file is created. Default ``None``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`

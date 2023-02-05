@@ -67,6 +67,7 @@ class OtfMlacs:
                  calc,
                  mlip=None,
                  prop=None,
+                 mbar=None,
                  neq=10,
                  nbeads=1,
                  prefix_output="Trajectory",
@@ -101,6 +102,11 @@ class OtfMlacs:
             self.prop = prop
         else:
             self.prop = PropertyManager(prop)
+
+        # Create mbar object
+        self.mbar = None
+        if mbar is not None:
+            self.mbar = MbarManager(**mbar)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -394,6 +400,9 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
+        
+        if self.mbar.steps:
+            
 
         # Computing properties with ML potential.
         if self.prop.manager is not None:
