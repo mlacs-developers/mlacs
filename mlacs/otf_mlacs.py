@@ -401,8 +401,8 @@ class OtfMlacs:
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
         
-        if self.mbar.steps:
-            
+#        if self.mbar.steps:
+#            continue
 
         # Computing properties with ML potential.
         if self.prop.manager is not None:

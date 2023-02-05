@@ -1,0 +1,840 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>mlacs.utilities package &#8212; MLACS 0.0.11 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="mlacs-utilities-package">
+<h1>mlacs.utilities package<a class="headerlink" href="#mlacs-utilities-package" title="Permalink to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-mlacs.utilities.io_lammps">
+<span id="mlacs-utilities-io-lammps-module"></span><h2>mlacs.utilities.io_lammps module<a class="headerlink" href="#module-mlacs.utilities.io_lammps" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_diffusion_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_diffusion_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msdfile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_diffusion_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute and output the diffusion coefficient</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_general_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_general_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pbc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masses</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charges</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atom_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'atoms.in'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_general_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the general parameters in the input</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_interaction_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_interaction_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bond_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bond_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angle_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_post</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_interaction_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the interaction in the input</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_last_dump_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_last_dump_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">workdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_last_dump_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the dump of the last configuration of the mlmd</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_log_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_log_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loginterval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_log_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the log of the mlmd run</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_neb_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_neb_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Kspring</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_neb_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the general parameters for NEB</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_pafi_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_pafi_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">brownian</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_pafi_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the general parameters for PAFI dynamics</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_pafi_log_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_pafi_log_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">isappend</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_pafi_log_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write several PAFI outputs</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.get_traj_input">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">get_traj_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loginterval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elem</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.get_traj_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to write the dump of the mlmd run</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.io_lammps.write_lammps_data_full">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.io_lammps.</span></span><span class="sig-name descname"><span class="pre">write_lammps_data_full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bonds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">angles</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">velocities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.io_lammps.write_lammps_data_full" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write lammps data file with bonds and angles</p>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>name<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></dt><dd><p>name of the output file</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+<dt>bonds: <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></dt><dd><p>array of bonds list</p>
+</dd>
+<dt>nconfs: <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></dt><dd><p>array of angles list</p>
+</dd>
+</dl>
+</section>
+<section id="return">
+<h3>Return<a class="headerlink" href="#return" title="Permalink to this heading">¶</a></h3>
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.log">
+<span id="mlacs-utilities-log-module"></span><h2>mlacs.utilities.log module<a class="headerlink" href="#module-mlacs.utilities.log" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.utilities.log.MlacsLog">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.utilities.log.</span></span><span class="sig-name descname"><span class="pre">MlacsLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.log.MlacsLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Logging class</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.log.MlacsLog.init_new_step">
+<span class="sig-name descname"><span class="pre">init_new_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">step</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.log.MlacsLog.init_new_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.log.MlacsLog.recap_mlip">
+<span class="sig-name descname"><span class="pre">recap_mlip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mlip_params</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.log.MlacsLog.recap_mlip" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.log.MlacsLog.write_header">
+<span class="sig-name descname"><span class="pre">write_header</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.log.MlacsLog.write_header" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.log.MlacsLog.write_input_atoms">
+<span class="sig-name descname"><span class="pre">write_input_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.log.MlacsLog.write_input_atoms" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.log.MlacsLog.write_restart">
+<span class="sig-name descname"><span class="pre">write_restart</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.log.MlacsLog.write_restart" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.miscellanous">
+<span id="mlacs-utilities-miscellanous-module"></span><h2>mlacs.utilities.miscellanous module<a class="headerlink" href="#module-mlacs.utilities.miscellanous" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.compute_averaged">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">compute_averaged</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.compute_averaged" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the averaged Atoms configuration from a Trajectory.</p>
+<section id="id1">
+<h3>Parameters<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>data: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Trajectory</span></code></dt><dd><p>List of ase.Atoms object.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.compute_correlation">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">compute_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.compute_correlation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the RMSE and MAE</p>
+<section id="id2">
+<h3>Parameters<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>data: <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> of shape (ndata, 2)</dt><dd><p>The data for which to compute the correlation.
+The first column should be the gound truth and the second column
+should be the prediction of the model</p>
+</dd>
+<dt>datatype: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>The type of data to which the correlation are to be computed.
+Can be either energy, forces or stress</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.create_random_structures">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">create_random_structures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nconfs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.create_random_structures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create n random structures by displacing atoms around position</p>
+<section id="id3">
+<h3>Parameters<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+<dt>std: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Standard deviation of the gaussian used to generate
+the random displacements. In angstrom.</p>
+</dd>
+<dt>nconfs: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>Number of configurations to generate</p>
+</dd>
+</dl>
+</section>
+<section id="id4">
+<h3>Return<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>confs: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>Configurations with random displacements</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.get_elements_Z_and_masses">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">get_elements_Z_and_masses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">supercell</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.get_elements_Z_and_masses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the unique chemical symbols and atomic numbers of a supercell.
+The list are returned according to the alphabetical order of the elements.</p>
+<section id="id5">
+<h3>Parameters<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>supercell: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object</p>
+</dd>
+</dl>
+</section>
+<section id="id6">
+<h3>Return<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>elements: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>list of unique elements in the supercell</p>
+</dd>
+<dt>Z: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>list of unique Z in the supercell</p>
+</dd>
+<dt>masses: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>list of unique masses in the supercell</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.integrate_points">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">integrate_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">periodic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.integrate_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate points and return derivatives.</p>
+<section id="id7">
+<h3>Parameters<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>x<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>y<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>xf<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>New thiner list of points</p>
+</dd>
+<dt>order<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Order of the spline</p>
+</dd>
+<dt>smooth<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Smoothing parameter</p>
+</dd>
+<dt>periodic<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Activate periodic function boundary conditions</p>
+</dd>
+<dt>border<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">bol</span></code></span></dt><dd><p>Impose a zero derivative condition at the function boundaries</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+</dl>
+<p>Return
+yf : <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></p>
+<blockquote>
+<div><p>Integral of spline from start to xf</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.interpolate_points">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">interpolate_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">periodic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.interpolate_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate points.</p>
+<section id="id8">
+<h3>Parameters<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>x<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>y<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>xf<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>New thiner list of points</p>
+</dd>
+<dt>order<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Order of the spline</p>
+</dd>
+<dt>smooth<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Smoothing parameter</p>
+</dd>
+<dt>periodic<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Activate periodic function boundary conditions</p>
+</dd>
+<dt>border<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">bol</span></code></span></dt><dd><p>Impose a zero derivative condition at the function boundaries</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+</dl>
+<p>Return
+yf : <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></p>
+<blockquote>
+<div><p>List of interpolated points</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.miscellanous.write_lammps_NEB_ASCIIfile">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.miscellanous.</span></span><span class="sig-name descname"><span class="pre">write_lammps_NEB_ASCIIfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.miscellanous.write_lammps_NEB_ASCIIfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert Ase Atoms into an ASCII file for lammps neb calculations.</p>
+<section id="id9">
+<h3>Parameters<a class="headerlink" href="#id9" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>filename<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></dt><dd><p>name of the output file</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+</dl>
+</section>
+<section id="id10">
+<h3>Return<a class="headerlink" href="#id10" title="Permalink to this heading">¶</a></h3>
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.path_integral">
+<span id="mlacs-utilities-path-integral-module"></span><h2>mlacs.utilities.path_integral module<a class="headerlink" href="#module-mlacs.utilities.path_integral" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.path_integral.compute_centroid_atoms">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.path_integral.</span></span><span class="sig-name descname"><span class="pre">compute_centroid_atoms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">confs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.path_integral.compute_centroid_atoms" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the centroid</p>
+<section id="id11">
+<h3>Parameters<a class="headerlink" href="#id11" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>confs: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>The configurations of the quantum polymer</p>
+</dd>
+</dl>
+<p>temperature: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></p>
+</section>
+<section id="returns">
+<h3>Returns<a class="headerlink" href="#returns" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>The centroid of the quantum polymer</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.pdf">
+<span id="mlacs-utilities-pdf-module"></span><h2>mlacs.utilities.pdf module<a class="headerlink" href="#module-mlacs.utilities.pdf" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.pdf.compute_pdf">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.pdf.</span></span><span class="sig-name descname"><span class="pre">compute_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">configurations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.pdf.compute_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the pdf</p>
+<section id="id12">
+<h3>Parameters<a class="headerlink" href="#id12" title="Permalink to this heading">¶</a></h3>
+<p>configurations: list of ase atoms object</p>
+</section>
+<section id="optional">
+<h3>Optional<a class="headerlink" href="#optional" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>temperature: float</dt><dd><p>The temperature of the simulation, needed for the force sampling method</p>
+</dd>
+<dt>weights: list of float</dt><dd><p>The weights of the configurations, should sum up to one</p>
+</dd>
+<dt>rcut: float</dt><dd><p>The cutoff for the distances, default to 5.0 angstrom</p>
+</dd>
+<dt>method: str</dt><dd><p>Method to compute the pdf.
+Available options are ‘count’ and ‘force_sampling’</p>
+</dd>
+<dt>nbins: int</dt><dd><p>Number of distance bins</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.plots">
+<span id="mlacs-utilities-plots-module"></span><h2>mlacs.utilities.plots module<a class="headerlink" href="#module-mlacs.utilities.plots" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.plots.init_rcParams">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.plots.</span></span><span class="sig-name descname"><span class="pre">init_rcParams</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.plots.init_rcParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.plots.plot_correlation">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.plots.</span></span><span class="sig-name descname"><span class="pre">plot_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#1f77b4'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datatype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'inferno'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showrmse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showmae</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showrsquared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.plots.plot_correlation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to plot the correlation between true and model data on an axes</p>
+<section id="id13">
+<h3>Parameters:<a class="headerlink" href="#id13" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>ax: Axes.axes</dt><dd><p>The axes on which to plot the data</p>
+</dd>
+<dt>data: <cite>np.ndarray</cite></dt><dd><p>The data to plot. Has to be of shape (n, 2)
+with n the number of datapoint</p>
+</dd>
+<dt>color:</dt><dd><p>The color of the marker in the scatter plot.
+Ignored if density is True.</p>
+</dd>
+<dt>datatype: <cite>None</cite> or <cite>str</cite></dt><dd><p>The type of data. Can be either “energy”, “forces” or “stress”</p>
+</dd>
+<dt>density: <cite>Bool</cite></dt><dd><p>If True, each datapoint is colored according to the density
+of data</p>
+</dd>
+<dt>cmap: <cite>str</cite></dt><dd><p>The colormap used if density is True.
+Ignored if density is False</p>
+</dd>
+<dt>showrmse: <cite>Bool</cite></dt><dd><p>Whether to show the RMSE on the plot</p>
+</dd>
+<dt>showmae: <cite>Bool</cite></dt><dd><p>Whether to show the MAE on the plot</p>
+</dd>
+<dt>showrsquared: <cite>Bool</cite></dt><dd><p>Whether to show the R^2 on the plot</p>
+</dd>
+</dl>
+</section>
+<section id="id14">
+<h3>Returns:<a class="headerlink" href="#id14" title="Permalink to this heading">¶</a></h3>
+<p>ax</p>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.plots.plot_error">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.plots.</span></span><span class="sig-name descname"><span class="pre">plot_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'#1f77b4'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">datatype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showrmse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showmae</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">showrsquared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.plots.plot_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.thermo">
+<span id="mlacs-utilities-thermo-module"></span><h2>mlacs.utilities.thermo module<a class="headerlink" href="#module-mlacs.utilities.thermo" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<p>The Uhlenbeck-Ford potential splines and the code to compute the free energy
+of the Uhlenbeck-Ford potential are adapted from :</p>
+<p># Supplemental Material for ”The Uhlenbeck-Ford model:
+Exact virial coefficients and application as a reference system
+in fluid-phase free-energy calculations”
+# Authors: Rodolfo Paula Leite(1), Rodrigo Freitas(2), Rodolfo Azevedo(3),
+and Maurice de Koning(1)
+# 1 - Instituto de Física “Gleb Wataghin”, Universidade Estadual de Campinas,
+UNICAMP, 13083-859, Campinas, São Paulo, Brazil
+# 2 - Department of Materials Science and Engineering,
+University of California, Berkeley, CA 94720, U.S.A.
+# 3 - Instituto de Computação, Universidade Estadual de Campinas,
+UNICAMP, 13083-852, Campinas, São Paulo, Brazil</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.thermo.free_energy_com_harmonic_oscillator">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.thermo.</span></span><span class="sig-name descname"><span class="pre">free_energy_com_harmonic_oscillator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">masses</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermo.free_energy_com_harmonic_oscillator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the free energy of the center of mass
+of an harmonic oscillator</p>
+<section id="id15">
+<h3>Parameters<a class="headerlink" href="#id15" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>k: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Spring constant of the harmonic oscillators, in eV/angs</p>
+</dd>
+<dt>T: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature, in Kelvin</p>
+</dd>
+<dt>nat: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>Number of atoms in the supercell associated with each frequency</p>
+</dd>
+<dt>masses: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>masses of atoms in the supercell</p>
+</dd>
+</dl>
+</section>
+<section id="id16">
+<h3>Return<a class="headerlink" href="#id16" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>f_cm: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Free energy of the center of mass, in eV/at</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.thermo.free_energy_harmonic_oscillator">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.thermo.</span></span><span class="sig-name descname"><span class="pre">free_energy_harmonic_oscillator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">omega</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classical</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermo.free_energy_harmonic_oscillator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the free energy of a Einstein crystal</p>
+<section id="id17">
+<h3>Parameters<a class="headerlink" href="#id17" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>omega: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>The frequency of the oscillator</p>
+</dd>
+<dt>T: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>The temperature, in Kelvin</p>
+</dd>
+<dt>nat: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>Number of atoms in the supercell associated with each frequency</p>
+</dd>
+<dt>classical: <code class="xref py py-class docutils literal notranslate"><span class="pre">Bool</span></code> (optional)</dt><dd><p>Whether to use the classical formulation (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or
+the quantum formulation (<code class="docutils literal notranslate"><span class="pre">False</span></code>)</p>
+</dd>
+</dl>
+</section>
+<section id="id18">
+<h3>Return<a class="headerlink" href="#id18" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>f_cm: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Free energy of the Einstein crystal, in eV/at</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.thermo.free_energy_ideal_gas">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.thermo.</span></span><span class="sig-name descname"><span class="pre">free_energy_ideal_gas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mass</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermo.free_energy_ideal_gas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the free energy of an ideal gas, uses Stirling formula</p>
+<section id="id19">
+<h3>Parameters<a class="headerlink" href="#id19" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>vol: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Volume, in angstrom^3</p>
+</dd>
+<dt>nat: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>Number of atoms in the supercell associated with each masses</p>
+</dd>
+<dt>masses: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>masses of atoms in the supercell</p>
+</dd>
+<dt>T: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature, in Kelvin</p>
+</dd>
+</dl>
+</section>
+<section id="id20">
+<h3>Return<a class="headerlink" href="#id20" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>f_ig: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Free energy of the ideal gas, in eV/at</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.thermo.free_energy_uhlenbeck_ford">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.thermo.</span></span><span class="sig-name descname"><span class="pre">free_energy_uhlenbeck_ford</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermo.free_energy_uhlenbeck_ford" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the free energy of the Uhlenbeck-Ford potential
+Adapted from the supplementary materials of</p>
+<p>J. Chem. Phys. 145 194101 (2016)
+Rodolfo Paula Leite, Rodrigo Freitas, Rodolfo Azevedo and Maurice de Koning</p>
+<section id="id21">
+<h3>Parameters<a class="headerlink" href="#id21" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>rho: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Density, in angstrom^-3</p>
+</dd>
+<dt>p: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>Parameter of the Uhlenbeck-Ford potential.
+Allowed values are <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">25</span></code>, <code class="docutils literal notranslate"><span class="pre">50</span></code>, <code class="docutils literal notranslate"><span class="pre">75</span></code> or <code class="docutils literal notranslate"><span class="pre">100</span></code></p>
+</dd>
+<dt>sigma: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Sigma parameter of the Ulhenbeck-Ford potential.</p>
+</dd>
+<dt>T: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature, in Kelvin</p>
+</dd>
+</dl>
+</section>
+<section id="id22">
+<h3>Return<a class="headerlink" href="#id22" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>f_uf: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Excess free energy of the Uhlenbeck-Ford potential
+compared to the ideal gas, in eV/at</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities.thermolog">
+<span id="mlacs-utilities-thermolog-module"></span><h2>mlacs.utilities.thermolog module<a class="headerlink" href="#module-mlacs.utilities.thermolog" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.utilities.thermolog.ThermoLog">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.utilities.thermolog.</span></span><span class="sig-name descname"><span class="pre">ThermoLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">restart</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermolog.ThermoLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Logging class for the thermodynamic integration module</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.thermolog.ThermoLog.write_header">
+<span class="sig-name descname"><span class="pre">write_header</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermolog.ThermoLog.write_header" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.utilities.thermolog.ThermoLog.write_restart">
+<span class="sig-name descname"><span class="pre">write_restart</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.thermolog.ThermoLog.write_restart" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-mlacs.utilities">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mlacs.utilities" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.compute_averaged">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">compute_averaged</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">traj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.compute_averaged" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the averaged Atoms configuration from a Trajectory.</p>
+<section id="id23">
+<h3>Parameters<a class="headerlink" href="#id23" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>data: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Trajectory</span></code></dt><dd><p>List of ase.Atoms object.</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.compute_correlation">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">compute_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.compute_correlation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the RMSE and MAE</p>
+<section id="id24">
+<h3>Parameters<a class="headerlink" href="#id24" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>data: <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code> of shape (ndata, 2)</dt><dd><p>The data for which to compute the correlation.
+The first column should be the gound truth and the second column
+should be the prediction of the model</p>
+</dd>
+<dt>datatype: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>The type of data to which the correlation are to be computed.
+Can be either energy, forces or stress</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.compute_pdf">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">compute_pdf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">configurations</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.compute_pdf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function to compute the pdf</p>
+<section id="id25">
+<h3>Parameters<a class="headerlink" href="#id25" title="Permalink to this heading">¶</a></h3>
+<p>configurations: list of ase atoms object</p>
+</section>
+<section id="id26">
+<h3>Optional<a class="headerlink" href="#id26" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>temperature: float</dt><dd><p>The temperature of the simulation, needed for the force sampling method</p>
+</dd>
+<dt>weights: list of float</dt><dd><p>The weights of the configurations, should sum up to one</p>
+</dd>
+<dt>rcut: float</dt><dd><p>The cutoff for the distances, default to 5.0 angstrom</p>
+</dd>
+<dt>method: str</dt><dd><p>Method to compute the pdf.
+Available options are ‘count’ and ‘force_sampling’</p>
+</dd>
+<dt>nbins: int</dt><dd><p>Number of distance bins</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.create_random_structures">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">create_random_structures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nconfs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.create_random_structures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create n random structures by displacing atoms around position</p>
+<section id="id27">
+<h3>Parameters<a class="headerlink" href="#id27" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+<dt>std: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Standard deviation of the gaussian used to generate
+the random displacements. In angstrom.</p>
+</dd>
+<dt>nconfs: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>Number of configurations to generate</p>
+</dd>
+</dl>
+</section>
+<section id="id28">
+<h3>Return<a class="headerlink" href="#id28" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>confs: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>Configurations with random displacements</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.get_elements_Z_and_masses">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">get_elements_Z_and_masses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">supercell</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.get_elements_Z_and_masses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the unique chemical symbols and atomic numbers of a supercell.
+The list are returned according to the alphabetical order of the elements.</p>
+<section id="id29">
+<h3>Parameters<a class="headerlink" href="#id29" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>supercell: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object</p>
+</dd>
+</dl>
+</section>
+<section id="id30">
+<h3>Return<a class="headerlink" href="#id30" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>elements: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>list of unique elements in the supercell</p>
+</dd>
+<dt>Z: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>list of unique Z in the supercell</p>
+</dd>
+<dt>masses: <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>list of unique masses in the supercell</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.integrate_points">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">integrate_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">periodic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.integrate_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate points and return derivatives.</p>
+<section id="id31">
+<h3>Parameters<a class="headerlink" href="#id31" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>x<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>y<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>xf<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>New thiner list of points</p>
+</dd>
+<dt>order<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Order of the spline</p>
+</dd>
+<dt>smooth<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Smoothing parameter</p>
+</dd>
+<dt>periodic<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Activate periodic function boundary conditions</p>
+</dd>
+<dt>border<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">bol</span></code></span></dt><dd><p>Impose a zero derivative condition at the function boundaries</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+</dl>
+<p>Return
+yf : <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></p>
+<blockquote>
+<div><p>Integral of spline from start to xf</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.interpolate_points">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">interpolate_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">periodic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">border</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.interpolate_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Interpolate points.</p>
+<section id="id32">
+<h3>Parameters<a class="headerlink" href="#id32" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>x<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>y<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>List of points to interpolate</p>
+</dd>
+<dt>xf<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.array</span></code></span></dt><dd><p>New thiner list of points</p>
+</dd>
+<dt>order<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Order of the spline</p>
+</dd>
+<dt>smooth<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Smoothing parameter</p>
+</dd>
+<dt>periodic<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></span></dt><dd><p>Activate periodic function boundary conditions</p>
+</dd>
+<dt>border<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">bol</span></code></span></dt><dd><p>Impose a zero derivative condition at the function boundaries</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+</dl>
+<p>Return
+yf : <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code></p>
+<blockquote>
+<div><p>List of interpolated points</p>
+</div></blockquote>
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.utilities.write_lammps_NEB_ASCIIfile">
+<span class="sig-prename descclassname"><span class="pre">mlacs.utilities.</span></span><span class="sig-name descname"><span class="pre">write_lammps_NEB_ASCIIfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">supercell</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.utilities.write_lammps_NEB_ASCIIfile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert Ase Atoms into an ASCII file for lammps neb calculations.</p>
+<section id="id33">
+<h3>Parameters<a class="headerlink" href="#id33" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>filename<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></span></dt><dd><p>name of the output file</p>
+</dd>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms objects to be rattled</p>
+</dd>
+</dl>
+</section>
+<section id="id34">
+<h3>Return<a class="headerlink" href="#id34" title="Permalink to this heading">¶</a></h3>
+</section>
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MLACS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Alois Castellano.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/mlacs.utilities.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

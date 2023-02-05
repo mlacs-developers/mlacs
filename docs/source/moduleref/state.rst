@@ -19,6 +19,16 @@ LammpsState
 
 .. autoclass:: LammpsState
 
+NebLammpsState
+--------------
+
+.. autoclass:: NebLammpsState
+
+PafiLammpsState
+---------------
+
+.. autoclass:: PafiLammpsState
+
 CustomLammpsState
 -----------------
 

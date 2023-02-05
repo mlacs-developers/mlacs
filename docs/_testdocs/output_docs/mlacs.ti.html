@@ -1,0 +1,836 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>mlacs.ti package &#8212; MLACS 0.0.11 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="mlacs-ti-package">
+<h1>mlacs.ti package<a class="headerlink" href="#mlacs-ti-package" title="Permalink to this heading">¶</a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this heading">¶</a></h2>
+</section>
+<section id="module-mlacs.ti.helpers">
+<span id="mlacs-ti-helpers-module"></span><h2>mlacs.ti.helpers module<a class="headerlink" href="#module-mlacs.ti.helpers" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.ti.helpers.prepare_ti">
+<span class="sig-prename descclassname"><span class="pre">mlacs.ti.helpers.</span></span><span class="sig-name descname"><span class="pre">prepare_ti</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trajprefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nthrow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_msd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.helpers.prepare_ti" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-mlacs.ti.liquids">
+<span id="mlacs-ti-liquids-module"></span><h2>mlacs.ti.liquids module<a class="headerlink" href="#module-mlacs.ti.liquids" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.liquids.UFLiquidState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.liquids.</span></span><span class="sig-name descname"><span class="pre">UFLiquidState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.liquids.UFLiquidState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mlacs.ti.thermostate.ThermoState" title="mlacs.ti.thermostate.ThermoState"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThermoState</span></code></a></p>
+<p>Class for performing thermodynamic integration
+from a Uhlenbeck-Ford potential reference</p>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>temperature: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature of the simulation</p>
+</dd>
+<dt>fcorr1: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>First order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>fcorr2: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Second order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>p: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>p parameter of the Uhlenbeck-Ford potential.
+Should be <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">25</span></code>, <code class="docutils literal notranslate"><span class="pre">50</span></code>, <code class="docutils literal notranslate"><span class="pre">75</span></code> or <code class="docutils literal notranslate"><span class="pre">100</span></code>. Default <code class="docutils literal notranslate"><span class="pre">50</span></code></p>
+</dd>
+<dt>p: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>sigma parameter of the Uhlenbeck-Ford potential. Default <code class="docutils literal notranslate"><span class="pre">2.0</span></code>.</p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>damp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a damping parameter of 100 x dt is used.</p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>suffixdir: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>Suffix for the directory in which the computation will be run.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a directory <code class="docutils literal notranslate"><span class="pre">&quot;Liquid_TXK&quot;</span></code> is created,
+where X is the temperature. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.liquids.UFLiquidState.log_recap_state">
+<span class="sig-name descname"><span class="pre">log_recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.liquids.UFLiquidState.log_recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.liquids.UFLiquidState.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.liquids.UFLiquidState.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the free energy from the simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.liquids.UFLiquidState.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.liquids.UFLiquidState.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.liquids.UFLiquidState.run_dynamics">
+<span class="sig-name descname"><span class="pre">run_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.liquids.UFLiquidState.run_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.liquids.UFLiquidState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.liquids.UFLiquidState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.ti.reversible_scaling">
+<span id="mlacs-ti-reversible-scaling-module"></span><h2>mlacs.ti.reversible_scaling module<a class="headerlink" href="#module-mlacs.ti.reversible_scaling" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.reversible_scaling.ReversibleScalingState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.reversible_scaling.</span></span><span class="sig-name descname"><span class="pre">ReversibleScalingState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fe_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdamp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gjf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.reversible_scaling.ReversibleScalingState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mlacs.ti.thermostate.ThermoState" title="mlacs.ti.thermostate.ThermoState"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThermoState</span></code></a></p>
+<p>Class for performing thermodynamic integration for a
+range of temperature using reversible scaling.</p>
+<section id="id1">
+<h3>Parameters<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>t_start: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</dt><dd><p>Initial temperature of the simulation, in Kelvin. Default <code class="docutils literal notranslate"><span class="pre">300</span></code>.</p>
+</dd>
+<dt>t_end: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</dt><dd><p>Final temperature of the simulation, in Kelvin. Default <code class="docutils literal notranslate"><span class="pre">1200</span></code>.</p>
+</dd>
+<dt>fe_init: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</dt><dd><p>Free energy of the initial temperature, in eV/at. Default <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>damp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a damping parameter of a
+hundred time the timestep is used.</p>
+</dd>
+<dt>pressure: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Pressure of the simulation.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, simulations are performed in the NVT ensemble.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>pdamp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter for the barostat. Default 1000 times <code class="docutils literal notranslate"><span class="pre">dt</span></code> is used.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>suffixdir: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>Suffix for the directory in which the computation will be run.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a directory <code class="docutils literal notranslate"><span class="pre">&quot;Solid_TXK&quot;</span></code> is created,
+where X is the temperature. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.reversible_scaling.ReversibleScalingState.log_recap_state">
+<span class="sig-name descname"><span class="pre">log_recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.reversible_scaling.ReversibleScalingState.log_recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.reversible_scaling.ReversibleScalingState.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.reversible_scaling.ReversibleScalingState.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the free energy from the simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.reversible_scaling.ReversibleScalingState.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.reversible_scaling.ReversibleScalingState.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.reversible_scaling.ReversibleScalingState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.reversible_scaling.ReversibleScalingState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.ti.solids">
+<span id="mlacs-ti-solids-module"></span><h2>mlacs.ti.solids module<a class="headerlink" href="#module-mlacs.ti.solids" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.solids.</span></span><span class="sig-name descname"><span class="pre">EinsteinSolidState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_msd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mlacs.ti.thermostate.ThermoState" title="mlacs.ti.thermostate.ThermoState"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThermoState</span></code></a></p>
+<p>Class for performing thermodynamic integration from
+an Einstein crystal reference</p>
+<section id="id2">
+<h3>Parameters<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>temperature: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature of the simulation</p>
+</dd>
+<dt>fcorr1: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>First order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>fcorr2: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Second order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>k: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of :class:float` or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Spring constant for the Einstein crystal reference.
+If a float, all atoms type have the same spring constant.
+If a list, a value for each atoms type should be provided.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a short simulation is run to determine the optimal value.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>damp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a damping parameter of  1000 x dt is used.</p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>suffixdir: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>Suffix for the directory in which the computation will be run.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a directory <code class="docutils literal notranslate"><span class="pre">&quot;Solid_TXK&quot;</span></code> is created,
+where X is the temperature. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.compute_msd">
+<span class="sig-name descname"><span class="pre">compute_msd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.compute_msd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.log_recap_state">
+<span class="sig-name descname"><span class="pre">log_recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.log_recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the free energy from the simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.run_dynamics">
+<span class="sig-name descname"><span class="pre">run_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.run_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.solids.EinsteinSolidState.write_lammps_input_msd">
+<span class="sig-name descname"><span class="pre">write_lammps_input_msd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.solids.EinsteinSolidState.write_lammps_input_msd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.ti.thermoint">
+<span id="mlacs-ti-thermoint-module"></span><h2>mlacs.ti.thermoint module<a class="headerlink" href="#module-mlacs.ti.thermoint" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.thermoint.ThermodynamicIntegration">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.thermoint.</span></span><span class="sig-name descname"><span class="pre">ThermodynamicIntegration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thermostate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ninstance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermoint.ThermodynamicIntegration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to handle a series of thermodynamic integration</p>
+<section id="id3">
+<h3>Parameters<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>thermostate: <code class="xref py py-class docutils literal notranslate"><span class="pre">thermostate</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">thermostate</span></code></dt><dd><p>State for which the thermodynamic integration should be performed</p>
+</dd>
+<dt>logfile: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</dt><dd><p>Name of the logfile. Default <code class="docutils literal notranslate"><span class="pre">&quot;ThermoInt.log&quot;</span></code></p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermoint.ThermodynamicIntegration.recap_state">
+<span class="sig-name descname"><span class="pre">recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermoint.ThermodynamicIntegration.recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermoint.ThermodynamicIntegration.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermoint.ThermodynamicIntegration.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Launch the simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.ti.thermostate">
+<span id="mlacs-ti-thermostate-module"></span><h2>mlacs.ti.thermostate module<a class="headerlink" href="#module-mlacs.ti.thermostate" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.thermostate.</span></span><span class="sig-name descname"><span class="pre">ThermoState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Parent class for the thermodynamic state used in thermodynamic integration</p>
+<section id="id4">
+<h3>Parameters<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.get_general_input">
+<span class="sig-name descname"><span class="pre">get_general_input</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.get_general_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.get_interaction_input">
+<span class="sig-name descname"><span class="pre">get_interaction_input</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.get_interaction_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.get_log_input">
+<span class="sig-name descname"><span class="pre">get_log_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.get_log_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.get_traj_input">
+<span class="sig-name descname"><span class="pre">get_traj_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.get_traj_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.get_workdir">
+<span class="sig-name descname"><span class="pre">get_workdir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.get_workdir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.post_process">
+<span class="sig-name descname"><span class="pre">post_process</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.post_process" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.run_dynamics">
+<span class="sig-name descname"><span class="pre">run_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.run_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.thermostate.ThermoState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.thermostate.ThermoState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+</section>
+<section id="module-mlacs.ti">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-mlacs.ti" title="Permalink to this heading">¶</a></h2>
+<p>// (c) 2021 Aloïs Castellano
+// This code is licensed under MIT license (see LICENSE.txt for details)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.</span></span><span class="sig-name descname"><span class="pre">EinsteinSolidState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_msd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mlacs.ti.thermostate.ThermoState" title="mlacs.ti.thermostate.ThermoState"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThermoState</span></code></a></p>
+<p>Class for performing thermodynamic integration from
+an Einstein crystal reference</p>
+<section id="id5">
+<h3>Parameters<a class="headerlink" href="#id5" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>temperature: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature of the simulation</p>
+</dd>
+<dt>fcorr1: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>First order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>fcorr2: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Second order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>k: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of :class:float` or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Spring constant for the Einstein crystal reference.
+If a float, all atoms type have the same spring constant.
+If a list, a value for each atoms type should be provided.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a short simulation is run to determine the optimal value.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code></p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>damp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a damping parameter of  1000 x dt is used.</p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>suffixdir: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>Suffix for the directory in which the computation will be run.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a directory <code class="docutils literal notranslate"><span class="pre">&quot;Solid_TXK&quot;</span></code> is created,
+where X is the temperature. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.compute_msd">
+<span class="sig-name descname"><span class="pre">compute_msd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.compute_msd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.log_recap_state">
+<span class="sig-name descname"><span class="pre">log_recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.log_recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the free energy from the simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.run_dynamics">
+<span class="sig-name descname"><span class="pre">run_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.run_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.EinsteinSolidState.write_lammps_input_msd">
+<span class="sig-name descname"><span class="pre">write_lammps_input_msd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.EinsteinSolidState.write_lammps_input_msd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.ReversibleScalingState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.</span></span><span class="sig-name descname"><span class="pre">ReversibleScalingState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fe_init</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pdamp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gjf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ReversibleScalingState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mlacs.ti.thermostate.ThermoState" title="mlacs.ti.thermostate.ThermoState"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThermoState</span></code></a></p>
+<p>Class for performing thermodynamic integration for a
+range of temperature using reversible scaling.</p>
+<section id="id6">
+<h3>Parameters<a class="headerlink" href="#id6" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>t_start: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</dt><dd><p>Initial temperature of the simulation, in Kelvin. Default <code class="docutils literal notranslate"><span class="pre">300</span></code>.</p>
+</dd>
+<dt>t_end: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</dt><dd><p>Final temperature of the simulation, in Kelvin. Default <code class="docutils literal notranslate"><span class="pre">1200</span></code>.</p>
+</dd>
+<dt>fe_init: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</dt><dd><p>Free energy of the initial temperature, in eV/at. Default <code class="docutils literal notranslate"><span class="pre">0</span></code>.</p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>damp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a damping parameter of a
+hundred time the timestep is used.</p>
+</dd>
+<dt>pressure: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Pressure of the simulation.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, simulations are performed in the NVT ensemble.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>pdamp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter for the barostat. Default 1000 times <code class="docutils literal notranslate"><span class="pre">dt</span></code> is used.
+Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>suffixdir: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>Suffix for the directory in which the computation will be run.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a directory <code class="docutils literal notranslate"><span class="pre">&quot;Solid_TXK&quot;</span></code> is created,
+where X is the temperature. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.ReversibleScalingState.log_recap_state">
+<span class="sig-name descname"><span class="pre">log_recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ReversibleScalingState.log_recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.ReversibleScalingState.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ReversibleScalingState.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the free energy from the simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.ReversibleScalingState.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ReversibleScalingState.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.ReversibleScalingState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ReversibleScalingState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.ThermodynamicIntegration">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.</span></span><span class="sig-name descname"><span class="pre">ThermodynamicIntegration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thermostate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ninstance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ThermodynamicIntegration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class to handle a series of thermodynamic integration</p>
+<section id="id7">
+<h3>Parameters<a class="headerlink" href="#id7" title="Permalink to this heading">¶</a></h3>
+<dl class="simple">
+<dt>thermostate: <a class="reference internal" href="#module-mlacs.ti.thermostate" title="mlacs.ti.thermostate"><code class="xref py py-class docutils literal notranslate"><span class="pre">thermostate</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <a class="reference internal" href="#module-mlacs.ti.thermostate" title="mlacs.ti.thermostate"><code class="xref py py-class docutils literal notranslate"><span class="pre">thermostate</span></code></a></dt><dd><p>State for which the thermodynamic integration should be performed</p>
+</dd>
+<dt>logfile: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</dt><dd><p>Name of the logfile. Default <code class="docutils literal notranslate"><span class="pre">&quot;ThermoInt.log&quot;</span></code></p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.ThermodynamicIntegration.recap_state">
+<span class="sig-name descname"><span class="pre">recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ThermodynamicIntegration.recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.ThermodynamicIntegration.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.ThermodynamicIntegration.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Launch the simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="mlacs.ti.UFLiquidState">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mlacs.ti.</span></span><span class="sig-name descname"><span class="pre">UFLiquidState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fcorr2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.UFLiquidState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#mlacs.ti.thermostate.ThermoState" title="mlacs.ti.thermostate.ThermoState"><code class="xref py py-class docutils literal notranslate"><span class="pre">ThermoState</span></code></a></p>
+<p>Class for performing thermodynamic integration
+from a Uhlenbeck-Ford potential reference</p>
+<section id="id8">
+<h3>Parameters<a class="headerlink" href="#id8" title="Permalink to this heading">¶</a></h3>
+<dl>
+<dt>atoms: <code class="xref py py-class docutils literal notranslate"><span class="pre">ase.Atoms</span></code></dt><dd><p>ASE atoms object on which the simulation will be performed</p>
+</dd>
+<dt>pair_style: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_style for the LAMMPS input</p>
+</dd>
+<dt>pair_coeff: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> or <code class="xref py py-class docutils literal notranslate"><span class="pre">list</span></code> of <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>pair_coeff for the LAMMPS input</p>
+</dd>
+<dt>temperature: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>Temperature of the simulation</p>
+</dd>
+<dt>fcorr1: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>First order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>fcorr2: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">None</span></code></dt><dd><p>Second order cumulant correction to the free energy, in eV/at,
+to be added to the results.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no value is added. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>p: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code></dt><dd><p>p parameter of the Uhlenbeck-Ford potential.
+Should be <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">25</span></code>, <code class="docutils literal notranslate"><span class="pre">50</span></code>, <code class="docutils literal notranslate"><span class="pre">75</span></code> or <code class="docutils literal notranslate"><span class="pre">100</span></code>. Default <code class="docutils literal notranslate"><span class="pre">50</span></code></p>
+</dd>
+<dt>p: <code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code></dt><dd><p>sigma parameter of the Uhlenbeck-Ford potential. Default <code class="docutils literal notranslate"><span class="pre">2.0</span></code>.</p>
+</dd>
+<dt>dt: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Timestep for the simulations, in fs. Default <code class="docutils literal notranslate"><span class="pre">1.5</span></code></p>
+</dd>
+<dt>damp<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code> (optional)</span></dt><dd><p>Damping parameter.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a damping parameter of 100 x dt is used.</p>
+</dd>
+<dt>nsteps: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of production steps. Default <code class="docutils literal notranslate"><span class="pre">10000</span></code>.</p>
+</dd>
+<dt>nsteps_eq: <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</dt><dd><p>Number of equilibration steps. Default <code class="docutils literal notranslate"><span class="pre">5000</span></code>.</p>
+</dd>
+<dt>rng: <code class="xref py py-class docutils literal notranslate"><span class="pre">RNG</span> <span class="pre">object</span></code></dt><dd><p>Rng object to be used with the Langevin thermostat.
+Default correspond to <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></p>
+</dd>
+<dt>suffixdir: <code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></dt><dd><p>Suffix for the directory in which the computation will be run.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, a directory <code class="docutils literal notranslate"><span class="pre">&quot;Liquid_TXK&quot;</span></code> is created,
+where X is the temperature. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>logfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for logging the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no log file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>trajfile<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code> (optional)</span></dt><dd><p>Name of the file for saving the MLMD trajectory.
+If <code class="docutils literal notranslate"><span class="pre">None</span></code>, no traj file is created. Default <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd>
+<dt>interval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between log and traj writing. Override
+loginterval and trajinterval. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>loginterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD logging. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+<dt>trajinterval<span class="classifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code> (optional)</span></dt><dd><p>Number of steps between MLMD traj writing. Default <code class="docutils literal notranslate"><span class="pre">50</span></code>.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.UFLiquidState.log_recap_state">
+<span class="sig-name descname"><span class="pre">log_recap_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.UFLiquidState.log_recap_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.UFLiquidState.postprocess">
+<span class="sig-name descname"><span class="pre">postprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.UFLiquidState.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the free energy from the simulation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.UFLiquidState.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.UFLiquidState.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.UFLiquidState.run_dynamics">
+<span class="sig-name descname"><span class="pre">run_dynamics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.UFLiquidState.run_dynamics" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="mlacs.ti.UFLiquidState.write_lammps_input">
+<span class="sig-name descname"><span class="pre">write_lammps_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wdir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.UFLiquidState.write_lammps_input" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the LAMMPS input for the MLMD simulation</p>
+</dd></dl>
+
+</section>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="mlacs.ti.prepare_ti">
+<span class="sig-prename descclassname"><span class="pre">mlacs.ti.</span></span><span class="sig-name descname"><span class="pre">prepare_ti</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trajprefix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_style</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pair_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'solid'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atoms_start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nthrow</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_cell</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">damp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_eq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsteps_msd</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffixdir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loginterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trajinterval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#mlacs.ti.prepare_ti" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">MLACS</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Alois Castellano.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.3.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/mlacs.ti.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

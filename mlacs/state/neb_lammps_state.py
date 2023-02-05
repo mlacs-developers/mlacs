@@ -10,11 +10,11 @@ from ase.io.lammpsdata import (read_lammps_data,
 from .state import StateManager
 
 from ..utilities import (get_elements_Z_and_masses,
-                         write_lammps_NEB_ASCIIfile,
                          _create_ASE_object)
 
 from ..utilities.io_lammps import (get_general_input,
                                    get_interaction_input,
+                                   write_lammps_NEB_ASCIIfile,
                                    get_neb_input)
 
 from ..utilities import interpolate_points as IP
