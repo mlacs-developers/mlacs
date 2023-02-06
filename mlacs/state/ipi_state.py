@@ -385,7 +385,6 @@ class IpiState(LammpsState):
                                            'v_centroid{m/s}')
                 trajarr.append(trajectory5)
 
-
         # Adding trajectory for outputs
         attrib_tmp = {'stride': str(nsteps),
                       'filename': 'outpos',
