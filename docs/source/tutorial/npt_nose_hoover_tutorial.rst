@@ -1,4 +1,4 @@
-.. _langevin_tutorial:
+.. _npt_nose_hoover_tutorial:
 
 
 Running a NPT sampling using a Nosé-Hoover thermostat and barostat.
@@ -32,12 +32,12 @@ It is possible to define how to apply the pressure:
 .. literalinclude:: ../../../examples/LammpsState_NPT_Al300K.py
     :lines: 24-29
 
-MLIP settings:
+NPT sampling imposes to compute stresses. This is possible by setting a weight on the MLIP stress coefficient.
 
 .. literalinclude:: ../../../examples/LammpsState_NPT_Al300K.py
     :lines: 30-36
 
-Supercell creation using ASE atoms objects. In this case, a 2x2x2 cubic FCC Copper supercell.
+Supercell creation using ASE atoms objects. In this case, a 2x2x2 cubic FCC aluminum supercell.
 
 .. literalinclude:: ../../../examples/LammpsState_NPT_Al300K.py
     :lines: 38-40

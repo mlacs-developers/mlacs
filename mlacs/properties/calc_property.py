@@ -187,7 +187,7 @@ class CalcNeb:
         """
         msg = 'Computing the minimum energy path from a NEB calculation:\n'
         msg += self.state.log_recap_state()
-        msg += 'Energy difference along the reaction'
+        msg += 'Energy difference along the reaction '
         msg += 'path with previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'
