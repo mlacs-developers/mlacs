@@ -11,7 +11,6 @@ For simplicity and rapidity, the potential will be the effective medium theory c
 Setting the simulation
 ----------------------
 
-
 We start by importing the packages
 
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
@@ -42,7 +41,11 @@ The descriptors calculation is done by LAMMPS in the present case, so we need to
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
     :lines: 34-36
 
-Now, we can create the three main objects of a MLACS simulation the Mlip object for the calculation of descriptors and the potential fitting (mlip), the State object for the sampling method (state) and the Calculator defined as the reference (calc). In this case, we use an effective medium theory calculator for simplicity and rapidity. 
+Now, we can create the three main objects of a MLACS simulation:
+
+    - the Mlip object to compute descriptors and to fit the potential (mlip).
+    - the State object to define the sampling method (state).
+    - the Calculator object to compute the energies, forces and stresses (calc). In this case, we use an effective medium theory calculator for simplicity and rapidity. 
 
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
     :lines: 38-47
@@ -51,3 +54,5 @@ Now, we can run the simulation:
  
 .. literalinclude:: ../../../examples/Langevin_Cu300K.py
     :lines: 49-53
+
+

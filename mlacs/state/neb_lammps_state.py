@@ -237,12 +237,12 @@ class NebLammpsState(StateManager):
         for rep in range(int(self.nreplica)):
             nebfile = self.NEBworkdir + f'neb.{rep}'
             # RB
-            # positions, cell = _read_lammpsdata(nebfile)
-            at = read_lammps_data(nebfile,
-                                  sort_by_id=True,
-                                  style='atomic')
-            positions = at.positions
-            cell = at.get_cell()
+            positions, cell = self._read_lammpsdata(nebfile)
+            #at = read_lammps_data(nebfile,
+            #                      sort_by_id=True,
+            #                      style='atomic')
+            #positions = at.positions
+            # cell = at.get_cell()
             # cell = self.fixcell
             true_coordinates.append(positions)
             check = False
@@ -291,7 +291,9 @@ class NebLammpsState(StateManager):
                        x, 0, border=1)
                 y = np.array(y)
                 xi = x[y.argmax()]
-        self.finder.append(xi)
+
+            if self.finder is not None:
+                self.finder.append(xi)
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,

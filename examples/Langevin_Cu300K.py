@@ -9,8 +9,8 @@ from mlacs import OtfMlacs
 
 
 """
-Example of a MLACS simulation of Cu at 300 K
-The true potential is the EMT as implemented in ASE
+Example of a MLACS simulation of Cu at 300 K.
+The true potential is the EMT as implemented in ASE.
 """
 
 # MLACS Parameters ------------------------------------------------------------
@@ -22,7 +22,7 @@ neq = 5            # Numbers of mlacs equilibration iterations.
 # MD Parameters ---------------------------------------------------------------
 temperature = 300  # Temperature of the simulation in K.
 dt = 1.5           # Integration time in fs.
-friction = 0.01    # Frcition coefficient for the Langevin thermostat.
+friction = 0.01    # Friction coefficient for the Langevin thermostat.
 # MLIP Parameters -------------------------------------------------------------
 rcut = 4.2
 mlip_params = {"twojmax": 4}
