@@ -337,13 +337,9 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                   angle_coeff,
                                   False,
                                   rep))
-        self.pafi = []
-        for rep in range(nrep):
-            logfile = self.MFEPworkdir + f'pafi.log.{rep}'
-            data = np.loadtxt(logfile).T[:, nthrow:].tolist()
-            self.pafi.append(data)
-        self.pafi = np.array(self.pafi)
-        F = self.log_free_energy(xi)
+        F = self.log_free_energy(xi,
+                                 self.MFEPworkdir,
+                                 nthrow)
         return F
 
 # ========================================================================== #
@@ -448,11 +444,18 @@ class PafiLammpsState(LammpsState, NebLammpsState):
             w.write(instr)
 
 # ========================================================================== #
-    def log_free_energy(self, xi):
+    def log_free_energy(self, xi, workdir, nthrow=2000, _ref=0):
         """
         Extract the MFEP gradient from log files.
         Integrate the MFEP and compute the Free energy barier.
         """
+        
+        self.pafi = []
+        for rep in range(len(xi)):
+            logfile = workdir + f'pafi.log.{rep}'
+            data = np.loadtxt(logfile).T[:, nthrow:].tolist()
+            self.pafi.append(data)
+        self.pafi = np.array(self.pafi)
 
         dF = []
         psi = []
@@ -462,7 +465,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
             dF.append(np.average(self.pafi[rep, 0]))
             psi.append(np.average(self.pafi[rep, 2]))
             cor.append(np.average(
-                np.log(np.abs(self.pafi[rep, 2] / self.pafi[0, 2]))))
+                np.log(np.abs(self.pafi[rep, 2] / self.pafi[_ref, 2]))))
             maxjump.append(
                 [x for x in self.pafi[rep, 4].tolist() if x >= self.maxjump])
         dF = np.array(dF)
