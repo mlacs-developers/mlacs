@@ -449,7 +449,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         Extract the MFEP gradient from log files.
         Integrate the MFEP and compute the Free energy barier.
         """
-        
+
         self.pafi = []
         for rep in range(len(xi)):
             logfile = workdir + f'pafi.log.{rep}'
@@ -461,13 +461,22 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         psi = []
         cor = []
         maxjump = []
+        ntot = len(self.pafi[rep, 0])
         for rep in range(len(xi)):
-            dF.append(np.average(self.pafi[rep, 0]))
-            psi.append(np.average(self.pafi[rep, 2]))
-            cor.append(np.average(
-                np.log(np.abs(self.pafi[rep, 2] / self.pafi[_ref, 2]))))
-            maxjump.append(
-                [x for x in self.pafi[rep, 4].tolist() if x >= self.maxjump])
+            # Remove steps with high jumps, the default value is 0.4.
+            mj = self.pafi[rep, 4].tolist()
+            dF.append(np.average([self.pafi[rep, 0, i]
+                for i, x in enumerate(mj) if x < self.maxjump]))
+            psi.append(np.average([self.pafi[rep, 2, i]
+                for i, x in enumerate(mj) if x < self.maxjump]))
+            cor.append(np.average([np.log(np.abs(
+                self.pafi[rep, 2, i] / self.pafi[_ref, 2, i]))
+                for i, x in enumerate(mj) if x < self.maxjump]))
+            maxjump.append([x for x in mj if x > self.maxjump])
+#            dF.append(np.average(self.pafi[rep, 0]))
+#            psi.append(np.average(self.pafi[rep, 2]))
+#            cor.append(np.average(
+#                np.log(np.abs(self.pafi[rep, 2] / self.pafi[_ref, 2]))))
         dF = np.array(dF)
         cor = np.array(cor)
         psi = np.array(psi)
@@ -480,7 +489,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                 dFM = max(F) - min(F)
                 w.write(f'##  Free energy barier: {dFM} eV  ' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi)  Nmaxjump  ##\n')
+                        'cor  Fcor(xi)  NUsedConf  ##\n')
                 strformat = ('{:12.8f} ' * 7) + '\n'
                 for i in range(len(xi)):
                     w.write(strformat.format(xi[i],
@@ -489,7 +498,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                              psi[i],
                                              kB * self.temperature * cor[i],
                                              Fcor[i],
-                                             len(maxjump[i])))
+                                             ntot - len(maxjump[i])))
         return Fcor
 
 # ========================================================================== #
