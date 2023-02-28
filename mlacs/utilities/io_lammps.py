@@ -125,7 +125,7 @@ def get_pafi_input(dt,
                    temperature,
                    seed,
                    damp=None,
-                   brownian=True):
+                   langevin=True):
     """
     Function to write the general parameters for PAFI dynamics
     """
@@ -143,7 +143,7 @@ def get_pafi_input(dt,
     input_string += "# Set up PAFI Langevin/Brownian integration\n"
     if damp is None:
         damp = "$(10*dt)"
-    if brownian:
+    if not langevin:
         input_string += "fix       pafihp all pafi 1 " + \
                         f"{temperature} {damp} {seed} " + \
                         "overdamped yes com yes\n"
@@ -163,7 +163,8 @@ def get_pafi_input(dt,
 
 # ========================================================================== #
 def get_neb_input(dt,
-                  Kspring):
+                  Kspring,
+                  linear=False):
     """
     Function to write the general parameters for NEB
     """
@@ -178,7 +179,11 @@ def get_neb_input(dt,
     input_string += "reset_timestep  0\n\n"
     input_string += "variable    i equal part\n"
     input_string += "min_style   quickmin\n"
-    input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
+    if linear: 
+        input_string += "neb         0.0 0.001 1 1 1 "
+    else:
+        input_string += "neb         0.0 0.001 200 100 10 "
+    input_string += "final atoms-1.data\n"
     input_string += "write_data  neb.$i\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"

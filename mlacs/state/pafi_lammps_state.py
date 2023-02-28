@@ -37,8 +37,9 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
     reaction_coordinate: :class:`numpy.array` or `float`
-        Value of the reaction coordinate for the constrained MD.
-        Default ``0.5``
+        Value of the reaction coordinate for the constrained MD. 
+        if ``None``, automatic search of the saddle point.
+        Default ``None``
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
         Default ``1.0``
@@ -53,9 +54,9 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         Number of MLMD steps for production runs. Default ``1000`` steps.
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
-    brownian: :class:`Bool`
-        If ``True``, a Brownian thermostat is used for the thermostat.
-        Else, a Langevin thermostat is used
+    langevin: :class:`Bool`
+        If ``True``, a Langevin thermostat is used.
+        Else, a Brownian dynamic is used
         Default ``True``
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
@@ -70,10 +71,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
-    init_momenta : :class:`numpy.ndarray` (optional)
-        If ``None``, velocities are initialized with a
-        Maxwell Boltzmann distribution
-        N * 3 velocities for the initial configuration
     prt : :class:`Bool` (optional)
         Printing options. Default ``True``
     workdir : :class:`str` (optional)
@@ -84,18 +81,17 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  temperature,
                  configurations,
                  reaction_coordinate=None,
-                 neb_configurations=None,
                  Kspring=1.0,
                  maxjump=0.4,
                  dt=1.5,
                  damp=None,
                  nsteps=1000,
                  nsteps_eq=100,
-                 brownian=True,
+                 langevin=True,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
+                 interval=49,
                  loginterval=50,
                  trajinterval=50,
                  rng=None,
@@ -118,7 +114,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         NebLammpsState.__init__(self,
                                 configurations,
                                 reaction_coordinate=None,
-                                Kspring=1.0)
+                                Kspring=1.0,
+                                dt=dt)
 
         self.temperature = temperature
         self.nsteps = nsteps
@@ -128,13 +125,12 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         if self.NEBcoord is None:
             self.splprec = 1001
             self.finder = []
-        self.include_neb = neb_configurations
         self.print = prt
         self.Kspring = Kspring
         self.maxjump = maxjump
         self.dt = dt
         self.damp = damp
-        self.brownian = brownian
+        self.langevin = langevin
         self.confNEB = configurations
         if len(self.confNEB) != 2:
             raise TypeError('First and last configurations are not defined')
@@ -387,7 +383,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                        self.temperature,
                                        self.rng.integers(99999),
                                        self.damp,
-                                       self.brownian)
+                                       self.langevin)
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
@@ -532,3 +528,98 @@ class PafiLammpsState(LammpsState, NebLammpsState):
             msg += f"Reaction step interval :                 {step}\n"
         msg += "\n"
         return msg
+
+
+# ========================================================================== #
+# ========================================================================== #
+class BlueMoonLammpsState(PafiLammpsState):
+    """
+    Class to manage BlueMoonStates with LAMMPS
+
+    Parameters
+    ----------
+    temperature: :class:`float`
+        Temperature of the simulation, in Kelvin.
+    configurations: :class:`list`
+        List of ase.Atoms object, the list contain initial and final
+        configurations of the reaction path.
+    reaction_coordinate: :class:`numpy.array` or `float`
+        Value of the reaction coordinate for the constrained MD. 
+        if ``None``, automatic search of the saddle point.
+        Default ``None``
+    maxjump: :class:`float`
+        Maximum atomic jump authorized for the free energy calculations.
+        Configurations with an high `maxjump` will be removed.
+        Default ``0.4``
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+    damp: :class:`float` or ``None``
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+    langevin: :class:`Bool`
+        If ``True``, a Langevin thermostat is used.
+        Else, a Brownian dynamic is used
+        Default ``True``
+    fixcm : :class:`Bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat.
+        Default correspond to :class:`numpy.random.default_rng()`
+    prt : :class:`Bool` (optional)
+        Printing options. Default ``True``
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD directory is created
+    """
+    def __init__(self,
+                 temperature,
+                 configurations,
+                 reaction_coordinate=None,
+                 maxjump=0.4,
+                 dt=1.5,
+                 damp=None,
+                 nsteps=1000,
+                 nsteps_eq=100,
+                 langevin=True,
+                 fixcm=True,
+                 logfile=None,
+                 trajfile=None,
+                 interval=49,
+                 loginterval=50,
+                 trajinterval=50,
+                 rng=None,
+                 init_momenta=None,
+                 prt=True,
+                 workdir=None):
+        PafiLammpsState.__init__(self,
+                                 temperature,
+                                 configurations,
+                                 reaction_coordinate,
+                                 1.0,
+                                 maxjump,
+                                 dt,
+                                 damp,
+                                 nsteps,
+                                 nsteps_eq,
+                                 langevin,
+                                 fixcm,
+                                 logfile,
+                                 trajfile,
+                                 interval,
+                                 loginterval,
+                                 trajinterval,
+                                 rng,
+                                 init_momenta,
+                                 prt,
+                                 workdir)
+        self.xilinear = True
