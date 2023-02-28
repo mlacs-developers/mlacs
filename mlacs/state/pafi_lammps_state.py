@@ -27,7 +27,8 @@ from ..utilities import integrate_points as IntP
 # ========================================================================== #
 class PafiLammpsState(LammpsState, NebLammpsState):
     """
-    Class to manage PafiStates with LAMMPS
+    Class to manage constrained MD along a NEB reaction coordinate using
+    the fix Pafi with LAMMPS.
 
     Parameters
     ----------
@@ -56,7 +57,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
     langevin: :class:`Bool`
         If ``True``, a Langevin thermostat is used.
-        Else, a Brownian dynamic is used
+        Else, a Brownian dynamic is used.
         Default ``True``
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
@@ -534,7 +535,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
 # ========================================================================== #
 class BlueMoonLammpsState(PafiLammpsState):
     """
-    Class to manage BlueMoonStates with LAMMPS
+    Class to manage constrained MD along a linear reaction coordinate using
+    the fix Pafi with LAMMPS. This is similar to a Blue Moon sampling.
 
     Parameters
     ----------
@@ -560,7 +562,7 @@ class BlueMoonLammpsState(PafiLammpsState):
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
     langevin: :class:`Bool`
         If ``True``, a Langevin thermostat is used.
-        Else, a Brownian dynamic is used
+        Else, a Brownian dynamic is used.
         Default ``True``
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.

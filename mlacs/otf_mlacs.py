@@ -67,7 +67,6 @@ class OtfMlacs:
                  calc,
                  mlip=None,
                  prop=None,
-                 mbar=None,
                  neq=10,
                  nbeads=1,
                  prefix_output="Trajectory",
