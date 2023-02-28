@@ -5,7 +5,8 @@
 from .state import StateManager
 from .langevin import LangevinState
 from .lammps_state import LammpsState
-from .pafi_lammps_state import PafiLammpsState
+from .pafi_lammps_state import (PafiLammpsState, 
+                                BlueMoonLammpsState)
 from .neb_lammps_state import NebLammpsState
 from .custom_lammps_state import CustomLammpsState
 from .ipi_state import IpiState
@@ -14,6 +15,7 @@ __all__ = ['StateManager',
            'LangevinState',
            'LammpsState',
            'PafiLammpsState',
+           'BlueMoonLammpsState',
            'NebLammpsState',
            'CustomLammpsState',
            'IpiState']

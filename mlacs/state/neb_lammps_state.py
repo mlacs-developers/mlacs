@@ -91,6 +91,7 @@ class NebLammpsState(StateManager):
         self._get_lammps_command_replica()
         self.fixcell = configurations[0].get_cell()
 
+        self.xilinear = False
         self.ispimd = False
         self.isrestart = False
         self.isappend = False
@@ -218,7 +219,8 @@ class NebLammpsState(StateManager):
                                               pair_coeff,
                                               model_post)
         input_string += get_neb_input(self.dt / 1000,
-                                      self.Kspring)
+                                      self.Kspring,
+                                      self.xilinear)
 
         with open(fname, "w") as f:
             f.write(input_string)

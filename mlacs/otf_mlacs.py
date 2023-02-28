@@ -457,7 +457,7 @@ class OtfMlacs:
         uniq_at = self.calc.compute_true_potential(uniq_at,
                                                    tmp_state,
                                                    tmp_step)
-        msg = "Computation done, creating trajectorys"
+        msg = "Computation done, creating trajectories"
         self.log.logger_log.info(msg)
 
         # And now, we dispatch each atoms to the right trajectory
