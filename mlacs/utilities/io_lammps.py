@@ -179,7 +179,7 @@ def get_neb_input(dt,
     input_string += "reset_timestep  0\n\n"
     input_string += "variable    i equal part\n"
     input_string += "min_style   quickmin\n"
-    if linear: 
+    if linear:
         input_string += "neb         0.0 0.001 1 1 1 "
     else:
         input_string += "neb         0.0 0.001 200 100 10 "
@@ -329,7 +329,7 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
 
     Return
     ------
-       Final NEB configuration :class: `file` 
+       Final NEB configuration :class: `file`
     ------
     '''
     instr = '# Final coordinates of the NEB calculation.\n'

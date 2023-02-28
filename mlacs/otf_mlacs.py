@@ -103,11 +103,6 @@ class OtfMlacs:
         else:
             self.prop = PropertyManager(prop)
 
-        # Create mbar object
-        self.mbar = None
-        if mbar is not None:
-            self.mbar = MbarManager(**mbar)
-
         # Miscellanous initialization
         self.rng = np.random.default_rng()
         self.ntrymax = ntrymax
@@ -400,9 +395,6 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
-        
-#        if self.mbar.steps:
-#            continue
 
         # Computing properties with ML potential.
         if self.prop.manager is not None:

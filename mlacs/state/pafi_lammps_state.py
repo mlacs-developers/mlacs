@@ -37,7 +37,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
     reaction_coordinate: :class:`numpy.array` or `float`
-        Value of the reaction coordinate for the constrained MD. 
+        Value of the reaction coordinate for the constrained MD.
         if ``None``, automatic search of the saddle point.
         Default ``None``
     Kspring: :class:`float`
@@ -462,12 +462,12 @@ class PafiLammpsState(LammpsState, NebLammpsState):
             # Remove steps with high jumps, the default value is 0.4.
             mj = self.pafi[rep, 4].tolist()
             dF.append(np.average([self.pafi[rep, 0, i]
-                for i, x in enumerate(mj) if x < self.maxjump]))
+                      for i, x in enumerate(mj) if x < self.maxjump]))
             psi.append(np.average([self.pafi[rep, 2, i]
-                for i, x in enumerate(mj) if x < self.maxjump]))
+                       for i, x in enumerate(mj) if x < self.maxjump]))
             cor.append(np.average([np.log(np.abs(
-                self.pafi[rep, 2, i] / self.pafi[_ref, 2, i]))
-                for i, x in enumerate(mj) if x < self.maxjump]))
+                       self.pafi[rep, 2, i] / self.pafi[_ref, 2, i]))
+                       for i, x in enumerate(mj) if x < self.maxjump]))
             maxjump.append([x for x in mj if x > self.maxjump])
 #            dF.append(np.average(self.pafi[rep, 0]))
 #            psi.append(np.average(self.pafi[rep, 2]))
@@ -544,7 +544,7 @@ class BlueMoonLammpsState(PafiLammpsState):
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
     reaction_coordinate: :class:`numpy.array` or `float`
-        Value of the reaction coordinate for the constrained MD. 
+        Value of the reaction coordinate for the constrained MD.
         if ``None``, automatic search of the saddle point.
         Default ``None``
     maxjump: :class:`float`
