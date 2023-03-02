@@ -125,7 +125,7 @@ def get_pafi_input(dt,
                    temperature,
                    seed,
                    damp=None,
-                   brownian=True):
+                   langevin=True):
     """
     Function to write the general parameters for PAFI dynamics
     """
@@ -143,7 +143,7 @@ def get_pafi_input(dt,
     input_string += "# Set up PAFI Langevin/Brownian integration\n"
     if damp is None:
         damp = "$(10*dt)"
-    if brownian:
+    if not langevin:
         input_string += "fix       pafihp all pafi 1 " + \
                         f"{temperature} {damp} {seed} " + \
                         "overdamped yes com yes\n"
@@ -163,7 +163,8 @@ def get_pafi_input(dt,
 
 # ========================================================================== #
 def get_neb_input(dt,
-                  Kspring):
+                  Kspring,
+                  linear=False):
     """
     Function to write the general parameters for NEB
     """
@@ -178,7 +179,11 @@ def get_neb_input(dt,
     input_string += "reset_timestep  0\n\n"
     input_string += "variable    i equal part\n"
     input_string += "min_style   quickmin\n"
-    input_string += "neb         0.0 0.001 200 100 10 final atoms-1.data\n"
+    if linear:
+        input_string += "neb         0.0 0.001 1 1 1 "
+    else:
+        input_string += "neb         0.0 0.001 200 100 10 "
+    input_string += "final atoms-1.data\n"
     input_string += "write_data  neb.$i\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
@@ -278,8 +283,10 @@ def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
         array of bonds list
     nconfs: :class:`numpy.array`
         array of angles list
+
     Return
     ------
+    Lammps data :class: `file`
     """
     write_lammps_data('coord_tmp.lmp',
                       atoms,
@@ -306,3 +313,28 @@ def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
         fd.write(" Angles \n \n")
         np.savetxt(fd, angles, fmt='%s')
     os.remove('coord_tmp.lmp')
+
+
+# ========================================================================== #
+def write_lammps_NEB_ASCIIfile(filename, supercell):
+    '''
+    Convert Ase Atoms into an ASCII file for lammps neb calculations.
+
+    Parameters
+    ----------
+    filename : :class:`str`
+        name of the output file
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+
+    Return
+    ------
+       Final NEB configuration :class: `file`
+    ------
+    '''
+    instr = '# Final coordinates of the NEB calculation.\n'
+    instr += '{0}\n'.format(len(supercell))
+    for atoms in supercell:
+        instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
+    with open(filename, "w") as w:
+        w.write(instr)

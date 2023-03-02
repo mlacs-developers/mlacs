@@ -11,12 +11,12 @@ CalcManager
 
 .. autoclass:: CalcManager
 
-DlmCalcManager
---------------
-
-.. autoclass:: calc.dlm_calc.DlmCalcManager
-
 AbinitManager
 -------------
 
-.. autoclass:: calc.abinit_manager.AbinitManager
+.. autoclass:: AbinitManager
+
+DlmCalcManager
+--------------
+
+.. autoclass:: DlmCalcManager

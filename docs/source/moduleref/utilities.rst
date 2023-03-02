@@ -10,11 +10,27 @@ Miscellanous
 
 .. autofunction:: create_random_structures
 
+.. autofunction:: compute_correlation
+
+.. autofunction:: compute_averaged
+
+.. autofunction:: interpolate_points
+
+.. autofunction:: integrate_points
+
+.. module:: mlacs.utilities.io_lammps
+
+Lammps IO
+---------
+
+.. autofunction:: write_lammps_data_full
+
+.. autofunction:: write_lammps_NEB_ASCIIfile
 
 .. module:: mlacs.utilities.thermo
 
-Thermo
-------
+Thermodynamic
+-------------
 
 Functions to compute some thermodynamic properties
 

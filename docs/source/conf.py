@@ -2,9 +2,10 @@ import sys
 import re
 import os
 
-sys.path.insert(0, os.path.abspath("../../mlacs"))
-sys.path.insert(0, os.path.abspath("../../mlacs/state"))
-sys.path.insert(0, os.path.abspath("../../mlacs/mlip"))
+#sys.path.insert(0, os.path.abspath("../../mlacs"))
+#sys.path.insert(0, os.path.abspath("../../mlacs/state"))
+#sys.path.insert(0, os.path.abspath("../../mlacs/mlip"))
+sys.path.insert(0, os.path.abspath("../mlacs"))
 
 
 # Configuration file for the Sphinx documentation builder.
@@ -33,7 +34,7 @@ author = 'Aloïs Castellano'
 # The full version, including alpha/beta/rc tags
 with open("../../mlacs/version.py") as f:
     version = re.search("__version__ = '(.*)'", f.read()).group(1)
-release = '0.0.5'
+release = '0.0.11'
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,7 +43,10 @@ release = '0.0.5'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-        'sphinx.ext.autodoc', 'sphinx.ext.napoleon', 'sphinx.ext.mathjax'
+        'recommonmark',
+        'sphinx.ext.autodoc', 
+        'sphinx.ext.napoleon', 
+        'sphinx.ext.mathjax'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -66,7 +70,8 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'pydata_sphinx_theme'
+#html_theme = 'pydata_sphinx_theme'
+html_theme = 'renku'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
