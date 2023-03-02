@@ -25,7 +25,7 @@ from ..utilities.io_lammps import write_lammps_data_full
 # ========================================================================== #
 class IpiState(LammpsState):
     """
-    State Class for running a Path Integral MD simulation as implemented 
+    State Class for running a Path Integral MD simulation as implemented
     in I-Pi and using sockets to compute properties with LAMMPS.
 
     Parameters

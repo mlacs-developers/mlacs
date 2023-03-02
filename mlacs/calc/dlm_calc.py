@@ -58,7 +58,7 @@ class DlmCalcManager(CalcManager):
         CalcManager.__init__(self, calc,)
 
         if not isicet:
-            msg = "You need the icet package installed to use the DLM calculator"
+            msg = "You need the icet package installed to use a DLM calculator"
             raise ModuleNotFoundError(msg)
 
         chemsymb = [["N"]] * len(unitcell)

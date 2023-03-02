@@ -49,7 +49,7 @@ class LammpsState(StateManager):
         If True, it override the langevin and gjf inputs.
         Default False
     fd: :class:`float`
-        The frequency cutoff for the qtb thermostat. Should be around 
+        The frequency cutoff for the qtb thermostat. Should be around
         2~3 times the Debye frequency. In THz.
         Default 200 THz.
     n_f: :class:`int`
@@ -350,7 +350,7 @@ class LammpsState(StateManager):
         if self.pressure is None:
             if self.qtb:
                 # Integration part
-                input_string += f"fix f2 all nve\n"
+                input_string += "fix f2 all nve\n"
                 # QTB part
                 input_string += f"fix f1 all qtb temp {temp} " + \
                                 f"damp {damp} f_max {self.fd} " + \
