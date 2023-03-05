@@ -87,7 +87,8 @@ class LammpsMlipInterface:
                  welems=None,
                  reference_potential=None,
                  fit_dielectric=False,
-                 no_zstress=True):
+                 no_zstress=True,
+                 folder=None):
 
         # Store parameters
         self.elements = np.array(elements)
@@ -100,6 +101,12 @@ class LammpsMlipInterface:
         self.fit_dielectric = fit_dielectric
         self.prepare_ref_pot(reference_potential)
         self.no_zstress = no_zstress
+        if folder is None:
+            self.folder = os.getcwd()
+        else:
+            self.folder = folder
+        if not self.folder.endswith("/"):
+            self.folder += "/"
 
         if radelems is None:
             self.radelems = np.array([0.5 for i in self.elements])
@@ -250,7 +257,7 @@ class LammpsMlipInterface:
                         "file descriptor.out mode vector format \"%25.20f \"\n"
         input_string += "run              0\n"
 
-        with open("base.in", "w") as fd:
+        with open(f"{self.folder}base.in", "w") as fd:
             fd.write(input_string)
 
 # ========================================================================== #
@@ -261,7 +268,8 @@ class LammpsMlipInterface:
         lammps_command = self.cmd + ' -in base.in -log none -sc lmp.out'
         lmp_handle = run(lammps_command,
                          shell=True,
-                         stderr=PIPE)
+                         stderr=PIPE,
+                         cwd=self.folder)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
@@ -289,17 +297,17 @@ class LammpsMlipInterface:
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        os.remove("lmp.out")
-        os.remove("descriptor.out")
-        os.remove("base.in")
-        os.remove("atoms.lmp")
+        os.remove(f"{self.folder}lmp.out")
+        os.remove(f"{self.folder}descriptor.out")
+        os.remove(f"{self.folder}base.in")
+        os.remove(f"{self.folder}atoms.lmp")
 
 # ========================================================================== #
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        with open("MLIP.descriptor", "w") as f:
+        with open(f"{self.folder}MLIP.descriptor", "w") as f:
             f.write("# ")
             # Adding a commment line to know what elements are fitted here
             for elements in self.elements:
@@ -335,7 +343,7 @@ class LammpsMlipInterface:
                 f.write("bnormflag    1\n")
 
 # ========================================================================== #
-    def write_mlip_model(self, coefficients):
+    def write_mlip_model(self, coefficients, folder=None):
         """
         Function to write the mliap.model parameter files of the MLIP
         """
@@ -346,7 +354,10 @@ class LammpsMlipInterface:
         atom_style, bond_style, bond_coeff, angle_style, angle_coeff = \
             self.get_bond_angle_coeff_and_style()
 
-        with open("MLIP.model", "w") as f:
+        if folder is None:
+            folder = "./"
+
+        with open(f"{folder}MLIP.model", "w") as f:
             f.write("# ")
             # Adding a commment line to know what elements are fitted here
             for elements in self.elements:
@@ -487,7 +498,7 @@ class LammpsMlipInterface:
 
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        lmp_atoms_fname = "atoms.lmp"
+        lmp_atoms_fname = f"{self.folder}atoms.lmp"
         self._write_lammps_input(masses)
         self._write_mlip_params()
 
@@ -539,7 +550,7 @@ class LammpsMlipInterface:
                               specorder=self.elements.tolist())
         self._run_lammps(lmp_atoms_fname)
 
-        bispectrum = np.loadtxt("descriptor.out", skiprows=4)
+        bispectrum = np.loadtxt(f"{self.folder}descriptor.out", skiprows=4)
         if self.model in ["linear", "quadratic"]:
             # I definitely hate stress units in LAMMPS
             # ASE gives eV/angs**3 - LAMMPS are in bar (WTF ?)
@@ -658,7 +669,7 @@ class LammpsMlipInterface:
     def get_pair_coeff_and_style(self, dielectric=1):
         """
         """
-        cwd = os.getcwd()
+        cwd = self.folder
 
         if self.style == "snap":
             style = "sna"
