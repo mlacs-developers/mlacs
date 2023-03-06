@@ -242,8 +242,8 @@ class FitFactoryLog:
         self.logger_log.info(f"Energy MAE           {mae_e:6.4f} eV/at")
         self.logger_log.info(f"Forces RMSE          {rmse_f:6.4f} eV/angs")
         self.logger_log.info(f"Forces MAE           {mae_f:6.4f} eV/angs")
-        self.logger_log.info(f"Stress MAE           {rmse_s:6.4f} eV/angs^3")
-        self.logger_log.info(f"Stress MAE           {mae_s:6.4f} eV/angs^3")
+        self.logger_log.info(f"Stress MAE           {rmse_s:6.4f} GPa")
+        self.logger_log.info(f"Stress MAE           {mae_s:6.4f} GPa")
         self.logger_log.info("")
         self.logger_log.info("Test dataset".center(30))
         rmse_e = res["rmse_energy_test"]
@@ -256,8 +256,8 @@ class FitFactoryLog:
         self.logger_log.info(f"Energy MAE           {mae_e:6.4f} eV/at")
         self.logger_log.info(f"Forces RMSE          {rmse_f:6.4f} eV/angs")
         self.logger_log.info(f"Forces MAE           {mae_f:6.4f} eV/angs")
-        self.logger_log.info(f"Stress MAE           {rmse_s:6.4f} eV/angs^3")
-        self.logger_log.info(f"Stress MAE           {mae_s:6.4f} eV/angs^3")
+        self.logger_log.info(f"Stress MAE           {rmse_s:6.4f} GPa")
+        self.logger_log.info(f"Stress MAE           {mae_s:6.4f} GPa")
         self.logger_log.info("")
         self.logger_log.info(f"Cost function        {cost}")
         self.logger_log.info("")
@@ -266,7 +266,7 @@ class FitFactoryLog:
     def print_descriptor_variable(self, dct):
         """
         """
-        self.subtitleblock("Descriptor hyperparmaters")
+        self.subtitleblock("Descriptor hyperparameters")
         for key, val in dct.items():
             self.logger_log.info(f"{key} :         {val}")
 

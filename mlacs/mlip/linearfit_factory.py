@@ -46,7 +46,7 @@ class FitLammpsMlip:
     atoms : :class:`ase.atoms`
         An atom object with all the elements that will be observed in the
         dataset
-    confs: :class:`list` of :class:`ase.atoms` object
+    confs: :class:`list` of :class:`ase.atoms`
         The full dataset on which to do the training. The atoms should have
         a calculator with energy, forces and stress attached
     style: :class:`str`
@@ -59,32 +59,32 @@ class FitLammpsMlip:
         The parameters for the descriptor. To realize different fit
         with different parameters, the parameter should be a list.
         The following input realize two fits with different rcutfac
-        `desc_params = {"rcutfac": [5.0, 5.25]}
+        `desc_params = {"rcutfac": [5.0, 5.25]}`
     fit_params: :class:`dict`
         The parameters for the fit. To realize different fit
         with different parameters, the parameter should be a list.
         The following input realize two fits with different stress coefficients
-        `fit_params = {"stress_coefficient": [1.0, 5.0]}
+        `fit_params = {"stress_coefficient": [1.0, 5.0]}`
     costenergy: :class:`float`
         The coefficient that multiply the energy RMSE when computing the cost
         function to select the best fit.
-        Default 100.0
+        Default `100.0`
     costforces: :class:`float`
         The coefficient that multiply the forces RMSE when computing the cost
         function to select the best fit.
-        Default 1.0
+        Default `1.0`
     coststress: :class:`float`
         The coefficient that multiply the stress RMSE when computing the cost
         function to select the best fit.
-        Default 1.0
+        Default `1.0`
     testsetratio: :class:`float`
         The ratio giving the size of the testing dataset, between 0 and 1.
-        Default 0.25
+        Default `0.25`
     removeoutliers: :class:`bool`
         If true, configurations with either energy, forces or stress values
         that are > 5 standard deviation over the mean will be removed before
         the fit.
-        Default True
+        Default `True`
     """
     def __init__(self,
                  atoms,
@@ -197,7 +197,7 @@ class FitLammpsMlip:
         nat = np.array([len(at) for at in self.confs])
         energies = np.array([at.get_potential_energy() for at in self.confs])
         forces = np.array([at.get_forces() for at in self.confs])
-        stress = np.array([at.get_stress() for at in self.confs])
+        stress = np.array([at.get_stress() for at in self.confs]) / GPa
 
         energies /= nat
 
@@ -217,11 +217,11 @@ class FitLammpsMlip:
         msg += "-----------------------\n"
         msg += f"Number of configurations:          {ntrain}\n"
         msg += f"Energy average                    {emean:7.4f} eV/atoms\n"
-        msg += f"Energy standrad deviation         {estd:7.4f} eV/atoms\n"
+        msg += f"Energy standard deviation         {estd:7.4f} eV/atoms\n"
         msg += f"Forces average                    {fmean:7.4f} eV/angs\n"
         msg += f"Forces standard deviation         {fstd:7.4f} eV/angs\n"
-        msg += f"Stress average                    {smean:7.4f} eV/angs^3\n"
-        msg += f"Stress standard deviation         {sstd:7.4f} eV/angs^3\n"
+        msg += f"Stress average                    {smean:7.4f} GPa\n"
+        msg += f"Stress standard deviation         {sstd:7.4f} GPa\n"
         self.log.logger_log.info(msg)
 
         ntrain = len(self.idx_test)
@@ -235,11 +235,11 @@ class FitLammpsMlip:
         msg += "-----------------------\n"
         msg += f"Number of configurations:          {ntrain}\n"
         msg += f"Energy average                    {emean:7.4f} eV/atoms\n"
-        msg += f"Energy standrad deviation         {estd:7.4f} eV/atoms\n"
+        msg += f"Energy standard deviation         {estd:7.4f} eV/atoms\n"
         msg += f"Forces average                    {fmean:7.4f} eV/angs\n"
         msg += f"Forces standard deviation         {fstd:7.4f} eV/angs\n"
-        msg += f"Stress average                    {smean:7.4f} eV/angs^3\n"
-        msg += f"Stress standard deviation         {sstd:7.4f} eV/angs^3\n"
+        msg += f"Stress average                    {smean:7.4f} GPa\n"
+        msg += f"Stress standard deviation         {sstd:7.4f} GPa\n"
         msg += "\n"
         self.log.logger_log.info(msg)
         self.log.splitprint()

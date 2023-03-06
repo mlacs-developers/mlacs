@@ -30,3 +30,8 @@ LammpsMlip
 ----------
 
 .. autoclass:: LammpsMlip
+
+FitLammpsMlip
+-------------
+
+.. autoclass:: FitLammpsMlip
