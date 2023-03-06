@@ -18,3 +18,8 @@ except ImportError:
                'LinearMlip',
                'LammpsMlip',
                'FitLammpsMlip']
+try:
+    from .mbar_manager import MbarManager
+    __all__.append('MbarManager')
+except ImportError:
+    __all__ = __all__ 

@@ -41,8 +41,8 @@ class FitLammpsMlip:
     remove outliers and perform the fit according to different descriptor
     and fitting hyperparameters.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     atoms : :class:`ase.atoms`
         An atom object with all the elements that will be observed in the
         dataset

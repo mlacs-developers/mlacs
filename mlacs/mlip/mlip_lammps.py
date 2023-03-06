@@ -79,7 +79,8 @@ class LammpsMlip(LinearMlip):
                  stress_coefficient=0.0,
                  rescale_energy=True,
                  rescale_forces=True,
-                 rescale_stress=True):
+                 rescale_stress=True
+                 folder=None):
         LinearMlip.__init__(self,
                             atoms,
                             rcut,
@@ -104,7 +105,7 @@ class LammpsMlip(LinearMlip):
                                                     welems,
                                                     reference_potential,
                                                     fit_dielectric,
-                                                    )
+                                                    folder)
 
         self.ncolumns = self.lammps_interface.ncolumns
 
@@ -127,10 +128,10 @@ class LammpsMlip(LinearMlip):
         return self.lammps_interface.compute_fit_matrix(atoms)
 
 # ========================================================================== #
-    def write_mlip(self):
+    def write_mlip(self, folder=None):
         """
         """
-        self.lammps_interface.write_mlip_model(self.coefficients)
+        self.lammps_interface.write_mlip_model(self.coefficients, folder)
 
 # ========================================================================== #
     def init_calc(self):

@@ -356,6 +356,8 @@ class LammpsMlipInterface:
 
         if folder is None:
             folder = "./"
+        if self.folder is not None:
+            folder = self.folder
 
         with open(f"{folder}MLIP.model", "w") as f:
             f.write("# ")
