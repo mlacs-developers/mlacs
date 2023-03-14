@@ -3,6 +3,8 @@ from subprocess import run, PIPE
 
 import numpy as np
 
+from scipy.spatial import distance
+
 from ase.io import write
 from ase.io.lammpsdata import (write_lammps_data)
 
@@ -90,6 +92,7 @@ class NebLammpsState(StateManager):
             raise TypeError('First and last configurations are not defined')
         self._get_lammps_command_replica()
         self.fixcell = configurations[0].get_cell()
+        self.masses = configurations[0].get_masses()
 
         self.xilinear = False
         self.ispimd = False
@@ -252,7 +255,7 @@ class NebLammpsState(StateManager):
         self.true_atoms = true_atoms
         self.path_coordinates = np.arange(self.nreplica)/(self.nreplica-1)
         self.true_coordinates = np.array(true_coordinates)
-        # RB check float
+        self.eff_masses = self._compute_weight_masses() * self.masses
         self.true_energies = np.array([true_atoms[i].get_potential_energy()
                                        for i in range(self.nreplica)])
         self.true_energies = self.true_energies.astype(float)
@@ -359,6 +362,16 @@ class NebLammpsState(StateManager):
             return x
         else:
             return None
+
+# ========================================================================== #
+    def _compute_weight_masses(self, dist):
+        """
+        Return weights for effective masse.
+        """
+        weight = np.array([np.max(distance.cdist(d, d, "euclidean")) 
+            for d in dist])
+        weight = weight / np.sum(weight)
+        return weight
 
 # ========================================================================== #
     def _COM_corrections(self, spline):

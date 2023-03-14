@@ -479,6 +479,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         psi = np.array(psi)
         maxjump = np.array(maxjump)
         F = -np.array(IntP(xi, dF, xi))
+        nu = np.array(IntP(xi, np.exp(- F / kB * self.temperature), xi))
+        nu = np.sqrt((kB * T) / (2 * np.pi * self.eff_masses)) / nu 
         Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
         # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
@@ -486,8 +488,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                 dFM = max(F) - min(F)
                 w.write(f'##  Free energy barier: {dFM} eV  ' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi)  NUsedConf  ##\n')
-                strformat = ('{:12.8f} ' * 7) + '\n'
+                        'cor  Fcor(xi)  NUsedConf nu(xi)  ##\n')
+                strformat = ('{:18.10f} ' * 8) + '\n'
                 for i in range(len(xi)):
                     w.write(strformat.format(xi[i],
                                              dF[i],
@@ -495,7 +497,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                              psi[i],
                                              kB * self.temperature * cor[i],
                                              Fcor[i],
-                                             ntot - len(maxjump[i])))
+                                             ntot - len(maxjump[i]),
+                                             nu[i]))
         return Fcor
 
 # ========================================================================== #
