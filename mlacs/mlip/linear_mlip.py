@@ -43,6 +43,7 @@ class LinearMlip(MlipManager):
                              energy_coefficient,
                              forces_coefficient,
                              stress_coefficient,
+                             None,
                              no_zstress)
 
         self._initialize_parameters(parameters)
