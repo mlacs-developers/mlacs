@@ -16,10 +16,10 @@ LinearMlip
 
 .. autoclass:: LinearMlip
 
-NeuralNetworkMlip
------------------
+LammpsMlipNn
+------------
 
-.. autoclass:: NeuralNetworkMlip
+.. autoclass:: LammpsMlipNn
 
 LammpsMlipInterface
 -------------------

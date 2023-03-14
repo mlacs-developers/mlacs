@@ -70,3 +70,13 @@ class MbarManager:
         """
         """
          
+        nconfs = len(self.trajectories)
+        nstates = nconfs / self.every
+        
+        for step in range(nstates):
+            calc_mlip = self.mlip_files[step]
+            for conf in range(nconfs):
+                at = self.trajectories[conf].copy()
+
+
+

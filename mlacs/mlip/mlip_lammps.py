@@ -79,7 +79,7 @@ class LammpsMlip(LinearMlip):
                  stress_coefficient=0.0,
                  rescale_energy=True,
                  rescale_forces=True,
-                 rescale_stress=True
+                 rescale_stress=True,
                  folder=None):
         LinearMlip.__init__(self,
                             atoms,
