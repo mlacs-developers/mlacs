@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ase.units import kB
+from ase.units import kB, J, kg
 from ase.io import read
 
 from .lammps_state import LammpsState
@@ -480,11 +480,10 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         maxjump = np.array(maxjump)
         F = -np.array(IntP(xi, dF, xi))
         int_xi = np.linspace(xi[0], xi[F.argmax()], len(xi)//2)
-        print(int_xi)
-        nu = np.array(IntP(xi, np.exp(- F / kB * self.temperature), int_xi))
-        print(nu)
-        nu0 = np.sqrt((kB * self.temperature) / 
-                (2 * np.pi * self.eff_masses)) / nu[-1] 
+        v = np.array(IntP(xi, np.exp(- F / kB * self.temperature), int_xi))
+        vo = np.sqrt((kB * self.temperature * J) / 
+                (2 * np.pi * self.eff_masses * kg)) / v[-1] 
+        print(vo)
         Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
         # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
@@ -492,20 +491,20 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                 dFM = max(F) - min(F)
                 w.write(f'##  Free energy barier: {dFM} eV  ' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi)  NUsedConf nu(xi)  ##\n')
+                        'cor  Fcor(xi) v(xi) vo NUsedConf ##\n')
                 strformat = ('{:18.10f} ' * 8) + ' {}\n'
                 for i in range(len(xi)):
-                    _nu = nu[-1]
-                    if i < len(nu):
-                        _nu = nu[i]
+                    _v = v[-1]
+                    if i < len(v):
+                        _v = v[i]
                     w.write(strformat.format(xi[i],
                                              dF[i],
                                              F[i],
                                              psi[i],
                                              kB * self.temperature * cor[i],
                                              Fcor[i],
-                                             _nu,
-                                             nu0,
+                                             _v,
+                                             vo,
                                              ntot - len(maxjump[i])))
         return Fcor
 
