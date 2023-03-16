@@ -481,18 +481,19 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         F = -np.array(IntP(xi, dF, xi))
         int_xi = np.linspace(xi[0], xi[F.argmax()], len(xi)//2)
         v = np.array(IntP(xi, np.exp(- F / kB * self.temperature), int_xi))
-        vo = np.sqrt((kB * self.temperature * J) / 
-                (2 * np.pi * self.eff_masses * kg)) / v[-1] 
-        print(vo)
+        vo = np.sqrt((kB * self.temperature * J) /
+                     (2 * np.pi * self.eff_masses * kg)) / v[-1]
         Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
+        dFM = max(F) - min(F)
         # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
             with open(self.workdir + 'free_energy.dat', 'w') as w:
-                dFM = max(F) - min(F)
-                w.write(f'##  Free energy barier: {dFM} eV  ' +
+                w.write(f'##  Free energy barier: {dFM} eV | ' +
+                        f'velocity: {vo} m/s | ' +
+                        f'effective mass: {self.eff_masses} uma\n' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi) v(xi) vo NUsedConf ##\n')
-                strformat = ('{:18.10f} ' * 8) + ' {}\n'
+                        'cor  Fcor(xi) v(xi) NUsedConf ##\n')
+                strformat = ('{:18.10f} ' * 7) + ' {}\n'
                 for i in range(len(xi)):
                     _v = v[-1]
                     if i < len(v):
@@ -504,9 +505,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                              kB * self.temperature * cor[i],
                                              Fcor[i],
                                              _v,
-                                             vo,
                                              ntot - len(maxjump[i])))
-        return Fcor
+        return dFM, vo, m
 
 # ========================================================================== #
     def log_recap_state(self):

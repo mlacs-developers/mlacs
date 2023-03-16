@@ -256,7 +256,6 @@ class NebLammpsState(StateManager):
         self.path_coordinates = np.arange(self.nreplica)/(self.nreplica-1)
         self.true_coordinates = np.array(true_coordinates)
         self.eff_masses = np.sum(self._compute_weight_masses() * self.masses)
-        print(self.eff_masses)
         self.true_energies = np.array([true_atoms[i].get_potential_energy()
                                        for i in range(self.nreplica)])
         self.true_energies = self.true_energies.astype(float)
@@ -370,8 +369,8 @@ class NebLammpsState(StateManager):
         Return weights for effective masse.
         """
         coordinates = np.transpose(self.true_coordinates, (1, 0, 2))
-        weight = np.array([np.max(distance.cdist(d, d, "euclidean")) 
-            for d in coordinates])
+        weight = np.array([np.max(distance.cdist(d, d, "euclidean"))
+                           for d in coordinates])
         weight = weight / np.max(weight)
         return weight
 
