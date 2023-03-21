@@ -59,6 +59,11 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         If ``True``, a Langevin thermostat is used.
         Else, a Brownian dynamic is used.
         Default ``True``
+    linearmode: :class:`Bool`
+        If ``True``, the reaction coordinate function is contructed using 
+        a linear interpolation of the true 3N coordinates. 
+        Else, the reaction coordinate function is determined using NEB.
+        Default ``False``
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
     logfile : :class:`str` (optional)
@@ -89,6 +94,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  nsteps=1000,
                  nsteps_eq=100,
                  langevin=True,
+                 linearmode=False,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
@@ -123,6 +129,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         self.nsteps_eq = nsteps_eq
         self.NEBcoord = reaction_coordinate
         self.finder = None
+        self.xilinear = linearmode
         if self.NEBcoord is None:
             self.splprec = 1001
             self.finder = []
