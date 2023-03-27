@@ -289,13 +289,42 @@ class FitFactoryLog:
         self.logger_log.info("")
 
 # ========================================================================== #
-    def print_bestfit(self, best_fit):
+    def print_bestfit(self, best_fit, metric):
         """
         """
         self.splitprint()
         cost = best_fit.pop("costfunction")
         self.logger_log.info("Among all fits, the best cost function is :")
         self.logger_log.info(f"{cost}")
+        self.logger_log.info("The fit metrics are :")
+        self.logger_log.info("Training dataset".center(30))
+        rmse_e = metric["rmse_energy_train"]
+        mae_e = metric["mae_energy_train"]
+        rmse_f = metric["rmse_forces_train"]
+        mae_f = metric["mae_forces_train"]
+        rmse_s = metric["rmse_stress_train"]
+        mae_s = metric["mae_stress_train"]
+        self.logger_log.info(f"Energy RMSE          {rmse_e:6.4f} eV/at")
+        self.logger_log.info(f"Energy MAE           {mae_e:6.4f} eV/at")
+        self.logger_log.info(f"Forces RMSE          {rmse_f:6.4f} eV/angs")
+        self.logger_log.info(f"Forces MAE           {mae_f:6.4f} eV/angs")
+        self.logger_log.info(f"Stress MAE           {rmse_s:6.4f} GPa")
+        self.logger_log.info(f"Stress MAE           {mae_s:6.4f} GPa")
+        self.logger_log.info("")
+        self.logger_log.info("Test dataset".center(30))
+        rmse_e = metric["rmse_energy_test"]
+        mae_e = metric["mae_energy_test"]
+        rmse_f = metric["rmse_forces_test"]
+        mae_f = metric["mae_forces_test"]
+        rmse_s = metric["rmse_stress_test"]
+        mae_s = metric["mae_stress_test"]
+        self.logger_log.info(f"Energy RMSE          {rmse_e:6.4f} eV/at")
+        self.logger_log.info(f"Energy MAE           {mae_e:6.4f} eV/at")
+        self.logger_log.info(f"Forces RMSE          {rmse_f:6.4f} eV/angs")
+        self.logger_log.info(f"Forces MAE           {mae_f:6.4f} eV/angs")
+        self.logger_log.info(f"Stress MAE           {rmse_s:6.4f} GPa")
+        self.logger_log.info(f"Stress MAE           {mae_s:6.4f} GPa")
+        self.logger_log.info("")
         if best_fit:
             self.logger_log.info("The corresponding hyperparameters are :")
             for key, val in best_fit.items():
@@ -305,3 +334,9 @@ class FitFactoryLog:
         self.logger_log.info("You can find the corresponding MLIP files " +
                              "in the current folder")
         self.logger_log.info("Enjoy !")
+
+# ========================================================================== #
+    def log_time(self, action, time):
+        """
+        """
+        self.logger_log.info(f"{action} took {time:10.5f} seconds")
