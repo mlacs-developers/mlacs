@@ -4,6 +4,39 @@ import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
 
+class LammpsIo:
+    """
+    """
+    def __init__(self, fix_wargs, potentials=None):
+        self._vars=dict
+
+    def __delitem__(self, key):
+        return self.vars.__delitem__(key)
+
+    def __getitem__(self, key):
+        return self.vars.__getitem__(key)
+
+    def __getitem__(self, key, value):
+        self._check_varname(key)
+        return self.vars.__setitem__(key, value)
+
+    def __str__(self):
+        return self.to_string()
+
+    def __iter__(self):
+        return self.vars.__iter__()
+
+    def __len__(self):
+        return len(self.vars)
+
+    @property
+    def vars(self):
+        return self._vars
+
+    def set_vars(self, *args, **kwargs):
+
+    
+
 # ========================================================================== #
 def get_log_input(loginterval, logfile):
     """
