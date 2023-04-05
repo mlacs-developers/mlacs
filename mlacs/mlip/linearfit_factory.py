@@ -375,36 +375,6 @@ class FitLammpsMlip:
         metric = self._compute_metrics(amat_train, ymat_train,
                                        amat_test, ymat_test,
                                        coef, folder)
-
-        # Prepare message to the log
-        msg = "Results training set\n"
-        msg += "RMSE Energy    {:.4f} eV/at\n".format(
-            metric["rmse_energy_train"])
-        msg += "MAE Energy     {:.4f} eV/at\n".format(
-            metric["mae_energy_train"])
-        msg += "RMSE Forces    {:.4f} eV/angs\n".format(
-            metric["rmse_forces_train"])
-        msg += "MAE Forces     {:.4f} eV/angs\n".format(
-            metric["mae_forces_train"])
-        msg += "RMSE Stress    {:.4f} GPa\n".format(
-            metric["rmse_stress_train"])
-        msg += "MAE Stress     {:.4f} GPa\n".format(
-            metric["mae_stress_train"])
-        msg += "\n"
-        msg += "Results test set\n"
-        msg += "RMSE Energy    {:.4f} eV/at\n".format(
-            metric["rmse_energy_test"])
-        msg += "MAE Energy     {:.4f} eV/at\n".format(
-            metric["mae_energy_test"])
-        msg += "RMSE Forces    {:.4f} eV/angs\n".format(
-            metric["rmse_forces_test"])
-        msg += "MAE Forces     {:.4f} eV/angs\n".format(
-            metric["mae_forces_test"])
-        msg += "RMSE Stress    {:.4f} GPa\n".format(
-            metric["rmse_stress_test"])
-        msg += "MAE Stress     {:.4f} GPa\n".format(
-            metric["mae_stress_test"])
-        msg += "\n"
         return metric
 
 # ========================================================================== #
