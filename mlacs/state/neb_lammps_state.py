@@ -4,17 +4,16 @@ from subprocess import run, PIPE
 import numpy as np
 
 from ase.io import write
-from ase.io.lammpsdata import (read_lammps_data,
-                               write_lammps_data)
+from ase.io.lammpsdata import (write_lammps_data)
 
 from .state import StateManager
 
 from ..utilities import (get_elements_Z_and_masses,
-                         write_lammps_NEB_ASCIIfile,
                          _create_ASE_object)
 
 from ..utilities.io_lammps import (get_general_input,
                                    get_interaction_input,
+                                   write_lammps_NEB_ASCIIfile,
                                    get_neb_input)
 
 from ..utilities import interpolate_points as IP
@@ -92,6 +91,7 @@ class NebLammpsState(StateManager):
         self._get_lammps_command_replica()
         self.fixcell = configurations[0].get_cell()
 
+        self.xilinear = False
         self.ispimd = False
         self.isrestart = False
         self.isappend = False
@@ -219,7 +219,8 @@ class NebLammpsState(StateManager):
                                               pair_coeff,
                                               model_post)
         input_string += get_neb_input(self.dt / 1000,
-                                      self.Kspring)
+                                      self.Kspring,
+                                      self.xilinear)
 
         with open(fname, "w") as f:
             f.write(input_string)
@@ -236,14 +237,7 @@ class NebLammpsState(StateManager):
         Z = self.confNEB[0].get_atomic_numbers()
         for rep in range(int(self.nreplica)):
             nebfile = self.NEBworkdir + f'neb.{rep}'
-            # RB
-            # positions, cell = _read_lammpsdata(nebfile)
-            at = read_lammps_data(nebfile,
-                                  sort_by_id=True,
-                                  style='atomic')
-            positions = at.positions
-            cell = at.get_cell()
-            # cell = self.fixcell
+            positions, cell = self._read_lammpsdata(nebfile)
             true_coordinates.append(positions)
             check = False
             with open(self.NEBworkdir + f'log.lammps.{rep}') as r:
@@ -291,7 +285,9 @@ class NebLammpsState(StateManager):
                        x, 0, border=1)
                 y = np.array(y)
                 xi = x[y.argmax()]
-        self.finder.append(xi)
+
+            if self.finder is not None:
+                self.finder.append(xi)
 
         self.spline_energies = IP(self.path_coordinates,
                                   self.true_energies,

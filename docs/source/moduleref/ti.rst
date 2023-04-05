@@ -43,6 +43,21 @@ ReversibleScalingState
 .. autoclass:: ReversibleScalingState
 
 
+.. module:: mlacs.ti.gpthermoint
+
+GpThermoIntT
+------------
+
+.. autoclass:: GpThermoIntT
+   :members: add_new_data, get_helmholtz_free_energy
+
+GpThermoIntVT
+-------------
+
+.. autoclass:: GpThermoIntVT
+   :members: add_new_data, get_helmholtz_free_energy, get_gibbs_free_energy, get_volume_from_press_temp, get_thermal_expansion
+
+
 .. module:: mlacs.ti.helpers
 
 prepare_ti

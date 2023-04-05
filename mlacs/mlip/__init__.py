@@ -5,7 +5,16 @@
 from .mlip_manager import MlipManager
 from .linear_mlip import LinearMlip
 from .mlip_lammps import LammpsMlip
-
-__all__ = ['MlipManager',
-           'LinearMlip',
-           'LammpsMlip']
+from .linearfit_factory import FitLammpsMlip
+try:
+    from .mlip_lammps_nn import LammpsMlipNn
+    __all__ = ['MlipManager',
+               'LinearMlip',
+               'LammpsMlipNn',
+               'LammpsMlip',
+               'FitLammpsMlip']
+except ImportError:
+    __all__ = ['MlipManager',
+               'LinearMlip',
+               'LammpsMlip',
+               'FitLammpsMlip']
