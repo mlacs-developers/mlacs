@@ -9,21 +9,21 @@ from mlacs.ti import ThermodynamicIntegration
 from mlacs.ti import EinsteinSolidState
 
 # Creation of the system of interest --------------------------------------------
-atoms=bulk('Au', cubic=True).repeat(1) #2048 atoms
+atoms=bulk('Au', cubic=True).repeat(8) #2048 atoms
 pair_style = "eam/alloy"
 pair_coeff = "* * /home/richard/docs/test_calphy/potentials/Au.eam.alloy Au"
 
 # Parameters --------------------------------------------------------------------
 temp = 300 # K
 # number of steps to go from the initial state to the final state
-nsteps = 25000
+nsteps = 100000
 # equilibration of the system before going through the path
-nsteps_eq = 5000
+nsteps_eq = 25000
 # steps performed to get the spring constant, which is then used to compute the
 # hamiltonien at each step
-nsteps_msd = 25000
+nsteps_msd = 50000
 # number of forward and backward orocess to be performed per state
-nrepeat = 2
+nrepeat = 5
 
 # Link LAMMPS executable -------------------------------------------------------
 lmp_exe = 'lmp_mpi'
