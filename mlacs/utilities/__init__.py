@@ -10,6 +10,7 @@ from .miscellanous import (get_elements_Z_and_masses,
                            interpolate_points,
                            compute_correlation,
                            integrate_points,
+                           normalized_integration,
                            )
 
 __all__ = ['compute_pdf',
@@ -20,4 +21,5 @@ __all__ = ['compute_pdf',
            'interpolate_points',
            'compute_correlation',
            'integrate_points',
+           'normalized_integration',
            ]

@@ -192,3 +192,4 @@ class CalcNeb:
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
+

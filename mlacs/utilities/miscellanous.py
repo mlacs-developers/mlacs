@@ -5,6 +5,8 @@
 import numpy as np
 
 from scipy import interpolate
+from scipy.fftpack import fft
+from scipy.integrate import simps
 from scipy.optimize import minimize
 
 from ase.atoms import Atoms
@@ -272,3 +274,32 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         return yf
     else:
         return float(integ(xf, tck))
+
+# ========================================================================== #
+def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
+    """
+    Compute normalized integral of y to `norm`. 
+
+    Parameters
+    ----------
+    x : :class:`numpy.array`
+    y : :class:`numpy.array`
+    norm : :class:`float`
+        Norm of the integral.
+    scale : :class:`Bool`
+        Scale x and y to the same order of magnitude to avoid numerical
+        errors.
+    func : :class:`scipy.integrate.func`
+        Scipy function for intergration (simps, trapz, ...). 
+
+    Return
+    ------
+    Scaled y
+    """
+    fx, fy = 1.0, 1.0
+    sx, sy = x, y
+    if scale:
+        fx, fy = np.abs(x).max(), np.abs(y).max()
+        sx, sy = x / fx, y / fy
+    _norm = func(sy, sx) * fx * fy
+    return y * norm / _norm

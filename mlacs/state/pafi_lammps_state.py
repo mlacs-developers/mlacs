@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ase.units import kB, J, kg
+from ase.units import kB, J, kg, m
 from ase.io import read
 
 from .lammps_state import LammpsState
@@ -489,18 +489,18 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         int_xi = np.linspace(xi[0], xi[F.argmax()], len(xi)//2)
         v = np.array(IntP(xi, np.exp(- F / kB * self.temperature), int_xi))
         vo = np.sqrt((kB * self.temperature * J) /
-                     (2 * np.pi * self.eff_masses * kg)) / v[-1]
+                     (2 * np.pi * self.eff_masses * kg)) / (v[-1] * m)
         Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
         dFM = max(F) - min(F)
         # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
             with open(self.workdir + 'free_energy.dat', 'w') as w:
                 w.write(f'##  Free energy barier: {dFM} eV | ' +
-                        f'velocity: {vo} m/s | ' +
+                        f'frequency: {vo} s-1 | ' +
                         f'effective mass: {self.eff_masses} uma\n' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
                         'cor  Fcor(xi) v(xi) NUsedConf ##\n')
-                strformat = ('{:18.10f} ' * 7) + ' {}\n'
+                strformat = ('{:18.10f} ' * 6) + ' {} {}\n'
                 for i in range(len(xi)):
                     _v = v[-1]
                     if i < len(v):
@@ -513,7 +513,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                              Fcor[i],
                                              _v,
                                              ntot - len(maxjump[i])))
-        return dFM, vo, m
+        return dFM, vo, self.eff_masses
 
 # ========================================================================== #
     def log_recap_state(self):
