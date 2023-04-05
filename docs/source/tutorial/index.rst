@@ -10,3 +10,4 @@ Tutorial
     :caption: Contents:
 
     langevin_tutorial
+    npt_nose_hoover_tutorial

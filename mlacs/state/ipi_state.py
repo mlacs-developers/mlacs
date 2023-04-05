@@ -25,7 +25,8 @@ from ..utilities.io_lammps import write_lammps_data_full
 # ========================================================================== #
 class IpiState(LammpsState):
     """
-    State Class for running a NPT simulation as implemented in LAMMPS
+    State Class for running a Path Integral MD simulation as implemented
+    in I-Pi and using sockets to compute properties with LAMMPS.
 
     Parameters
     ----------
@@ -384,7 +385,6 @@ class IpiState(LammpsState):
                                                       attrib=attrib_tmp),
                                            'v_centroid{m/s}')
                 trajarr.append(trajectory5)
-
 
         # Adding trajectory for outputs
         attrib_tmp = {'stride': str(nsteps),

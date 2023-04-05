@@ -5,8 +5,12 @@
 import numpy as np
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.calculator import CalculatorError
-from icet import ClusterSpace
-from icet.tools.structure_generation import generate_sqs_from_supercells
+try:
+    from icet import ClusterSpace
+    from icet.tools.structure_generation import generate_sqs_from_supercells
+    isicet = True
+except ImportError:
+    isicet = False
 
 from . import CalcManager
 
@@ -52,6 +56,10 @@ class DlmCalcManager(CalcManager):
                  cutoffs=[6.0, 4.0],
                  n_steps=3000):
         CalcManager.__init__(self, calc,)
+
+        if not isicet:
+            msg = "You need the icet package installed to use a DLM calculator"
+            raise ModuleNotFoundError(msg)
 
         chemsymb = [["N"]] * len(unitcell)
         for i in magnetic_sites:
