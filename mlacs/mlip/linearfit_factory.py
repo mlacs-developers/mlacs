@@ -4,6 +4,7 @@ import os
 import itertools
 import json
 import shutil
+import time
 
 import numpy as np
 from ase.units import GPa
@@ -183,9 +184,14 @@ class FitLammpsMlip:
             src = f"{folder}/MLIP.descriptor"
             dst = "MLIP.descriptor"
             shutil.copy(src, dst)
+            src = f"{folder}/metric.json"
+            dst = "metric.json"
+            shutil.copy(src, dst)
         else:
             best_fit = self._run_fitonedesc(descdct, fitparams, ".")
-        self.log.print_bestfit(best_fit)
+        with open("metric.json") as fd:
+            metric = json.load(fd)
+        self.log.print_bestfit(best_fit, metric)
 
 # ========================================================================== #
     def _split_datasets(self, testratio, removeoutliers):
@@ -259,8 +265,11 @@ class FitLammpsMlip:
         lmp_itrf = LammpsMlipInterface(self.elements, self.masses, self.Z,
                                        rcut, self.model, self.style,
                                        descdct, folder=folder)
+        t1 = time.time()
         amat_train, ymat_train, amat_test, ymat_test = \
             self._compute_descriptor(lmp_itrf, folder)
+        t2 = time.time()
+        self.log.log_time("Computing the descriptor", t2 - t1)
 
         # Now we do the splitting for the fitting hyperparameters
         listkey = [key for key in fitparams.keys()]
@@ -314,6 +323,9 @@ class FitLammpsMlip:
             src = f"{folderfit}/MLIP.model"
             dst = f"{folder}/MLIP.model"
             shutil.copy(src, dst)
+            src = f"{folderfit}/metric.json"
+            dst = f"{folder}/metric.json"
+            shutil.copy(src, dst)
         else:
             folderfit = f"{folder}/"
             res = self._run_fit(amat_train, ymat_train,
@@ -363,36 +375,6 @@ class FitLammpsMlip:
         metric = self._compute_metrics(amat_train, ymat_train,
                                        amat_test, ymat_test,
                                        coef, folder)
-
-        # Prepare message to the log
-        msg = "Results training set\n"
-        msg += "RMSE Energy    {:.4f} eV/at\n".format(
-            metric["rmse_energy_train"])
-        msg += "MAE Energy     {:.4f} eV/at\n".format(
-            metric["mae_energy_train"])
-        msg += "RMSE Forces    {:.4f} eV/angs\n".format(
-            metric["rmse_forces_train"])
-        msg += "MAE Forces     {:.4f} eV/angs\n".format(
-            metric["mae_forces_train"])
-        msg += "RMSE Stress    {:.4f} GPa\n".format(
-            metric["rmse_stress_train"])
-        msg += "MAE Stress     {:.4f} GPa\n".format(
-            metric["mae_stress_train"])
-        msg += "\n"
-        msg += "Results test set\n"
-        msg += "RMSE Energy    {:.4f} eV/at\n".format(
-            metric["rmse_energy_test"])
-        msg += "MAE Energy     {:.4f} eV/at\n".format(
-            metric["mae_energy_test"])
-        msg += "RMSE Forces    {:.4f} eV/angs\n".format(
-            metric["rmse_forces_test"])
-        msg += "MAE Forces     {:.4f} eV/angs\n".format(
-            metric["mae_forces_test"])
-        msg += "RMSE Stress    {:.4f} GPa\n".format(
-            metric["rmse_stress_test"])
-        msg += "MAE Stress     {:.4f} GPa\n".format(
-            metric["mae_stress_test"])
-        msg += "\n"
         return metric
 
 # ========================================================================== #
@@ -504,7 +486,7 @@ class FitLammpsMlip:
         ymat_s = data[1+3*natoms:]
         for idxtrain in self.idx_train[1:]:
             at = self.confs[idxtrain]
-            lmp_itrf.compute_fit_matrix(at)
+            natoms = len(at)
             descriptor, data = lmp_itrf.compute_fit_matrix(at)
             amat_etmp = descriptor[0] / natoms
             amat_ftmp = descriptor[1:1+3*natoms]
@@ -532,8 +514,7 @@ class FitLammpsMlip:
         ymat_s = data[1+3*natoms:]
         for idxtest in self.idx_test[1:]:
             at = self.confs[idxtest]
-            lmp_itrf.compute_fit_matrix(at)
-            descriptor, data = lmp_itrf.compute_fit_matrix(at)
+            natoms = len(at)
             descriptor, data = lmp_itrf.compute_fit_matrix(at)
             amat_etmp = descriptor[0] / natoms
             amat_ftmp = descriptor[1:1+3*natoms]
