@@ -41,9 +41,9 @@ class ThermodynamicIntegration:
         if isinstance(thermostate, ThermoState):
             self.state = [thermostate]
             # Create ninstance state
-            if self.ninstance > 1:
-                state_replica = self.state
-                self.state.extend(state_replica * (self.ninstance-1))
+        #    if self.ninstance > 1:
+        #        state_replica = self.state
+        #        self.state.extend(state_replica * (self.ninstance-1))
         elif isinstance(thermostate, list):
             self.state = thermostate
         else:
