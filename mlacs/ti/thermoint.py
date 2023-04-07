@@ -4,6 +4,7 @@
 """
 import os
 
+import numpy as np
 from ..utilities.thermolog import ThermoLog
 from .thermostate import ThermoState
 from concurrent.futures import ThreadPoolExecutor
@@ -56,34 +57,44 @@ class ThermodynamicIntegration:
 # ========================================================================== #
     def run(self):
         """
-        Launch the simulation
+        Launch the simulation 
         """
-        with ThreadPoolExecutor(max_workers=self.ninstance) as executor:
+        tasks=(self.ninstance*self.nstate)
+        with ThreadPoolExecutor(max_workers=tasks) as executor:
             for istate in range(self.nstate):
-                executor.submit(self._run_one_state, istate)
-                msg = f"State {istate+1}/{self.nstate} launched\n"
-                stateworkdir = self.workdir + self.state[istate].get_workdir()
-                msg += f"Working directory for this state : \n{stateworkdir}\n"
-                self.log.logger_log.info(msg)
+                if self.ninstance > 1:
+                    for i in range(self.ninstance):
+                        executor.submit(self._run_one_state, istate, i)
+                        msg = f"State {istate+1}/{self.nstate} instance_{i+1} launched\n"
+                        stateworkdir = self.workdir + self.state[istate].get_workdir() + f"for_back_{i+1}/"
+                        msg += f"Working directory for this instance of state : \n{stateworkdir}\n"
+                        self.log.logger_log.info(msg)                
+                elif self.ninstance == 1:
+                    executor.submit(self._run_one_state, istate, i=1)
+                    msg = f"State {istate+1}/{self.nstate} launched\n"
+                    stateworkdir = self.workdir + self.state[istate].get_workdir()
+                    msg += f"Working directory for this state : \n{stateworkdir}\n"
+                    self.log.logger_log.info(msg)
 
+        if self.ninstance > 1:
+            for istate in range(self.nstate):
+                self.error(istate)
 # ========================================================================== #
-    def _run_one_state(self, istate):
+    def _run_one_state(self, istate, i):
         """
         Run the simulation for one state
         """
         if self.ninstance > 1:
-            for i in range(self.ninstance):
-                stateworkdir = self.workdir + self.state[istate].get_workdir() + f"for_back_{i+1}/"
-                self.state[istate].run(stateworkdir)
-                msg = f"State {istate+1} instance_{i+1} : Molecular Dynamics Done\n"
-                msg += "Starting post-process\n"
-                self.log.logger_log.info(msg)
-                msg = '============================================================\n'
-                msg += f"State {istate+1} instance_{i+1}: Post-process Done\n"
-                msg += self.state[istate].postprocess(stateworkdir)
-                msg += '============================================================\n'
-                self.log.logger_log.info(msg)
-            self.error(istate)
+            stateworkdir = self.workdir + self.state[istate].get_workdir() + f"for_back_{i+1}/"
+            self.state[istate].run(stateworkdir)
+            msg = f"State {istate+1} instance_{i+1} : Molecular Dynamics Done\n"
+            msg += "Starting post-process\n"
+            self.log.logger_log.info(msg)
+            msg = '============================================================\n'
+            msg += f"State {istate+1} instance_{i+1}: Post-process Done\n"
+            msg += self.state[istate].postprocess(stateworkdir)
+            msg += '============================================================\n'
+            self.log.logger_log.info(msg)
         elif self.ninstance == 1: 
             stateworkdir = self.workdir + self.state[istate].get_workdir()
             self.state[istate].run(stateworkdir)
@@ -111,14 +122,13 @@ class ThermodynamicIntegration:
     def error(self, istate):
         """
         Error and average in free energy instances for one state
-        Computed is ninstance > 1
+        Computed if ninstance > 1
         """
-        import numpy as np
-        
+
         stateworkdir = self.workdir + self.state[istate].get_workdir()
         fe = []
-        for j in range(self.ninstance):
-            tmp_fe = np.loadtxt(stateworkdir + f"for_back_{j+1}/" + f"free_energy.dat")
+        for i in range(self.ninstance):
+            tmp_fe = np.loadtxt(stateworkdir + f"for_back_{i+1}/" + f"free_energy.dat")
             fe.append(tmp_fe[1])
         ferr = np.std(fe, axis = 0)
         femean = np.mean(fe, axis = 0)
