@@ -6,7 +6,7 @@ from ase.io import write as asewrite
 from ase.calculators.emt import EMT
 from ase.calculators.lammpsrun import LAMMPS
 
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import SnapDescriptor, LinearPotential
 from mlacs.state import PafiLammpsState
 from mlacs.properties import CalcMfep, CalcNeb
 from mlacs import OtfMlacs
@@ -50,7 +50,8 @@ calc = EMT()
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(neb[0], rcut=rcut, descriptor_parameters=mlip_params)
+descriptor = SnapDescriptor(neb[0], rcut, mlip_params)
+mlip = LinearPotential(descriptor)
 
 # Creation of the Property Manager
 xi = np.arange(0, 1.1, 0.1)

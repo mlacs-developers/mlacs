@@ -7,7 +7,7 @@ from ase.calculators.emt import EMT
 from ase.calculators.lammpsrun import LAMMPS
 
 from mlacs import OtfMlacs
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import SnapDescriptor, LinearPotential
 from mlacs.state import NebLammpsState
 from mlacs.properties import CalcNeb
 
@@ -50,9 +50,8 @@ calc = EMT()
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(neb[0], rcut=rcut, 
-                  stress_coefficient=1.0, 
-                  descriptor_parameters=mlip_params)
+descriptor = SnapDescriptor(neb[0], rcut, mlip_params)
+mlip = LinearPotential(descriptor, stress_coefficient=1.0)
               
 # Creation of the State Manager
 mode = 'rdm_memory'  # Sampling method along the reaction path:
