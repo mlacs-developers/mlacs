@@ -12,7 +12,7 @@ from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from .mlip import LammpsMlip
+from .mlip import LinearPotential, MliapDescriptor
 from .calc import CalcManager
 from .properties import PropertyManager
 from .state import StateManager
@@ -90,7 +90,8 @@ class OtfMlacs:
 
         # Create mlip object
         if mlip is None:
-            self.mlip = LammpsMlip(self.atoms[0])  # Default MLIP Manager
+            descriptor = MliapDescriptor(self.atoms[0], 5.0)
+            self.mlip = LinearPotential(descriptor)
         else:
             self.mlip = mlip
 
@@ -130,7 +131,7 @@ class OtfMlacs:
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
-        self.log.recap_mlip(self.mlip.get_mlip_dict())
+        self.log.logger_log.info(repr(self.mlip))
 
         # We initialize momenta and parameters for training configurations
         if not self.launched:

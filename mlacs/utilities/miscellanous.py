@@ -50,7 +50,9 @@ def get_elements_Z_and_masses(supercell):
 
     if np.allclose(un_charges, 0.0, atol=1e-8):
         un_charges = None
-    return un_elements, un_Z, un_masses, un_charges
+    un_elements = np.array(un_elements)
+    un_Z = np.array(un_Z)
+    return np.array(un_elements), un_Z, un_masses, un_charges
 
 
 # ========================================================================== #
