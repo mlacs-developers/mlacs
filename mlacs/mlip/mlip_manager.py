@@ -31,6 +31,10 @@ class MlipManager:
         self.amat_f = None
         self.amat_s = None
 
+        self.ymat_e = None
+        self.ymat_f = None
+        self.ymat_s = None
+
         self.mbar = None
         if kargs_mbar is not None:
             from . import MbarManager
