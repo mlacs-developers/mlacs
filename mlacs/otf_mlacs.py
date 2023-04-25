@@ -94,6 +94,7 @@ class OtfMlacs:
             self.mlip = LinearPotential(descriptor)
         else:
             self.mlip = mlip
+        self.mlip.nthrow = max(self.neq)
 
         # Create property object
         if prop is None:
@@ -296,8 +297,8 @@ class OtfMlacs:
                                self.nbeads)
         else:
             for istate in range(self.nstate):
-                if self.state[istate].isrestart:
-                    msg = "Starting from first configuration\n"
+                if self.state[istate].isrestart or eq[istate]:
+                    msg = " -> Starting from first atomic configuration"
                     self.log.logger_log.info(msg)
                     atoms_mlip[istate] = self.atoms_start[istate].copy()
                     self.state[istate].initialize_momenta(atoms_mlip[istate])

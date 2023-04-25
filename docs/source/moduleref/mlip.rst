@@ -11,27 +11,51 @@ MlipManager
 
 .. autoclass:: MlipManager
 
-LinearMlip
+Descriptors
+===========
+
+Descriptor
 ----------
 
-.. autoclass:: LinearMlip
+.. autoclass:: mlacs.mlip.descriptor.Descriptor
 
-LammpsMlipNn
-------------
-
-.. autoclass:: LammpsMlipNn
-
-LammpsMlipInterface
--------------------
-
-.. autoclass:: mlacs.mlip.mlip_lammps_interface.LammpsMlipInterface
-
-LammpsMlip
-----------
-
-.. autoclass:: LammpsMlip
-
-FitLammpsMlip
+SumDescriptor
 -------------
 
-.. autoclass:: FitLammpsMlip
+.. autoclass:: SumDescriptor
+
+OneBody
+-------
+
+.. autoclass:: OneBody
+
+ChebyPair
+---------
+
+.. autoclass:: ChebyPair
+
+MliapDescriptor
+---------------
+
+.. autoclass:: MliapDescriptor
+
+SnapDescriptor
+--------------
+
+.. autoclass:: SnapDescriptor
+
+Potential Model
+===============
+
+LinearPotential
+---------------
+
+.. autoclass:: LinearPotential
+
+Active learning
+===============
+
+MBAR
+----
+
+.. autoclass:: MbarManager 
