@@ -17,11 +17,12 @@ class MlipManager:
                  nthrow=10,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 stress_coefficient=0.0,
-                 kargs_mbar=None,
+                 stress_coefficient=1.0,
+                 mbar=None,
                  no_zstress=False):
 
         self.descriptor = descriptor
+        self.mbar = mbar
 
         self.ecoef = energy_coefficient
         self.fcoef = forces_coefficient
@@ -34,11 +35,6 @@ class MlipManager:
         self.ymat_e = None
         self.ymat_f = None
         self.ymat_s = None
-
-        self.mbar = None
-        if kargs_mbar is not None:
-            from . import MbarManager
-            self.mbar = MbarManager.__init__(**kargs_mbar)
 
         self.no_zstress = no_zstress
 

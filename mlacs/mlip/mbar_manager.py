@@ -2,81 +2,77 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import numpy as np
+
+from ase.units import kB, GPa
 from pymbar.mbar import MBAR
 
 # ========================================================================== #
 # ========================================================================== #
 class MbarManager:
     """
-    MLIP Manager Class to interface with the ML-IAP package
+    M
 
     Parameters
     ----------
-    atoms : :class:`ase.atoms`
-        Should contains the same elements as the main simulation
-    rcut : :class:`float` (optional)
-        Cutoff radius, in angstrom. Default 5.0.
-    model : ``\"linear\"`` or ``\"quadratic\"`` (optional)
-        Model of the MLIP. Quadratic increase accuracy at the cost
-        of an exponential augmentation of the number of coefficients.
-        Default ``\"linear\"``.
-    style : \"snap\"`` or ``\"so3\"`` (optional)
-        Style of the descriptor. 'snap' is based on the extension of
-        the atomic environment on the 4-sphere.
-        Default ``\"snap\"``.
-    mlip_parameters: :class:`dict`
-        Dictionnary containing the parameters for the MLIP
-    radelems : :class:`list` (optional)
-        Cutoff scaling factor for each elements.
-        If ``None``, 0.5 for each elements. Default ``None``.
-    welems : :class:`list` (optional)
-        :class:`list` of the weight of each atomic type in the descriptor.
-        If ``None``, the weight is given by
-        :math: ̀\\frac{Z_i}{\\sum_i Z_i} ̀
-    no_zstress: :class:`bool` (optional)
-        If `True`, the Z components of the stress is not fitted.
-        Can be useful to study 2D materials (Default False)
-    nthrow: :class:`int` (optional)
-        Number of initial configuration to throw
-        as the simulation runs (Counting the training configurations).
-        Default ``10``.
-    energy_coefficient : :class:`float` (optional)
-        Parameter controlling the importance of energy
-        in the fitting of the MLIP. Default ``1.0``.
-    forces_coefficient : :class:`float` (optional)
-        Parameter controlling the importance of forces
-        in the fitting of the MLIP. Default ``1.0``.
-    stress_coefficient : :class:`float` (optional)
-        Parameter controlling the importance of stress
-        in the fitting of the MLIP. Default ``0.0``.
-    rescale_energy : :class:`Bool` (optional)
-        If true, the energy data are divided by
-        its standard deviation before the fit. Default ``True``.
-    rescale_forces : :class:`Bool` (optional)
-        If true, the forces data are divided by
-        its standard deviation before the fit. Default ``True``.
-    rescale_stress : :class:`Bool` (optional)
-        If true, the stress data are divided by
-        its standard deviation before the fit. Default ``True``.
     """
-    def __init__(self):
+    def __init__(self, 
+                 weight=None,
+                 solver='L-BFGS-B'):
         """
         Initialisation
         """
-
+        self.weight = weight
+        self.weight_mat = []
+        if self.weight is not None:
+            self.weight_mat.append(self.weight)
+        self.solver = solver
+        self.mlip_amat = []
+        self.mlip_coef = []
+        self.database = None
 
 # ========================================================================== #
-    def _compute_weights(self):
+    def _compute_weight(self):
+        """
+        """ 
+        mbar = MBAR(u_kn, len(self.database), 
+                    solver_protocol={'method':self.solver}) 
+        self.weight_mat.append(mbar.getWeights()[:,-1])
+        return self.weight_mat[-1]
+
+# ========================================================================== #
+    def get_mlip_energy(self, amat_e, coefficient):
+        """
+        """ 
+        return np.einsum('ij,j->i', amat_e, coefficient)
+
+# ========================================================================== #
+    def _init_weight(self, conf):
+        """
+        Initialize the weight matrice.
+        """
+        nconf = len(conf)
+        weight = np.ones(nconf) / nconf 
+        if nconf <= 2:  
+            return weight
+        nef = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
+        if nef > 1.5 * self.every:
+            weight = 0.0 * weight
+            weight[self.every:] = self.weight[-1]
+            return weight
+        weight = 0.1 * weight
+        weight[self.every:] += self.weight[-1] 
+        return weight / np.sum(weight) 
+
+# ========================================================================== #
+    def _get_ukn(self, a, c):
         """
         """
-         
-        nconfs = len(self.trajectories)
-        nstates = nconfs / self.every
-        
-        for step in range(nstates):
-            calc_mlip = self.mlip_files[step]
-            for conf in range(nconfs):
-                at = self.trajectories[conf].copy()
-
-
-
+        P = np.zeros(len(self.database))
+        T = np.array([_.get_temperature() for _ in self.database])
+        V = np.array([_.get_volume() for _ in self.database])
+        if np.abs(np.diff(V)).sum() != 0.0:
+            P = np.array([-np.sum(_.get_stress()[:3]) / 3 
+                for _ in self.database])
+        ukn = (self.get_mlip_energy(a, c) + P * V * GPa) / kB * T 
+        return ukn 

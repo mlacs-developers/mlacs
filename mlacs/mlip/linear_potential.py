@@ -24,13 +24,15 @@ class LinearPotential(MlipManager):
                  parameters={},
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 stress_coefficient=1.0):
+                 stress_coefficient=1.0,
+                 mbar=None):
         MlipManager.__init__(self,
                              descriptor,
                              nthrow,
                              energy_coefficient,
                              forces_coefficient,
-                             stress_coefficient)
+                             stress_coefficient,
+                             mbar)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)
@@ -69,6 +71,12 @@ class LinearPotential(MlipManager):
         ymat = np.r_[ymat_e * ecoef,
                      ymat_f * fcoef,
                      ymat_s * scoef]
+
+        if self.mbar is not None:
+            self.mbar.mlip_amat.append(amat_e)
+            self.mbar.mlip_coef.append(self.coefficients)
+            amat = amat * self.mbar.weight
+            ymat = ymat * self.mbar.weight
 
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,

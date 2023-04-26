@@ -261,6 +261,8 @@ class OtfMlacs:
         # Training MLIP
         msg = "Training new MLIP\n"
         self.log.logger_log.info(msg)
+        if self.mlip.mbar is not None:
+            self.mlip.mbar.database = self.traj 
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
 
