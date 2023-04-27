@@ -29,15 +29,15 @@ class MbarManager:
         """
         self.every = every
         self.nthrow = nthrow
-        self.weight = weight
+        self.database = database
         self.W = None
-        self.weight_mat = []
-        if self.weight is not None:
-            self.weight_mat.append(self.weight)
+        self.weight = []
+        if weight is not None:
+            self.weight.append(weight)
+            self.W = self._construct_Wmat(weight)
         self.solver = solver
         self.mlip_amat = []
         self.mlip_coef = []
-        self.database = None
 
 # ========================================================================== #
     def update_weight(self):
@@ -47,7 +47,8 @@ class MbarManager:
         ukn = np.zeros(shape)
         for istep, coeff in enumerate(self.mlip_coef):
             ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
-        self.weight = self._compute_weight(ukn)
+        weight = self._compute_weight(ukn)
+        self.W = self._construct_Wmat(weight)
 
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
@@ -56,16 +57,16 @@ class MbarManager:
         f_mlip = np.einsum('ij,j->i', amat_f, coeff)
         s_mlip = np.einsum('ij,j->i', amat_s, coeff)
 
-        reweight = self._reweight_conf()
+        w_efs = self._build_W_efs()
 
-        rmse_e = np.sqrt(np.mean(reweight[0] * (ymat_e - e_mlip)**2))
-        mae_e = np.mean(reweight[0] * np.abs(ymat_e - e_mlip))
+        rmse_e = np.sqrt(np.mean(w_efs[0] * (ymat_e - e_mlip)**2))
+        mae_e = np.mean(w_efs[0] * np.abs(ymat_e - e_mlip))
 
-        rmse_f = np.sqrt(np.mean(reweight[1] * (ymat_f - f_mlip)**2))
-        mae_f = np.mean(reweight[1] * np.abs(ymat_f - f_mlip))
+        rmse_f = np.sqrt(np.mean(w_efs[1] * (ymat_f - f_mlip)**2))
+        mae_f = np.mean(w_efs[1] * np.abs(ymat_f - f_mlip))
 
-        rmse_s = np.sqrt(np.mean(reweight[2] * ((ymat_s - s_mlip) / GPa)**2))
-        mae_s = np.mean(reweight[2] * np.abs((ymat_s - s_mlip) / GPa))
+        rmse_s = np.sqrt(np.mean(w_efs[2] * ((ymat_s - s_mlip) / GPa)**2))
+        mae_s = np.mean(w_efs[2] * np.abs((ymat_s - s_mlip) / GPa))
 
         # Prepare message to the log
         msg += f"RMSE Energy    {rmse_e:.4f} eV/at\n"
@@ -102,14 +103,20 @@ class MbarManager:
         """
         mbar = MBAR(ukn, len(self.database),
                     solver_protocol={'method': self.solver})
-        self.weight_mat.append(mbar.getWeights()[:, -1])
-        return self.weight_mat[-1]
+        self.weight.append(mbar.getWeights()[:, -1])
+        return self.weight[-1]
 
 # ========================================================================== #
     def get_mlip_energy(self, amat_e, coefficient):
         """
         """
         return np.einsum('ij,j->i', amat_e, coefficient)
+
+# ========================================================================== #
+    def get_effective_conf(self):
+        """
+        """
+        return np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
 
 # ========================================================================== #
     def _init_weight(self):
@@ -120,13 +127,13 @@ class MbarManager:
         weight = np.ones(nconf) / nconf
         if nconf <= self.nthrow:
             return weight
-        nef = np.sum(self.weight_mat[-1])**2 / np.sum(self.weight_mat[-1]**2)
+        nef = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
         if nef > 1.5 * self.every:
             weight = 0.0 * weight
-            weight[self.every:] = self.weight_mat[-1]
+            weight[:-self.every] = self.weight[-1]
             return weight
         weight = 0.1 * weight
-        weight[self.every:] += self.weight_mat[-1]
+        weight[:-self.every] += self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -145,6 +152,11 @@ class MbarManager:
         return ukn
 
 # ========================================================================== #
-    def _reweight_conf(self):
+    def _build_W_efs(self):
+        """
+        """
+
+# ========================================================================== #
+    def _constuct_Wmat(self):
         """
         """
