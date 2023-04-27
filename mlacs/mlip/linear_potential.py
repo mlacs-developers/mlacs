@@ -75,8 +75,9 @@ class LinearPotential(MlipManager):
         if self.mbar is not None:
             self.mbar.mlip_amat.append(amat_e)
             self.mbar.mlip_coef.append(self.coefficients)
-            amat = amat * self.mbar.weight
-            ymat = ymat * self.mbar.weight
+            self.mbar.update_weight()
+            amat = amat * self.mbar.W
+            ymat = ymat * self.mbar.W
 
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
@@ -95,10 +96,15 @@ class LinearPotential(MlipManager):
               f"{len(self.natoms[idx_e:]):}\n"
         msg += "number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n"
+        if self.mbar is None:
+            msg = self.compute_tests(amat_e, amat_f, amat_s,
+                                     ymat_e, ymat_f, ymat_s,
+                                     msg)
+        else:
+            msg = self.mbar.compute_tests(amat_e, amat_f, amat_s,
+                                          ymat_e, ymat_f, ymat_s,
+                                          self.coefficients, msg)
 
-        msg = self.compute_tests(amat_e, amat_f, amat_s,
-                                 ymat_e, ymat_f, ymat_s,
-                                 msg)
         self.descriptor.write_mlip(self.coefficients)
         self.init_calc()
         return msg
