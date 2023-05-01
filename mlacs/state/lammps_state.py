@@ -18,8 +18,7 @@ from ..utilities.io_lammps import (get_general_input,
                                    get_traj_input,
                                    get_diffusion_input,
                                    get_interaction_input,
-                                   get_last_dump_input,
-                                   write_lammps_data_full)
+                                   get_last_dump_input)
 
 
 # ========================================================================== #
@@ -160,22 +159,18 @@ class LammpsState(StateManager):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     pair_style,
-                     pair_coeff,
-                     model_post=None,
-                     atom_style="atomic",
-                     bonds=None,
-                     angles=None,
-                     bond_style=None,
-                     bond_coeff=None,
-                     angle_style=None,
-                     angle_coeff=None,
+                     model,
                      eq=False):
         """
         Function to run the dynamics
         """
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
+
+        pair_style = model.pair_style
+        pair_coeff = model.pair_coeff
+        model_post = model.model_post
+        atom_style = model.atom_style
 
         if atom_style is None:
             atom_style = "atomic"
@@ -204,18 +199,10 @@ class LammpsState(StateManager):
             MaxwellBoltzmannDistribution(atoms,
                                          temperature_K=temp,
                                          rng=self.rng)
-
-        if atom_style == 'full':
-            write_lammps_data_full(self.workdir + self.atomsfname,
-                                   atoms,
-                                   bonds=bonds,
-                                   angles=angles,
-                                   velocities=True)
-        else:
-            write_lammps_data(self.workdir + self.atomsfname,
-                              atoms,
-                              velocities=True,
-                              atom_style=atom_style)
+        write_lammps_data(self.workdir + self.atomsfname,
+                          atoms,
+                          velocities=True,
+                          atom_style=atom_style)
 
         if eq:
             nsteps = self.nsteps_eq
@@ -224,10 +211,6 @@ class LammpsState(StateManager):
 
         self.write_lammps_input(atoms,
                                 atom_style,
-                                bond_style,
-                                bond_coeff,
-                                angle_style,
-                                angle_coeff,
                                 pair_style,
                                 pair_coeff,
                                 model_post,
@@ -243,6 +226,7 @@ class LammpsState(StateManager):
                          stderr=PIPE)
 
         if lmp_handle.returncode != 0:
+            print(lmp_handle.returncode)
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
@@ -281,10 +265,6 @@ class LammpsState(StateManager):
     def write_lammps_input(self,
                            atoms,
                            atom_style,
-                           bond_style,
-                           bond_coeff,
-                           angle_style,
-                           angle_coeff,
                            pair_style,
                            pair_coeff,
                            model_post,
@@ -302,11 +282,7 @@ class LammpsState(StateManager):
                                           masses,
                                           charges,
                                           atom_style)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
+        input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
         input_string += self.get_thermostat_input(temp, press)

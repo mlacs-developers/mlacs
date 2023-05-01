@@ -23,7 +23,8 @@ def plot_correlation(ax,
                      cmap="inferno",
                      showrmse=True,
                      showmae=True,
-                     showrsquared=True):
+                     showrsquared=True,
+                     size=25):
     """
     Function to plot the correlation between true and model data on an axes
 
@@ -76,11 +77,12 @@ def plot_correlation(ax,
         norm = mpl.colors.LogNorm(z.min(), z.max())
         idx = z.argsort()
         ax.scatter(datatrue[idx], datatest[idx], c=z[idx],
-                   linewidths=5, norm=norm, s=50, cmap=cmap)
+                   linewidths=5, norm=norm, s=size, cmap=cmap)
     else:
         ax.plot(datatrue, datatest, ls="", marker="o",
-                c=color, rasterized=True)
-    ax.plot(minmax, minmax, ls="--", alpha=0.75, c=grey)
+                c=color, rasterized=True, markersize=size,
+                markeredgewidth=size/5)
+    ax.plot(minmax, minmax, ls="--", alpha=0.75, c=red)
 
     if datatype is not None:
         if datatype == "energy":

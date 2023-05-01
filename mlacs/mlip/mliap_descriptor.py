@@ -4,7 +4,6 @@ from subprocess import run, PIPE
 
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
-# from ase.units import GPa
 
 from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor, combine_reg
@@ -26,15 +25,33 @@ default_so3 = {"nmax": 4,
 # ========================================================================== #
 class MliapDescriptor(Descriptor):
     """
+    Interface to the MLIAP potential of LAMMPS.
+
+    Parameters
+    ----------
+    atoms : :class:`ase.atoms`
+        Reference structure, with the elements for the descriptor
+    rcut: :class:`float`
+        The cutoff of the descriptor, in angstrom
+        Default 5.0
+    parameters: :class:`dict`
+        A dictionnary of parameters for the descriptor input
+    model: :class:`str`
+        The type of model use. Can be either 'linear' or 'quadratic'
+        Default `linear`
+    style: :class:`str`
+        The style of the descriptor used. Can be either 'snap' or 'so3'
+        Default 'snap'
+    alpha: :class:`float`
+        The multiplication factor to the regularization parameter for
+        ridge regression.
+        Default 1.0
     """
-    def __init__(self, atoms, rcut, parameters={},
-                 model="linear", style="snap", folder=None):
-        chemflag = parameters.pop("chemflag", False)
-        Descriptor.__init__(self, atoms, rcut, chemflag)
-        if folder is None:
-            self.folder = Path().absolute()
-        else:
-            self.folder = Path(folder)
+    def __init__(self, atoms, rcut=5.0, parameters={},
+                 model="linear", style="snap", alpha=1.0, folder="Mliap"):
+        self.chemflag = parameters.pop("chemflag", False)
+        Descriptor.__init__(self, atoms, rcut, alpha)
+        self.folder = Path(folder).absolute()
 
         self.model = model
         self.style = style
@@ -81,6 +98,8 @@ class MliapDescriptor(Descriptor):
     def _compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
+        self.folder.mkdir(parents=True, exist_ok=True)
+
         nat = len(atoms)
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
@@ -100,7 +119,6 @@ class MliapDescriptor(Descriptor):
         bispectrum = np.loadtxt(self.folder / "descriptor.out",
                                 skiprows=4)
         bispectrum[-6:, 1:-1] /= -atoms.get_volume()
-        # bispectrum[-6:, -1] *= GPa * 1e-4
 
         amat_e[0] = bispectrum[0, 1:-1]
         amat_f = bispectrum[1:3*nat+1, 1:-1]
@@ -221,15 +239,10 @@ class MliapDescriptor(Descriptor):
                 f.write("bnormflag    1\n")
 
 # ========================================================================== #
-    def write_mlip(self, coefficients, folder=None, comments=""):
+    def write_mlip(self, coefficients, comments=""):
         """
         """
-        if folder is None:
-            folder = Path().absolute()
-        else:
-            folder = Path(folder).absolute()
-
-        with open(folder / "MLIP.model", "w") as fd:
+        with open(self.folder / "MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")

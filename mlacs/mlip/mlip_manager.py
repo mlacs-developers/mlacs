@@ -40,12 +40,6 @@ class MlipManager:
         self.pair_coeff = None
         self.model_post = None
         self.atom_style = "atomic"
-        self.bonds = None
-        self.angles = None
-        self.bond_style = None
-        self.bond_coeff = None
-        self.angle_style = None
-        self.angle_coeff = None
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -55,7 +49,10 @@ class MlipManager:
             atoms = [atoms]
         amat_all = self.descriptor.calculate(atoms)
         energy = np.array([at.get_potential_energy() for at in atoms])
-        forces = np.array([at.get_forces() for at in atoms]).flatten()
+        forces = []
+        for at in atoms:
+            forces.extend(at.get_forces().flatten())
+        forces = np.array(forces)
         stress = np.array([at.get_stress() for at in atoms]).flatten()
         nat = np.array([len(at) for at in atoms])
 
@@ -89,12 +86,6 @@ class MlipManager:
         raise NotImplementedError
 
 # ========================================================================== #
-    def get_mlip_dict(self):
-        """
-        """
-        raise NotImplementedError
-
-# ========================================================================== #
     def _get_idx_fit(self):
         """
         """
@@ -107,3 +98,35 @@ class MlipManager:
         idx_f = 3 * self.natoms[:idx_e].sum()
         idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
+
+
+# ========================================================================== #
+# ========================================================================== #
+class SelfMlipManager(MlipManager):
+    """
+    Mlip manager for model that both compute the descriptor and takes
+    care of the regression (ex. MTP, POD)
+    """
+    def __init__(self,
+                 descriptor,
+                 nthrow=10,
+                 energy_coefficient=1.0,
+                 forces_coefficient=1.0,
+                 stress_coefficient=0.0):
+        MlipManager.__init__(self, descriptor, nthrow,
+                             energy_coefficient, forces_coefficient,
+                             stress_coefficient)
+        self.configurations = []
+        self.natoms = []
+
+# ========================================================================== #
+    def update_matrices(self, atoms):
+        """
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+        nat = np.array([len(at) for at in atoms], dtype=int)
+        self.configurations.extend(atoms)
+        self.natoms = np.append(self.natoms, nat)
+        self.natoms = np.array(self.natoms, dtype=int)
+        self.nconfs += len(atoms)

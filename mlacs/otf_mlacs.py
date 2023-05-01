@@ -282,16 +282,7 @@ class OtfMlacs:
         if self.pimd:
             atoms_mlip = self.state[istate].run_dynamics(
                                atoms_mlip[istate],
-                               self.mlip.pair_style,
-                               self.mlip.pair_coeff,
-                               self.mlip.model_post,
-                               self.mlip.atom_style,
-                               self.mlip.bonds,
-                               self.mlip.angles,
-                               self.mlip.bond_style,
-                               self.mlip.bond_coeff,
-                               self.mlip.angle_style,
-                               self.mlip.angle_coeff,
+                               self.mlip,
                                eq[istate],
                                self.nbeads)
         else:
@@ -307,16 +298,7 @@ class OtfMlacs:
                 for istate in range(self.nstate):
                     exe = executor.submit(self.state[istate].run_dynamics,
                                           *(atoms_mlip[istate],
-                                            self.mlip.pair_style,
-                                            self.mlip.pair_coeff,
-                                            self.mlip.model_post,
-                                            self.mlip.atom_style,
-                                            self.mlip.bonds,
-                                            self.mlip.angles,
-                                            self.mlip.bond_style,
-                                            self.mlip.bond_coeff,
-                                            self.mlip.angle_style,
-                                            self.mlip.angle_coeff,
+                                            self.mlip,
                                             eq[istate]))
                     futures.append(exe)
                     msg = f"State {istate+1}/{self.nstate} has been launched"
@@ -325,7 +307,7 @@ class OtfMlacs:
                     atoms_mlip[istate] = exe.result()
 
         for i, at in enumerate(atoms_mlip):
-            at.calc = self.mlip.calc
+            at.calc = self.mlip.get_calculator()
             sp_calc_mlip.append(SinglePointCalculator(
                                 at,
                                 energy=at.get_potential_energy(),

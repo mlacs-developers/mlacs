@@ -18,7 +18,6 @@ from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
 from . import LammpsState
 from ..utilities import get_elements_Z_and_masses
-from ..utilities.io_lammps import write_lammps_data_full
 
 
 # ========================================================================== #
@@ -207,16 +206,7 @@ class IpiState(LammpsState):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     pair_style,
-                     pair_coeff,
-                     model_post=None,
-                     atom_style="atomic",
-                     bonds=None,
-                     angles=None,
-                     bond_style=None,
-                     bond_coeff=None,
-                     angle_style=None,
-                     angle_coeff=None,
+                     model,
                      eq=False,
                      nbeads=1):
         """
@@ -224,26 +214,19 @@ class IpiState(LammpsState):
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
+        pair_style = model.pair_style
+        pair_coeff = model.pair_coeff
+        model_post = model.model_post
+        atom_style = model.atom_style
+
         atoms = supercell.copy()
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        if atom_style == 'full':
-            write_lammps_data_full(self.workdir + self.atomsfname,
-                                   atoms,
-                                   bonds=bonds,
-                                   angles=angles,
-                                   velocities=True)
-        else:
-            if charges is None:
-                write_lammps_data(self.workdir + self.atomsfname,
-                                  atoms,
-                                  velocities=True)
-            else:
-                write_lammps_data(self.workdir + self.atomsfname,
-                                  atoms,
-                                  velocities=True,
-                                  atom_style="charge")
+        write_lammps_data(self.workdir + self.atomsfname,
+                          atoms,
+                          velocities=True,
+                          atom_style=atom_style)
         pbc = atoms.pbc  # We need it when reading the simulation
 
         self.initialize_momenta(atoms)
@@ -258,10 +241,6 @@ class IpiState(LammpsState):
         write(self.workdir + self.ipiatomsfname, atomswrite, format='xyz')
         self.write_lammps_input(atoms,
                                 atom_style,
-                                bond_style,
-                                bond_coeff,
-                                angle_style,
-                                angle_coeff,
                                 pair_style,
                                 pair_coeff,
                                 model_post,

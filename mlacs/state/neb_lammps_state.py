@@ -99,16 +99,7 @@ class NebLammpsState(StateManager):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     pair_style,
-                     pair_coeff,
-                     model_post=None,
-                     atom_style="atomic",
-                     bonds=None,
-                     angles=None,
-                     bond_style=None,
-                     bond_coeff=None,
-                     angle_style=None,
-                     angle_coeff=None,
+                     model,
                      eq=False,
                      workdir=None):
         """
@@ -211,11 +202,7 @@ class NebLammpsState(StateManager):
                                           atom_style,
                                           filename,
                                           custom)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
+        input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
         input_string += get_neb_input(self.dt / 1000,

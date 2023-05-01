@@ -4,7 +4,6 @@ from subprocess import run, PIPE
 
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
-# from ase.units import GPa
 
 from ..utilities import get_elements_Z_and_masses
 from .mliap_descriptor import default_snap
@@ -15,15 +14,35 @@ from .descriptor import Descriptor, combine_reg
 # ========================================================================== #
 class SnapDescriptor(Descriptor):
     """
+    Interface to the SNAP potential of LAMMPS.
+
+    Parameters
+    ----------
+    atoms : :class:`ase.atoms`
+        Reference structure, with the elements for the descriptor
+    rcut: :class:`float`
+        The cutoff of the descriptor, in angstrom
+        Default 5.0
+    parameters: :class:`dict`
+        A dictionnary of parameters for the descriptor input
+    model: :class:`str`
+        The type of model use. Can be either 'linear' or 'quadratic'
+        Default `linear`
+    alpha: :class:`float`
+        The multiplication factor to the regularization parameter for
+        ridge regression.
+        Default 1.0
+    alpha_quad: :class:`float`
+        A multiplication factor for the regularization that apply only to
+        the quadratic component of the descriptor
+        Default 1.0
     """
-    def __init__(self, atoms, rcut, parameters={},
-                 model="linear", folder=None):
-        chemflag = parameters.pop("chemflag", False)
-        Descriptor.__init__(self, atoms, rcut, chemflag)
-        if folder is None:
-            self.folder = Path().absolute()
-        else:
-            self.folder = Path(folder)
+    def __init__(self, atoms, rcut=5.0, parameters=dict(),
+                 model="linear", alpha=1.0, alpha_quad=1.0, folder="Snap"):
+        self.chemflag = parameters.get("chemflag", 0)
+        Descriptor.__init__(self, atoms, rcut, alpha)
+        self.alpha_quad = alpha_quad
+        self.folder = Path(folder).absolute()
         self.get_pair_style_coeff()
 
         self.model = model
@@ -49,6 +68,8 @@ class SnapDescriptor(Descriptor):
         if self.chemflag:
             self.ndesc *= self.nel**3
         if self.model == "quadratic":
+            self.ndesc_quad = int(self.ndesc * (self.ndesc + 1) / 2)
+            self.ndesc_lin = self.ndesc
             self.ndesc += int(self.ndesc * (self.ndesc + 1) / 2)
         self.ncolumns = int(self.nel * (self.ndesc + 1))
 
@@ -62,6 +83,8 @@ class SnapDescriptor(Descriptor):
     def _compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
+        self.folder.mkdir(parents=True, exist_ok=True)
+
         nat = len(atoms)
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
         chemsymb = np.array(atoms.get_chemical_symbols())
@@ -82,7 +105,6 @@ class SnapDescriptor(Descriptor):
         bispectrum = np.loadtxt(self.folder / "descriptor.out",
                                 skiprows=4)
         bispectrum[-6:, 1:-1] /= -atoms.get_volume()
-        # bispectrum[-6:, -1] *= GPa * 1e-4
 
         amat_e[0, self.nel:] = bispectrum[0, 1:-1]
         amat_f[:, self.nel:] = bispectrum[1:3*nat+1, 1:-1]
@@ -191,12 +213,11 @@ class SnapDescriptor(Descriptor):
     def write_mlip(self, coefficients, folder=None, comments=""):
         """
         """
-        if folder is None:
-            folder = Path().absolute()
-        else:
-            folder = Path(folder).absolute()
 
-        with open(folder / "MLIP.model", "w") as fd:
+        intercepts = coefficients[:self.nel]
+        coefs = coefficients[self.nel:]
+
+        with open(self.folder / "MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -206,19 +227,29 @@ class SnapDescriptor(Descriptor):
             fd.write(f"{self.nel} {self.ndesc+1}\n")
 
             for iel in range(self.nel):
-                iidx = iel * (self.ndesc + 1)
-                fidx = (iel + 1) * (self.ndesc + 1)
+                iidx = iel * self.ndesc
+                fidx = (iel + 1) * self.ndesc
                 el = self.elements[iel]
                 rel = self.radelems[iel]
                 wel = self.welems[iel]
                 fd.write(f"{el} {rel} {wel}\n")
-                np.savetxt(fd, coefficients[iidx:fidx], fmt="%35.30f")
+                fd.write(f"{intercepts[iel]:35.30f}\n")
+                np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
 
 # ========================================================================== #
     def _regularization_matrix(self):
         # no regularization for the intercept
         d2 = [np.zeros((self.nel, self.nel))]
-        d2.append(np.eye(self.ncolumns - self.nel))
+        if self.model == "linear":
+            d2.append(np.eye(self.ndesc) * self.alpha)
+        elif self.model == "quadratic":
+            for i in range(self.nel):
+                d2.append(np.eye(self.ndesc_lin) * self.alpha)
+                d2.append(np.eye(self.ndesc_quad) * self.alpha_quad)
+
+            print(d2)
+        for d in d2:
+            print(d.shape)
         return combine_reg(d2)
 
 # ========================================================================== #
