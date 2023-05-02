@@ -105,16 +105,14 @@ class NebLammpsState(StateManager):
         """
         Run state function.
         """
+        pair_style = model.pair_style
+        pair_coeff = model.pair_coeff
+        model_post = model.model_post
+        atom_style = model.atom_style
         self.run_NEB(pair_style,
                      pair_coeff,
                      model_post,
                      atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      workdir)
         self.extract_NEB_configurations()
         xi = self._xifinder(self.mode)
@@ -130,12 +128,6 @@ class NebLammpsState(StateManager):
                 pair_coeff,
                 model_post=None,
                 atom_style="atomic",
-                bonds=None,
-                angles=None,
-                bond_style=None,
-                bond_coeff=None,
-                angle_style=None,
-                angle_coeff=None,
                 workdir=None):
         """
         Run a NEB calculation with lammps. Use replicas.
@@ -153,10 +145,6 @@ class NebLammpsState(StateManager):
         fname = self.NEBworkdir + "lammps_input.in"
         self.write_lammps_input_NEB(self.confNEB[0],
                                     atom_style,
-                                    bond_style,
-                                    bond_coeff,
-                                    angle_style,
-                                    angle_coeff,
                                     pair_style,
                                     pair_coeff,
                                     model_post,
@@ -177,10 +165,6 @@ class NebLammpsState(StateManager):
     def write_lammps_input_NEB(self,
                                atoms,
                                atom_style,
-                               bond_style,
-                               bond_coeff,
-                               angle_style,
-                               angle_coeff,
                                pair_style,
                                pair_coeff,
                                model_post,

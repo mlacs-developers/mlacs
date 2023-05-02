@@ -144,31 +144,22 @@ class PafiLammpsState(LammpsState, NebLammpsState):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     pair_style,
-                     pair_coeff,
-                     model_post=None,
-                     atom_style="atomic",
-                     bonds=None,
-                     angles=None,
-                     bond_style=None,
-                     bond_coeff=None,
-                     angle_style=None,
-                     angle_coeff=None,
+                     model,
                      eq=False,
                      workdir=None):
         """
         Run state function.
         """
+
+        pair_style = model.pair_style
+        pair_coeff = model.pair_coeff
+        model_post = model.model_post
+        atom_style = model.atom_style
+
         self.run_NEB(pair_style,
                      pair_coeff,
                      model_post,
                      atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      workdir)
         self.extract_NEB_configurations()
         self.compute_spline()
@@ -178,12 +169,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                     pair_coeff,
                                     model_post,
                                     atom_style,
-                                    bonds,
-                                    angles,
-                                    bond_style,
-                                    bond_coeff,
-                                    angle_style,
-                                    angle_coeff,
                                     eq)
         return atoms.copy()
 
@@ -194,12 +179,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                        pair_coeff,
                        model_post=None,
                        atom_style="atomic",
-                       bonds=None,
-                       angles=None,
-                       bond_style=None,
-                       bond_coeff=None,
-                       angle_style=None,
-                       angle_coeff=None,
                        eq=False,
                        rep=None):
         """
@@ -236,10 +215,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                    spcoord)
         self.write_lammps_input_pafi(atoms,
                                      atom_style,
-                                     bond_style,
-                                     bond_coeff,
-                                     angle_style,
-                                     angle_coeff,
                                      pair_style,
                                      pair_coeff,
                                      model_post,
@@ -278,12 +253,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 bonds=None,
-                 angles=None,
-                 bond_style=None,
-                 bond_coeff=None,
-                 angle_style=None,
-                 angle_coeff=None,
                  workdir=None,
                  ncpus=1,
                  restart=0,
@@ -306,12 +275,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                      pair_coeff,
                      model_post,
                      atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      workdir)
         self.extract_NEB_configurations()
         self.compute_spline(xi)
@@ -326,12 +289,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                   pair_coeff,
                                   model_post,
                                   atom_style,
-                                  bonds,
-                                  angles,
-                                  bond_style,
-                                  bond_coeff,
-                                  angle_style,
-                                  angle_coeff,
                                   False,
                                   rep))
         F = self.log_free_energy(xi,
@@ -343,10 +300,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
     def write_lammps_input_pafi(self,
                                 atoms,
                                 atom_style,
-                                bond_style,
-                                bond_coeff,
-                                angle_style,
-                                angle_coeff,
                                 pair_style,
                                 pair_coeff,
                                 model_post,
@@ -373,11 +326,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                           atom_style,
                                           filename,
                                           custom)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
+        input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
         input_string += get_pafi_input(self.dt / 1000,
