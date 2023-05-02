@@ -159,21 +159,16 @@ class LammpsState(StateManager):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     model,
+                     pair_style,
+                     pair_coeff,
+                     model_post=None,
+                     atom_style="atomic",
                      eq=False):
         """
         Function to run the dynamics
         """
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
-
-        pair_style = model.pair_style
-        pair_coeff = model.pair_coeff
-        model_post = model.model_post
-        atom_style = model.atom_style
-
-        if atom_style is None:
-            atom_style = "atomic"
 
         atoms = supercell.copy()
 

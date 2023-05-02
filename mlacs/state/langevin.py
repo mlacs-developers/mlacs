@@ -9,6 +9,7 @@ from ase.units import fs
 from ase.md.langevin import Langevin
 from ase.md import MDLogger
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.calculators.lammpsrun import LAMMPS
 
 from .state import StateManager
 
@@ -89,13 +90,22 @@ class LangevinState(StateManager):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     model,
+                     pair_style,
+                     pair_coeff,
+                     model_post=None,
+                     atom_style="atomic",
                      eq=False,
                      nbeads=1):
         """
         """
         atoms = supercell.copy()
-        atoms.calc = model.get_calculator()
+        calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
+                      atom_style=atom_style)
+        if model_post is not None:
+            calc.set(model_post=model_post)
+
+        atoms.calc = calc
+
 
         if eq:
             nsteps = self.nsteps_eq

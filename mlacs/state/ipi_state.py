@@ -206,18 +206,16 @@ class IpiState(LammpsState):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     model,
+                     pair_style,
+                     pair_coeff,
+                     model_post=None,
+                     atom_style="atomic",
                      eq=False,
                      nbeads=1):
         """
         """
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
-
-        pair_style = model.pair_style
-        pair_coeff = model.pair_coeff
-        model_post = model.model_post
-        atom_style = model.atom_style
 
         atoms = supercell.copy()
 

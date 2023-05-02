@@ -282,7 +282,10 @@ class OtfMlacs:
         if self.pimd:
             atoms_mlip = self.state[istate].run_dynamics(
                                atoms_mlip[istate],
-                               self.mlip,
+                               self.mlip.pair_style,
+                               self.mlip.pair_coeff,
+                               self.mlip.model_post,
+                               self.mlip.atom_style,
                                eq[istate],
                                self.nbeads)
         else:
@@ -298,7 +301,10 @@ class OtfMlacs:
                 for istate in range(self.nstate):
                     exe = executor.submit(self.state[istate].run_dynamics,
                                           *(atoms_mlip[istate],
-                                            self.mlip,
+                                            self.mlip.pair_style,
+                                            self.mlip.pair_coeff,
+                                            self.mlip.model_post,
+                                            self.mlip.atom_style,
                                             eq[istate]))
                     futures.append(exe)
                     msg = f"State {istate+1}/{self.nstate} has been launched"

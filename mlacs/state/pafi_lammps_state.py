@@ -144,17 +144,15 @@ class PafiLammpsState(LammpsState, NebLammpsState):
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     model,
+                     pair_style,
+                     pair_coeff,
+                     model_post=None,
+                     atom_style="atomic",
                      eq=False,
                      workdir=None):
         """
         Run state function.
         """
-
-        pair_style = model.pair_style
-        pair_coeff = model.pair_coeff
-        model_post = model.model_post
-        atom_style = model.atom_style
 
         self.run_NEB(pair_style,
                      pair_coeff,

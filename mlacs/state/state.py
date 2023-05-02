@@ -42,10 +42,11 @@ class StateManager:
 # ========================================================================== #
     def run_dynamics(self,
                      supercell,
-                     calc,
-                     eq=False,
-                     logfile=None,
-                     trajfile=None):
+                     pair_style,
+                     pair_coeff,
+                     model_post,
+                     atom_style="atomic",
+                     eq=False):
         """
         Run the dynamics for the state, during nsteps
         then return the last atoms of the simulation
