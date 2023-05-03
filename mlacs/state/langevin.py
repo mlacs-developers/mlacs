@@ -92,35 +92,20 @@ class LangevinState(StateManager):
                      supercell,
                      pair_style,
                      pair_coeff,
-                     model_post,
-                     atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
+                     model_post=None,
+                     atom_style="atomic",
                      eq=False,
                      nbeads=1):
         """
         """
-
-        isbond = [bonds is not None,
-                  angles is not None,
-                  bond_style is not None,
-                  angle_style is not None]
-        if np.any(isbond):
-            msg = "bond style are not implement with ASE molecular dynamics"
-            raise NotImplementedError(msg)
         atoms = supercell.copy()
-
-        calc = LAMMPS(pair_style=pair_style,
-                      pair_coeff=pair_coeff,
+        calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
                       atom_style=atom_style)
         if model_post is not None:
             calc.set(model_post=model_post)
 
         atoms.calc = calc
+
 
         if eq:
             nsteps = self.nsteps_eq

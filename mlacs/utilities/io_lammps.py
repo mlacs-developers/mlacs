@@ -1,7 +1,3 @@
-import os
-
-import numpy as np
-from ase.io.lammpsdata import write_lammps_data
 
 
 class LammpsIo:
@@ -224,11 +220,7 @@ def get_neb_input(dt,
 
 
 # ========================================================================== #
-def get_interaction_input(bond_style,
-                          bond_coeff,
-                          angle_style,
-                          angle_coeff,
-                          pair_style,
+def get_interaction_input(pair_style,
                           pair_coeff,
                           model_post):
     """
@@ -237,15 +229,6 @@ def get_interaction_input(bond_style,
     input_string = "#####################################\n"
     input_string += "#           Interactions\n"
     input_string += "#####################################\n"
-    if bond_style is not None:
-        input_string += f"bond_style   {bond_style}\n"
-        for bc in bond_coeff:
-            input_string += f"bond_coeff {bc}\n"
-
-    if angle_style is not None:
-        input_string += f"angle_style   {angle_style}\n"
-        for angc in angle_coeff:
-            input_string += f"angle_coeff {angc}\n"
 
     input_string += f"pair_style    {pair_style}\n"
     for pair in pair_coeff:
@@ -299,53 +282,6 @@ def get_diffusion_input(msdfile):
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
-
-
-# ========================================================================== #
-def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
-    """
-    Write lammps data file with bonds and angles
-
-    Parameters
-    ----------
-    name : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-    bonds: :class:`numpy.array`
-        array of bonds list
-    nconfs: :class:`numpy.array`
-        array of angles list
-
-    Return
-    ------
-    Lammps data :class: `file`
-    """
-    write_lammps_data('coord_tmp.lmp',
-                      atoms,
-                      atom_style="full",
-                      velocities=velocities)
-    with open('coord_tmp.lmp', 'r') as file:
-        lines = file.readlines()
-
-    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
-    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
-    lines.insert(ind+2, str(len(angles)) + ' angles \n')
-
-    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
-    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
-    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
-
-    with open(name, 'w') as fd:
-        for line in lines:
-            fd.write(line)
-        fd.write("\n")
-        fd.write(" Bonds \n \n")
-        np.savetxt(fd, bonds, fmt='%s')
-        fd.write("\n")
-        fd.write(" Angles \n \n")
-        np.savetxt(fd, angles, fmt='%s')
-    os.remove('coord_tmp.lmp')
 
 
 # ========================================================================== #

@@ -12,7 +12,7 @@ from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from .mlip import LammpsMlip
+from .mlip import LinearPotential, MliapDescriptor
 from .calc import CalcManager
 from .properties import PropertyManager
 from .state import StateManager
@@ -90,7 +90,8 @@ class OtfMlacs:
 
         # Create mlip object
         if mlip is None:
-            self.mlip = LammpsMlip(self.atoms[0])  # Default MLIP Manager
+            descriptor = MliapDescriptor(self.atoms[0], 5.0)
+            self.mlip = LinearPotential(descriptor)
         else:
             self.mlip = mlip
 
@@ -130,7 +131,7 @@ class OtfMlacs:
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
-        self.log.recap_mlip(self.mlip.get_mlip_dict())
+        self.log.logger_log.info(repr(self.mlip))
 
         # We initialize momenta and parameters for training configurations
         if not self.launched:
@@ -285,12 +286,6 @@ class OtfMlacs:
                                self.mlip.pair_coeff,
                                self.mlip.model_post,
                                self.mlip.atom_style,
-                               self.mlip.bonds,
-                               self.mlip.angles,
-                               self.mlip.bond_style,
-                               self.mlip.bond_coeff,
-                               self.mlip.angle_style,
-                               self.mlip.angle_coeff,
                                eq[istate],
                                self.nbeads)
         else:
@@ -310,12 +305,6 @@ class OtfMlacs:
                                             self.mlip.pair_coeff,
                                             self.mlip.model_post,
                                             self.mlip.atom_style,
-                                            self.mlip.bonds,
-                                            self.mlip.angles,
-                                            self.mlip.bond_style,
-                                            self.mlip.bond_coeff,
-                                            self.mlip.angle_style,
-                                            self.mlip.angle_coeff,
                                             eq[istate]))
                     futures.append(exe)
                     msg = f"State {istate+1}/{self.nstate} has been launched"
@@ -324,7 +313,7 @@ class OtfMlacs:
                     atoms_mlip[istate] = exe.result()
 
         for i, at in enumerate(atoms_mlip):
-            at.calc = self.mlip.calc
+            at.calc = self.mlip.get_calculator()
             sp_calc_mlip.append(SinglePointCalculator(
                                 at,
                                 energy=at.get_potential_energy(),

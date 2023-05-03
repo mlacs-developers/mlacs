@@ -3,7 +3,6 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
-
 import numpy as np
 from scipy.integrate import cumtrapz
 from ase.units import kB
@@ -230,8 +229,8 @@ class ReversibleScalingState(ThermoState):
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
             "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        input_string += "fix          f3 all adapt 1 " + \
-            "pair snap scale * * v_lambda\n"
+        input_string += "fix          f3 all adapt 1 pair " + \
+            f"{self.pair_style} scale * * v_lambda\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${lambda}\" screen no " + \
             "append backward.dat title \"# pe    lambda\"\n"
