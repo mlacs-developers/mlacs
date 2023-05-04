@@ -72,12 +72,8 @@ class LinearPotential(MlipManager):
                      ymat_f * fcoef,
                      ymat_s * scoef]
 
-        if self.mbar is not None:
-            self.mbar.mlip_amat.append(amat_e)
-            self.mbar.mlip_coef.append(self.coefficients)
-            self.mbar.update_weight()
-            amat = amat * self.mbar.W
-            ymat = ymat * self.mbar.W
+        if self.mbar is not None and self.mbar.train_mlip:
+            amat, ymat = self.mbar.reweight_mlip(amat, ymat)
 
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
@@ -92,18 +88,23 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
-        msg = "number of configurations for training: " + \
-              f"{len(self.natoms[idx_e:]):}\n"
-        msg += "number of atomic environments for training: " + \
+        _msg = "Number of configurations for training: " + \
+               f"{len(self.natoms[idx_e:]):}\n"
+        _msg += "Number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n"
-        if self.mbar is None:
-            msg = self.compute_tests(amat_e, amat_f, amat_s,
-                                     ymat_e, ymat_f, ymat_s,
-                                     msg)
-        else:
-            msg = self.mbar.compute_tests(amat_e, amat_f, amat_s,
-                                          ymat_e, ymat_f, ymat_s,
-                                          self.coefficients, msg)
+
+        msg = self.compute_tests(amat_e, amat_f, amat_s,
+                                 ymat_e, ymat_f, ymat_s,
+                                 _msg)
+        if self.mbar is not None:
+            if self.mbar.train_mlip:
+                msg = self.mbar.compute_tests(amat_e, amat_f, amat_s,
+                                              ymat_e, ymat_f, ymat_s,
+                                              self.coefficients, _msg)
+            self.mbar.mlip_amat.append(amat_e)
+            self.mbar.mlip_coef.append(self.coefficients)
+            if 2 <= len(self.mbar.mlip_coef): 
+                msg += self.mbar.run_weight()
 
         self.descriptor.write_mlip(self.coefficients)
         self.init_calc()
