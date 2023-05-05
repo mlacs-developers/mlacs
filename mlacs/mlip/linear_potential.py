@@ -91,7 +91,7 @@ class LinearPotential(MlipManager):
         _msg = "Number of configurations for training: " + \
                f"{len(self.natoms[idx_e:]):}\n"
         _msg += "Number of atomic environments for training: " + \
-               f"{self.natoms[idx_e:].sum():}\n"
+                f"{self.natoms[idx_e:].sum():}\n"
 
         msg = self.compute_tests(amat_e, amat_f, amat_s,
                                  ymat_e, ymat_f, ymat_s,
@@ -103,7 +103,7 @@ class LinearPotential(MlipManager):
                                               self.coefficients, _msg)
             self.mbar.mlip_amat.append(amat_e)
             self.mbar.mlip_coef.append(self.coefficients)
-            if 2 <= len(self.mbar.mlip_coef): 
+            if 2 <= len(self.mbar.mlip_coef):
                 msg += self.mbar.run_weight()
 
         self.descriptor.write_mlip(self.coefficients)

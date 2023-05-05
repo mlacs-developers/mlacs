@@ -14,6 +14,7 @@ default_parameters = {"every": 1,
                       "solver": "L-BFGS-B",
                       "nthrow": 10}
 
+
 # ========================================================================== #
 # ========================================================================== #
 class MbarManager:
@@ -45,7 +46,7 @@ class MbarManager:
             we, wf, ws = self._build_W_efs(weight)
             self.W = np.r_[we, wf, ws]
         self.train_mlip = False
-        if self.parameters['mode'] == 'train': 
+        if self.parameters['mode'] == 'train':
             self.train_mlip = True
         self.mlip_amat = []
         self.mlip_coef = []
@@ -60,9 +61,9 @@ class MbarManager:
             ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
         weight = self._compute_weight(ukn)
         self.weight.append(weight)
-        neff = self.get_effective_conf() 
+        neff = self.get_effective_conf()
         header = f"Effective number of configurations: {neff}\n"
-        np.savetxt("MLIP.weight", self.weight[-1], 
+        np.savetxt("MLIP.weight", self.weight[-1],
                    header=header, fmt="%25.20f")
         msg = "Computing new weights with MBAR\n"
         msg += header
@@ -72,7 +73,7 @@ class MbarManager:
     def reweight_mlip(self, a, y):
         """
         """
-        weight = self._init_weight() 
+        weight = self._init_weight()
         we, wf, ws = self._build_W_efs(weight)
         self.W = np.r_[we, wf, ws]
         return a * self.W[:, np.newaxis], y * self.W
@@ -84,7 +85,7 @@ class MbarManager:
         f_mlip = np.einsum('ij,j->i', amat_f, coeff)
         s_mlip = np.einsum('ij,j->i', amat_s, coeff)
 
-        weight = self._init_weight() 
+        weight = self._init_weight()
         we, wf, ws = self._build_W_efs(weight)
 
         rmse_e = np.sqrt(np.mean(we * (ymat_e - e_mlip)**2))
@@ -126,14 +127,14 @@ class MbarManager:
         return msg
 
 # ========================================================================== #
-    def _compute_weight(self, ukn):
-        """
-        """
-        n_newconf = len(self.database[-1] - len(self.database[-2]
-        mbar = MBAR(ukn, n_newconf,
-                    solver_protocol={'method': self.parameters['solver']})
-        weight = mbar.getWeights()[:, -1]
-        return weight
+#    def _compute_weight(self, ukn):
+#        """
+#        """
+#        n_newconf = len(self.database[-1] - len(self.database[-2]
+#        mbar = MBAR(ukn, n_newconf,
+#                    solver_protocol=[{'method': self.parameters['solver']}])
+#        weight = mbar.getWeights()[:, -1]
+#        return weight
 
 # ========================================================================== #
     def get_mlip_energy(self, amat_e, coefficient):
@@ -146,7 +147,7 @@ class MbarManager:
         """
         """
         neff = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
-        return neff 
+        return neff
 
 # ========================================================================== #
     def _init_weight(self):
@@ -190,7 +191,7 @@ class MbarManager:
         w_s = []
         for a in self.database[-1]:
             w_f.append(self.weight[-1] * np.ones(3 * len(a)) / (3 * len(a)))
-            w_s.append(self.weight[-1] * np.ones(6) / 6) 
+            w_s.append(self.weight[-1] * np.ones(6) / 6)
         w_f = np.r_w_f / np.sum(np.r_w_f)
         w_s = np.r_w_s / np.sum(np.r_w_s)
         return w_e, w_f, w_s

@@ -60,8 +60,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         Else, a Brownian dynamic is used.
         Default ``True``
     linearmode: :class:`Bool`
-        If ``True``, the reaction coordinate function is contructed using 
-        a linear interpolation of the true 3N coordinates. 
+        If ``True``, the reaction coordinate function is contructed using
+        a linear interpolation of the true 3N coordinates.
         Else, the reaction coordinate function is determined using NEB.
         Default ``False``
     fixcm : :class:`Bool` (optional)

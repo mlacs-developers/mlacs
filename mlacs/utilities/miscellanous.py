@@ -277,10 +277,11 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
     else:
         return float(integ(xf, tck))
 
+
 # ========================================================================== #
 def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
     """
-    Compute normalized integral of y to `norm`. 
+    Compute normalized integral of y to `norm`.
 
     Parameters
     ----------
@@ -292,7 +293,7 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
         Scale x and y to the same order of magnitude to avoid numerical
         errors.
     func : :class:`scipy.integrate.func`
-        Scipy function for intergration (simps, trapz, ...). 
+        Scipy function for intergration (simps, trapz, ...).
 
     Return
     ------
