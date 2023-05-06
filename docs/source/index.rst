@@ -19,7 +19,7 @@ code.
 
    background
    installation
-   tutorial/index
+   tutorials/index
 
 .. toctree::
    :maxdepth: 2

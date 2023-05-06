@@ -11,3 +11,7 @@ __pycache__/
 
 # local files
 /token
+
+# Jupyter notebook
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*

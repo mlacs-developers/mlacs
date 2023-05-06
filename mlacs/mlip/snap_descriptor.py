@@ -167,12 +167,9 @@ class SnapDescriptor(Descriptor):
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
-            pass
-            """
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-            """
 
 # ========================================================================== #
     def cleanup(self):

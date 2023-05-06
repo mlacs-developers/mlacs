@@ -1,0 +1,66 @@
+LAMMPS (22 Dec 2022)
+Reading data file ...
+  orthogonal box = (0 0 0) to (8.0526977 8.0526977 8.0526977)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  32 atoms
+  reading velocities ...
+  32 velocities
+  read_data CPU = 0.004 seconds
+SNAP Element = Al, Radius 0.5, Weight 1
+SNAP keyword rcutfac 5.0
+SNAP keyword twojmax 4
+SNAP keyword rfac0 0.99363
+SNAP keyword rmin0 0.0
+SNAP keyword switchflag 1
+SNAP keyword bzeroflag 1
+SNAP keyword wselfallflag 0
+Neighbor list info ...
+  update: every = 1 steps, delay = 0 steps, check = yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 7
+  ghost atom cutoff = 7
+  binsize = 3.5, bins = 3 3 3
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair snap, perpetual
+      attributes: full, newton on
+      pair build: full/bin/atomonly
+      stencil: full/bin/3d
+      bin: standard
+Setting up Verlet run ...
+  Unit style    : metal
+  Current step  : 0
+  Time step     : 0.0015
+Per MPI rank memory allocation (min/avg/max) = 4.177 | 4.177 | 4.177 Mbytes
+   Step          Temp          E_pair         E_mol          TotEng         Press          Volume    
+         0   329.70862      1.3450851      0              2.6662488     -76.439446      522.18475    
+       500   244.94365      1.3776325      0              2.3591375      50.75499       525.95284    
+Loop time of 0.452355 on 1 procs for 500 steps with 32 atoms
+
+Performance: 143.250 ns/day, 0.168 hours/ns, 1105.325 timesteps/s, 35.370 katom-step/s
+99.4% CPU use with 1 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 0.44988    | 0.44988    | 0.44988    |   0.0 | 99.45
+Neigh   | 0          | 0          | 0          |   0.0 |  0.00
+Comm    | 0.00070426 | 0.00070426 | 0.00070426 |   0.0 |  0.16
+Output  | 0.00014912 | 0.00014912 | 0.00014912 |   0.0 |  0.03
+Modify  | 0.0014665  | 0.0014665  | 0.0014665  |   0.0 |  0.32
+Other   |            | 0.0001568  |            |       |  0.03
+
+Nlocal:             32 ave          32 max          32 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:            633 ave         633 max         633 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:              0 ave           0 max           0 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:         2628 ave        2628 max        2628 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 2628
+Ave neighs/atom = 82.125
+Neighbor list builds = 0
+Dangerous builds = 0
+Total wall time: 0:00:00
