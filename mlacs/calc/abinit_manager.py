@@ -26,18 +26,23 @@ class AbinitManager(CalcManager):
     ----------
     parameters: :class:`dict`
         Dictionnary of abinit input
+
     pseudos: :class:`dict`
         Dictionnary for the pseudopotentials
         {'O': /path/to/pseudo}
+
     abinit_cmd: :class:`str`
         The command to execute the abinit binary.
+
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
+
     workdir: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
+
     ninstance: :class:`int` (optional)
         Number of instance of abinit to run in parallel.
         Default 1

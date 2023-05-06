@@ -31,25 +31,40 @@ class OtfMlacs:
     Parameters
     ----------
 
-    atoms: :class:`ase.Atoms` or :list: of `ase.Atoms`
-        the atom object on which the simulation is run. The atoms has to have
-        a calculator attached
-    state: :class:`StateManager` or :list: of :class: `StateManager`
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        the atom object on which the simulation is run.
+
+    state: :class:`StateManager` or :class:`list` of :class:`StateManager`
         Object determining the state to be sampled
+
     calc: :class:`ase.calculators` or :class:`CalcManager`
         Class controlling the potential energy of the system
         to be approximated.
         If a :class:`ase.calculators` is attached, the :class:`CalcManager`
         is automatically created.
+
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsMlip object with a snap descriptor,
-        5.0 angstrom rcut with 8 twojmax.
+        ``5.0`` angstrom rcut with ``8`` twojmax.
+
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
+
+    nbeads: :class:`int` (optional)
+        The number of beads to use from Path-Integral simulations.
+        This value has to be lower than the number of beads used
+        in the State object, or equal to it.
+        If it is lower, this number indicates the number of beads
+        for which a trajectory will be created and computed
+        with the reference potential.
+        Default ``1``, ignored for non-path integral States
+
     prefix_output: :class:`str` (optional)
         Prefix for the output files of the simulation.
+        If several states are used, this input can be a list of :class:`str`.
         Default ``\"Trajectory\"``.
+
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
         if :class:`int`: Number of configuirations used
         to train a preliminary MLIP
@@ -57,9 +72,15 @@ class OtfMlacs:
         if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
         computed in order to create the initial training configurations
         Default ``1``.
+
     std_init: :class:`float` (optional)
         Variance (in angs^2) of the displacement when creating
         initial configurations. Default ``0.05`` angs^2
+
+    ntrymax: :class:`int`(optional)
+        The maximum number of tentative to retry a step if
+        the reference potential raises an error or didn't converge.
+        Default ``0``.
     """
     def __init__(self,
                  atoms,

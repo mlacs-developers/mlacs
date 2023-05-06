@@ -14,7 +14,7 @@ class MlipManager:
     """
     def __init__(self,
                  descriptor,
-                 nthrow=10,
+                 nthrow=0,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0):

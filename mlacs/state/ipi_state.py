@@ -30,74 +30,93 @@ class IpiState(LammpsState):
     Parameters
     ----------
 
-    temperature : float
+    temperature: :class:`float`
         Temperature of the simulation, in Kelvin
-    pressure : float (optional)
+
+    pressure: :class:`float` (optional)
         Pressure for the simulation, in GPa
-        Default 0 GPa.
-    stress : (3x3) array (optional)
+        Default ``0`` GPa.
+
+    stress : (3x3) :class:`np.ndarray` (optional)
         Stress for the simulation, in GPa
-        Default 0 GPa for the nine coefficients.
+        Default ``0`` GPa for the nine coefficients.
         Pressure matrice if pressure is not None.
-    ensemble : 'nve', 'nvt', 'npt' or 'nst'
+
+    ensemble : 'nve', 'nvt', 'npt' or 'nst' (optional)
         Define the ensemble that will be sampled.
-        Default 'nvt'
-    nbeads : int (optional)
+        Default ``'nvt'``
+
+    nbeads : :class:`int` (optional)
         Number of breads.
-        Default 1, to do classical MD.
-    paralbeads : int (optional)
+        Default ``1``, to do classical MD.
+
+    paralbeads : :class:`int` (optional)
         Reduce parallelisation over breads.
-        Default None, means full parallelisation.
-    socketname : str (optional)
+        Default ``None``, means full parallelisation.
+
+    socketname : :class:`str` (optional)
         Name of sockets.
-    mode : str (optional)
+
+    mode : :class:`str` (optional)
         Specifies whether the driver interface will listen onto a
         internet 'inet' or a unix 'unix' socket.
-        Default 'unix'
-    prefix : str (optional)
+        Default ``'unix'``
+
+    prefix : :class:`str` (optional)
         Prefix for output names.
         Default simulation but should be OtfMLACS.prefix
+
     thermostyle : 'langevin', 'svr', 'pile_l' or 'pile_g' (optional)
         Define the style for the thermostat.
         Default 'pile_l', white noise langevin thermostat
         to the normal mode representation.
+
     barostyle : 'isotropic' or 'anisotropic' (optional)
         Define the style for the barostat.
         Default 'isotropic' for NPT, 'anisotropic' for NST.
-    damp : float (optional)
+
+    damp : :class:`float` (optional)
         Damping parameter. If None a damping parameter of 100 timestep is used.
-        Default None.
-    pdamp : float (optional)
+        Default ``None``.
+
+    pdamp : :class:`float` (optional)
         Damping parameter for the barostat. Default 1000 timestep is used.
-        Default None.
-    pilelambda : float (optional)
+        Default ``None``.
+
+    pilelambda : :class:`float` (optional)
         Scaling for the PILE damping relative to the critical damping.
         gamma_k = 2*pilelambda*omega_k
-        Default 0.5, 0.2 is another typical value.
-    dt : float (optional)
-        Timestep, in fs. Default 1.5 fs.
-    nsteps : int (optional)
-        Number of MLMD steps for production runs. Default 1000 steps.
-    nsteps_eq : int (optional)
-        Number of MLMD steps for equilibration runs. Default 100 steps.
-    fixcm : bool (optional)
-        Fix position and momentum center of mass. Default True.
-    logfile : str (optional)
-        Name of the file for logging the MLMD trajectory.
-        If none, no log file is created. Default None.
-    trajfile : str (optional)
-        Name of the file for saving the MLMD trajectory.
-        If none, no traj file is created. Default None.
-    interval : int (optional)
-        Number of steps between log and traj writing. Override
-        loginterval and loginterval. Default 50
-    loginterval : int (optional)
-        Number of steps between MLMD logging. Default 50.
-    loginterval : int (optional)
-        Number of steps between MLMD traj writing. Default 50.
-    rng : int (optional)
+        Default ``0.5``, ``0.2`` is another typical value.
+
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+
+    fixcm : :class:`bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+
+    loginterval : :class:`int` (optional)
+        Number of steps between log and traj writing. Default ``50``
+
+    printcentroid: :class:`Bool` (optional)
+        If ``True``, the centroid of the trajectory is written
+
+    rng : :class:`int` (optional)
         Default correspond to numpy.random.default_rng()
-    workdir : str (optional)
+
+    init_momenta : :class:`numpy.ndarray` (optional)
+        Gives the (Nat, 3) shaped momenta array that will be used
+        to initialize momenta when using
+        the `initialize_momenta` function.
+        If the default ``None`` is set, momenta are initialized with a
+        Maxwell Boltzmann distribution.
+
+    workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If none, a LammpsMLMD directory is created
     """

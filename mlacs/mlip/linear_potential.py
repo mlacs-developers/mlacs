@@ -23,21 +23,25 @@ class LinearPotential(MlipManager):
     ----------
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
+
     nthrow: :class: int
         Number of first configurations to ignore when doing the fit
+
     energy_coefficient: :class:`float`
         Weight of the energy in the fit
         Default 1.0
+
     forces_coefficient: :class:`float`
         Weight of the forces in the fit
         Default 1.0
+
     stress_coefficient: :class:`float`
         Weight of the stress in the fit
         Default 1.0
     """
     def __init__(self,
                  descriptor,
-                 nthrow=10,
+                 nthrow=0,
                  parameters={},
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,

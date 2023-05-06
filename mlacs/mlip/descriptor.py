@@ -15,6 +15,7 @@ class Descriptor:
     ----------
     atoms : :class:`ase.atoms`
         Reference structure, with the elements for the descriptor
+
     rcut : :class:`float`
         The cutoff for the descriptor
     """
