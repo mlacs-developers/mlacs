@@ -2,10 +2,11 @@
 .. index:: Installation
 
 Installation
-============
+##############
 
 Python Environment
-------------------
+******************
+
 It is recommended to use a relatively recent version of python (>3.7) for optimal package operation. It is also a good idea to use python virtual environments, which makes it easier to manage python packages and their versions.
 The creation of the environment is done with the python `virtualenv` module (or for recent versions of python, `venv`).
 
@@ -45,7 +46,8 @@ At the end, we can check that the package is loaded:
 ²The environment name in parentheses should appear on the terminal.
 
 LAMMPS
-------
+******
+
 It is recommended to use the latest version of LAMMPS. The current version of MLACS (0.0.10) works with the latest 'release' version of LAMMPS (03Aug22), which can be downloaded from the site or via git:
 
 .. code-block:: console
@@ -88,7 +90,8 @@ MLACS will then call LAMMPS via variables. They can be set before running the si
     $ export ASE_LAMMPSREPLICA_COMMAND='mpirun -n 4 lammps -partition 4x1'  # MPI and replicas
 
 ABINIT
-------
+******
+
 MLACS provides intefaces with different codes through the ASE python package. But it is recommanded to use Abinit, since we design an ``AbinitManager`` to handle specific workflows with it. The Abinit package also provide severall codes like `atdep` a usefull tool to compute temperature dependent properties from MLACS trajectories.
 
 `atdep` is based on the Temperature Dependent Effective Potential (TDEP) devellopped by O. Hellman et al. in 2011 and implemented in Abinit by J.Bouchet and F. Bottin in 2015.
@@ -98,7 +101,8 @@ If is also recommended to use version 9 for an easier files management in Abinit
 To compile Abinit, we highly recommand you to follow the instructions provide on the website : 
 
 Python Packages
-===============
+***************
+
 MLACS uses very few external packages (and that is a choice), only ASE and its dependencies in its standard version. The necessary packages are included in the `requirement.txt` file located in the main directory `/otf_mlacs`. They can be downloaded in advance with the pip module.
 
 .. code-block:: console
@@ -106,7 +110,8 @@ MLACS uses very few external packages (and that is a choice), only ASE and its d
     $ pip download -r /path_to/otf_mlacs/requirements.txt
 
 ASE
----
+===
+
 ASE is an atomic simulation environment, interfaced with several codes and written in order to set up, control and analyze atomic simulations. As mentioned previously, the correct version must be used for LAMMPS.
 
 .. code-block:: console
@@ -121,7 +126,7 @@ Then in the package directory
     $ python setup.py install
 
 Optional Packages
------------------
+=================
 
     - scikit-learn:
 

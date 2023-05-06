@@ -3,7 +3,7 @@
    single: Tutorial
 
 Tutorials
-=========
+#########
 
 Here you will find several notebooks to show how to use the package for different types of simulations.
 The notebooks can also be found in the repository, in the tutorials folder.
@@ -16,7 +16,7 @@ The notebooks can also be found in the repository, in the tutorials folder.
     :maxdepth: 2
 
 Machine-Learning Interatomic Potential
---------------------------------------
+**************************************
 
 .. toctree::
     :maxdepth: 2
@@ -25,7 +25,7 @@ Machine-Learning Interatomic Potential
     mlip_mtp
 
 Machine-Learning Assisted Samping
----------------------------------
+*********************************
 
 .. toctree::
     :maxdepth: 2
@@ -34,4 +34,4 @@ Machine-Learning Assisted Samping
 
 
 Thermodynamic integration
--------------------------
+*************************

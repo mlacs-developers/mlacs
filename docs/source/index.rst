@@ -3,9 +3,11 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-================================================================
-:program:`MLACS` - Machine-Learning Assisted Canonical Sampling
-================================================================
+################
+:program:`MLACS`
+################
+Machine-Learning Assisted Canonical Sampling
+********************************************
 
 :program:`MLACS` is a tool to sample a canonical distribution of an atomic system with high accuracy and low computational cost.
 The method is based on a variationnally constructed Machine-Learning Interatomic Potential (MLIP) which is optimized in order to
