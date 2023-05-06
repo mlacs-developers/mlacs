@@ -89,6 +89,26 @@ MLACS will then call LAMMPS via variables. They can be set before running the si
     $ export ASE_LAMMPSRUN_COMMAND='mpirun -n 4 lammps'                     # MPI
     $ export ASE_LAMMPSREPLICA_COMMAND='mpirun -n 4 lammps -partition 4x1'  # MPI and replicas
 
+MLIP
+****
+
+To have access to the Moment Tensor Potential, it is necessary to install the MLIP package available on its `gitlab page <https://gitlab.com/ashapeev/mlip-2/-/tree/master/src>`_ as well as the interface with LAMMPS available on this `gitlab page <https://gitlab.com/ashapeev/interface-lammps-mlip-2>`_
+
+The package can be cloned with git
+
+.. code-block:: console
+
+    $ git clone https://gitlab.com/ashapeev/mlip-2.git
+    $ git clone https://gitlab.com/ashapeev/interface-lammps-mlip-2.git
+
+and installed following the instruction available in the `INSTALL.md <https://gitlab.com/ashapeev/mlip-2/-/blob/master/INSTALL.md>`_ file in the repository.
+
+For the LAMMPS installation with MLIP, the instruction are provided in the `README.md <https://gitlab.com/ashapeev/interface-lammps-mlip-2/-/blob/master/README.md>`_ file in the repository.
+Remember to set the required packages in the `preinstall.sh` of the lammps-interface !
+
+To then use the Moment Tensor Potential, you will need to use the LAMMPS binary compiled with the lammps-interface module.
+
+
 ABINIT
 ******
 
