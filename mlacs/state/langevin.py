@@ -59,11 +59,6 @@ class LangevinState(StateManager):
         If ``None``, velocities are initialized with a
         Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
-
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD
-        directory is created
     """
     def __init__(self,
                  temperature,
