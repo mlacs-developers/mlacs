@@ -26,34 +26,48 @@ class AbinitManager(CalcManager):
     ----------
     parameters: :class:`dict`
         Dictionnary of abinit input
+
     pseudos: :class:`dict`
         Dictionnary for the pseudopotentials
         {'O': /path/to/pseudo}
+
     abinit_cmd: :class:`str`
         The command to execute the abinit binary.
+
     mpi_runner : :class:`str`
         The command to call MPI.
         I assume the number of processor is specified using -n argument
         Default ``mpirun``
+
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
+
     workdir: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
+    
     logfile: :class:`str` (optional)
         The name of the Abinit log file inside the workdir folder
         Default 'abinit.log'
+    
     errfile: :class:`str` (optional)
         The name of the Abinit error file inside the workdir folder
         Default 'abinit.err'
+    
     nproc: :class:`int` (optional)
         Number of processor available for Abinit.
         Distributed equally over all submitted calculations
         And start MPI abinit calculation if more than 1 processor
+    
     nomp_thread :class: `int` (optional)
         Number of OpenMP thread to use per processor.
+
+    ninstance: :class:`int` (optional)
+        Number of instance of abinit to run in parallel.
+        Default 1
+
     """
     def __init__(self,
                  parameters,

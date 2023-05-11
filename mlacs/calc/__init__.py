@@ -4,6 +4,8 @@
 """
 from .calc_manager import CalcManager
 from .abinit_manager import AbinitManager
+from .dlm_calc import DlmCalcManager
 
 __all__ = ["CalcManager",
+           "DlmCalcManager",
            "AbinitManager"]

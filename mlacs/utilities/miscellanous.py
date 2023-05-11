@@ -48,7 +48,9 @@ def get_elements_Z_and_masses(supercell):
 
     if np.allclose(un_charges, 0.0, atol=1e-8):
         un_charges = None
-    return un_elements, un_Z, un_masses, un_charges
+    un_elements = np.array(un_elements)
+    un_Z = np.array(un_Z)
+    return np.array(un_elements), un_Z, un_masses, un_charges
 
 
 # ========================================================================== #
@@ -134,6 +136,11 @@ def compute_averaged(traj):
 
     data: :class:`ase.Trajectory`
         List of ase.Atoms object.
+
+    Return
+    ------
+    confs: :class:`ase.Atoms`
+        Averaged configuration
     """
     if isinstance(traj, Atoms):
         traj = [traj]
@@ -146,28 +153,6 @@ def compute_averaged(traj):
                                cell=cell,
                                energy=energy)
     return atoms.copy()
-
-
-# ========================================================================== #
-def write_lammps_NEB_ASCIIfile(filename, supercell):
-    '''
-    Convert Ase Atoms into an ASCII file for lammps neb calculations.
-
-    Parameters
-    ----------
-    filename : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-    Return
-    ------
-    '''
-    instr = '# Final coordinates of the NEB calculation.\n'
-    instr += '{0}\n'.format(len(supercell))
-    for atoms in supercell:
-        instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
-    with open(filename, "w") as w:
-        w.write(instr)
 
 
 # ========================================================================== #
@@ -193,7 +178,9 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Impose a zero derivative condition at the function boundaries
     atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
         ASE atoms objects to be rattled
+
     Return
+    ------
     yf : :class:`list`
         List of interpolated points
     """
@@ -248,7 +235,9 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Impose a zero derivative condition at the function boundaries
     atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
         ASE atoms objects to be rattled
+
     Return
+    ------
     yf : :class:`list`
         Integral of spline from start to xf
     """

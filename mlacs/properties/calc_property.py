@@ -16,19 +16,21 @@ neb_args = ['configurations',
             'Kspring',
             'dt']
 
+
 # ========================================================================== #
 # ========================================================================== #
 class CalcMfep:
     """
     Class to set a minimum free energy calculation.
+    See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
 
     Parameters
     ----------
-    See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
     method: :class:`str`
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
             - ave, average difference between to consecutive step < criterion
+
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
@@ -108,14 +110,15 @@ class CalcMfep:
 class CalcNeb:
     """
     Class to set a NEB calculation.
+    See NebLammpsState and NebLammpsState.run_NEB parameters.
 
     Parameters
     ----------
-    See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
     method: :class:`str`
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
             - ave, average difference between to consecutive step < criterion
+
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
@@ -185,7 +188,7 @@ class CalcNeb:
         """
         msg = 'Computing the minimum energy path from a NEB calculation:\n'
         msg += self.state.log_recap_state()
-        msg += 'Energy difference along the reaction'
+        msg += 'Energy difference along the reaction '
         msg += 'path with previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'

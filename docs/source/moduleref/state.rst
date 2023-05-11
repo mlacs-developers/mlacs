@@ -1,5 +1,5 @@
 State Manager
-=============
+#############
 
 .. module:: mlacs.state
 
@@ -10,26 +10,41 @@ The State Classes are object managing the state being simulated by the MLMD simu
 
 
 StateManager
-------------
+************
 
 .. autoclass:: mlacs.state.state.StateManager
 
 LammpsState
------------
+***********
 
 .. autoclass:: LammpsState
 
+NebLammpsState
+**************
+
+.. autoclass:: NebLammpsState
+
+PafiLammpsState
+***************
+
+.. autoclass:: PafiLammpsState
+
+BlueMoonLammpsState
+*******************
+
+.. autoclass:: BlueMoonLammpsState
+
 CustomLammpsState
------------------
+*****************
 
 .. autoclass:: CustomLammpsState
 
 IpiState
---------
+********
 
 .. autoclass:: IpiState
 
 LangevinState
--------------
+*************
 
 .. autoclass:: LangevinState

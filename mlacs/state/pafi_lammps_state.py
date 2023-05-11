@@ -27,55 +27,69 @@ from ..utilities import integrate_points as IntP
 # ========================================================================== #
 class PafiLammpsState(LammpsState, NebLammpsState):
     """
-    Class to manage PafiStates with LAMMPS
+    Class to manage constrained MD along a NEB reaction coordinate using
+    the fix Pafi with LAMMPS.
 
     Parameters
     ----------
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
+
     configurations: :class:`list`
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
+
     reaction_coordinate: :class:`numpy.array` or `float`
         Value of the reaction coordinate for the constrained MD.
-        Default ``0.5``
+        if ``None``, automatic search of the saddle point.
+        Default ``None``
+
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
         Default ``1.0``
+
     maxjump: :class:`float`
         Maximum atomic jump authorized for the free energy calculations.
         Configurations with an high `maxjump` will be removed.
         Default ``0.4``
+
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
+
     damp: :class:`float` or ``None``
+
     nsteps : :class:`int` (optional)
         Number of MLMD steps for production runs. Default ``1000`` steps.
+
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
-    brownian: :class:`Bool`
-        If ``True``, a Brownian thermostat is used for the thermostat.
-        Else, a Langevin thermostat is used
+
+    langevin: :class:`Bool`
+        If ``True``, a Langevin thermostat is used.
+        Else, a Brownian dynamic is used.
         Default ``True``
+
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
+
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
+
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
-    init_momenta : :class:`numpy.ndarray` (optional)
-        If ``None``, velocities are initialized with a
-        Maxwell Boltzmann distribution
-        N * 3 velocities for the initial configuration
+
     prt : :class:`Bool` (optional)
         Printing options. Default ``True``
+
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
@@ -84,18 +98,17 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  temperature,
                  configurations,
                  reaction_coordinate=None,
-                 neb_configurations=None,
                  Kspring=1.0,
                  maxjump=0.4,
                  dt=1.5,
                  damp=None,
                  nsteps=1000,
                  nsteps_eq=100,
-                 brownian=True,
+                 langevin=True,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
+                 interval=49,
                  loginterval=50,
                  trajinterval=50,
                  rng=None,
@@ -118,7 +131,8 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         NebLammpsState.__init__(self,
                                 configurations,
                                 reaction_coordinate=None,
-                                Kspring=1.0)
+                                Kspring=1.0,
+                                dt=dt)
 
         self.temperature = temperature
         self.nsteps = nsteps
@@ -128,13 +142,12 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         if self.NEBcoord is None:
             self.splprec = 1001
             self.finder = []
-        self.include_neb = neb_configurations
         self.print = prt
         self.Kspring = Kspring
         self.maxjump = maxjump
         self.dt = dt
         self.damp = damp
-        self.brownian = brownian
+        self.langevin = langevin
         self.confNEB = configurations
         if len(self.confNEB) != 2:
             raise TypeError('First and last configurations are not defined')
@@ -151,27 +164,16 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     bonds=None,
-                     angles=None,
-                     bond_style=None,
-                     bond_coeff=None,
-                     angle_style=None,
-                     angle_coeff=None,
                      eq=False,
                      workdir=None):
         """
         Run state function.
         """
+
         self.run_NEB(pair_style,
                      pair_coeff,
                      model_post,
                      atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      workdir)
         self.extract_NEB_configurations()
         self.compute_spline()
@@ -181,12 +183,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                     pair_coeff,
                                     model_post,
                                     atom_style,
-                                    bonds,
-                                    angles,
-                                    bond_style,
-                                    bond_coeff,
-                                    angle_style,
-                                    angle_coeff,
                                     eq)
         return atoms.copy()
 
@@ -197,12 +193,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                        pair_coeff,
                        model_post=None,
                        atom_style="atomic",
-                       bonds=None,
-                       angles=None,
-                       bond_style=None,
-                       bond_coeff=None,
-                       angle_style=None,
-                       angle_coeff=None,
                        eq=False,
                        rep=None):
         """
@@ -239,10 +229,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                    spcoord)
         self.write_lammps_input_pafi(atoms,
                                      atom_style,
-                                     bond_style,
-                                     bond_coeff,
-                                     angle_style,
-                                     angle_coeff,
                                      pair_style,
                                      pair_coeff,
                                      model_post,
@@ -281,12 +267,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 bonds=None,
-                 angles=None,
-                 bond_style=None,
-                 bond_coeff=None,
-                 angle_style=None,
-                 angle_coeff=None,
                  workdir=None,
                  ncpus=1,
                  restart=0,
@@ -309,12 +289,6 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                      pair_coeff,
                      model_post,
                      atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      workdir)
         self.extract_NEB_configurations()
         self.compute_spline(xi)
@@ -329,31 +303,17 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                   pair_coeff,
                                   model_post,
                                   atom_style,
-                                  bonds,
-                                  angles,
-                                  bond_style,
-                                  bond_coeff,
-                                  angle_style,
-                                  angle_coeff,
                                   False,
                                   rep))
-        self.pafi = []
-        for rep in range(nrep):
-            logfile = self.MFEPworkdir + f'pafi.log.{rep}'
-            data = np.loadtxt(logfile).T[:, nthrow:].tolist()
-            self.pafi.append(data)
-        self.pafi = np.array(self.pafi)
-        F = self.log_free_energy(xi)
+        F = self.log_free_energy(xi,
+                                 self.MFEPworkdir,
+                                 nthrow)
         return F
 
 # ========================================================================== #
     def write_lammps_input_pafi(self,
                                 atoms,
                                 atom_style,
-                                bond_style,
-                                bond_coeff,
-                                angle_style,
-                                angle_coeff,
                                 pair_style,
                                 pair_coeff,
                                 model_post,
@@ -380,18 +340,14 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                           atom_style,
                                           filename,
                                           custom)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
+        input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
         input_string += get_pafi_input(self.dt / 1000,
                                        self.temperature,
                                        self.rng.integers(99999),
                                        self.damp,
-                                       self.brownian)
+                                       self.langevin)
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
@@ -448,23 +404,39 @@ class PafiLammpsState(LammpsState, NebLammpsState):
             w.write(instr)
 
 # ========================================================================== #
-    def log_free_energy(self, xi):
+    def log_free_energy(self, xi, workdir, nthrow=2000, _ref=0):
         """
         Extract the MFEP gradient from log files.
         Integrate the MFEP and compute the Free energy barier.
         """
 
+        self.pafi = []
+        for rep in range(len(xi)):
+            logfile = workdir + f'pafi.log.{rep}'
+            data = np.loadtxt(logfile).T[:, nthrow:].tolist()
+            self.pafi.append(data)
+        self.pafi = np.array(self.pafi)
+
         dF = []
         psi = []
         cor = []
         maxjump = []
+        ntot = len(self.pafi[rep, 0])
         for rep in range(len(xi)):
-            dF.append(np.average(self.pafi[rep, 0]))
-            psi.append(np.average(self.pafi[rep, 2]))
-            cor.append(np.average(
-                np.log(np.abs(self.pafi[rep, 2] / self.pafi[0, 2]))))
-            maxjump.append(
-                [x for x in self.pafi[rep, 4].tolist() if x >= self.maxjump])
+            # Remove steps with high jumps, the default value is 0.4.
+            mj = self.pafi[rep, 4].tolist()
+            dF.append(np.average([self.pafi[rep, 0, i]
+                      for i, x in enumerate(mj) if x < self.maxjump]))
+            psi.append(np.average([self.pafi[rep, 2, i]
+                       for i, x in enumerate(mj) if x < self.maxjump]))
+            cor.append(np.average([np.log(np.abs(
+                       self.pafi[rep, 2, i] / self.pafi[_ref, 2, i]))
+                       for i, x in enumerate(mj) if x < self.maxjump]))
+            maxjump.append([x for x in mj if x > self.maxjump])
+#            dF.append(np.average(self.pafi[rep, 0]))
+#            psi.append(np.average(self.pafi[rep, 2]))
+#            cor.append(np.average(
+#                np.log(np.abs(self.pafi[rep, 2] / self.pafi[_ref, 2]))))
         dF = np.array(dF)
         cor = np.array(cor)
         psi = np.array(psi)
@@ -477,7 +449,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                 dFM = max(F) - min(F)
                 w.write(f'##  Free energy barier: {dFM} eV  ' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi)  Nmaxjump  ##\n')
+                        'cor  Fcor(xi)  NUsedConf  ##\n')
                 strformat = ('{:12.8f} ' * 7) + '\n'
                 for i in range(len(xi)):
                     w.write(strformat.format(xi[i],
@@ -486,7 +458,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                                              psi[i],
                                              kB * self.temperature * cor[i],
                                              Fcor[i],
-                                             len(maxjump[i])))
+                                             ntot - len(maxjump[i])))
         return Fcor
 
 # ========================================================================== #
@@ -520,3 +492,99 @@ class PafiLammpsState(LammpsState, NebLammpsState):
             msg += f"Reaction step interval :                 {step}\n"
         msg += "\n"
         return msg
+
+
+# ========================================================================== #
+# ========================================================================== #
+class BlueMoonLammpsState(PafiLammpsState):
+    """
+    Class to manage constrained MD along a linear reaction coordinate using
+    the fix Pafi with LAMMPS. This is similar to a Blue Moon sampling.
+
+    Parameters
+    ----------
+    temperature: :class:`float`
+        Temperature of the simulation, in Kelvin.
+    configurations: :class:`list`
+        List of ase.Atoms object, the list contain initial and final
+        configurations of the reaction path.
+    reaction_coordinate: :class:`numpy.array` or `float`
+        Value of the reaction coordinate for the constrained MD.
+        if ``None``, automatic search of the saddle point.
+        Default ``None``
+    maxjump: :class:`float`
+        Maximum atomic jump authorized for the free energy calculations.
+        Configurations with an high `maxjump` will be removed.
+        Default ``0.4``
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+    damp: :class:`float` or ``None``
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+    langevin: :class:`Bool`
+        If ``True``, a Langevin thermostat is used.
+        Else, a Brownian dynamic is used.
+        Default ``True``
+    fixcm : :class:`Bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat.
+        Default correspond to :class:`numpy.random.default_rng()`
+    prt : :class:`Bool` (optional)
+        Printing options. Default ``True``
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD directory is created
+    """
+    def __init__(self,
+                 temperature,
+                 configurations,
+                 reaction_coordinate=None,
+                 maxjump=0.4,
+                 dt=1.5,
+                 damp=None,
+                 nsteps=1000,
+                 nsteps_eq=100,
+                 langevin=True,
+                 fixcm=True,
+                 logfile=None,
+                 trajfile=None,
+                 interval=49,
+                 loginterval=50,
+                 trajinterval=50,
+                 rng=None,
+                 init_momenta=None,
+                 prt=True,
+                 workdir=None):
+        PafiLammpsState.__init__(self,
+                                 temperature,
+                                 configurations,
+                                 reaction_coordinate,
+                                 1.0,
+                                 maxjump,
+                                 dt,
+                                 damp,
+                                 nsteps,
+                                 nsteps_eq,
+                                 langevin,
+                                 fixcm,
+                                 logfile,
+                                 trajfile,
+                                 interval,
+                                 loginterval,
+                                 trajinterval,
+                                 rng,
+                                 init_momenta,
+                                 prt,
+                                 workdir)
+        self.xilinear = True

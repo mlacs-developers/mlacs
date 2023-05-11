@@ -3,11 +3,11 @@
 
 
 Background
-==========
+##########
 
 
 Canonical distribution
-----------------------
+**********************
 
 
 .. math::
@@ -19,7 +19,7 @@ Canonical distribution
 
 
 Linear Machine-Learning Interatomic Potential
----------------------------------------------
+*********************************************
 
 .. math::
     \widetilde{V}(\mathbf{R}) = \widetilde{V}_0 + \sum_k \widetilde{\mathbf{D}}_k(\mathbf{R}) \pmb{\gamma}_k
@@ -30,7 +30,7 @@ Linear Machine-Learning Interatomic Potential
 
 
 Distribution divergences
-------------------------
+************************
 
 .. math::
     \mathrm{D}_{\mathrm{KL}} (\widetilde{q} \Vert p) = \int \mathrm{d} \mathbf{R} \widetilde{q}(\mathbf{R}) \mathrm{ln} \bigg[ \frac{\widetilde{q}(\mathbf{R})}{p(\mathbf{R})} \bigg] \geq 0
@@ -43,4 +43,8 @@ It is possible to show that this minization can be formulated as an equivalent f
 
 .. math::
     \widetilde{\mathcal{F}} \overset{\mathrm{def}}{=} \widetilde{\mathcal{F}}_0 + \braket{V(\mathbf{R}) - \widetilde{V}(\mathbf{R})}_{\widetilde{V}}
+
+
+Gaussian process Learning of thermodynamic integration
+******************************************************
 
