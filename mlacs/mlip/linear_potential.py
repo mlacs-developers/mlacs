@@ -103,8 +103,7 @@ class LinearPotential(MlipManager):
                                               self.coefficients, _msg)
             self.mbar.mlip_amat.append(amat_e)
             self.mbar.mlip_coef.append(self.coefficients)
-            if 2 <= len(self.mbar.mlip_coef):
-                msg += self.mbar.run_weight()
+            msg += self.mbar.run_weight()
 
         self.descriptor.write_mlip(self.coefficients)
         self.init_calc()

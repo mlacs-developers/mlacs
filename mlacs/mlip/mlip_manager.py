@@ -59,6 +59,8 @@ class MlipManager:
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
+        if self.mbar is not None:
+            self.mbar.update_database(atoms)
         amat_all = self.descriptor.calculate(atoms)
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = np.array([at.get_forces() for at in atoms]).flatten()

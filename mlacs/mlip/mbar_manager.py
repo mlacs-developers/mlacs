@@ -4,13 +4,15 @@
 """
 import numpy as np
 
-from ase.units import kB, GPa
+from pymbar import MBAR
 
-from pymbar.mbar import MBAR
+from ase.atoms import Atoms
+from ase.units import kB, GPa
 
 
 default_parameters = {"every": 1,
                       "mode": "compute",
+                      "step_start": 2,
                       "solver": "L-BFGS-B",
                       "nthrow": 10}
 
@@ -25,7 +27,7 @@ class MbarManager:
     ----------
     """
     def __init__(self,
-                 database=[],
+                 database=None,
                  parameters={},
                  weight=None):
         """
@@ -55,18 +57,20 @@ class MbarManager:
     def run_weight(self):
         """
         """
-        shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
-        ukn = np.zeros(shape)
-        for istep, coeff in enumerate(self.mlip_coef):
-            ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
-        weight = self._compute_weight(ukn)
-        self.weight.append(weight)
-        neff = self.get_effective_conf()
-        header = f"Effective number of configurations: {neff}\n"
-        np.savetxt("MLIP.weight", self.weight[-1],
-                   header=header, fmt="%25.20f")
-        msg = "Computing new weights with MBAR\n"
-        msg += header
+        msg = "Increasing database for reweiting ...\n"
+        if self.parameters['step_start'] <= len(self.mlip_coef):
+            shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
+            ukn = np.zeros(shape)
+            for istep, coeff in enumerate(self.mlip_coef):
+                ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
+            weight = self._compute_weight(ukn)
+            self.weight.append(weight)
+            neff = self.get_effective_conf()
+            header = f"Effective number of configurations: {neff}\n"
+            np.savetxt("MLIP.weight", self.weight[-1],
+                       header=header, fmt="%25.20f")
+            msg = "Computing new weights with MBAR\n"
+            msg += header
         return msg
 
 # ========================================================================== #
@@ -127,16 +131,6 @@ class MbarManager:
         return msg
 
 # ========================================================================== #
-#    def _compute_weight(self, ukn):
-#        """
-#        """
-#        n_newconf = len(self.database[-1] - len(self.database[-2]
-#        mbar = MBAR(ukn, n_newconf,
-#                    solver_protocol=[{'method': self.parameters['solver']}])
-#        weight = mbar.getWeights()[:, -1]
-#        return weight
-
-# ========================================================================== #
     def get_mlip_energy(self, amat_e, coefficient):
         """
         """
@@ -148,6 +142,20 @@ class MbarManager:
         """
         neff = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
         return neff
+
+# ========================================================================== #
+    def update_database(self, atoms):
+        """
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+        if self.database is None:
+            self.database = atoms
+            self._newconf = len(self.database)
+        else:
+            self.database.extend(atoms)
+            self._newconf = len(self.database) - self._newconf 
+        print(self.database)
 
 # ========================================================================== #
     def _init_weight(self):
@@ -171,16 +179,26 @@ class MbarManager:
     def _get_ukn(self, a, c):
         """
         """
-        P = np.zeros(len(self.database[-1]))
-        T = np.array([_.get_temperature() for _ in self.database[-1]])
-        V = np.array([_.get_volume() for _ in self.database[-1]])
+        ddb = self.database
+        P = np.zeros(len(ddb))
+        T = np.array([_.get_temperature() for _ in ddb])
+        V = np.array([_.get_volume() for _ in ddb])
         if np.abs(np.diff(V)).sum() != 0.0:
-            P = np.array([-np.sum(_.get_stress()[:3]) / 3
-                          for _ in self.database[-1]])
+            P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         ekn = self.get_mlip_energy(a, c)
-        assert len(ekn) == len(self.database[-1])
+        print(ekn, ddb)
+        assert len(ekn) == len(ddb)
         ukn = (ekn + P * V * GPa) / (kB * T)
         return ukn
+
+# ========================================================================== #
+    def _compute_weight(self, ukn):
+        """
+        """
+        mbar = MBAR(ukn, self._newconf,
+                    solver_protocol=[{'method': self.parameters['solver']}])
+        weight = mbar.getWeights()[:, -1]
+        return weight
 
 # ========================================================================== #
     def _build_W_efs(self, weight):
