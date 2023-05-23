@@ -147,8 +147,8 @@ class AbinitManager(CalcManager):
 
         # Now we can read everything
         results_confs = []
-        for cdir in confdir:
-            self._read_output(cdir, results_confs)
+        for (cdir,at) in zip(confdir, confs):
+            results_confs.append(self._read_output(cdir, at))
         # Tada !
         return results_confs
 
@@ -190,7 +190,7 @@ class AbinitManager(CalcManager):
                             self.pseudos)
 
 # ========================================================================== #
-    def _read_output(self, cdir, results_confs):
+    def _read_output(self, cdir, at):
         """
         """
         results = {}
@@ -201,13 +201,15 @@ class AbinitManager(CalcManager):
         energy = results.pop("energy")
         forces = results.pop("forces")
         stress = results.pop("stress")
+
+        atoms.set_velocities(at.get_velocities())
         calc = SPCalc(atoms,
                       energy=energy,
                       forces=forces,
                       stress=stress)
         calc.version = results.pop("version")
         atoms.calc = calc
-        results_confs.append(atoms)
+        return atoms
 
 # ========================================================================== #
     def _organize_pseudos(self, pseudos):
