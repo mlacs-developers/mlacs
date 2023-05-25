@@ -39,6 +39,7 @@ class MbarManager:
         self.every = self.parameters['every']
         self.nthrow = self.parameters['nthrow']
         self.database = database
+        self.Nk = []
         self.W = None
         self.weight = []
         if weight is not None:
@@ -58,6 +59,7 @@ class MbarManager:
         """
         """
         msg = "Increasing database for reweiting ...\n"
+        print("run:", len(self.mlip_coef))
         if self.parameters['step_start'] <= len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
             ukn = np.zeros(shape)
@@ -147,15 +149,18 @@ class MbarManager:
     def update_database(self, atoms):
         """
         """
+        niter = len(self.mlip_coef) + 1
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         if self.database is None:
-            self.database = atoms
-            self._newconf = len(self.database)
+            self.database = []
+        if not self.parameters['step_start'] <= niter: 
+            self.database.extend(atoms)
+            self.Nk = [len(self.database)]
         else:
             self.database.extend(atoms)
-            self._newconf = len(self.database) - self._newconf 
-        print(self.database)
+            self.Nk.append(len(self.database) - np.r_[self.Nk].sum())
+        print(np.r_[self.Nk], len(self.database), len(self.mlip_coef))
 
 # ========================================================================== #
     def _init_weight(self):
@@ -186,7 +191,7 @@ class MbarManager:
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         ekn = self.get_mlip_energy(a, c)
-        print(ekn, ddb)
+        print(len(ekn), len(ddb))
         assert len(ekn) == len(ddb)
         ukn = (ekn + P * V * GPa) / (kB * T)
         return ukn
@@ -195,9 +200,10 @@ class MbarManager:
     def _compute_weight(self, ukn):
         """
         """
-        mbar = MBAR(ukn, self._newconf,
+        print(ukn.shape, self.Nk)
+        mbar = MBAR(ukn, np.r_[self.Nk],
                     solver_protocol=[{'method': self.parameters['solver']}])
-        weight = mbar.getWeights()[:, -1]
+        weight = mbar.weights()[:, -1]
         return weight
 
 # ========================================================================== #
