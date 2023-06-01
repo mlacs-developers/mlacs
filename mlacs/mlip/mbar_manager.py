@@ -40,6 +40,7 @@ class MbarManager:
         self.nthrow = self.parameters['nthrow']
         self.database = database
         self.Nk = []
+        self._del = 0
         self.W = None
         self.weight = []
         if weight is not None:
@@ -149,27 +150,45 @@ class MbarManager:
     def update_database(self, atoms):
         """
         """
-        niter = len(self.mlip_coef) + 1
+        self.niter = len(self.mlip_coef) + 1
         if isinstance(atoms, Atoms):
             atoms = [atoms]
+        newconf = len(atoms)
         if self.database is None:
-            self.database = []
-        if not self.parameters['step_start'] <= niter: 
-            self.database.extend(atoms)
-            self.Nk = [len(self.database)]
+            self._ddb = []
+        self._ddb.extend(atoms)
+        nconfs_tot = len(self._ddb)
+
+        if nconfs_tot < self.nthrow:
+            _id = 0
+        elif nconfs_tot >= self.nthrow and nconfs_tot < 2 * self.nthrow:
+            _id = nconfs_tot - self.nthrow
+            self._del -= 1
         else:
-            self.database.extend(atoms)
-            self.Nk.append(len(self.database) - np.r_[self.Nk].sum())
-        print(np.r_[self.Nk], len(self.database), len(self.mlip_coef))
+            _id = self.nthrow
+        self.database, self.nconfs = (self._ddb[_id:], len(self._ddb[_id:]))
+
+        if not self.parameters['step_start'] <= self.niter:
+            self.Nk = np.r_[self.nconfs - _id]
+        else:
+#            newconf = nconfs_tot - np.r_[self.Nk].sum()
+            self.Nk = np.append(self.Nk, newconf)
+            print(self.Nk, self._del)
+            if nconfs_tot >= self.nthrow:
+                _Nk = np.append([self._del], self.Nk).cumsum()
+                _Nk = np.array(list(filter(lambda l: l > 0, _Nk)))
+                _id = len(self.Nk) - len(_Nk)
+                self.Nk = self.Nk[_id:]
+                self.Nk[0] = _Nk[0]
+        print(self.Nk, len(self.database), len(self.mlip_coef))
 
 # ========================================================================== #
     def _init_weight(self):
         """
         Initialize the weight matrice.
         """
-        nconf = len(self.database[-1])
-        weight = np.ones(nconf) / nconf
-        if nconf <= self.nthrow:
+        weight = np.ones(self.nconfs) / self.nconfs
+        if self.nconfs <= self.nthrow:
             return weight
         nef = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
         if nef > 1.5 * self.every:
@@ -185,14 +204,13 @@ class MbarManager:
         """
         """
         ddb = self.database
-        P = np.zeros(len(ddb))
+        P = np.zeros(self.nconfs)
         T = np.array([_.get_temperature() for _ in ddb])
         V = np.array([_.get_volume() for _ in ddb])
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         ekn = self.get_mlip_energy(a, c)
-        print(len(ekn), len(ddb))
-        assert len(ekn) == len(ddb)
+        assert len(ekn) == self.nconfs
         ukn = (ekn + P * V * GPa) / (kB * T)
         return ukn
 
@@ -201,7 +219,7 @@ class MbarManager:
         """
         """
         print(ukn.shape, self.Nk)
-        mbar = MBAR(ukn, np.r_[self.Nk],
+        mbar = MBAR(ukn, self.Nk,
                     solver_protocol=[{'method': self.parameters['solver']}])
         weight = mbar.weights()[:, -1]
         return weight
@@ -213,7 +231,7 @@ class MbarManager:
         w_e = self.weight[-1] / np.sum(self.weight[-1])
         w_f = []
         w_s = []
-        for a in self.database[-1]:
+        for a in self.database:
             w_f.append(self.weight[-1] * np.ones(3 * len(a)) / (3 * len(a)))
             w_s.append(self.weight[-1] * np.ones(6) / 6)
         w_f = np.r_w_f / np.sum(np.r_w_f)
