@@ -79,7 +79,7 @@ class CLICommand:
                             help="Size of the figure for matplotlib")
         parser.add_argument("--cmap", default="inferno",
                             help="Colormap for the density plot")
-        parser.add_argument("--size", default=25,
+        parser.add_argument("--size", default=10,
                             help="Size of the marker")
 
     @staticmethod

@@ -256,7 +256,6 @@ class LammpsState(StateManager):
                          stderr=PIPE)
 
         if lmp_handle.returncode != 0:
-            print(lmp_handle.returncode)
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)

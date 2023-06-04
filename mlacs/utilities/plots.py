@@ -24,7 +24,7 @@ def plot_correlation(ax,
                      showrmse=True,
                      showmae=True,
                      showrsquared=True,
-                     size=25):
+                     size=10):
     """
     Function to plot the correlation between true and model data on an axes
 
