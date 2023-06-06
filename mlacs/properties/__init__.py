@@ -6,7 +6,10 @@
 from mlacs.properties.property_manager import PropertyManager
 from mlacs.properties.calc_property import (CalcMfep,
                                             CalcNeb)
+)
+from .eos import eos_fit
 
 __all__ = ['PropertyManager',
            'CalcMfep',
-           'CalcNeb']
+           'CalcNeb',
+           'eos_fit']
