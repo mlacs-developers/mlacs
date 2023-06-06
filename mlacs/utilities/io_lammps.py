@@ -269,6 +269,20 @@ def get_diffusion_input(msdfile):
 
 
 # ========================================================================== #
+def get_rdf_input(rdffile):
+    """
+    Function to compute and output the radial distribution function
+    """
+    input_string = "#####################################\n"
+    input_string += "# Compute RDF\n"
+    input_string += "#####################################\n"
+    input_string += "compute myrdf all rdf 250 1 1 \n"
+    input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
+                    f"file {rdffile} mode vector\n"
+    return input_string
+
+
+# ========================================================================== #
 def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
     """
     Write lammps data file with bonds and angles

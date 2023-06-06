@@ -17,6 +17,7 @@ from ..utilities.io_lammps import (get_general_input,
                                    get_log_input,
                                    get_traj_input,
                                    get_diffusion_input,
+                                   get_rdf_input,
                                    get_interaction_input,
                                    get_last_dump_input,
                                    write_lammps_data_full)
@@ -80,6 +81,9 @@ class LammpsState(StateManager):
     msdfile : :class:`str` (optional)
         Name of the file for diffusion coefficient calculation.
         If ``None``, no file is created. Default ``None``.
+    rdffile : :class:`str` (optional)
+        Name of the file for radial distribution function calculation.
+        If ``None``, no file is created. Default ``None``.
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
@@ -112,6 +116,7 @@ class LammpsState(StateManager):
                  trajfile=None,
                  loginterval=50,
                  msdfile=None,
+                 rdffile=None,
                  rng=None,
                  init_momenta=None,
                  workdir=None):
@@ -124,6 +129,7 @@ class LammpsState(StateManager):
                               trajfile,
                               loginterval,
                               msdfile,
+                              rdffile,
                               workdir)
 
         self.rng = rng
@@ -318,6 +324,8 @@ class LammpsState(StateManager):
                                            elem)
         if self.msdfile is not None:
             input_string += get_diffusion_input(self.msdfile)
+        if self.rdffile is not None:
+            input_string += get_rdf_input(self.rdffile)
 
         input_string += get_last_dump_input(self.workdir,
                                             elem,
