@@ -30,25 +30,33 @@ class NebLammpsState(StateManager):
     configurations: :class:`list`
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
+
     reaction_coordinate: :class:`numpy.array` or `float`
         Value of the reaction coordinate for the constrained MD.
         Default ``None``
+
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
         Default ``1.0``
+
     Kspring: :class:`float` or :class:`string`
         Value of the reaction coordinate or sampling mode.
         Default ``rdm_memory``
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
+
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
+
     prt : :class:`Bool` (optional)
         Printing options. Default ``True``
+
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
@@ -103,12 +111,6 @@ class NebLammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     bonds=None,
-                     angles=None,
-                     bond_style=None,
-                     bond_coeff=None,
-                     angle_style=None,
-                     angle_coeff=None,
                      eq=False,
                      workdir=None):
         """
@@ -118,12 +120,6 @@ class NebLammpsState(StateManager):
                      pair_coeff,
                      model_post,
                      atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
                      workdir)
         self.extract_NEB_configurations()
         xi = self._xifinder(self.mode)
@@ -139,12 +135,6 @@ class NebLammpsState(StateManager):
                 pair_coeff,
                 model_post=None,
                 atom_style="atomic",
-                bonds=None,
-                angles=None,
-                bond_style=None,
-                bond_coeff=None,
-                angle_style=None,
-                angle_coeff=None,
                 workdir=None):
         """
         Run a NEB calculation with lammps. Use replicas.
@@ -162,10 +152,6 @@ class NebLammpsState(StateManager):
         fname = self.NEBworkdir + "lammps_input.in"
         self.write_lammps_input_NEB(self.confNEB[0],
                                     atom_style,
-                                    bond_style,
-                                    bond_coeff,
-                                    angle_style,
-                                    angle_coeff,
                                     pair_style,
                                     pair_coeff,
                                     model_post,
@@ -186,10 +172,6 @@ class NebLammpsState(StateManager):
     def write_lammps_input_NEB(self,
                                atoms,
                                atom_style,
-                               bond_style,
-                               bond_coeff,
-                               angle_style,
-                               angle_coeff,
                                pair_style,
                                pair_coeff,
                                model_post,
@@ -211,11 +193,7 @@ class NebLammpsState(StateManager):
                                           atom_style,
                                           filename,
                                           custom)
-        input_string += get_interaction_input(bond_style,
-                                              bond_coeff,
-                                              angle_style,
-                                              angle_coeff,
-                                              pair_style,
+        input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
         input_string += get_neb_input(self.dt / 1000,

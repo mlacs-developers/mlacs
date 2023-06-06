@@ -3,7 +3,7 @@ import os
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import SnapDescriptor, LinearPotential
 from mlacs.state import LangevinState, LammpsState
 from mlacs import OtfMlacs
 
@@ -37,7 +37,9 @@ calc = EMT()
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms, rcut=rcut, descriptor_parameters=mlip_params)
+
+descriptor = SnapDescriptor(neb[0], rcut, mlip_params)
+mlip = LinearPotential(descriptor)
 
 # Creation of the State Manager
 state = []

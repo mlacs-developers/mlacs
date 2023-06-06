@@ -30,6 +30,7 @@ class CalcMfep:
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
             - ave, average difference between to consecutive step < criterion
+
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
@@ -117,12 +118,12 @@ class CalcNeb:
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
             - ave, average difference between to consecutive step < criterion
+
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
     frequence : :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
-
     """
 
     def __init__(self,

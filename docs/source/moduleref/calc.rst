@@ -1,5 +1,5 @@
 Calc Manager
-============
+############
 
 .. module:: mlacs.calc
 
@@ -7,16 +7,16 @@ Calc Manager
 
 
 CalcManager
------------
+***********
 
 .. autoclass:: CalcManager
 
 AbinitManager
--------------
+*************
 
 .. autoclass:: AbinitManager
 
 DlmCalcManager
---------------
+**************
 
 .. autoclass:: DlmCalcManager

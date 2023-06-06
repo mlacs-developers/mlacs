@@ -1,37 +1,42 @@
 Machine-Learning Interatomic Potential Manager
-==============================================
+##############################################
 
 .. module:: mlacs.mlip
 
 .. index::
    single: Class reference; MlipManager
 
+Descriptor
+**********
+
+.. autoclass:: Descriptor
+
+SumDescriptor
+*************
+
+.. autoclass:: SumDescriptor
+
+SnapDescriptor
+**************
+
+.. autoclass:: SnapDescriptor
+
+MliapDescriptor
+***************
+
+.. autoclass:: MliapDescriptor
+
 MlipManager
------------
+***********
 
 .. autoclass:: MlipManager
 
-LinearMlip
-----------
+LinearPotential
+***************
 
-.. autoclass:: LinearMlip
+.. autoclass:: LinearPotential
 
-NeuralNetworkMlip
------------------
+MomentTensorPotential
+*********************
 
-.. autoclass:: NeuralNetworkMlip
-
-LammpsMlipInterface
--------------------
-
-.. autoclass:: mlacs.mlip.mlip_lammps_interface.LammpsMlipInterface
-
-LammpsMlip
-----------
-
-.. autoclass:: LammpsMlip
-
-FitLammpsMlip
--------------
-
-.. autoclass:: FitLammpsMlip
+.. autoclass:: MomentTensorPotential

@@ -1,7 +1,3 @@
-import os
-
-import numpy as np
-from ase.io.lammpsdata import write_lammps_data
 
 
 # ========================================================================== #
@@ -191,11 +187,7 @@ def get_neb_input(dt,
 
 
 # ========================================================================== #
-def get_interaction_input(bond_style,
-                          bond_coeff,
-                          angle_style,
-                          angle_coeff,
-                          pair_style,
+def get_interaction_input(pair_style,
                           pair_coeff,
                           model_post):
     """
@@ -204,15 +196,6 @@ def get_interaction_input(bond_style,
     input_string = "#####################################\n"
     input_string += "#           Interactions\n"
     input_string += "#####################################\n"
-    if bond_style is not None:
-        input_string += f"bond_style   {bond_style}\n"
-        for bc in bond_coeff:
-            input_string += f"bond_coeff {bc}\n"
-
-    if angle_style is not None:
-        input_string += f"angle_style   {angle_style}\n"
-        for angc in angle_coeff:
-            input_string += f"angle_coeff {angc}\n"
 
     input_string += f"pair_style    {pair_style}\n"
     for pair in pair_coeff:
@@ -268,20 +251,6 @@ def get_diffusion_input(msdfile):
     return input_string
 
 # ========================================================================== #
-def get_rdf_input(rdffile):
-    """
-    Function to compute and output the radial distribution function
-    """
-    input_string = "#####################################\n"
-    input_string += "# Compute RDF\n"
-    input_string += "#####################################\n"
-    input_string += "compute myrdf all rdf 250 1 1 \n"
-    input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
-                    f"file {rdffile} mode vector\n"
-    return input_string
-
-
-# ========================================================================== #
 def write_lammps_NEB_ASCIIfile(filename, supercell):
     '''
     Convert Ase Atoms into an ASCII file for lammps neb calculations.
@@ -296,7 +265,6 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
     Return
     ------
        Final NEB configuration :class: `file`
-    ------
     '''
     instr = '# Final coordinates of the NEB calculation.\n'
     instr += '{0}\n'.format(len(supercell))
@@ -304,3 +272,17 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
         instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
     with open(filename, "w") as w:
         w.write(instr)
+
+# ========================================================================== #
+def get_rdf_input(rdffile):
+    """
+    Function to compute and output the radial distribution function
+    """
+    input_string = "#####################################\n"
+    input_string += "# Compute RDF\n"
+    input_string += "#####################################\n"
+    input_string += "compute myrdf all rdf 250 1 1 \n"
+    input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
+                    f"file {rdffile} mode vector\n"
+    return input_string
+

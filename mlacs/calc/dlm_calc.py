@@ -29,20 +29,26 @@ class DlmCalcManager(CalcManager):
     ----------
     calc: :class:`ase.calculator`
         A ASE calculator object.
+
     unitcell: :class:`ase.atoms`
         The Atoms object for the unitcell, for which the symmetry will
         be used to create the magnetic sqs.
+
     supercell: :class:`ase.atoms`
         The supercell with ideal positions
+
     magnetic_sites: :class:`list`
         List of integers describing the unitcell sites where
         the magnetic atoms are located
+
     mu_b: :class:`float`
         The initial spin amplitude, imposed before the calculation,
         in Bohr magneton. Default ``1.0``.
+
     cutoff: :class:`list` of :class:`float`
         The cutoffs for the SQS generation.
         See icet documentation for more information. Default ``[6.0, 4.0]``.
+
     n_steps: :class:`int` (optional)
         Number of Monte-Carlo steps for the generation of the magnetic SQS.
         Default ``3000``.

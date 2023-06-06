@@ -1,7 +1,7 @@
 from ase.io import read
 from ase.calculators.lammpsrun import LAMMPS
 
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import SnapDescriptor, LinearPotential
 from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
@@ -26,35 +26,25 @@ nsteps_eq = 50
 neq = 5
 rcut = 5.5
 twojmax = 8
-nmax = 4
-lmax = 4
-alpha = 2.0
 dt = 1.0  # fs
-friction = 0.01
 scoef = 1.0
-style = "snap"
-
-parameters = None
+desc_params = dict(twojmax=8)
 
 train_conf = read("../MlacsIpi/Trajectory_1.traj", index=":")
 
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation---------
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms,
-                  rcut=rcut,
-                  stress_coefficient=scoef,
-                  style=style,
-                  reference_potential=ref_pot,
-                  fit_parameters=parameters)
+descriptor = SnapDescriptor(atoms, rcut, desc_params)
+mlip = LinearPotential(descriptor, stress_coefficient=scoef)
 
-for at in train_conf:
-    mlip.update_matrices(at)
+mlip.update_matrices(train_conf)
 
 # Creation of the State Manager
 state = LammpsState(t_start,
                     pressure,
                     t_stop,
+                    dt=dt,
                     nsteps=nsteps,
                     nsteps_eq=nsteps_eq,
                     logfile="mlmd.log",

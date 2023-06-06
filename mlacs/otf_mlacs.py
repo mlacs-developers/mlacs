@@ -12,7 +12,7 @@ from ase.io import read, Trajectory
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from .mlip import LammpsMlip
+from .mlip import LinearPotential, MliapDescriptor
 from .calc import CalcManager
 from .properties import PropertyManager
 from .state import StateManager
@@ -31,25 +31,40 @@ class OtfMlacs:
     Parameters
     ----------
 
-    atoms: :class:`ase.Atoms` or :list: of `ase.Atoms`
-        the atom object on which the simulation is run. The atoms has to have
-        a calculator attached
-    state: :class:`StateManager` or :list: of :class: `StateManager`
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        the atom object on which the simulation is run.
+
+    state: :class:`StateManager` or :class:`list` of :class:`StateManager`
         Object determining the state to be sampled
+
     calc: :class:`ase.calculators` or :class:`CalcManager`
         Class controlling the potential energy of the system
         to be approximated.
         If a :class:`ase.calculators` is attached, the :class:`CalcManager`
         is automatically created.
+
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsMlip object with a snap descriptor,
-        5.0 angstrom rcut with 8 twojmax.
+        ``5.0`` angstrom rcut with ``8`` twojmax.
+
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
+
+    nbeads: :class:`int` (optional)
+        The number of beads to use from Path-Integral simulations.
+        This value has to be lower than the number of beads used
+        in the State object, or equal to it.
+        If it is lower, this number indicates the number of beads
+        for which a trajectory will be created and computed
+        with the reference potential.
+        Default ``1``, ignored for non-path integral States
+
     prefix_output: :class:`str` (optional)
         Prefix for the output files of the simulation.
+        If several states are used, this input can be a list of :class:`str`.
         Default ``\"Trajectory\"``.
+
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
         if :class:`int`: Number of configuirations used
         to train a preliminary MLIP
@@ -57,9 +72,15 @@ class OtfMlacs:
         if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
         computed in order to create the initial training configurations
         Default ``1``.
+
     std_init: :class:`float` (optional)
         Variance (in angs^2) of the displacement when creating
         initial configurations. Default ``0.05`` angs^2
+
+    ntrymax: :class:`int`(optional)
+        The maximum number of tentative to retry a step if
+        the reference potential raises an error or didn't converge.
+        Default ``0``.
     """
     def __init__(self,
                  atoms,
@@ -90,7 +111,8 @@ class OtfMlacs:
 
         # Create mlip object
         if mlip is None:
-            self.mlip = LammpsMlip(self.atoms[0])  # Default MLIP Manager
+            descriptor = MliapDescriptor(self.atoms[0], 5.0)
+            self.mlip = LinearPotential(descriptor)
         else:
             self.mlip = mlip
 
@@ -130,7 +152,7 @@ class OtfMlacs:
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
-        self.log.recap_mlip(self.mlip.get_mlip_dict())
+        self.log.logger_log.info(repr(self.mlip))
 
         # We initialize momenta and parameters for training configurations
         if not self.launched:
@@ -285,12 +307,6 @@ class OtfMlacs:
                                self.mlip.pair_coeff,
                                self.mlip.model_post,
                                self.mlip.atom_style,
-                               self.mlip.bonds,
-                               self.mlip.angles,
-                               self.mlip.bond_style,
-                               self.mlip.bond_coeff,
-                               self.mlip.angle_style,
-                               self.mlip.angle_coeff,
                                eq[istate],
                                self.nbeads)
         else:
@@ -310,12 +326,6 @@ class OtfMlacs:
                                             self.mlip.pair_coeff,
                                             self.mlip.model_post,
                                             self.mlip.atom_style,
-                                            self.mlip.bonds,
-                                            self.mlip.angles,
-                                            self.mlip.bond_style,
-                                            self.mlip.bond_coeff,
-                                            self.mlip.angle_style,
-                                            self.mlip.angle_coeff,
                                             eq[istate]))
                     futures.append(exe)
                     msg = f"State {istate+1}/{self.nstate} has been launched"
@@ -324,7 +334,7 @@ class OtfMlacs:
                     atoms_mlip[istate] = exe.result()
 
         for i, at in enumerate(atoms_mlip):
-            at.calc = self.mlip.calc
+            at.calc = self.mlip.get_calculator()
             sp_calc_mlip.append(SinglePointCalculator(
                                 at,
                                 energy=at.get_potential_energy(),
