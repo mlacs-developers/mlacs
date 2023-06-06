@@ -33,64 +33,85 @@ class LammpsState(StateManager):
     ----------
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
+
     pressure: :class:`float` or ``None``
         Pressure of the simulation, in GPa.
         If ``None``, no barostat is applied and
         the simulation is in the NVT ensemble. Default ``None``
+
     damp: :class:`float` or ``None``
+
     langevin: :class:`Bool`
         If ``True``, a Langevin thermostat is used for the thermostat.
         Default ``True``
+
     gjf: ``no`` or ``vfull`` or ``vhalf``
         Whether to use the Gronbech-Jensen/Farago integrator
         for the Langevin dynamics. Only apply if langevin is ``True``.
         Default ``vhalf``.
+
     qtb: :clas::`Bool`
         Whether to use a quantum thermal bath to approximate quantum effects.
         If True, it override the langevin and gjf inputs.
         Default False
+
     fd: :class:`float`
         The frequency cutoff for the qtb thermostat. Should be around
         2~3 times the Debye frequency. In THz.
         Default 200 THz.
+
     n_f: :class:`int`
         Frequency grid size for the qtb thermostat.
         Default 100.
+
     pdamp: :class:`float` or ``None``
         Damping parameter for the barostat.
         If ``None``, apply a damping parameter of
         1000 times the timestep of the simulation. Default ``None``
+
     ptype: ``iso`` or ``aniso``
         Handle the type of pressure applied. Default ``iso``
+
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
+
     nsteps : :class:`int` (optional)
         Number of MLMD steps for production runs. Default ``1000`` steps.
+
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
+
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
+
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
+
     msdfile : :class:`str` (optional)
         Name of the file for diffusion coefficient calculation.
         If ``None``, no file is created. Default ``None``.
+
     rdffile : :class:`str` (optional)
         Name of the file for radial distribution function calculation.
         If ``None``, no file is created. Default ``None``.
+
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
+
     init_momenta : :class:`numpy.ndarray` (optional)
         If ``None``, velocities are initialized with a
         Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
+
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created

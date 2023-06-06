@@ -267,7 +267,6 @@ def get_diffusion_input(msdfile):
     input_string += "\n\n\n"
     return input_string
 
-
 # ========================================================================== #
 def get_rdf_input(rdffile):
     """
@@ -280,53 +279,6 @@ def get_rdf_input(rdffile):
     input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
     return input_string
-
-
-# ========================================================================== #
-def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
-    """
-    Write lammps data file with bonds and angles
-
-    Parameters
-    ----------
-    name : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-    bonds: :class:`numpy.array`
-        array of bonds list
-    nconfs: :class:`numpy.array`
-        array of angles list
-
-    Return
-    ------
-    Lammps data :class: `file`
-    """
-    write_lammps_data('coord_tmp.lmp',
-                      atoms,
-                      atom_style="full",
-                      velocities=velocities)
-    with open('coord_tmp.lmp', 'r') as file:
-        lines = file.readlines()
-
-    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
-    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
-    lines.insert(ind+2, str(len(angles)) + ' angles \n')
-
-    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
-    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
-    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
-
-    with open(name, 'w') as fd:
-        for line in lines:
-            fd.write(line)
-        fd.write("\n")
-        fd.write(" Bonds \n \n")
-        np.savetxt(fd, bonds, fmt='%s')
-        fd.write("\n")
-        fd.write(" Angles \n \n")
-        np.savetxt(fd, angles, fmt='%s')
-    os.remove('coord_tmp.lmp')
 
 
 # ========================================================================== #
