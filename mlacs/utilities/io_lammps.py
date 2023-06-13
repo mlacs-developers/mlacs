@@ -29,7 +29,7 @@ def get_log_input(loginterval, logfile):
                     '${mytemp}  ${mypress} ${mypxx} ${mypyy} ' + \
                     '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                     f'append {logfile} title "# Step  Vol  Etot  ' + \
-                    'Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
+                    'Epot  Ekin  Temp Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -274,15 +274,17 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
         w.write(instr)
 
 # ========================================================================== #
-def get_rdf_input(rdffile):
+def get_rdf_input(rdffile, nsteps):
     """
     Function to compute and output the radial distribution function
     """
     input_string = "#####################################\n"
-    input_string += "# Compute RDF\n"
+    input_string += "#           Compute RDF\n"
     input_string += "#####################################\n"
-    input_string += "compute myrdf all rdf 250 1 1 \n"
-    input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
+    input_string += "compute myrdf all rdf 500 1 1 \n"
+    input_string += f"fix rdf all ave/time 100 10 {nsteps}/10 c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
+    input_string += "#####################################\n"
+    input_string += "\n\n\n"
     return input_string
 
