@@ -288,10 +288,10 @@ def get_rdf_input(rdffile, nsteps):
     input_string = "#####################################\n"
     input_string += "#           Compute RDF\n"
     input_string += "#####################################\n"
-    input_string += f"variable freq equal {freq}\n"
+    #input_string += f"variable freq equal {freq}\n"
     input_string += "compute myrdf all rdf 500 1 1 \n"
     #input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
-    input_string += f"fix rdf all ave/time 1 1 {nsteps} c_myrdf[*] " + \
+    input_string += f"fix rdf all ave/time 1 {nsteps} {nsteps} c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
