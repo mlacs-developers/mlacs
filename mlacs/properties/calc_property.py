@@ -15,7 +15,13 @@ pafi_args = ['temperature',
 neb_args = ['configurations',
             'Kspring',
             'dt']
-
+rdf_args = ['temperature',
+            'dt',
+            'nsteps',
+            'nsteps_eq',
+            'langevin',
+            'logfile',
+            'rdffile']
 
 # ========================================================================== #
 # ========================================================================== #
@@ -30,7 +36,6 @@ class CalcMfep:
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
             - ave, average difference between to consecutive step < criterion
-
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
@@ -118,12 +123,12 @@ class CalcNeb:
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
             - ave, average difference between to consecutive step < criterion
-
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
     frequence : :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
+
     """
 
     def __init__(self,
@@ -193,3 +198,93 @@ class CalcNeb:
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcRdf:
+    """
+    Class to set a radial distribution function calculation.
+    See RdfLammpsState and RdfLammpsState.run_dynamics parameters.
+
+    Parameters
+    ----------
+    method: :class:`str`
+        Type of criterion :
+            - max, maximum difference between to consecutive step < criterion
+            - ave, average difference between to consecutive step < criterion
+        Default ``max``
+    criterion: :class:`float`
+        Stopping criterion value. Default ``0.1``
+    frequence : :class:`int`
+        Interval of Mlacs step to compute the property. Default ``1``
+
+    """
+
+    def __init__(self,
+                 args,
+                 atoms,
+                 method='max',
+                 criterion=0.05,
+                 frequence=5):
+
+        from mlacs.state import RdfLammpsState
+        self.freq = frequence
+        self.stop = criterion
+        self.method = method
+        self.atoms = atoms
+        self.rdf = {}
+        self.kwargs = {}
+        for keys, values in args.items():
+            if keys in rdf_args:
+                self.rdf[keys] = values
+            else:
+                self.kwargs[keys] = values
+        self.isfirst = True
+        self.state = RdfLammpsState(**self.rdf)
+
+# ========================================================================== #
+    def _exec(self, wdir):
+        """
+        Exec a Rdf calculation with lammps.
+        """
+        self.kwargs['supercell'] = self.atoms
+        self.kwargs['workdir'] = wdir + '/Rdf_Calculation/'
+        self.state.run_dynamics(**self.kwargs)
+        self.new = np.loadtxt(self.kwargs['workdir'] + self.rdf['rdffile'], skiprows=4, usecols=(2))
+        if self.isfirst:
+            self.old = np.zeros(len(self.new))
+            check = self._check
+            self.old = self.new
+            self.isfirst = False
+        else:
+            check = self._check
+            self.old = self.new
+        return check
+
+# ========================================================================== #
+    @property
+    def _check(self):
+        """
+        Check if convergence is achived.
+        """       
+        self.maxf = np.abs(max(self.new-self.old))
+        self.avef = np.abs(np.average(self.new-self.old))
+        if self.method == 'max' and self.maxf < self.stop:
+            return True
+        elif self.method == 'ave' and self.avef < self.stop:
+            return True
+        else:
+            return False
+
+# ========================================================================== #
+    def log_recap(self):
+        """
+        Return a string for the log with informations of the calculated
+        property.
+        """
+        msg = 'For the radial distribution function g(r):\n'
+        msg += self.state.log_recap_state()
+        msg += f'        - Maximum  : {self.maxf}\n'
+        msg += f'        - Averaged : {self.avef}\n\n'
+        return msg
+

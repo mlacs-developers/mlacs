@@ -93,6 +93,7 @@ def get_general_input(pbc,
                       masses,
                       charges,
                       atom_style,
+                      replicate=None,
                       filename='atoms.in',
                       custom=''):
     """
@@ -109,6 +110,8 @@ def get_general_input(pbc,
     input_string += f"atom_style {atom_style}\n"
     input_string += custom
     input_string += f"read_data    {filename}\n"
+    if replicate is not None:
+        input_string += f"replicate    {replicate}\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
     input_string += "#####################################\n"
@@ -199,7 +202,10 @@ def get_interaction_input(pair_style,
 
     input_string += f"pair_style    {pair_style}\n"
     for pair in pair_coeff:
-        input_string += f"pair_coeff    {pair}\n"
+        if 'hybrid' in pair_style:
+            input_string += f"pair_coeff    {pair}\n"
+        else:
+            input_string += f"pair_coeff    {pair}\n"
     if model_post is not None:
         for model in model_post:
             input_string += model
@@ -278,13 +284,15 @@ def get_rdf_input(rdffile, nsteps):
     """
     Function to compute and output the radial distribution function
     """
+    freq = int(nsteps/5)
     input_string = "#####################################\n"
     input_string += "#           Compute RDF\n"
     input_string += "#####################################\n"
+    input_string += f"variable freq equal {freq}\n"
     input_string += "compute myrdf all rdf 500 1 1 \n"
-    input_string += f"fix rdf all ave/time 100 10 {nsteps}/10 c_myrdf[*] " + \
+    #input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
+    input_string += f"fix rdf all ave/time 1 1 {nsteps} c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
-
