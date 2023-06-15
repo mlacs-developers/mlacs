@@ -1,0 +1,639 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+AbinitManager	calc/__init__.py	/^from .abinit_manager import AbinitManager$/;"	i
+AbinitManager	calc/abinit_manager.py	/^class AbinitManager(CalcManager):$/;"	c
+Atoms	mlip/descriptor.py	/^from ase.atoms import Atoms$/;"	i
+Atoms	mlip/mlip_manager.py	/^from ase.atoms import Atoms$/;"	i
+Atoms	otf_mlacs.py	/^from ase.atoms import Atoms$/;"	i
+Atoms	state/ipi_state.py	/^from ase import Atoms$/;"	i
+Atoms	utilities/io.py	/^from ase.atoms import Atoms$/;"	i
+Atoms	utilities/miscellanous.py	/^from ase.atoms import Atoms$/;"	i
+BlankDescriptor	mlip/descriptor.py	/^class BlankDescriptor(Descriptor):$/;"	c
+BlankDescriptor	mlip/mtp_model.py	/^from .descriptor import BlankDescriptor$/;"	i
+BlueMoonLammpsState	state/pafi_lammps_state.py	/^class BlueMoonLammpsState(PafiLammpsState):$/;"	c
+Bohr	state/ipi_state.py	/^from ase.units import Bohr, fs$/;"	i
+CLICommand	cli/correlation.py	/^class CLICommand:$/;"	c
+CLICommand	cli/plot_error.py	/^class CLICommand:$/;"	c
+CalcManager	calc/__init__.py	/^from .calc_manager import CalcManager$/;"	i
+CalcManager	calc/abinit_manager.py	/^from .calc_manager import CalcManager$/;"	i
+CalcManager	calc/calc_manager.py	/^class CalcManager:$/;"	c
+CalcManager	calc/dlm_calc.py	/^from . import CalcManager$/;"	i
+CalcManager	calc/socket.py	/^from mlacs.calc.calc_manager import CalcManager$/;"	i
+CalcManager	otf_mlacs.py	/^from .calc import CalcManager$/;"	i
+CalcMfep	properties/__init__.py	/^from mlacs.properties.calc_property import (CalcMfep,$/;"	i
+CalcMfep	properties/calc_property.py	/^class CalcMfep:$/;"	c
+CalcNeb	properties/calc_property.py	/^class CalcNeb:$/;"	c
+Calculator	mlip/calculator.py	/^from ase.calculators.calculator import Calculator$/;"	i
+Calculator	otf_mlacs.py	/^from ase.calculators.calculator import Calculator$/;"	i
+CalculatorError	calc/calc_manager.py	/^from ase.calculators.calculator import CalculatorError$/;"	i
+CalculatorError	calc/dlm_calc.py	/^from ase.calculators.calculator import CalculatorError$/;"	i
+ClusterSpace	calc/dlm_calc.py	/^    from icet import ClusterSpace$/;"	i
+CustomLammpsState	state/__init__.py	/^from .custom_lammps_state import CustomLammpsState$/;"	i
+CustomLammpsState	state/custom_lammps_state.py	/^class CustomLammpsState(LammpsState):$/;"	c
+Descriptor	mlip/__init__.py	/^from .descriptor import Descriptor, SumDescriptor$/;"	i
+Descriptor	mlip/descriptor.py	/^class Descriptor:$/;"	c
+Descriptor	mlip/mliap_descriptor.py	/^from .descriptor import Descriptor, combine_reg$/;"	i
+Descriptor	mlip/snap_descriptor.py	/^from .descriptor import Descriptor, combine_reg$/;"	i
+DlmCalcManager	calc/__init__.py	/^from .dlm_calc import DlmCalcManager$/;"	i
+DlmCalcManager	calc/dlm_calc.py	/^class DlmCalcManager(CalcManager):$/;"	c
+ET	state/ipi_state.py	/^import xml.etree.cElementTree as ET$/;"	i
+EinsteinSolidState	ti/__init__.py	/^from .solids import EinsteinSolidState$/;"	i
+EinsteinSolidState	ti/helpers.py	/^from .solids import EinsteinSolidState$/;"	i
+EinsteinSolidState	ti/solids.py	/^class EinsteinSolidState(ThermoState):$/;"	c
+FitFactoryLog	utilities/log.py	/^class FitFactoryLog:$/;"	c
+GPa	mlip/linear_potential.py	/^from ase.units import GPa$/;"	i
+GPa	mlip/mtp_model.py	/^from ase.units import GPa$/;"	i
+GPa	ti/gpthermoint.py	/^from ase.units import GPa$/;"	i
+GaussianProcessInterface	ti/gpinterface.py	/^class GaussianProcessInterface:$/;"	c
+GaussianProcessInterface	ti/gpthermoint.py	/^from .gpinterface import GaussianProcessInterface$/;"	i
+GaussianProcessRegressor	ti/gpinterface.py	/^    from sklearn.gaussian_process import GaussianProcessRegressor$/;"	i
+GpThermoIntT	ti/__init__.py	/^from .gpthermoint import GpThermoIntT, GpThermoIntVT$/;"	i
+GpThermoIntT	ti/gpthermoint.py	/^class GpThermoIntT(GaussianProcessInterface):$/;"	c
+GpThermoIntVT	ti/__init__.py	/^from .gpthermoint import GpThermoIntT, GpThermoIntVT$/;"	i
+GpThermoIntVT	ti/gpthermoint.py	/^class GpThermoIntVT(GaussianProcessInterface):$/;"	c
+IP	state/neb_lammps_state.py	/^from ..utilities import interpolate_points as IP$/;"	i
+IntP	state/pafi_lammps_state.py	/^from ..utilities import integrate_points as IntP$/;"	i
+IpiState	state/__init__.py	/^from .ipi_state import IpiState$/;"	i
+IpiState	state/ipi_state.py	/^class IpiState(LammpsState):$/;"	c
+LAMMPS	mlip/mtp_model.py	/^from ase.calculators.lammpsrun import LAMMPS$/;"	i
+LAMMPS	state/langevin.py	/^from ase.calculators.lammpsrun import LAMMPS$/;"	i
+LammpsState	state/__init__.py	/^from .lammps_state import LammpsState$/;"	i
+LammpsState	state/custom_lammps_state.py	/^from . import LammpsState$/;"	i
+LammpsState	state/ipi_state.py	/^from . import LammpsState$/;"	i
+LammpsState	state/lammps_state.py	/^class LammpsState(StateManager):$/;"	c
+LammpsState	state/pafi_lammps_state.py	/^from .lammps_state import LammpsState$/;"	i
+Langevin	state/langevin.py	/^from ase.md.langevin import Langevin$/;"	i
+LangevinState	state/__init__.py	/^from .langevin import LangevinState$/;"	i
+LangevinState	state/langevin.py	/^class LangevinState(StateManager):$/;"	c
+LinearPotential	mlip/__init__.py	/^from .linear_potential import LinearPotential$/;"	i
+LinearPotential	mlip/linear_potential.py	/^class LinearPotential(MlipManager):$/;"	c
+LinearPotential	otf_mlacs.py	/^from .mlip import LinearPotential, MliapDescriptor$/;"	i
+MDLogger	state/langevin.py	/^from ase.md import MDLogger$/;"	i
+MaxwellBoltzmannDistribution	state/lammps_state.py	/^from ase.md.velocitydistribution import MaxwellBoltzmannDistribution$/;"	i
+MaxwellBoltzmannDistribution	state/langevin.py	/^from ase.md.velocitydistribution import MaxwellBoltzmannDistribution$/;"	i
+MlacsLog	otf_mlacs.py	/^from .utilities.log import MlacsLog$/;"	i
+MlacsLog	utilities/log.py	/^class MlacsLog:$/;"	c
+MliapDescriptor	mlip/__init__.py	/^from .mliap_descriptor import MliapDescriptor$/;"	i
+MliapDescriptor	mlip/mliap_descriptor.py	/^class MliapDescriptor(Descriptor):$/;"	c
+MliapDescriptor	otf_mlacs.py	/^from .mlip import LinearPotential, MliapDescriptor$/;"	i
+MlipCalculator	mlip/calculator.py	/^class MlipCalculator(Calculator):$/;"	c
+MlipCalculator	mlip/linear_potential.py	/^        from .calculator import MlipCalculator$/;"	i
+MlipManager	mlip/__init__.py	/^from .mlip_manager import MlipManager$/;"	i
+MlipManager	mlip/linear_potential.py	/^from . import MlipManager$/;"	i
+MlipManager	mlip/mlip_manager.py	/^class MlipManager:$/;"	c
+MomentTensorPotential	mlip/__init__.py	/^from .mtp_model import MomentTensorPotential$/;"	i
+MomentTensorPotential	mlip/mtp_model.py	/^class MomentTensorPotential(SelfMlipManager):$/;"	c
+NebLammpsState	properties/calc_property.py	/^        from mlacs.state import NebLammpsState$/;"	i
+NebLammpsState	state/__init__.py	/^from .neb_lammps_state import NebLammpsState$/;"	i
+NebLammpsState	state/neb_lammps_state.py	/^class NebLammpsState(StateManager):$/;"	c
+NebLammpsState	state/pafi_lammps_state.py	/^from .neb_lammps_state import NebLammpsState$/;"	i
+NeighborList	utilities/pdf.py	/^from ase.neighborlist import NeighborList$/;"	i
+OtfMlacs	__init__.py	/^from .otf_mlacs import OtfMlacs$/;"	i
+OtfMlacs	otf_mlacs.py	/^class OtfMlacs:$/;"	c
+PIPE	mlip/mliap_descriptor.py	/^from subprocess import run, PIPE$/;"	i
+PIPE	mlip/mtp_model.py	/^from subprocess import run, PIPE$/;"	i
+PIPE	mlip/snap_descriptor.py	/^from subprocess import run, PIPE$/;"	i
+PIPE	state/ipi_state.py	/^from subprocess import Popen, PIPE$/;"	i
+PIPE	state/lammps_state.py	/^from subprocess import run, PIPE$/;"	i
+PIPE	state/neb_lammps_state.py	/^from subprocess import run, PIPE$/;"	i
+PIPE	state/pafi_lammps_state.py	/^from subprocess import run, PIPE$/;"	i
+PafiLammpsState	properties/calc_property.py	/^        from mlacs.state import PafiLammpsState$/;"	i
+PafiLammpsState	state/__init__.py	/^from .pafi_lammps_state import (PafiLammpsState,$/;"	i
+PafiLammpsState	state/pafi_lammps_state.py	/^class PafiLammpsState(LammpsState, NebLammpsState):$/;"	c
+Path	mlip/mliap_descriptor.py	/^from pathlib import Path$/;"	i
+Path	mlip/mtp_model.py	/^from pathlib import Path$/;"	i
+Path	mlip/snap_descriptor.py	/^from pathlib import Path$/;"	i
+Popen	calc/abinit_manager.py	/^from subprocess import Popen$/;"	i
+Popen	state/ipi_state.py	/^from subprocess import Popen, PIPE$/;"	i
+Prism	state/pafi_lammps_state.py	/^        from ase.calculators.lammps import Prism, convert$/;"	i
+PropertyManager	otf_mlacs.py	/^from .properties import PropertyManager$/;"	i
+PropertyManager	properties/__init__.py	/^from mlacs.properties.property_manager import PropertyManager$/;"	i
+PropertyManager	properties/property_manager.py	/^class PropertyManager:$/;"	c
+RBF	ti/gpinterface.py	/^    from sklearn.gaussian_process.kernels import (RBF,$/;"	i
+RBF	ti/gpthermoint.py	/^    from sklearn.gaussian_process.kernels import (RBF,$/;"	i
+RawTextHelpFormatter	cli/main.py	/^from argparse import RawTextHelpFormatter$/;"	i
+ReversibleScalingState	ti/__init__.py	/^from .reversible_scaling import ReversibleScalingState$/;"	i
+ReversibleScalingState	ti/reversible_scaling.py	/^class ReversibleScalingState(ThermoState):$/;"	c
+SPC	utilities/miscellanous.py	/^from ase.calculators.singlepoint import SinglePointCalculator as SPC$/;"	i
+SPCalc	calc/abinit_manager.py	/^from ase.calculators.singlepoint import SinglePointCalculator as SPCalc$/;"	i
+SPCalc	state/ipi_state.py	/^from ase.calculators.singlepoint import SinglePointCalculator as SPCalc$/;"	i
+SelfMlipManager	mlip/mlip_manager.py	/^class SelfMlipManager(MlipManager):$/;"	c
+SelfMlipManager	mlip/mtp_model.py	/^from .mlip_manager import SelfMlipManager$/;"	i
+SinglePointCalculator	calc/calc_manager.py	/^from ase.calculators.singlepoint import SinglePointCalculator$/;"	i
+SinglePointCalculator	calc/dlm_calc.py	/^from ase.calculators.singlepoint import SinglePointCalculator$/;"	i
+SinglePointCalculator	otf_mlacs.py	/^from ase.calculators.singlepoint import SinglePointCalculator$/;"	i
+SinglePointCalculator	utilities/path_integral.py	/^from ase.calculators.singlepoint import SinglePointCalculator$/;"	i
+SnapDescriptor	mlip/__init__.py	/^from .snap_descriptor import SnapDescriptor$/;"	i
+SnapDescriptor	mlip/snap_descriptor.py	/^class SnapDescriptor(Descriptor):$/;"	c
+SocketCalcManager	calc/socket.py	/^class SocketCalcManager(CalcManager):$/;"	c
+SocketIOCalculator	calc/socket.py	/^from ase.calculators.socketio import SocketIOCalculator$/;"	i
+StateManager	otf_mlacs.py	/^from .state import StateManager$/;"	i
+StateManager	state/__init__.py	/^from .state import StateManager$/;"	i
+StateManager	state/lammps_state.py	/^from .state import StateManager$/;"	i
+StateManager	state/langevin.py	/^from .state import StateManager$/;"	i
+StateManager	state/neb_lammps_state.py	/^from .state import StateManager$/;"	i
+StateManager	state/state.py	/^class StateManager:$/;"	c
+SumDescriptor	mlip/__init__.py	/^from .descriptor import Descriptor, SumDescriptor$/;"	i
+SumDescriptor	mlip/descriptor.py	/^class SumDescriptor(Descriptor):$/;"	c
+ThermoLog	ti/thermoint.py	/^from ..utilities.thermolog import ThermoLog$/;"	i
+ThermoLog	utilities/thermolog.py	/^class ThermoLog:$/;"	c
+ThermoState	ti/liquids.py	/^from .thermostate import ThermoState$/;"	i
+ThermoState	ti/reversible_scaling.py	/^from .thermostate import ThermoState$/;"	i
+ThermoState	ti/solids.py	/^from .thermostate import ThermoState$/;"	i
+ThermoState	ti/thermoint.py	/^from .thermostate import ThermoState$/;"	i
+ThermoState	ti/thermostate.py	/^class ThermoState:$/;"	c
+ThermodynamicIntegration	ti/__init__.py	/^from .thermoint import ThermodynamicIntegration$/;"	i
+ThermodynamicIntegration	ti/thermoint.py	/^class ThermodynamicIntegration:$/;"	c
+ThreadPoolExecutor	calc/abinit_manager.py	/^from concurrent.futures import ThreadPoolExecutor$/;"	i
+ThreadPoolExecutor	otf_mlacs.py	/^from concurrent.futures import ThreadPoolExecutor$/;"	i
+ThreadPoolExecutor	state/pafi_lammps_state.py	/^from concurrent.futures import ThreadPoolExecutor$/;"	i
+ThreadPoolExecutor	ti/thermoint.py	/^from concurrent.futures import ThreadPoolExecutor$/;"	i
+Trajectory	otf_mlacs.py	/^from ase.io import read, Trajectory$/;"	i
+Trajectory	state/langevin.py	/^from ase.io import Trajectory$/;"	i
+TruePotentialError	otf_mlacs.py	/^class TruePotentialError(Exception):$/;"	c
+UFLiquidState	ti/__init__.py	/^from .liquids import UFLiquidState$/;"	i
+UFLiquidState	ti/helpers.py	/^from .liquids import UFLiquidState$/;"	i
+UFLiquidState	ti/liquids.py	/^class UFLiquidState(ThermoState):$/;"	c
+_COM_corrections	state/neb_lammps_state.py	/^    def _COM_corrections(self, spline):$/;"	m	class:NebLammpsState
+__all__	__init__.py	/^__all__ = ['OtfMlacs', '__version__']$/;"	v
+__all__	calc/__init__.py	/^__all__ = ["CalcManager",$/;"	v
+__all__	mlip/__init__.py	/^__all__ = ['MlipManager',$/;"	v
+__all__	properties/__init__.py	/^__all__ = ['PropertyManager',$/;"	v
+__all__	state/__init__.py	/^__all__ = ['StateManager',$/;"	v
+__all__	ti/__init__.py	/^__all__ = ["ThermodynamicIntegration",$/;"	v
+__all__	utilities/__init__.py	/^__all__ = ['compute_pdf',$/;"	v
+__init__	calc/abinit_manager.py	/^    def __init__(self,$/;"	m	class:AbinitManager
+__init__	calc/calc_manager.py	/^    def __init__(self,$/;"	m	class:CalcManager
+__init__	calc/dlm_calc.py	/^    def __init__(self,$/;"	m	class:DlmCalcManager
+__init__	calc/socket.py	/^    def __init__(self,$/;"	m	class:SocketCalcManager
+__init__	mlip/calculator.py	/^    def __init__(self, model, **kwargs):$/;"	m	class:MlipCalculator
+__init__	mlip/descriptor.py	/^    def __init__(self, *args):$/;"	m	class:SumDescriptor
+__init__	mlip/descriptor.py	/^    def __init__(self, atoms):$/;"	m	class:BlankDescriptor
+__init__	mlip/descriptor.py	/^    def __init__(self, atoms, rcut=5.0, alpha=1.0):$/;"	m	class:Descriptor
+__init__	mlip/linear_potential.py	/^    def __init__(self,$/;"	m	class:LinearPotential
+__init__	mlip/mliap_descriptor.py	/^    def __init__(self, atoms, rcut=5.0, parameters={},$/;"	m	class:MliapDescriptor
+__init__	mlip/mlip_manager.py	/^    def __init__(self,$/;"	m	class:MlipManager
+__init__	mlip/mlip_manager.py	/^    def __init__(self,$/;"	m	class:SelfMlipManager
+__init__	mlip/mtp_model.py	/^    def __init__(self,$/;"	m	class:MomentTensorPotential
+__init__	mlip/snap_descriptor.py	/^    def __init__(self, atoms, rcut=5.0, parameters=dict(),$/;"	m	class:SnapDescriptor
+__init__	otf_mlacs.py	/^    def __init__(self,$/;"	m	class:OtfMlacs
+__init__	properties/calc_property.py	/^    def __init__(self,$/;"	m	class:CalcMfep
+__init__	properties/calc_property.py	/^    def __init__(self,$/;"	m	class:CalcNeb
+__init__	properties/property_manager.py	/^    def __init__(self,$/;"	m	class:PropertyManager
+__init__	state/custom_lammps_state.py	/^    def __init__(self,$/;"	m	class:CustomLammpsState
+__init__	state/ipi_state.py	/^    def __init__(self,$/;"	m	class:IpiState
+__init__	state/lammps_state.py	/^    def __init__(self,$/;"	m	class:LammpsState
+__init__	state/langevin.py	/^    def __init__(self,$/;"	m	class:LangevinState
+__init__	state/neb_lammps_state.py	/^    def __init__(self,$/;"	m	class:NebLammpsState
+__init__	state/pafi_lammps_state.py	/^    def __init__(self,$/;"	m	class:BlueMoonLammpsState
+__init__	state/pafi_lammps_state.py	/^    def __init__(self,$/;"	m	class:PafiLammpsState
+__init__	state/state.py	/^    def __init__(self,$/;"	m	class:StateManager
+__init__	ti/gpinterface.py	/^    def __init__(self,$/;"	m	class:GaussianProcessInterface
+__init__	ti/gpthermoint.py	/^    def __init__(self,$/;"	m	class:GpThermoIntT
+__init__	ti/gpthermoint.py	/^    def __init__(self,$/;"	m	class:GpThermoIntVT
+__init__	ti/liquids.py	/^    def __init__(self,$/;"	m	class:UFLiquidState
+__init__	ti/reversible_scaling.py	/^    def __init__(self,$/;"	m	class:ReversibleScalingState
+__init__	ti/solids.py	/^    def __init__(self,$/;"	m	class:EinsteinSolidState
+__init__	ti/thermoint.py	/^    def __init__(self,$/;"	m	class:ThermodynamicIntegration
+__init__	ti/thermostate.py	/^    def __init__(self,$/;"	m	class:ThermoState
+__init__	utilities/log.py	/^    def __init__(self, logfile):$/;"	m	class:FitFactoryLog
+__init__	utilities/log.py	/^    def __init__(self, logfile, restart=False):$/;"	m	class:MlacsLog
+__init__	utilities/thermolog.py	/^    def __init__(self, logfile=None, restart=False):$/;"	m	class:ThermoLog
+__repr__	mlip/descriptor.py	/^    def __repr__(self):$/;"	m	class:SumDescriptor	file:
+__repr__	mlip/linear_potential.py	/^    def __repr__(self):$/;"	m	class:LinearPotential	file:
+__repr__	mlip/mliap_descriptor.py	/^    def __repr__(self):$/;"	m	class:MliapDescriptor	file:
+__repr__	mlip/mtp_model.py	/^    def __repr__(self):$/;"	m	class:MomentTensorPotential	file:
+__repr__	mlip/snap_descriptor.py	/^    def __repr__(self):$/;"	m	class:SnapDescriptor	file:
+__str__	mlip/descriptor.py	/^    def __str__(self):$/;"	m	class:SumDescriptor	file:
+__str__	mlip/linear_potential.py	/^    def __str__(self):$/;"	m	class:LinearPotential	file:
+__str__	mlip/mliap_descriptor.py	/^    def __str__(self):$/;"	m	class:MliapDescriptor	file:
+__str__	mlip/mtp_model.py	/^    def __str__(self):$/;"	m	class:MomentTensorPotential	file:
+__str__	mlip/snap_descriptor.py	/^    def __str__(self):$/;"	m	class:SnapDescriptor	file:
+__version__	__init__.py	/^from .version import __version__$/;"	i
+__version__	cli/main.py	/^from ..version import __version__$/;"	i
+__version__	utilities/log.py	/^from ..version import __version__$/;"	i
+__version__	utilities/thermolog.py	/^from .. import __version__$/;"	i
+__version__	version.py	/^__version__ = '0.0.12'$/;"	v
+_add_Subelements	state/ipi_state.py	/^        def _add_Subelements(element, subelements):$/;"	f	function:IpiState.write_ipi_input
+_add_new_data	ti/gpinterface.py	/^    def _add_new_data(self, x, y):$/;"	m	class:GaussianProcessInterface
+_add_tailxml	state/ipi_state.py	/^        def _add_tailxml(element, text):$/;"	f	function:IpiState.write_ipi_input
+_add_textxml	state/ipi_state.py	/^        def _add_textxml(element, text):$/;"	f	function:IpiState.write_ipi_input
+_build_lammps_command	state/ipi_state.py	/^    def _build_lammps_command(self, bead=''):$/;"	m	class:IpiState
+_check	properties/calc_property.py	/^    def _check(self):$/;"	m	class:CalcMfep
+_check	properties/calc_property.py	/^    def _check(self):$/;"	m	class:CalcNeb
+_clean_folder	mlip/mtp_model.py	/^    def _clean_folder(self):$/;"	m	class:MomentTensorPotential
+_compute_descriptor	mlip/mliap_descriptor.py	/^    def _compute_descriptor(self, atoms, forces=True, stress=True):$/;"	m	class:MliapDescriptor
+_compute_descriptor	mlip/snap_descriptor.py	/^    def _compute_descriptor(self, atoms, forces=True, stress=True):$/;"	m	class:SnapDescriptor
+_compute_rij	mlip/descriptor.py	/^    def _compute_rij(self, atoms):$/;"	m	class:Descriptor
+_compute_test	mlip/mtp_model.py	/^    def _compute_test(self, msg, idx_e):$/;"	m	class:MomentTensorPotential
+_create_ASE_object	utilities/miscellanous.py	/^def _create_ASE_object(Z, positions, cell, energy):$/;"	f
+_exec	properties/calc_property.py	/^    def _exec(self, wdir):$/;"	m	class:CalcMfep
+_exec	properties/calc_property.py	/^    def _exec(self, wdir):$/;"	m	class:CalcNeb
+_get_gibbs_onestate	ti/gpthermoint.py	/^    def _get_gibbs_onestate(self, state, lb, ub):$/;"	m	class:GpThermoIntVT
+_get_helmholtz_onestate	ti/gpthermoint.py	/^    def _get_helmholtz_onestate(self, state):$/;"	m	class:GpThermoIntVT
+_get_helmholtz_onestate	ti/gpthermoint.py	/^    def _get_helmholtz_onestate(self, temperature):$/;"	m	class:GpThermoIntT
+_get_idx_fit	mlip/mlip_manager.py	/^    def _get_idx_fit(self):$/;"	m	class:MlipManager
+_get_ipi_cmd	state/ipi_state.py	/^    def _get_ipi_cmd(self):$/;"	m	class:IpiState
+_get_lammps_command	ti/thermostate.py	/^    def _get_lammps_command(self):$/;"	m	class:ThermoState
+_get_lammps_command_replica	state/neb_lammps_state.py	/^    def _get_lammps_command_replica(self):$/;"	m	class:NebLammpsState
+_get_one_atoms	state/ipi_state.py	/^    def _get_one_atoms(self, idx, pref, pbc, nmax):$/;"	m	class:IpiState
+_get_thermal_expansion_onestate	ti/gpthermoint.py	/^    def _get_thermal_expansion_onestate(self, state,$/;"	m	class:GpThermoIntVT
+_get_volume_from_one_pt	ti/gpthermoint.py	/^    def _get_volume_from_one_pt(self, pres, temp, lb=None, ub=None):$/;"	m	class:GpThermoIntVT
+_initialize_state	otf_mlacs.py	/^    def _initialize_state(self, state, atoms, neq, prefix_output, nbeads):$/;"	m	class:OtfMlacs
+_integrand_temp	ti/gpthermoint.py	/^    def _integrand_temp(self, temp):$/;"	m	class:GpThermoIntT
+_integrand_temp	ti/gpthermoint.py	/^    def _integrand_temp(self, temp):$/;"	m	class:GpThermoIntVT
+_integrand_vol	ti/gpthermoint.py	/^    def _integrand_vol(self, vol, temp):$/;"	m	class:GpThermoIntVT
+_make_command	calc/abinit_manager.py	/^    def _make_command(self, cdir, nproc):$/;"	m	class:AbinitManager
+_mtp_data	mlip/mtp_model.py	/^            from . import _mtp_data$/;"	i
+_organize_pseudos	calc/abinit_manager.py	/^    def _organize_pseudos(self, pseudos):$/;"	m	class:AbinitManager
+_p_minus_ptarget	ti/gpthermoint.py	/^    def _p_minus_ptarget(self, vol, ptarget, temp):$/;"	m	class:GpThermoIntVT
+_read_cells	state/ipi_state.py	/^    def _read_cells(self, filename):$/;"	m	class:IpiState
+_read_lammpsdata	state/neb_lammps_state.py	/^    def _read_lammpsdata(self, filename, wrap=True):$/;"	m	class:NebLammpsState
+_read_output	calc/abinit_manager.py	/^    def _read_output(self, cdir, at):$/;"	m	class:AbinitManager
+_regularization_matrix	mlip/descriptor.py	/^    def _regularization_matrix(self):$/;"	m	class:Descriptor
+_regularization_matrix	mlip/descriptor.py	/^    def _regularization_matrix(self):$/;"	m	class:SumDescriptor
+_regularization_matrix	mlip/mliap_descriptor.py	/^    def _regularization_matrix(self):$/;"	m	class:MliapDescriptor
+_regularization_matrix	mlip/snap_descriptor.py	/^    def _regularization_matrix(self):$/;"	m	class:SnapDescriptor
+_remove_previous_run	calc/abinit_manager.py	/^    def _remove_previous_run(self, confdir):$/;"	m	class:AbinitManager
+_run_initial_step	otf_mlacs.py	/^    def _run_initial_step(self):$/;"	m	class:OtfMlacs
+_run_lammps	mlip/mliap_descriptor.py	/^    def _run_lammps(self, lmp_atoms_fname):$/;"	m	class:MliapDescriptor
+_run_lammps	mlip/snap_descriptor.py	/^    def _run_lammps(self, lmp_atoms_fname):$/;"	m	class:SnapDescriptor
+_run_mlp	mlip/mtp_model.py	/^    def _run_mlp(self):$/;"	m	class:MomentTensorPotential
+_run_one_state	ti/thermoint.py	/^    def _run_one_state(self, istate, i):$/;"	m	class:ThermodynamicIntegration
+_run_step	otf_mlacs.py	/^    def _run_step(self):$/;"	m	class:OtfMlacs
+_snap_opt_str	mlip/snap_descriptor.py	/^    def _snap_opt_str(self):$/;"	m	class:SnapDescriptor
+_temperature_integration	ti/gpthermoint.py	/^    def _temperature_integration(self, temp):$/;"	m	class:GpThermoIntT
+_temperature_integration	ti/gpthermoint.py	/^    def _temperature_integration(self, temp):$/;"	m	class:GpThermoIntVT
+_volume_integration	ti/gpthermoint.py	/^    def _volume_integration(self, vol, temp):$/;"	m	class:GpThermoIntVT
+_write_PafiPath_atoms	state/pafi_lammps_state.py	/^    def _write_PafiPath_atoms(self, filename, atoms, spline):$/;"	m	class:PafiLammpsState
+_write_configurations	mlip/mtp_model.py	/^    def _write_configurations(self):$/;"	m	class:MomentTensorPotential
+_write_input	calc/abinit_manager.py	/^    def _write_input(self, atoms, confdir):$/;"	m	class:AbinitManager
+_write_input	mlip/mtp_model.py	/^    def _write_input(self):$/;"	m	class:MomentTensorPotential
+_write_lammps_input	mlip/mliap_descriptor.py	/^    def _write_lammps_input(self, masses, pbc):$/;"	m	class:MliapDescriptor
+_write_lammps_input	mlip/snap_descriptor.py	/^    def _write_lammps_input(self, masses, pbc):$/;"	m	class:SnapDescriptor
+_write_mlip_params	mlip/mliap_descriptor.py	/^    def _write_mlip_params(self):$/;"	m	class:MliapDescriptor
+_write_mlip_params	mlip/snap_descriptor.py	/^    def _write_mlip_params(self):$/;"	m	class:SnapDescriptor
+_write_mtpfile	mlip/mtp_model.py	/^    def _write_mtpfile(self):$/;"	m	class:MomentTensorPotential
+_xifinder	state/neb_lammps_state.py	/^    def _xifinder(self, mode):$/;"	m	class:NebLammpsState
+add_arguments	cli/correlation.py	/^    def add_arguments(parser):$/;"	m	class:CLICommand
+add_arguments	cli/plot_error.py	/^    def add_arguments(parser):$/;"	m	class:CLICommand
+add_new_data	ti/gpinterface.py	/^    def add_new_data(self, x, y):$/;"	m	class:GaussianProcessInterface
+add_new_data	ti/gpthermoint.py	/^    def add_new_data(self, temperature, energy):$/;"	m	class:GpThermoIntT
+add_new_data	ti/gpthermoint.py	/^    def add_new_data(self, volume, temperature, energy, pressure):$/;"	m	class:GpThermoIntVT
+amu	ti/solids.py	/^amu = 1.6605390666e-27  # atomic mass constant$/;"	v
+argparse	cli/main.py	/^import argparse$/;"	i
+available_modes	ti/gpthermoint.py	/^available_modes = ["t", "vt"]$/;"	v
+bfgs_conv_tol	mlip/mtp_model.py	/^                              bfgs_conv_tol=1e-3,$/;"	v
+blue	utilities/plots.py	/^blue = "#1f77b4"$/;"	v
+brentq	ti/gpthermoint.py	/^from scipy.optimize import brentq$/;"	i
+calculate	mlip/calculator.py	/^    def calculate(self, atoms=None, properties=['energy'],$/;"	m	class:MlipCalculator
+calculate	mlip/descriptor.py	/^    def calculate(self, atoms, forces=True, stress=True):$/;"	m	class:Descriptor
+calculate	mlip/descriptor.py	/^    def calculate(self, atoms, forces=True, stress=True):$/;"	m	class:SumDescriptor
+call	ti/liquids.py	/^from subprocess import call$/;"	i
+call	ti/solids.py	/^from subprocess import call$/;"	i
+call	ti/thermostate.py	/^from subprocess import call$/;"	i
+check_criterion	properties/property_manager.py	/^    def check_criterion(self):$/;"	m	class:PropertyManager
+cleanup	mlip/mliap_descriptor.py	/^    def cleanup(self):$/;"	m	class:MliapDescriptor
+cleanup	mlip/snap_descriptor.py	/^    def cleanup(self):$/;"	m	class:SnapDescriptor
+colors	utilities/plots.py	/^colors = [blue, red, orange, green, violet, cyan, grey]$/;"	v
+combine_reg	mlip/descriptor.py	/^def combine_reg(matrices):$/;"	f
+combine_reg	mlip/mliap_descriptor.py	/^from .descriptor import Descriptor, combine_reg$/;"	i
+combine_reg	mlip/snap_descriptor.py	/^from .descriptor import Descriptor, combine_reg$/;"	i
+commands	cli/main.py	/^commands = [('correlation', 'mlacs.cli.correlation'),$/;"	v
+compute_averaged	utilities/miscellanous.py	/^def compute_averaged(traj):$/;"	f
+compute_centroid_atoms	otf_mlacs.py	/^from .utilities.path_integral import compute_centroid_atoms$/;"	i
+compute_centroid_atoms	utilities/path_integral.py	/^def compute_centroid_atoms(confs, temperature):$/;"	f
+compute_correlation	utilities/miscellanous.py	/^def compute_correlation(data):$/;"	f
+compute_correlation	utilities/plots.py	/^from . import compute_correlation$/;"	i
+compute_msd	ti/solids.py	/^    def compute_msd(self, wdir):$/;"	m	class:EinsteinSolidState
+compute_pdf	utilities/__init__.py	/^from .pdf import compute_pdf$/;"	i
+compute_pdf	utilities/pdf.py	/^def compute_pdf(configurations,$/;"	f
+compute_spline	state/neb_lammps_state.py	/^    def compute_spline(self, xi=None):$/;"	m	class:NebLammpsState
+compute_tests	mlip/linear_potential.py	/^    def compute_tests(self, amat_e, amat_f, amat_s,$/;"	m	class:LinearPotential
+compute_true_potential	calc/abinit_manager.py	/^    def compute_true_potential(self,$/;"	m	class:AbinitManager
+compute_true_potential	calc/calc_manager.py	/^    def compute_true_potential(self,$/;"	m	class:CalcManager
+compute_true_potential	calc/dlm_calc.py	/^    def compute_true_potential(self,$/;"	m	class:DlmCalcManager
+compute_true_potential	calc/socket.py	/^    def compute_true_potential(self, atoms):$/;"	m	class:SocketCalcManager
+convert	state/pafi_lammps_state.py	/^        from ase.calculators.lammps import Prism, convert$/;"	i
+create_ase_atom	state/ipi_state.py	/^    def create_ase_atom(self, pbc, nbeads_return):$/;"	m	class:IpiState
+create_random_structures	otf_mlacs.py	/^from .utilities import create_random_structures$/;"	i
+create_random_structures	utilities/miscellanous.py	/^def create_random_structures(atoms, std, nconfs):$/;"	f
+cumtrapz	ti/reversible_scaling.py	/^from scipy.integrate import cumtrapz$/;"	i
+cyan	utilities/plots.py	/^cyan = "#17becf"$/;"	v
+datetime	utilities/log.py	/^import datetime$/;"	i
+datetime	utilities/thermolog.py	/^import datetime$/;"	i
+default_fit_parameters	mlip/mtp_model.py	/^default_fit_parameters = dict(scale_by_forces=0,$/;"	v
+default_gp_parameters	ti/gpinterface.py	/^default_gp_parameters = {"n_restarts_optimizer": 100,$/;"	v
+default_mtp_parameters	mlip/mtp_model.py	/^default_mtp_parameters = dict(level=8,$/;"	v
+default_parameters	mlip/linear_potential.py	/^default_parameters = {"method": "ols",$/;"	v
+default_snap	mlip/mliap_descriptor.py	/^default_snap = {"twojmax": 8,$/;"	v
+default_snap	mlip/snap_descriptor.py	/^from .mliap_descriptor import default_snap$/;"	i
+default_so3	mlip/mliap_descriptor.py	/^default_so3 = {"nmax": 4,$/;"	v
+descriptor	utilities/log.py	/^    def descriptor(self, descdct, descdct_list):$/;"	m	class:FitFactoryLog
+eV	ti/solids.py	/^eV = 1.602176634e-19  # eV$/;"	v
+err	utilities/miscellanous.py	/^    def err(c, x, y, t, k):$/;"	f	function:integrate_points
+err	utilities/miscellanous.py	/^    def err(c, x, y, t, k):$/;"	f	function:interpolate_points
+error	ti/thermoint.py	/^    def error(self, istate):$/;"	m	class:ThermodynamicIntegration
+etree	state/ipi_state.py	/^import xml.etree.cElementTree as ET$/;"	i
+extract_NEB_configurations	state/neb_lammps_state.py	/^    def extract_NEB_configurations(self):$/;"	m	class:NebLammpsState
+find_dist	state/neb_lammps_state.py	/^        def find_dist(_l):$/;"	f	function:NebLammpsState._xifinder
+free_energy_com_harmonic_oscillator	utilities/thermo.py	/^def free_energy_com_harmonic_oscillator(k, T, nat, vol, masses):$/;"	f
+free_energy_harmonic_oscillator	ti/solids.py	/^from ..utilities.thermo import (free_energy_harmonic_oscillator,$/;"	i
+free_energy_harmonic_oscillator	utilities/thermo.py	/^def free_energy_harmonic_oscillator(omega, T, nat, classical=True):$/;"	f
+free_energy_ideal_gas	utilities/thermo.py	/^def free_energy_ideal_gas(vol, nat, mass, T):$/;"	f
+free_energy_uhlenbeck_ford	ti/liquids.py	/^from ..utilities.thermo import (free_energy_uhlenbeck_ford,$/;"	i
+free_energy_uhlenbeck_ford	utilities/thermo.py	/^def free_energy_uhlenbeck_ford(rho, p, sigma, T):$/;"	f
+from_dict	mlip/descriptor.py	/^    def from_dict(dct):$/;"	m	class:SumDescriptor
+fs	state/ipi_state.py	/^from ase.units import Bohr, fs$/;"	i
+fs	state/langevin.py	/^from ase.units import fs$/;"	i
+fs	utilities/path_integral.py	/^from ase.units import kB, fs$/;"	i
+fs	utilities/thermo.py	/^from ase.units import kB, fs$/;"	i
+gaussian_kde	utilities/plots.py	/^from scipy.stats import gaussian_kde$/;"	i
+generate_sqs_from_supercells	calc/dlm_calc.py	/^    from icet.tools.structure_generation import generate_sqs_from_supercells$/;"	i
+get_calculator	mlip/linear_potential.py	/^    def get_calculator(self):$/;"	m	class:LinearPotential
+get_calculator	mlip/mtp_model.py	/^    def get_calculator(self):$/;"	m	class:MomentTensorPotential
+get_diffusion_input	utilities/io_lammps.py	/^def get_diffusion_input(msdfile):$/;"	f
+get_elements_Z_and_masses	mlip/descriptor.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	mlip/mliap_descriptor.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	mlip/snap_descriptor.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	state/custom_lammps_state.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	state/ipi_state.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	state/lammps_state.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	state/neb_lammps_state.py	/^from ..utilities import (get_elements_Z_and_masses,$/;"	i
+get_elements_Z_and_masses	state/pafi_lammps_state.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	ti/reversible_scaling.py	/^from ..utilities.miscellanous import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	ti/thermostate.py	/^from ..utilities import get_elements_Z_and_masses$/;"	i
+get_elements_Z_and_masses	utilities/__init__.py	/^from .miscellanous import (get_elements_Z_and_masses,$/;"	i
+get_elements_Z_and_masses	utilities/miscellanous.py	/^def get_elements_Z_and_masses(supercell):$/;"	f
+get_general_input	state/lammps_state.py	/^from ..utilities.io_lammps import (get_general_input,$/;"	i
+get_general_input	state/neb_lammps_state.py	/^from ..utilities.io_lammps import (get_general_input,$/;"	i
+get_general_input	state/pafi_lammps_state.py	/^from ..utilities.io_lammps import (get_general_input,$/;"	i
+get_general_input	ti/thermostate.py	/^    def get_general_input(self):$/;"	m	class:ThermoState
+get_general_input	utilities/io_lammps.py	/^def get_general_input(pbc,$/;"	f
+get_gibbs_free_energy	ti/gpthermoint.py	/^    def get_gibbs_free_energy(self, pressure, temperature, lb=None, ub=None):$/;"	m	class:GpThermoIntVT
+get_helmholtz_free_energy	ti/gpthermoint.py	/^    def get_helmholtz_free_energy(self, temperature):$/;"	m	class:GpThermoIntT
+get_helmholtz_free_energy	ti/gpthermoint.py	/^    def get_helmholtz_free_energy(self, volume, temperature):$/;"	m	class:GpThermoIntVT
+get_interaction_input	ti/thermostate.py	/^    def get_interaction_input(self):$/;"	m	class:ThermoState
+get_interaction_input	utilities/io_lammps.py	/^def get_interaction_input(pair_style,$/;"	f
+get_last_dump_input	utilities/io_lammps.py	/^def get_last_dump_input(workdir, elem, nsteps):$/;"	f
+get_log_input	ti/thermostate.py	/^    def get_log_input(self, suffix=None):$/;"	m	class:ThermoState
+get_log_input	utilities/io_lammps.py	/^def get_log_input(loginterval, logfile):$/;"	f
+get_neb_input	utilities/io_lammps.py	/^def get_neb_input(dt,$/;"	f
+get_pafi_input	utilities/io_lammps.py	/^def get_pafi_input(dt,$/;"	f
+get_pafi_log_input	utilities/io_lammps.py	/^def get_pafi_log_input(rep=0,$/;"	f
+get_pair_style_coeff	mlip/descriptor.py	/^    def get_pair_style_coeff(self):$/;"	m	class:SumDescriptor
+get_pair_style_coeff	mlip/mliap_descriptor.py	/^    def get_pair_style_coeff(self):$/;"	m	class:MliapDescriptor
+get_pair_style_coeff	mlip/snap_descriptor.py	/^    def get_pair_style_coeff(self):$/;"	m	class:SnapDescriptor
+get_temperature	state/ipi_state.py	/^    def get_temperature(self):$/;"	m	class:IpiState
+get_thermal_expansion	ti/gpthermoint.py	/^    def get_thermal_expansion(self, pressure, temperature,$/;"	m	class:GpThermoIntVT
+get_thermostat_input	state/ipi_state.py	/^    def get_thermostat_input(self, temp=None, press=None):$/;"	m	class:IpiState
+get_traj_input	ti/thermostate.py	/^    def get_traj_input(self, suffix=None):$/;"	m	class:ThermoState
+get_traj_input	utilities/io_lammps.py	/^def get_traj_input(loginterval, trajfile, elem):$/;"	f
+get_volume_from_press_temp	ti/gpthermoint.py	/^    def get_volume_from_press_temp(self, pressure, temperature,$/;"	m	class:GpThermoIntVT
+get_workdir	ti/thermostate.py	/^    def get_workdir(self):$/;"	m	class:ThermoState
+green	utilities/plots.py	/^green = "#2ca02c"$/;"	v
+grey	utilities/plots.py	/^grey = "#7f7f7f"$/;"	v
+h	utilities/thermo.py	/^h = 4.135667696e-15 * 1e15 * fs  # from eV.s to eV.(ASE time units)$/;"	v
+hbar	ti/solids.py	/^hbar = 6.582119514e-16  # hbar$/;"	v
+hbar	utilities/path_integral.py	/^hbar = 6.582119514e-16 * 1e15 * fs  # from eV.s to eV.(ASE time units)$/;"	v
+hbar	utilities/thermo.py	/^hbar = 6.582119514e-16 * 1e15 * fs  # from eV.s to eV.(ASE time units)$/;"	v
+implemented_properties	mlip/calculator.py	/^    implemented_properties = ['energy', 'forces', 'stress']$/;"	v	class:MlipCalculator
+init_new_step	utilities/log.py	/^    def init_new_step(self, step):$/;"	m	class:MlacsLog
+init_params	mlip/mtp_model.py	/^                              init_params="random",$/;"	v
+init_rcParams	cli/correlation.py	/^from ..utilities.plots import plot_correlation, init_rcParams$/;"	i
+init_rcParams	cli/plot_error.py	/^from ..utilities.plots import plot_error, init_rcParams$/;"	i
+init_rcParams	utilities/plots.py	/^def init_rcParams():$/;"	f
+initialize_momenta	state/custom_lammps_state.py	/^    def initialize_momenta(self, atoms):$/;"	m	class:CustomLammpsState
+initialize_momenta	state/langevin.py	/^    def initialize_momenta(self, atoms):$/;"	m	class:LangevinState
+initialize_momenta	state/state.py	/^    def initialize_momenta(self, atoms):$/;"	m	class:StateManager
+integ	utilities/miscellanous.py	/^    def integ(x, tck):$/;"	f	function:integrate_points
+integrate_points	utilities/miscellanous.py	/^def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):$/;"	f
+interpolate	utilities/miscellanous.py	/^from scipy import interpolate$/;"	i
+interpolate_points	utilities/miscellanous.py	/^def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):$/;"	f
+isicet	calc/dlm_calc.py	/^    isicet = False$/;"	v
+isicet	calc/dlm_calc.py	/^    isicet = True$/;"	v
+kB	state/pafi_lammps_state.py	/^from ase.units import kB$/;"	i
+kB	ti/helpers.py	/^from ase.units import kB$/;"	i
+kB	ti/reversible_scaling.py	/^from ase.units import kB$/;"	i
+kB	ti/solids.py	/^from ase.units import kB$/;"	i
+kB	utilities/path_integral.py	/^from ase.units import kB, fs$/;"	i
+kB	utilities/pdf.py	/^from ase.units import kB$/;"	i
+kB	utilities/thermo.py	/^from ase.units import kB, fs$/;"	i
+log_free_energy	state/pafi_lammps_state.py	/^    def log_free_energy(self, xi, workdir, nthrow=2000, _ref=0):$/;"	m	class:PafiLammpsState
+log_recap	properties/calc_property.py	/^    def log_recap(self):$/;"	m	class:CalcMfep
+log_recap	properties/calc_property.py	/^    def log_recap(self):$/;"	m	class:CalcNeb
+log_recap_state	calc/calc_manager.py	/^    def log_recap_state(self):$/;"	m	class:CalcManager
+log_recap_state	calc/dlm_calc.py	/^    def log_recap_state(self):$/;"	m	class:DlmCalcManager
+log_recap_state	state/ipi_state.py	/^    def log_recap_state(self):$/;"	m	class:IpiState
+log_recap_state	state/lammps_state.py	/^    def log_recap_state(self):$/;"	m	class:LammpsState
+log_recap_state	state/langevin.py	/^    def log_recap_state(self):$/;"	m	class:LangevinState
+log_recap_state	state/neb_lammps_state.py	/^    def log_recap_state(self):$/;"	m	class:NebLammpsState
+log_recap_state	state/pafi_lammps_state.py	/^    def log_recap_state(self):$/;"	m	class:PafiLammpsState
+log_recap_state	state/state.py	/^    def log_recap_state(self):$/;"	m	class:StateManager
+log_recap_state	ti/liquids.py	/^    def log_recap_state(self):$/;"	m	class:UFLiquidState
+log_recap_state	ti/reversible_scaling.py	/^    def log_recap_state(self):$/;"	m	class:ReversibleScalingState
+log_recap_state	ti/solids.py	/^    def log_recap_state(self):$/;"	m	class:EinsteinSolidState
+log_time	utilities/log.py	/^    def log_time(self, action, time):$/;"	m	class:FitFactoryLog
+logging	utilities/log.py	/^import logging$/;"	i
+logging	utilities/thermolog.py	/^import logging$/;"	i
+main	cli/correlation.py	/^def main(args, parser):$/;"	f
+main	cli/main.py	/^def main(prog='mlacs', description='MLACS command line tool',$/;"	f
+main	cli/plot_error.py	/^def main(args, parser):$/;"	f
+matplotlib	cli/correlation.py	/^import matplotlib.pyplot as plt$/;"	i
+matplotlib	cli/plot_error.py	/^import matplotlib.pyplot as plt$/;"	i
+max_dist	mlip/mtp_model.py	/^                              max_dist=5.0,$/;"	v
+max_iter	mlip/mtp_model.py	/^                              max_iter=100,$/;"	v
+min_dist	mlip/mtp_model.py	/^                              min_dist=1.0,$/;"	v
+minimize	utilities/miscellanous.py	/^from scipy.optimize import minimize$/;"	i
+mlacs	mlip/descriptor.py	/^            import mlacs.mlip as tmp$/;"	i
+mpl	utilities/plots.py	/^import matplotlib as mpl$/;"	i
+msg	ti/gpinterface.py	/^    msg = "You need sklearn to use the calphagpy modules"$/;"	v
+msg	ti/gpthermoint.py	/^    msg = "You need sklearn to use the calphagpy modules"$/;"	v
+neb_args	properties/calc_property.py	/^neb_args = ['configurations',$/;"	v
+neighbor_list	mlip/descriptor.py	/^from ase.neighborlist import neighbor_list$/;"	i
+np	calc/abinit_manager.py	/^import numpy as np$/;"	i
+np	calc/dlm_calc.py	/^import numpy as np$/;"	i
+np	cli/correlation.py	/^import numpy as np$/;"	i
+np	cli/plot_error.py	/^import numpy as np$/;"	i
+np	mlip/descriptor.py	/^import numpy as np$/;"	i
+np	mlip/linear_potential.py	/^import numpy as np$/;"	i
+np	mlip/mliap_descriptor.py	/^import numpy as np$/;"	i
+np	mlip/mlip_manager.py	/^import numpy as np$/;"	i
+np	mlip/mtp_model.py	/^import numpy as np$/;"	i
+np	mlip/snap_descriptor.py	/^import numpy as np$/;"	i
+np	otf_mlacs.py	/^import numpy as np$/;"	i
+np	properties/calc_property.py	/^import numpy as np$/;"	i
+np	state/ipi_state.py	/^import numpy as np$/;"	i
+np	state/lammps_state.py	/^import numpy as np$/;"	i
+np	state/langevin.py	/^import numpy as np$/;"	i
+np	state/neb_lammps_state.py	/^import numpy as np$/;"	i
+np	state/pafi_lammps_state.py	/^import numpy as np$/;"	i
+np	state/state.py	/^import numpy as np$/;"	i
+np	ti/gpinterface.py	/^import numpy as np$/;"	i
+np	ti/gpthermoint.py	/^import numpy as np$/;"	i
+np	ti/helpers.py	/^import numpy as np$/;"	i
+np	ti/liquids.py	/^import numpy as np$/;"	i
+np	ti/reversible_scaling.py	/^import numpy as np$/;"	i
+np	ti/solids.py	/^import numpy as np$/;"	i
+np	ti/thermoint.py	/^import numpy as np$/;"	i
+np	ti/thermostate.py	/^import numpy as np$/;"	i
+np	utilities/io.py	/^import numpy as np$/;"	i
+np	utilities/log.py	/^import numpy as np$/;"	i
+np	utilities/miscellanous.py	/^import numpy as np$/;"	i
+np	utilities/path_integral.py	/^import numpy as np$/;"	i
+np	utilities/pdf.py	/^import numpy as np$/;"	i
+np	utilities/plots.py	/^import numpy as np$/;"	i
+np	utilities/thermo.py	/^import numpy as np$/;"	i
+orange	utilities/plots.py	/^orange = "#ff7f0e"$/;"	v
+os	calc/abinit_manager.py	/^import os$/;"	i
+os	mlip/mliap_descriptor.py	/^import os$/;"	i
+os	mlip/snap_descriptor.py	/^import os$/;"	i
+os	otf_mlacs.py	/^import os$/;"	i
+os	properties/property_manager.py	/^import os$/;"	i
+os	state/ipi_state.py	/^import os$/;"	i
+os	state/lammps_state.py	/^import os$/;"	i
+os	state/neb_lammps_state.py	/^import os$/;"	i
+os	state/pafi_lammps_state.py	/^import os$/;"	i
+os	state/state.py	/^import os$/;"	i
+os	ti/liquids.py	/^import os$/;"	i
+os	ti/reversible_scaling.py	/^import os$/;"	i
+os	ti/solids.py	/^import os$/;"	i
+os	ti/thermoint.py	/^import os$/;"	i
+os	ti/thermostate.py	/^import os$/;"	i
+os	utilities/log.py	/^import os$/;"	i
+os	utilities/thermolog.py	/^import os$/;"	i
+p_tabled	ti/liquids.py	/^p_tabled = [1, 25, 50, 75, 100]$/;"	v
+pafi_args	properties/calc_property.py	/^pafi_args = ['temperature',$/;"	v
+plot_correlation	cli/correlation.py	/^from ..utilities.plots import plot_correlation, init_rcParams$/;"	i
+plot_correlation	utilities/plots.py	/^def plot_correlation(ax,$/;"	f
+plot_error	cli/plot_error.py	/^from ..utilities.plots import plot_error, init_rcParams$/;"	i
+plot_error	utilities/plots.py	/^def plot_error(ax,$/;"	f
+plt	cli/correlation.py	/^import matplotlib.pyplot as plt$/;"	i
+plt	cli/plot_error.py	/^import matplotlib.pyplot as plt$/;"	i
+post_process	ti/thermostate.py	/^    def post_process(self):$/;"	m	class:ThermoState
+postprocess	ti/liquids.py	/^    def postprocess(self, wdir):$/;"	m	class:UFLiquidState
+postprocess	ti/reversible_scaling.py	/^    def postprocess(self, wdir):$/;"	m	class:ReversibleScalingState
+postprocess	ti/solids.py	/^    def postprocess(self, wdir):$/;"	m	class:EinsteinSolidState
+predict	mlip/linear_potential.py	/^    def predict(self, atoms):$/;"	m	class:LinearPotential
+predict	ti/gpinterface.py	/^    def predict(self, x, return_cov=False):$/;"	m	class:GaussianProcessInterface
+prepare_ti	ti/__init__.py	/^from .helpers import prepare_ti$/;"	i
+prepare_ti	ti/helpers.py	/^def prepare_ti(trajprefix,$/;"	f
+print_bestfit	utilities/log.py	/^    def print_bestfit(self, best_fit, metric):$/;"	m	class:FitFactoryLog
+print_descriptor_variable	utilities/log.py	/^    def print_descriptor_variable(self, dct):$/;"	m	class:FitFactoryLog
+print_fitparam	utilities/log.py	/^    def print_fitparam(self, dct):$/;"	m	class:FitFactoryLog
+print_results	utilities/log.py	/^    def print_results(self, res, cost):$/;"	m	class:FitFactoryLog
+quad	ti/gpthermoint.py	/^from scipy.integrate import quad$/;"	i
+radial_basis_size	mlip/mtp_model.py	/^                              radial_basis_size=8)$/;"	v
+radial_basis_type	mlip/mtp_model.py	/^                              radial_basis_type="RBChebyshev",$/;"	v
+re	mlip/mtp_model.py	/^            import re$/;"	i
+read	otf_mlacs.py	/^from ase.io import read, Trajectory$/;"	i
+read	state/ipi_state.py	/^from ase.io import read, write$/;"	i
+read	state/lammps_state.py	/^from ase.io import read$/;"	i
+read	state/pafi_lammps_state.py	/^from ase.io import read$/;"	i
+read	ti/helpers.py	/^from ase.io import read$/;"	i
+read_cfg_data	mlip/mtp_model.py	/^from ..utilities.io import write_cfg, read_cfg_data$/;"	i
+read_cfg_data	utilities/io.py	/^def read_cfg_data(filename):$/;"	f
+recap_mlip	utilities/log.py	/^    def recap_mlip(self, mlip_params):$/;"	m	class:MlacsLog
+recap_state	ti/thermoint.py	/^    def recap_state(self):$/;"	m	class:ThermodynamicIntegration
+red	utilities/plots.py	/^red = "#d62728"$/;"	v
+run	cli/correlation.py	/^    def run(args, parser):$/;"	m	class:CLICommand
+run	cli/plot_error.py	/^    def run(args, parser):$/;"	m	class:CLICommand
+run	mlip/mliap_descriptor.py	/^from subprocess import run, PIPE$/;"	i
+run	mlip/mtp_model.py	/^from subprocess import run, PIPE$/;"	i
+run	mlip/snap_descriptor.py	/^from subprocess import run, PIPE$/;"	i
+run	otf_mlacs.py	/^    def run(self, nsteps=100):$/;"	m	class:OtfMlacs
+run	properties/property_manager.py	/^    def run(self, wdir, step):$/;"	m	class:PropertyManager
+run	state/lammps_state.py	/^from subprocess import run, PIPE$/;"	i
+run	state/neb_lammps_state.py	/^from subprocess import run, PIPE$/;"	i
+run	state/pafi_lammps_state.py	/^from subprocess import run, PIPE$/;"	i
+run	ti/liquids.py	/^    def run(self, wdir):$/;"	m	class:UFLiquidState
+run	ti/reversible_scaling.py	/^    def run(self, wdir):$/;"	m	class:ReversibleScalingState
+run	ti/solids.py	/^    def run(self, wdir):$/;"	m	class:EinsteinSolidState
+run	ti/thermoint.py	/^    def run(self):$/;"	m	class:ThermodynamicIntegration
+run_MFEP	state/pafi_lammps_state.py	/^    def run_MFEP(self,$/;"	m	class:PafiLammpsState
+run_NEB	state/neb_lammps_state.py	/^    def run_NEB(self,$/;"	m	class:NebLammpsState
+run_dynamics	state/ipi_state.py	/^    def run_dynamics(self,$/;"	m	class:IpiState
+run_dynamics	state/langevin.py	/^    def run_dynamics(self,$/;"	m	class:LangevinState
+run_dynamics	state/neb_lammps_state.py	/^    def run_dynamics(self,$/;"	m	class:NebLammpsState
+run_dynamics	state/pafi_lammps_state.py	/^    def run_dynamics(self,$/;"	m	class:PafiLammpsState
+run_dynamics	state/state.py	/^    def run_dynamics(self,$/;"	m	class:StateManager
+run_dynamics	ti/liquids.py	/^    def run_dynamics(self, wdir):$/;"	m	class:UFLiquidState
+run_dynamics	ti/solids.py	/^    def run_dynamics(self, wdir):$/;"	m	class:EinsteinSolidState
+run_dynamics	ti/thermostate.py	/^    def run_dynamics(self, wdir):$/;"	m	class:ThermoState
+run_hpdynamics	state/pafi_lammps_state.py	/^    def run_hpdynamics(self,$/;"	m	class:PafiLammpsState
+set_coefficients	mlip/linear_potential.py	/^    def set_coefficients(self, coefficients):$/;"	m	class:LinearPotential
+set_workdir	state/ipi_state.py	/^    def set_workdir(self, workdir):$/;"	m	class:IpiState
+set_workdir	state/lammps_state.py	/^    def set_workdir(self, workdir):$/;"	m	class:LammpsState
+set_workdir	state/state.py	/^    def set_workdir(self, workdir):$/;"	m	class:StateManager
+shlex	calc/abinit_manager.py	/^import shlex$/;"	i
+shlex	state/ipi_state.py	/^import shlex$/;"	i
+smallsplitprint	utilities/log.py	/^    def smallsplitprint(self):$/;"	m	class:FitFactoryLog
+spline1	utilities/thermo.py	/^spline1 = [[-14.175243817292000, 1.036718109543200, 1.000000000000000,$/;"	v
+spline100	utilities/thermo.py	/^spline100 =[[69.740148090887000, 9.013272829772800, 1.000000000000000, 0.000000000000000],  # noqa$/;"	v
+spline25	utilities/thermo.py	/^spline25 = [[-1.498614095965000, 5.894146535239900, 1.000000000000000, 0.000000000000000],  # noqa$/;"	v
+spline50	utilities/thermo.py	/^spline50 = [[36.084207286535000, 7.367165481783600, 1.000000000000000, 0.000000000000000],  # noqa$/;"	v
+spline75	utilities/thermo.py	/^spline75 = [[68.998569518968000, 8.260028376202600, 1.000000000000000, 0.000000000000000],  # noqa$/;"	v
+splines	utilities/thermo.py	/^splines = {1 : spline1, 25 : spline25, 50 : spline50, 75 : spline75, 100 : spline100}  # noqa$/;"	v
+splitprint	utilities/log.py	/^    def splitprint(self):$/;"	m	class:FitFactoryLog
+submit_abinit_calc	calc/abinit_manager.py	/^        def submit_abinit_calc(cmd, logfile, errfile):$/;"	f	function:AbinitManager.compute_true_potential
+subtitleblock	utilities/log.py	/^    def subtitleblock(self, msg):$/;"	m	class:FitFactoryLog
+sum_spline1	utilities/thermo.py	/^sum_spline1 = [0.00254749763692896,0.00502343076464539,0.007503155352045,0.009991644266977,0.012499194237399,0.015014204802471,0.017538325302583,0.020054309791579,0.022553886421309,0.025061302083425,0.027575920148606,0.030092356559897,0.032614547922250,0.035137489104047,0.037655980393329,0.040177975858651,0.042702236066866,0.045224262320203,0.047752893726561,0.050283763913754,0.052809030243105,0.055342989844471,0.057876077596860,0.060408537176755,0.062949101861291,0.065485523673407,0.068021359289858,0.070563779924634,0.073107372840564,0.075648876622086,0.078192831974852,0.080739796945067,0.083287297938079,0.085838826257298,0.088390782142592,0.090941487103934,0.093495934822125,0.096052395113379,0.098608702502556,0.101165466768052,0.126828600249899,0.152636424993590,0.178584058988326,0.204667858034673,0.230881327018910,0.257212980165412,0.283665721426921,0.310239904601930,0.336934423372076,0.363742640738165,0.390663732387729,0.417695452530482,0.444833522871054,0.472072401125805,0.499411308558241,0.526853594435617,0.554389479161144,0.582018619672601,0.609739676016697,0.637549235823260,0.665442176402622,0.693417666359418,0.721474846192127,0.749610732177091,0.777826382292536,0.806114602359870,0.834474078551576,0.862908778915283,0.891414262332787,0.919986121662808,0.948625377621246,0.977323871599565,1.006088946254230,1.034922010440430,1.063810895855170,1.092760251235910,1.209142505487360,1.326345560852390,1.444325827752690,1.563010170883090,1.682347996050180,1.802291319952330,1.922779851243730,2.043789271198770,2.165269938086670,2.287201466881660,2.409560723917550,2.532304993309890,2.655415729723060,2.778874280141550,2.902655074118200,3.026744286866460,3.151124869813240,3.275769909623850,3.400676019195220,3.525827463966480,3.651209368838240,3.776814577889110,3.902626259276300,4.028639540093830,4.154842804432210,4.281225969699400,4.407785922723560,4.534511457426090,4.661396868277670,4.788436685942290]  # noqa$/;"	v
+sum_spline100	utilities/thermo.py	/^sum_spline100 = [0.022751120037216,0.045910532808262,0.069358886314654,0.093111074332860,0.117193421001055,0.141590628241591,0.166322354449552,0.191384838705569,0.216783189118122,0.242528215537895,0.268620650085640,0.295067156179220,0.321877113204317,0.349060002629334,0.376608779352532,0.404526116361092,0.432826329629026,0.461516598754625,0.490608087814006,0.520098744854098,0.549998589556064,0.580313886093840,0.611042422021131,0.642198386422815,0.673785350112000,0.705810878229726,0.738282703229342,0.771207048892062,0.804591961793084,0.838436905388695,0.872758381474059,0.907561036175287,0.942846603767524,0.978625367185550,1.014903295330200,1.051686407918390,1.088980922859230,1.126797655939330,1.165141004877230,1.204018512792680,1.623677596465690,2.104370910113270,2.653008220727520,3.275979576925120,3.978923839960030,4.766450436575240,5.641977302440640,6.607574516351870,7.664068081251860,8.811188730960130,10.047707473241200,11.371559331958000,12.780062993792400,14.270100584286200,15.838239772969900,17.480824496419700,19.194110106141100,20.974404874909700,22.818033169025700,24.721404291025700,26.681081620554200,28.693777743176400,30.756365300567500,32.865885098080900,35.019567569746600,37.214805116699300,39.449156150761500,41.720343675582300,44.026242064232500,46.364873708591800,48.734393689770700,51.133080789475600,53.559334176702700,56.011672897612300,58.488711702450300,60.989157573392400,71.202211031757100,81.707105874834700,92.454214656498000,103.405240329003000,114.530211680502000,125.805339025108000,137.211452823616000,148.732919115523000,160.356818930707000,172.072353003607000,183.870405493372000,195.743198822087000,207.684039226795000,219.687114803139000,231.747350331965000,243.860281653511000,256.021956470225000,268.228858659096000,280.477840724457000,292.766082311122000,305.091036447450000,317.450392248597000,329.842058607862000,342.264125899782000,354.714844033488000,367.192616055157000,379.695974154135000,392.223562929583000,404.774131143285000,417.346524791109000]  # noqa$/;"	v
+sum_spline25	utilities/thermo.py	/^sum_spline25 = [0.0147306831690499,0.0294723009167598,0.044314585232149,0.059266774566239,0.074364727404319,0.089577633956651,0.104900643259878,0.120355574417470,0.135929438647708,0.151628979580904,0.167456382248253,0.183402201706604,0.199474910655862,0.215678934679661,0.232002621416176,0.248455108128911,0.265043028697512,0.281764420032029,0.298620944576488,0.315609712431588,0.332730399767214,0.349987208133893,0.367379357200308,0.384908094731203,0.402573836888694,0.420379490808446,0.438326494610401,0.456409759693646,0.474634200869181,0.493005523005278,0.511517421640986,0.530171576555525,0.548974779234038,0.567920184019094,0.587013926018609,0.606257768799528,0.625644095881285,0.645176700398732,0.664860247998297,0.684697734522109,0.891538683065501,1.114251996782550,1.353585176796290,1.610009060676020,1.883922617339220,2.175555391811240,2.485017120623020,2.812273942799810,3.157146676566280,3.519357379844810,3.898540114272880,4.294231124991230,4.705893658921520,5.132981533379270,5.574894809889770,6.031017598746010,6.500724418731780,6.983386177801780,7.478395797930240,7.985156732556710,8.503079951132140,9.031613826197340,9.570230921441540,10.118409261212300,10.675654205937700,11.241514550570800,11.815556143140700,12.397363533483300,12.986549704634500,13.582742724161200,14.185604107077500,14.794808595489200,15.410047788328500,16.031036870139700,16.657509119233900,17.289210433454900,19.863737736039800,22.505231774871200,25.203309318443400,27.949712402396300,30.737816881147200,33.562254425354400,36.418610175373900,39.303207666649200,42.212978261551300,45.145337904966100,48.098069497800400,51.069282074654800,54.057336100710400,57.060793966792300,60.078398032231200,63.109042396913400,66.151754802071800,69.205657384509900,72.269965351582700,75.343983500706900,78.427077996985700,81.518678937913900,84.618271051632900,87.725376094437000,90.839563272672900,93.960437796409500,97.087634524555600,100.220819343418000,103.359685953714000,106.503948752097000]  # noqa$/;"	v
+sum_spline50	utilities/thermo.py	/^sum_spline50 = [0.0185306768522294,0.0372792103018056,0.056212924124813,0.075339433470916,0.094670677379331,0.114211740478830,0.133964254004940,0.153906375048613,0.174068045752584,0.194460932793556,0.215053388420972,0.235855692969847,0.256891191126303,0.278154324237520,0.299640300689610,0.321354234314584,0.343299150716760,0.365487119019348,0.387906483714816,0.410558306409225,0.433455852088645,0.456601146873966,0.479991362154924,0.503625542771789,0.527513043039352,0.551661018804711,0.576062742828836,0.600718010420542,0.625631652957410,0.650811826229759,0.676265005943332,0.701987128356421,0.727984517596200,0.754259780580181,0.780805855020279,0.807639270480600,0.834762176938773,0.862162489540871,0.889845550786647,0.917826657161586,1.214448887520250,1.542807048274960,1.905534876211200,2.304602702409210,2.741802500363830,3.218477172736700,3.735466642853960,4.293207387699940,4.891740153250660,5.530683263336780,6.209331814398670,6.926714254220380,7.681639969876430,8.472726809276860,9.298537215682430,10.157573569421100,11.048244553949000,11.969002729676400,12.918317752301500,13.894674586327600,14.896616854691400,15.922754315291800,16.971757396581600,18.042356765856200,19.133356088574700,20.243632522984800,21.372124410801500,22.517831333884600,23.679815766965000,24.857207226191900,26.049188131103400,27.254989159736300,28.473897024782100,29.705240886102400,30.948394672645400,32.202775378630600,37.322114460371100,42.583053241284600,47.962431706422500,53.442139223302300,59.007828689933400,64.648002555536600,70.353324445686900,76.116124076291200,81.930033771772100,87.789687084536400,93.690547065163100,99.628737382230000,105.600908427574000,111.604152813349000,117.635927885104000,123.693996112488000,129.776379922909000,135.881321741619000,142.007241588694000,148.152728303473000,154.316505259635000,160.497420758929000,166.694429301703000,172.906578294339000,179.132998436755000,185.372888981918000,191.625519385956000,197.890214082006000,204.166353790251000,210.453362095267000]  # noqa$/;"	v
+sum_spline75	utilities/thermo.py	/^sum_spline75 = [0.0208656914702533,0.0421335911164029,0.063670659694271,0.085446488482928,0.107476527532398,0.129787697603331,0.152365197690609,0.175229483364329,0.198374365040979,0.221794637876004,0.245514188874677,0.269525042404852,0.293833546997918,0.318437614065975,0.343350517320355,0.368581943444779,0.394111175953036,0.419959700202330,0.446142318747512,0.472650775786975,0.499481087590020,0.526644185038990,0.554147918489952,0.581989928956324,0.610184053390845,0.638738048797146,0.667643378121671,0.696907232776590,0.726535198866118,0.756532069823965,0.786907543422482,0.817665686268779,0.848809929274073,0.880338669814449,0.912259079648739,0.944582450263800,0.977309319721285,1.010442352711650,1.043992062405470,1.077960731599310,1.441576940402560,1.852126706766450,2.314029292048210,2.831417341879480,3.407857461071770,4.046104044629470,4.748227223037830,5.515406855441720,6.347982573960320,7.245631996300860,8.207373767176780,9.231679089428320,10.316652088214900,11.460077516053600,12.659525239148600,13.912460856231600,15.216272280735500,16.568350436187700,17.966118918803700,19.407059123602500,20.888758962307900,22.408905181147100,23.965279041874100,25.555796098410200,27.178494538874400,28.831516926070500,30.513127703302500,32.221699368081600,33.955707729659200,35.713739822333300,37.494475566759000,39.296671350850400,41.119175505438800,42.960917109134600,44.820894179829500,46.698173950942900,54.363744255600800,62.246000442365100,70.308622909130700,78.523441176252200,86.868326598212700,95.325623860809300,103.881054222375000,112.522964293432000,121.241707227290000,130.029192070618000,138.878578664985000,147.784032584640000,156.740515555896000,165.743666573692000,174.789680900629000,183.875199521387000,192.997250555642000,202.153194471623000,211.340671158141000,220.557561700525000,229.801953680186000,239.072114874521000,248.366476952209000,257.683606218045000,267.022194189537000,276.381043170246000,285.759051399038000,295.155206415848000,304.568572552008000,313.998283381448000]  # noqa$/;"	v
+symbols2numbers	calc/abinit_manager.py	/^from ase.symbols import symbols2numbers$/;"	i
+sys	state/ipi_state.py	/^import sys$/;"	i
+system_changes	mlip/calculator.py	/^system_changes = ['positions', 'numbers', 'cell', 'pbc']$/;"	v
+textwrap	cli/main.py	/^import textwrap$/;"	i
+time	state/ipi_state.py	/^import time$/;"	i
+titleblock	utilities/log.py	/^    def titleblock(self, msg):$/;"	m	class:FitFactoryLog
+tmp	mlip/descriptor.py	/^            import mlacs.mlip as tmp$/;"	i
+to_dict	mlip/descriptor.py	/^    def to_dict(self):$/;"	m	class:SumDescriptor
+train	ti/gpinterface.py	/^    def train(self):$/;"	m	class:GaussianProcessInterface
+train_mlip	mlip/linear_potential.py	/^    def train_mlip(self):$/;"	m	class:LinearPotential
+train_mlip	mlip/mlip_manager.py	/^    def train_mlip(self):$/;"	m	class:MlipManager
+train_mlip	mlip/mtp_model.py	/^    def train_mlip(self):$/;"	m	class:MomentTensorPotential
+update_matrices	mlip/mlip_manager.py	/^    def update_matrices(self, atoms):$/;"	m	class:MlipManager
+update_matrices	mlip/mlip_manager.py	/^    def update_matrices(self, atoms):$/;"	m	class:SelfMlipManager
+update_mindist	mlip/mtp_model.py	/^                              update_mindist=False)$/;"	v
+violet	utilities/plots.py	/^violet = "#9467bd"$/;"	v
+weighting	mlip/mtp_model.py	/^                              weighting="vibrations",$/;"	v
+write	state/ipi_state.py	/^from ase.io import read, write$/;"	i
+write	state/neb_lammps_state.py	/^from ase.io import write$/;"	i
+write_abinit_in	calc/abinit_manager.py	/^from ase.io.abinit import (write_abinit_in,$/;"	i
+write_cfg	mlip/mtp_model.py	/^from ..utilities.io import write_cfg, read_cfg_data$/;"	i
+write_cfg	utilities/io.py	/^def write_cfg(filename, atoms, chemmap):$/;"	f
+write_header	utilities/log.py	/^    def write_header(self):$/;"	m	class:FitFactoryLog
+write_header	utilities/log.py	/^    def write_header(self):$/;"	m	class:MlacsLog
+write_header	utilities/thermolog.py	/^    def write_header(self):$/;"	m	class:ThermoLog
+write_info_mlip	utilities/log.py	/^    def write_info_mlip(self, elements, model, style,$/;"	m	class:FitFactoryLog
+write_input_atoms	utilities/log.py	/^    def write_input_atoms(self, atoms):$/;"	m	class:MlacsLog
+write_ipi_input	state/ipi_state.py	/^    def write_ipi_input(self, atoms, nsteps):$/;"	m	class:IpiState
+write_lammps_NEB_ASCIIfile	utilities/io_lammps.py	/^def write_lammps_NEB_ASCIIfile(filename, supercell):$/;"	f
+write_lammps_data	mlip/mliap_descriptor.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_data	mlip/snap_descriptor.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_data	state/ipi_state.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_data	state/lammps_state.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_data	state/neb_lammps_state.py	/^from ase.io.lammpsdata import (write_lammps_data)$/;"	i
+write_lammps_data	ti/liquids.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_data	ti/solids.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_data	ti/thermostate.py	/^from ase.io.lammpsdata import write_lammps_data$/;"	i
+write_lammps_input	state/custom_lammps_state.py	/^    def write_lammps_input(self, atoms, pair_style, pair_coeff, nsteps):$/;"	m	class:CustomLammpsState
+write_lammps_input	ti/liquids.py	/^    def write_lammps_input(self, wdir):$/;"	m	class:UFLiquidState
+write_lammps_input	ti/reversible_scaling.py	/^    def write_lammps_input(self, wdir):$/;"	m	class:ReversibleScalingState
+write_lammps_input	ti/solids.py	/^    def write_lammps_input(self, wdir):$/;"	m	class:EinsteinSolidState
+write_lammps_input	ti/thermostate.py	/^    def write_lammps_input(self, atoms):$/;"	m	class:ThermoState
+write_lammps_input_NEB	state/neb_lammps_state.py	/^    def write_lammps_input_NEB(self,$/;"	m	class:NebLammpsState
+write_lammps_input_msd	ti/solids.py	/^    def write_lammps_input_msd(self, wdir):$/;"	m	class:EinsteinSolidState
+write_lammps_input_pafi	state/pafi_lammps_state.py	/^    def write_lammps_input_pafi(self,$/;"	m	class:PafiLammpsState
+write_mlip	mlip/descriptor.py	/^    def write_mlip(self, coefficients):$/;"	m	class:SumDescriptor
+write_mlip	mlip/mliap_descriptor.py	/^    def write_mlip(self, coefficients, comments=""):$/;"	m	class:MliapDescriptor
+write_mlip	mlip/snap_descriptor.py	/^    def write_mlip(self, coefficients, folder=None, comments=""):$/;"	m	class:SnapDescriptor
+write_restart	utilities/log.py	/^    def write_restart(self):$/;"	m	class:MlacsLog
+write_restart	utilities/thermolog.py	/^    def write_restart(self):$/;"	m	class:ThermoLog
+xml	state/ipi_state.py	/^import xml.etree.cElementTree as ET$/;"	i
