@@ -3,6 +3,14 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from .pdf import compute_pdf
+from .extract_data import (extract_data_from_files,
+                           extract_data)
+from .eos_functions import (e_vinet,
+                            e_murnaghan,
+                            e_bm,
+                            p_vinet,
+                            p_murnaghan,
+                            p_bm)
 from .miscellanous import (get_elements_Z_and_masses,
                            create_random_structures,
                            _create_ASE_object,
@@ -20,4 +28,6 @@ __all__ = ['compute_pdf',
            'interpolate_points',
            'compute_correlation',
            'integrate_points',
+           'extract_data_from_files',
+           'extract_data',
            ]
