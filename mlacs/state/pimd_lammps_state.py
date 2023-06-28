@@ -257,7 +257,9 @@ class PimdLammpsState(LammpsState):
             init_charges = atoms.get_initial_charges()
         fname = "configurations.out"
         if self.nbeads > 1:
-            fname += "_1"  # Will be changed for the full PIMD simulations
+            ndigit = len(str(self.nbeads))
+            # Will be changed for the full PIMD simulations
+            fname += f"_{1:0{ndigit}d}"
         atoms = read(f"{self.workdir}{fname}")
         if charges is not None:
             atoms.set_initial_charges(init_charges)
