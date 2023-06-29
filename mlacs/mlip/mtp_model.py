@@ -95,8 +95,8 @@ class MomentTensorPotential(SelfMlipManager):
         self.cmd = mlpbin
 
         self.level = mtp_parameters.pop("level", 8)
-        if self.level % 2 or self.level > 22:
-            msg = "Only even number between 2 and 22 are available as level"
+        if self.level % 2 or self.level > 28:
+            msg = "Only even number between 2 and 28 are available as level"
             raise ValueError(msg)
         self.mtp_parameters = default_mtp_parameters
         for key in mtp_parameters.keys():
