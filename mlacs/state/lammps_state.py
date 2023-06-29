@@ -17,6 +17,7 @@ from ..utilities.io_lammps import (get_general_input,
                                    get_log_input,
                                    get_traj_input,
                                    get_diffusion_input,
+                                   get_rdf_input,
                                    get_interaction_input,
                                    get_last_dump_input)
 
@@ -110,6 +111,10 @@ class LammpsState(StateManager):
         Name of the file for diffusion coefficient calculation.
         If ``None``, no file is created. Default ``None``.
 
+    rdffile : :class:`str` (optional)
+        Name of the file for radial distribution function calculation.
+        If ``None``, no file is created. Default ``None``.
+
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
@@ -146,6 +151,7 @@ class LammpsState(StateManager):
                  trajfile=None,
                  loginterval=50,
                  msdfile=None,
+                 rdffile=None,
                  rng=None,
                  init_momenta=None,
                  workdir=None):
@@ -158,6 +164,7 @@ class LammpsState(StateManager):
                               trajfile,
                               loginterval,
                               msdfile,
+                              rdffile,
                               workdir)
 
         self.rng = rng
@@ -183,6 +190,7 @@ class LammpsState(StateManager):
         self.qtb = qtb
         self.fd = fd
         self.n_f = n_f
+        self.nbeads = 1  # Dummy nbeads to help
 
         self.t_stop = t_stop
         self.p_stop = p_stop
@@ -310,7 +318,9 @@ class LammpsState(StateManager):
         input_string += get_general_input(pbc,
                                           masses,
                                           charges,
-                                          atom_style)
+                                          atom_style,
+                                          nbeads=self.nbeads,
+                                          ispimd=self.ispimd)
         input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
@@ -323,10 +333,13 @@ class LammpsState(StateManager):
                                            elem)
         if self.msdfile is not None:
             input_string += get_diffusion_input(self.msdfile)
+        if self.rdffile is not None:
+            input_string += get_rdf_input(self.rdffile)
 
         input_string += get_last_dump_input(self.workdir,
                                             elem,
-                                            nsteps)
+                                            nsteps,
+                                            self.nbeads)
         input_string += f"run  {nsteps}"
 
         with open(self.workdir + "lammps_input.in", "w") as f:

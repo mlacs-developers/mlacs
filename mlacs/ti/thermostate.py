@@ -156,20 +156,20 @@ class ThermoState:
         if suffix is None:
             input_string += 'fix mythermofile all print ' + \
                             f'{self.loginterval} "$t ' + \
-                            '${myetot}  ${mype} ${myke} ${mytemp} ' + \
-                            '${mypress} ${mypxx} ${mypyy} ' + \
+                            '${myetot} ${mype} ${myke} ${mytemp} ' + \
+                            ' ${vol} ${mypress} ${mypxx} ${mypyy} ' + \
                             '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                             'append mlmd.log title "# Step  Etot  Epot  ' + \
-                            'Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
+                            'Ekin Temp Vol Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
         else:
             input_string += 'fix mythermofile all print ' + \
                             f'{self.loginterval} "$t ' + \
-                            '${myetot}  ${mype} ${myke} ${mytemp} ' + \
-                            '${mypress} ${mypxx} ${mypyy} ' + \
+                            '${myetot} ${mype} ${myke} ${mytemp} ' + \
+                            '${vol} ${mypress} ${mypxx} ${mypyy} ' + \
                             '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                             f'append mlmd_{suffix}.log ' + \
                             'title "# Step  Etot  Epot  ' + \
-                            'Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
+                            'Ekin Temp Vol Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string
