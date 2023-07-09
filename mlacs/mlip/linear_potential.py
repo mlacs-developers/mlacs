@@ -96,14 +96,13 @@ class LinearPotential(MlipManager):
         msg = self.compute_tests(amat_e, amat_f, amat_s,
                                  ymat_e, ymat_f, ymat_s,
                                  _msg)
+
         if self.mbar is not None:
             if self.mbar.train_mlip:
                 msg = self.mbar.compute_tests(amat_e, amat_f, amat_s,
                                               ymat_e, ymat_f, ymat_s,
                                               self.coefficients, _msg)
-            self.mbar.mlip_amat.append(amat_e)
-            self.mbar.mlip_coef.append(self.coefficients)
-            msg += self.mbar.run_weight()
+            msg += self.mbar.run_weight(amat_e, self.coefficients)
 
         self.descriptor.write_mlip(self.coefficients)
         self.init_calc()

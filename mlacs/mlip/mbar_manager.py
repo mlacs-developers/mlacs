@@ -10,11 +10,10 @@ from ase.atoms import Atoms
 from ase.units import kB, GPa
 
 
-default_parameters = {"every": 1,
-                      "mode": "compute",
+default_parameters = {"mode": "compute",
                       "step_start": 2,
                       "solver": "L-BFGS-B",
-                      "nthrow": 10}
+                      }
 
 
 # ========================================================================== #
@@ -36,11 +35,8 @@ class MbarManager:
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
-        self.every = self.parameters['every']
-        self.nthrow = self.parameters['nthrow']
         self.database = database
         self.Nk = []
-        self._del = 0
         self.W = None
         self.weight = []
         if weight is not None:
@@ -56,24 +52,30 @@ class MbarManager:
         self.mlip_coef = []
 
 # ========================================================================== #
-    def run_weight(self):
+    def run_weight(self, a, c):
         """
         """
         msg = "Increasing database for reweiting ...\n"
-        print("run:", len(self.mlip_coef))
-        if self.parameters['step_start'] <= len(self.mlip_coef):
+
+        self.mlip_amat.append(a)
+        self.mlip_coef.append(c)
+
+        if not 0 == len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
             ukn = np.zeros(shape)
             for istep, coeff in enumerate(self.mlip_coef):
                 ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
+
             weight = self._compute_weight(ukn)
             self.weight.append(weight)
             neff = self.get_effective_conf()
+
             header = f"Effective number of configurations: {neff}\n"
             np.savetxt("MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
             msg = "Computing new weights with MBAR\n"
             msg += header
+
         return msg
 
 # ========================================================================== #
@@ -150,37 +152,56 @@ class MbarManager:
     def update_database(self, atoms):
         """
         """
-        self.niter = len(self.mlip_coef) + 1
         if isinstance(atoms, Atoms):
             atoms = [atoms]
-        newconf = len(atoms)
+        self._new = len(atoms)
         if self.database is None:
-            self._ddb = []
-        self._ddb.extend(atoms)
-        nconfs_tot = len(self._ddb)
-
-        if nconfs_tot < self.nthrow:
-            _id = 0
-        elif nconfs_tot >= self.nthrow and nconfs_tot < 2 * self.nthrow:
-            _id = nconfs_tot - self.nthrow
-            self._del -= 1
+            self.database = []
+        self.database.extend(atoms)
+        self.nconfs = len(self.database)
+        if 0 == len(self.mlip_coef):
+            self.Nk = np.r_[self.nconfs]
         else:
-            _id = self.nthrow
-        self.database, self.nconfs = (self._ddb[_id:], len(self._ddb[_id:]))
+            self.Nk = np.append(self.Nk, [self._new])
 
-        if not self.parameters['step_start'] <= self.niter:
-            self.Nk = np.r_[self.nconfs - _id]
-        else:
-#            newconf = nconfs_tot - np.r_[self.Nk].sum()
-            self.Nk = np.append(self.Nk, newconf)
-            print(self.Nk, self._del)
-            if nconfs_tot >= self.nthrow:
-                _Nk = np.append([self._del], self.Nk).cumsum()
-                _Nk = np.array(list(filter(lambda l: l > 0, _Nk)))
-                _id = len(self.Nk) - len(_Nk)
-                self.Nk = self.Nk[_id:]
-                self.Nk[0] = _Nk[0]
-        print(self.Nk, len(self.database), len(self.mlip_coef))
+# ========================================================================== #
+#    def update_database_nthrow(self, atoms):
+#        """
+#        """
+#        self.niter = len(self.mlip_coef) + 1
+#        if isinstance(atoms, Atoms):
+#            atoms = [atoms]
+#        newconf = len(atoms)
+#        if self.database is None:
+#            self._ddb = []
+#        self._ddb.extend(atoms)
+#        _ntot = len(self._ddb)
+#
+#        if _ntot <= self.nthrow:
+#            _id = 0
+#        elif _ntot > self.nthrow and _ntot <= 2 * self.nthrow:
+#            _id = _ntot - self.nthrow
+#            self.Nk = np.r_[self.nconfs - _id]
+#        else:
+#            _id = self.nthrow
+#        if _ntot >= 2 * self.nthrow:
+#        if not 2 * self.nthrow <= self.niter:
+#            self.Nk = np.r_[len(self._ddb) - _id]
+#        else:
+#            self.Nk = np.append(self.Nk, [newconf])
+#        self.database, self.nconfs = (self._ddb[_id:], len(self._ddb[_id:]))
+#        if _ntot <= self.nthrow:
+#            _id = 0
+#        elif _ntot > self.nthrow and _ntot < 2 * self.nthrow:
+#            _id = _ntot - self.nthrow
+#            _del = newconf
+#            self._del += _del
+#            if self._del > self.nthrow:
+#                _del = newconf - (self._del - self.nthrow)
+#        else:
+#            _id = self.nthrow
+#
+#        print(self.Nk, len(self.database), len(self.mlip_coef))
 
 # ========================================================================== #
     def _init_weight(self):
@@ -188,15 +209,13 @@ class MbarManager:
         Initialize the weight matrice.
         """
         weight = np.ones(self.nconfs) / self.nconfs
-        if self.nconfs <= self.nthrow:
-            return weight
         nef = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
-        if nef > 1.5 * self.every:
+        if nef > 1.5 * self._new:
             weight = 0.0 * weight
-            weight[:-self.every] = self.weight[-1]
+            weight[:-self._new] = self.weight[-1]
             return weight
         weight = 0.1 * weight
-        weight[:-self.every] += self.weight[-1]
+        weight[:-self._new] += self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -218,7 +237,6 @@ class MbarManager:
     def _compute_weight(self, ukn):
         """
         """
-        print(ukn.shape, self.Nk)
         mbar = MBAR(ukn, self.Nk,
                     solver_protocol=[{'method': self.parameters['solver']}])
         weight = mbar.weights()[:, -1]

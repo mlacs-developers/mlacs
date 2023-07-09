@@ -39,6 +39,8 @@ class MlipManager:
         self.no_zstress = no_zstress
 
         self.nthrow = nthrow
+        if self.mbar is not None:
+            self.nthrow = 0
         self.nconfs = 0
 
         # Some initialization for sampling interface

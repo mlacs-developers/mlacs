@@ -5,7 +5,6 @@
 import numpy as np
 
 from scipy import interpolate
-from scipy.fftpack import fft
 from scipy.integrate import simps
 from scipy.optimize import minimize
 

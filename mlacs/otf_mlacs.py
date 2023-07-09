@@ -94,9 +94,9 @@ class OtfMlacs:
             self.mlip = LinearPotential(descriptor)
         else:
             self.mlip = mlip
-        self.mlip.nthrow = max(self.neq)
-        if self.mlip.mbar is not None:
-            self.mlip.mbar.nthrow = self.mlip.nthrow
+
+        if self.mlip.mbar is None:
+            self.mlip.nthrow = max(self.neq)
 
         # Create property object
         if prop is None:
