@@ -111,7 +111,7 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
-        _msg = "Number of configurations for training: " + \
+        _msg = "\nNumber of configurations for training: " + \
                f"{len(self.natoms[idx_e:]):}\n"
         _msg += "Number of atomic environments for training: " + \
                 f"{self.natoms[idx_e:].sum():}\n"

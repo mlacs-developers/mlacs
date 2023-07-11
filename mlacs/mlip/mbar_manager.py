@@ -2,6 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+from pathlib import Path
+
 import numpy as np
 
 from pymbar import MBAR
@@ -25,23 +27,20 @@ class MbarManager:
     Parameters
     ----------
     """
-    def __init__(self,
-                 database=None,
-                 parameters={},
-                 weight=None):
-        """
-        Initialisation
-        """
+    def __init__(self, database=None, parameters=dict(),
+                 weight=None, folder=""):
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
         self.database = database
+        self._newddb = []
         self.Nk = []
         self.W = None
+        self.folder = Path(folder).absolute() 
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
-                weight = np.loadtxt(weight)
+                weight = np.loadtxt(self.folder + weight)
             self.weight.append(weight)
             we, wf, ws = self._build_W_efs(weight)
             self.W = np.r_[we, wf, ws]
@@ -54,11 +53,23 @@ class MbarManager:
 # ========================================================================== #
     def run_weight(self, a, c):
         """
+        Get Ae matrices and SNAP coefficients.
+        Compute the matrice Ukn of partition fonctions.
         """
-        msg = "Increasing database for reweiting ...\n"
 
         self.mlip_amat.append(a)
         self.mlip_coef.append(c)
+
+        if self.database is None:
+            self.database = []
+        self.database.extend(self._newddb)
+        self.nconfs = len(self.database)
+
+        if 0 == len(self.mlip_coef):
+            self.Nk = np.r_[self.nconfs]
+        else:
+            self.Nk = np.append(self.Nk, [len(self._newddb)])
+        self._newddb = []
 
         if not 0 == len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
@@ -66,23 +77,21 @@ class MbarManager:
             for istep, coeff in enumerate(self.mlip_coef):
                 ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
 
-            print(ukn)
-            print(self.Nk)
+#            print(ukn)
+#            print(self.Nk)
             weight = self._compute_weight(ukn)
             self.weight.append(weight)
             neff = self.get_effective_conf()
 
-            header = f"Effective number of configurations: {neff}\n"
-            np.savetxt("MLIP.weight", self.weight[-1],
+            header = f"Effective number of configurations: {neff:10.5f}\n"
+            np.savetxt(self.folder / "MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
-            msg = "Computing new weights with MBAR\n"
-            msg += header
-
-        return msg
+        return header
 
 # ========================================================================== #
     def reweight_mlip(self, a, y):
         """
+        Return weigthted A and Y matrices.
         """
         weight = self._init_weight()
         we, wf, ws = self._build_W_efs(weight)
@@ -92,6 +101,9 @@ class MbarManager:
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
                       ymat_e, ymat_f, ymat_s, coeff, msg):
+        """
+        Computed the weighted RMSE and MAE.
+        """
         e_mlip = np.einsum('ij,j->i', amat_e, coeff)
         f_mlip = np.einsum('ij,j->i', amat_f, coeff)
         s_mlip = np.einsum('ij,j->i', amat_s, coeff)
@@ -140,12 +152,15 @@ class MbarManager:
 # ========================================================================== #
     def get_mlip_energy(self, amat_e, coefficient):
         """
+        Return Uo from A.D.
         """
         return np.einsum('ij,j->i', amat_e, coefficient)
 
 # ========================================================================== #
     def get_effective_conf(self):
         """
+        Compute the number of effective configurations.
+        Gives an idea on MLACS convergence.
         """
         neff = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
         return neff
@@ -156,68 +171,22 @@ class MbarManager:
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
-        self._new = len(atoms)
-        if self.database is None:
-            self.database = []
-        self.database.extend(atoms)
-        self.nconfs = len(self.database)
-        if 0 == len(self.mlip_coef):
-            self.Nk = np.r_[self.nconfs]
-        else:
-            self.Nk = np.append(self.Nk, [self._new])
-
-# ========================================================================== #
-#    def update_database_nthrow(self, atoms):
-#        """
-#        """
-#        self.niter = len(self.mlip_coef) + 1
-#        if isinstance(atoms, Atoms):
-#            atoms = [atoms]
-#        newconf = len(atoms)
-#        if self.database is None:
-#            self._ddb = []
-#        self._ddb.extend(atoms)
-#        _ntot = len(self._ddb)
-#
-#        if _ntot <= self.nthrow:
-#            _id = 0
-#        elif _ntot > self.nthrow and _ntot <= 2 * self.nthrow:
-#            _id = _ntot - self.nthrow
-#            self.Nk = np.r_[self.nconfs - _id]
-#        else:
-#            _id = self.nthrow
-#        if _ntot >= 2 * self.nthrow:
-#        if not 2 * self.nthrow <= self.niter:
-#            self.Nk = np.r_[len(self._ddb) - _id]
-#        else:
-#            self.Nk = np.append(self.Nk, [newconf])
-#        self.database, self.nconfs = (self._ddb[_id:], len(self._ddb[_id:]))
-#        if _ntot <= self.nthrow:
-#            _id = 0
-#        elif _ntot > self.nthrow and _ntot < 2 * self.nthrow:
-#            _id = _ntot - self.nthrow
-#            _del = newconf
-#            self._del += _del
-#            if self._del > self.nthrow:
-#                _del = newconf - (self._del - self.nthrow)
-#        else:
-#            _id = self.nthrow
-#
-#        print(self.Nk, len(self.database), len(self.mlip_coef))
+        self._newddb.extend(atoms)
 
 # ========================================================================== #
     def _init_weight(self):
         """
         Initialize the weight matrice.
         """
+        n_new = len(self._newddb)
         weight = np.ones(self.nconfs) / self.nconfs
         nef = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
-        if nef > 1.5 * self._new:
+        if nef > 1.5 * n_new:
             weight = 0.0 * weight
-            weight[:-self._new] = self.weight[-1]
+            weight[:-n_new] = self.weight[-1]
             return weight
         weight = 0.1 * weight
-        weight[:-self._new] += self.weight[-1]
+        weight[:-n_new] += self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
