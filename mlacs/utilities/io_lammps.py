@@ -1,7 +1,3 @@
-import os
-
-import numpy as np
-from ase.io.lammpsdata import write_lammps_data
 
 
 # ========================================================================== #
@@ -98,7 +94,9 @@ def get_general_input(pbc,
                       charges,
                       atom_style,
                       filename='atoms.in',
-                      custom=''):
+                      custom='',
+                      nbeads=1,
+                      ispimd=False):
     """
     Function to write the general parameters in the input
     """
@@ -107,6 +105,8 @@ def get_general_input(pbc,
     input_string += "#####################################\n"
     input_string += "#           General parameters\n"
     input_string += "#####################################\n"
+    if ispimd:
+        input_string += "atom_modify map yes\n"
     input_string += "units        metal\n"
     input_string += "boundary     " + \
         "{0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
@@ -115,6 +115,8 @@ def get_general_input(pbc,
     input_string += f"read_data    {filename}\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
+    if nbeads > 1:
+        input_string += f"variable ibead uloop {nbeads} pad\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -191,11 +193,7 @@ def get_neb_input(dt,
 
 
 # ========================================================================== #
-def get_interaction_input(bond_style,
-                          bond_coeff,
-                          angle_style,
-                          angle_coeff,
-                          pair_style,
+def get_interaction_input(pair_style,
                           pair_coeff,
                           model_post):
     """
@@ -204,15 +202,6 @@ def get_interaction_input(bond_style,
     input_string = "#####################################\n"
     input_string += "#           Interactions\n"
     input_string += "#####################################\n"
-    if bond_style is not None:
-        input_string += f"bond_style   {bond_style}\n"
-        for bc in bond_coeff:
-            input_string += f"bond_coeff {bc}\n"
-
-    if angle_style is not None:
-        input_string += f"angle_style   {angle_style}\n"
-        for angc in angle_coeff:
-            input_string += f"angle_coeff {angc}\n"
 
     input_string += f"pair_style    {pair_style}\n"
     for pair in pair_coeff:
@@ -226,15 +215,18 @@ def get_interaction_input(bond_style,
 
 
 # ========================================================================== #
-def get_last_dump_input(workdir, elem, nsteps):
+def get_last_dump_input(workdir, elem, nsteps, nbeads=1):
     """
     Function to write the dump of the last configuration of the mlmd
     """
+    fname = "configurations.out"
+    if nbeads > 1:
+        fname = f"{fname}_${{ibead}}"
     input_string = "#####################################\n"
     input_string += "#         Dump last step\n"
     input_string += "#####################################\n"
     input_string += f"dump last all custom {nsteps} " + \
-                    "configurations.out  id type xu yu zu " + \
+                    f"{fname}  id type xu yu zu " + \
                     "vx vy vz fx fy fz element\n"
     input_string += "dump_modify last element "
     input_string += " ".join([p for p in elem])
@@ -267,54 +259,6 @@ def get_diffusion_input(msdfile):
     input_string += "\n\n\n"
     return input_string
 
-
-# ========================================================================== #
-def write_lammps_data_full(name, atoms, bonds=[], angles=[], velocities=False):
-    """
-    Write lammps data file with bonds and angles
-
-    Parameters
-    ----------
-    name : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-    bonds: :class:`numpy.array`
-        array of bonds list
-    nconfs: :class:`numpy.array`
-        array of angles list
-
-    Return
-    ------
-    Lammps data :class: `file`
-    """
-    write_lammps_data('coord_tmp.lmp',
-                      atoms,
-                      atom_style="full",
-                      velocities=velocities)
-    with open('coord_tmp.lmp', 'r') as file:
-        lines = file.readlines()
-
-    ind = [i for i, element in enumerate(lines) if "atoms" in element][0]
-    lines.insert(ind+1, str(len(bonds)) + ' bonds \n')
-    lines.insert(ind+2, str(len(angles)) + ' angles \n')
-
-    ind = [i for i, element in enumerate(lines) if "atom types" in element][0]
-    lines.insert(ind+1, str(len(np.unique(bonds[:, 1]))) + ' bond types \n')
-    lines.insert(ind+2, str(len(np.unique(angles[:, 1]))) + ' angle types \n')
-
-    with open(name, 'w') as fd:
-        for line in lines:
-            fd.write(line)
-        fd.write("\n")
-        fd.write(" Bonds \n \n")
-        np.savetxt(fd, bonds, fmt='%s')
-        fd.write("\n")
-        fd.write(" Angles \n \n")
-        np.savetxt(fd, angles, fmt='%s')
-    os.remove('coord_tmp.lmp')
-
-
 # ========================================================================== #
 def write_lammps_NEB_ASCIIfile(filename, supercell):
     '''
@@ -330,7 +274,6 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
     Return
     ------
        Final NEB configuration :class: `file`
-    ------
     '''
     instr = '# Final coordinates of the NEB calculation.\n'
     instr += '{0}\n'.format(len(supercell))
@@ -338,3 +281,17 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
         instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
     with open(filename, "w") as w:
         w.write(instr)
+
+# ========================================================================== #
+def get_rdf_input(rdffile):
+    """
+    Function to compute and output the radial distribution function
+    """
+    input_string = "#####################################\n"
+    input_string += "# Compute RDF\n"
+    input_string += "#####################################\n"
+    input_string += "compute myrdf all rdf 250 1 1 \n"
+    input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
+                    f"file {rdffile} mode vector\n"
+    return input_string
+

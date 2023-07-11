@@ -1,7 +1,7 @@
 .. _moduleref:
 
 User interface
-==============
+##############
 
 .. toctree::
    :maxdepth: 2

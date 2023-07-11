@@ -66,6 +66,8 @@ class MbarManager:
             for istep, coeff in enumerate(self.mlip_coef):
                 ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
 
+            print(ukn)
+            print(self.Nk)
             weight = self._compute_weight(ukn)
             self.weight.append(weight)
             neff = self.get_effective_conf()

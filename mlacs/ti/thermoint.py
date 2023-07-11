@@ -70,16 +70,16 @@ class ThermodynamicIntegration:
                         stateworkdir = self.workdir + \
                             self.state[istate].get_workdir() + \
                             f"for_back_{i+1}/"
-                        msg += "Working directory for this instance of " + \
-                               f"state : \n{stateworkdir}\n"
+                        msg += "Working directory for this instance " + \
+                               f"of state : \n{stateworkdir}\n"
                         self.log.logger_log.info(msg)
                 elif self.ninstance == 1:
                     executor.submit(self._run_one_state, istate, i=1)
                     msg = f"State {istate+1}/{self.nstate} launched\n"
                     stateworkdir = self.workdir + \
                         self.state[istate].get_workdir()
-                    msg += "Working directory for this state :" + \
-                        f"\n{stateworkdir}\n"
+                    msg += "Working directory for this state " + \
+                           f": \n{stateworkdir}\n"
                     self.log.logger_log.info(msg)
 
         if self.ninstance > 1:
@@ -91,37 +91,38 @@ class ThermodynamicIntegration:
         """
         Run the simulation for one state
         """
+        ii = istate + 1
         if self.ninstance > 1:
             stateworkdir = self.workdir + \
-                           self.state[istate].get_workdir() + \
-                           f"for_back_{i+1}/"
+                self.state[istate].get_workdir() + \
+                f"for_back_{i+1}/"
             self.state[istate].run(stateworkdir)
-            msg = f"State {istate+1} instance_{i+1}: Molecular Dynamics Done\n"
+            msg = f"State {ii} instance_{i+1} : Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
             self.log.logger_log.info(msg)
-            msg = '========================================================\n'
-            msg += f"State {istate+1} instance_{i+1}: Post-process Done\n"
+            msg = '=' * 59 + "\n"
+            msg += f"State {ii} instance_{i+1}: Post-process Done\n"
             msg += self.state[istate].postprocess(stateworkdir)
-            msg += '========================================================\n'
+            msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
         elif self.ninstance == 1:
             stateworkdir = self.workdir + self.state[istate].get_workdir()
             self.state[istate].run(stateworkdir)
-            msg = f"State {istate+1}: Molecular Dynamics Done\n"
+            msg = f"State {ii}: Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
             self.log.logger_log.info(msg)
-            msg = '========================================================\n'
+            msg = "=" * 59 + "\n"
             msg += f"State {istate+1}: Post-process Done\n"
             msg += self.state[istate].postprocess(stateworkdir)
-            msg += '========================================================\n'
+            msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
 
 # ========================================================================== #
     def recap_state(self):
         """
         """
-        msg = "Total number of state : {self.nstate}." + \
-              "One state is equivalent to ninstance f/b\n"
+        msg = f"Total number of state : {self.nstate}. "
+        msg += "One state is equivalent to ninstance f/b\n"
         for istate in range(self.nstate):
             msg += f"State {istate+1}/{self.nstate} :\n"
             msg += self.state[istate].log_recap_state()
@@ -138,7 +139,8 @@ class ThermodynamicIntegration:
         fe = []
         for i in range(self.ninstance):
             tmp_fe = np.loadtxt(stateworkdir +
-                                f"for_back_{i+1}/free_energy.dat")
+                                f"for_back_{i+1}/" +
+                                "free_energy.dat")
             fe.append(tmp_fe[1])
         ferr = np.std(fe, axis=0)
         femean = np.mean(fe, axis=0)

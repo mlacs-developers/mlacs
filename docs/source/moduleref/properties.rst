@@ -1,5 +1,5 @@
 Property Manager
-================
+################
 
 .. module:: mlacs.properties
 
@@ -11,11 +11,11 @@ The training of the MLIP stops when all properties are converged according to us
 
 
 CalcMfep
---------
+********
 
 .. autoclass:: CalcMfep
 
 CalcNeb
--------
+*******
 
 .. autoclass:: CalcNeb

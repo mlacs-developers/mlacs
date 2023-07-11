@@ -2,7 +2,6 @@
 '''
 import numpy as np
 from ase.units import GPa
-from ase.calculators.lammpsrun import LAMMPS
 
 from . import MlipManager
 
@@ -17,10 +16,32 @@ default_parameters = {"method": "ols",
 # ========================================================================== #
 class LinearPotential(MlipManager):
     """
+    Potential that assume a linear relation between the descriptor and the
+    energy.
+
+    Parameters
+    ----------
+    descriptor: :class:`Descriptor`
+        The descriptor used in the model.
+
+    nthrow: :class: int
+        Number of first configurations to ignore when doing the fit
+
+    energy_coefficient: :class:`float`
+        Weight of the energy in the fit
+        Default 1.0
+
+    forces_coefficient: :class:`float`
+        Weight of the forces in the fit
+        Default 1.0
+
+    stress_coefficient: :class:`float`
+        Weight of the stress in the fit
+        Default 1.0
     """
     def __init__(self,
                  descriptor,
-                 nthrow=10,
+                 nthrow=0,
                  parameters={},
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
@@ -40,6 +61,8 @@ class LinearPotential(MlipManager):
         pair_style, pair_coeff = self.descriptor.get_pair_style_coeff()
         self.pair_style = pair_style
         self.pair_coeff = pair_coeff
+
+        self.coefficients = None
 
         if self.parameters["method"] != "ols":
             if self.parameters["hyperparameters"] is None:
@@ -105,7 +128,6 @@ class LinearPotential(MlipManager):
             msg += self.mbar.run_weight(amat_e, self.coefficients)
 
         self.descriptor.write_mlip(self.coefficients)
-        self.init_calc()
         return msg
 
 # ========================================================================== #
@@ -154,18 +176,36 @@ class LinearPotential(MlipManager):
         return msg
 
 # ========================================================================== #
-    def init_calc(self):
+    def get_calculator(self):
         """
-        Initialize a LAMMPS calculator
+        Initialize a ASE calculator from the model
         """
-        pair_style, pair_coeff = self.descriptor.get_pair_style_coeff()
-        self.pair_style = pair_style
-        self.pair_coeff = pair_coeff
-        calc = LAMMPS(keep_alive=False)
-        calc.set(pair_style=pair_style,
-                 pair_coeff=pair_coeff)
-        self.calc = calc
+        from .calculator import MlipCalculator
+        calc = MlipCalculator(self)
         return calc
+
+# ========================================================================== #
+    def predict(self, atoms):
+        """
+        """
+        assert self.coefficients is not None, 'The model has not been trained'
+
+        res = self.descriptor.calculate(atoms)[0]
+        energy = np.einsum('ij,j->', res['desc_e'], self.coefficients)
+        forces = np.einsum('ij,j->i', res['desc_f'], self.coefficients)
+        stress = np.einsum('ij,j->i', res['desc_s'], self.coefficients)
+
+        forces = forces.reshape(len(atoms), 3)
+
+        return energy, forces, stress
+
+# ========================================================================== #
+    def set_coefficients(self, coefficients):
+        """
+        """
+        if coefficients is not None:
+            assert len(coefficients) == self.descriptor.ncolumns
+        self.coefficients = coefficients
 
 # ========================================================================== #
     def __str__(self):

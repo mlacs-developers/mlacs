@@ -7,14 +7,13 @@ from ..mlip.linearfit_factory import (default_fit,
                                       default_snap,
                                       default_so3)
 
+
 def main(args, parser):
 
     confs = read(args.file, index=':')
     atoms = confs[0]
-    if args.id_reference is not None: 
+    if args.id_reference is not None:
         atoms = confs[args.id_reference]
-
-    
 
     rmse = True
     if args.normse:

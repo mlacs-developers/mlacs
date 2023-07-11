@@ -28,14 +28,14 @@ rcut = 5.5
 twojmax = 8
 dt = 1.0  # fs
 scoef = 1.0
-desc_params = dict(towjmax=8)
+desc_params = dict(twojmax=8)
 
 train_conf = read("../MlacsIpi/Trajectory_1.traj", index=":")
 
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation---------
 # Creation of the MLIP Manager
-descriptor = SnapDescriptor(atoms, rcut, parameters)
+descriptor = SnapDescriptor(atoms, rcut, desc_params)
 mlip = LinearPotential(descriptor, stress_coefficient=scoef)
 
 mlip.update_matrices(train_conf)

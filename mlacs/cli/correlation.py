@@ -25,6 +25,7 @@ def main(args, parser):
     if args.density:
         density = True
     cmap = args.cmap
+    size = float(args.size)
     figsize = (float(args.figsize), float(args.figsize))
     fig = plt.figure(figsize=figsize, constrained_layout=True)
     init_rcParams()
@@ -36,7 +37,8 @@ def main(args, parser):
                      showrmse=rmse,
                      showmae=mae,
                      showrsquared=rsquared,
-                     cmap=cmap)
+                     cmap=cmap,
+                     size=size)
     ax.set_aspect("equal")
     if args.save is not None:
         plt.savefig(args.save)
@@ -52,7 +54,7 @@ class CLICommand:
 
     Example:
 
-        $ mlacs correlation MLIP-Energy_comparison.dat -datatype energy
+        $ mlacs correlation MLIP-Energy_comparison.dat --datatype energy
     """
     @staticmethod
     def add_arguments(parser):
@@ -77,6 +79,8 @@ class CLICommand:
                             help="Size of the figure for matplotlib")
         parser.add_argument("--cmap", default="inferno",
                             help="Colormap for the density plot")
+        parser.add_argument("--size", default=25,
+                            help="Size of the marker")
 
     @staticmethod
     def run(args, parser):

@@ -24,35 +24,41 @@ class LangevinState(StateManager):
     ----------
     temperature : :class:`float`
         Temperature of the simulation, in Kelvin
+
     friction : :class:`float` (optional)
         Friction coefficient of the thermostat. Default 0.01.
+
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
+
     nsteps : :class:`int` (optional)
         Number of MLMD steps for production runs. Default ``1000`` steps.
+
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
+
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default True.
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
+
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
+
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to ``numpy.random.default_rng()``.
+
     init_momenta : :class:`numpy.ndarray` (optional)
         If ``None``, velocities are initialized with a
         Maxwell Boltzmann distribution
         N * 3 velocities for the initial configuration
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD
-        directory is created
     """
     def __init__(self,
                  temperature,
@@ -92,30 +98,14 @@ class LangevinState(StateManager):
                      supercell,
                      pair_style,
                      pair_coeff,
-                     model_post,
-                     atom_style,
-                     bonds,
-                     angles,
-                     bond_style,
-                     bond_coeff,
-                     angle_style,
-                     angle_coeff,
+                     model_post=None,
+                     atom_style="atomic",
                      eq=False,
                      nbeads=1):
         """
         """
-
-        isbond = [bonds is not None,
-                  angles is not None,
-                  bond_style is not None,
-                  angle_style is not None]
-        if np.any(isbond):
-            msg = "bond style are not implement with ASE molecular dynamics"
-            raise NotImplementedError(msg)
         atoms = supercell.copy()
-
-        calc = LAMMPS(pair_style=pair_style,
-                      pair_coeff=pair_coeff,
+        calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
                       atom_style=atom_style)
         if model_post is not None:
             calc.set(model_post=model_post)
