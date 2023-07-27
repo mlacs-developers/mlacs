@@ -311,6 +311,8 @@ class PimdLammpsState(LammpsState):
                 fix += f"aniso {press} "
             fix += f"barostat {self.barostat} "
             fix += f"taup {pdamp} "
+        else:
+            fix += "ensemble nvt "
 
         fix += "\n"
         input_string += fix
