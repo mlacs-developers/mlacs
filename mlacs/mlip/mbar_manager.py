@@ -33,6 +33,9 @@ class MbarManager:
         self.parameters.update(parameters)
 
         self.database = database
+        self.matsize = None
+        if database is not None:
+            self.matsize = [len(a) for a in database]
         self._newddb = []
         self.Nk = []
         self.W = None
@@ -45,8 +48,6 @@ class MbarManager:
             we, wf, ws = self._build_W_efs(weight)
             self.W = np.r_[we, wf, ws]
         self.train_mlip = False
-        if self.parameters['mode'] == 'train':
-            self.train_mlip = True
         self.mlip_amat = []
         self.mlip_coef = []
 
@@ -57,8 +58,12 @@ class MbarManager:
         Compute the matrice Ukn of partition fonctions.
         """
 
-        self.mlip_amat.append(a)
-        self.mlip_coef.append(c)
+        if c is not None:
+            self.mlip_amat.append(a)
+            self.mlip_coef.append(c)
+
+        if self.parameters['mode'] == 'train':
+            self.train_mlip = True
 
         if self.database is None:
             self.database = []
@@ -71,19 +76,18 @@ class MbarManager:
             self.Nk = np.append(self.Nk, [len(self._newddb)])
         self._newddb = []
 
+        header = ''
         if not 0 == len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
             ukn = np.zeros(shape)
             for istep, coeff in enumerate(self.mlip_coef):
                 ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
 
-#            print(ukn)
-#            print(self.Nk)
             weight = self._compute_weight(ukn)
             self.weight.append(weight)
             neff = self.get_effective_conf()
 
-            header = f"Effective number of configurations: {neff:10.5f}\n"
+            header += f"Effective number of configurations: {neff:10.5f}\n"
             np.savetxt(self.folder / "MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
         return header
@@ -93,14 +97,16 @@ class MbarManager:
         """
         Return weigthted A and Y matrices.
         """
-        weight = self._init_weight()
-        we, wf, ws = self._build_W_efs(weight)
+        w = self._init_weight()
+        print(w)
+        we, wf, ws = self._build_W_efs(w)
         self.W = np.r_[we, wf, ws]
+        print(a.shape, y.shape, self.W[:,np.newaxis].shape, self.W.shape)
         return a * self.W[:, np.newaxis], y * self.W
 
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
-                      ymat_e, ymat_f, ymat_s, coeff, msg):
+                      ymat_e, ymat_f, ymat_s, coeff):
         """
         Computed the weighted RMSE and MAE.
         """
@@ -108,8 +114,8 @@ class MbarManager:
         f_mlip = np.einsum('ij,j->i', amat_f, coeff)
         s_mlip = np.einsum('ij,j->i', amat_s, coeff)
 
-        weight = self._init_weight()
-        we, wf, ws = self._build_W_efs(weight)
+        w = self._init_weight()
+        we, wf, ws = self._build_W_efs(w)
 
         rmse_e = np.sqrt(np.mean(we * (ymat_e - e_mlip)**2))
         mae_e = np.mean(we * np.abs(ymat_e - e_mlip))
@@ -121,7 +127,7 @@ class MbarManager:
         mae_s = np.mean(ws * np.abs((ymat_s - s_mlip) / GPa))
 
         # Prepare message to the log
-        msg += f"Weighted RMSE Energy    {rmse_e:.4f} eV/at\n"
+        msg = f"Weighted RMSE Energy    {rmse_e:.4f} eV/at\n"
         msg += f"Weighted MAE Energy     {mae_e:.4f} eV/at\n"
         msg += f"Weighted RMSE Forces    {rmse_f:.4f} eV/angs\n"
         msg += f"Weighted MAE Forces     {mae_f:.4f} eV/angs\n"
@@ -172,21 +178,21 @@ class MbarManager:
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         self._newddb.extend(atoms)
+        if self.matsize is None:
+            self.matsize = []
+        self.matsize.extend([len(a) for a in atoms])
 
 # ========================================================================== #
     def _init_weight(self):
         """
         Initialize the weight matrice.
         """
+        n_tot = len(self.matsize)
         n_new = len(self._newddb)
-        weight = np.ones(self.nconfs) / self.nconfs
-        nef = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
-        if nef > 1.5 * n_new:
-            weight = 0.0 * weight
-            weight[:-n_new] = self.weight[-1]
-            return weight
+        weight = np.ones(n_tot) / n_tot
+        print(weight, self.weight[-1])
         weight = 0.1 * weight
-        weight[:-n_new] += self.weight[-1]
+        weight[:-n_new] = self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -214,15 +220,16 @@ class MbarManager:
         return weight
 
 # ========================================================================== #
-    def _build_W_efs(self, weight):
+    def _build_W_efs(self, w):
         """
         """
-        w_e = self.weight[-1] / np.sum(self.weight[-1])
+        w_e = w / np.sum(w)
         w_f = []
         w_s = []
-        for a in self.database:
-            w_f.append(self.weight[-1] * np.ones(3 * len(a)) / (3 * len(a)))
-            w_s.append(self.weight[-1] * np.ones(6) / 6)
-        w_f = np.r_w_f / np.sum(np.r_w_f)
-        w_s = np.r_w_s / np.sum(np.r_w_s)
+        print(self.matsize)
+        for i, n in enumerate(self.matsize):
+            w_f.extend(w[i] * np.ones(3 * n) / (3 * n))
+            w_s.extend(w[i] * np.ones(6) / 6)
+        w_f = np.r_[w_f] / np.sum(np.r_[w_f])
+        w_s = np.r_[w_s] / np.sum(np.r_[w_s])
         return w_e, w_f, w_s
