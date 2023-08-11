@@ -22,6 +22,12 @@ rdf_args = ['temperature',
             'langevin',
             'logfile',
             'rdffile']
+ti_args = ['atoms',
+           'pair_style',
+           'pair_coeff',
+           'temperature',
+           'nsteps',
+           'nsteps_eq']
 
 # ========================================================================== #
 # ========================================================================== #
@@ -284,6 +290,113 @@ class CalcRdf:
         """
         msg = 'For the radial distribution function g(r):\n'
         msg += self.state.log_recap_state()
+        msg += f'        - Maximum  : {self.maxf}\n'
+        msg += f'        - Averaged : {self.avef}\n\n'
+        return msg
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcTi:
+    """
+    Class to set a nonequilibrium thermodynamic integration calculation.
+    See ThermoState and EinsteinSolidState/UFLiquidState.run_dynamics parameters.
+
+    Parameters
+    ----------
+    state: :class:`str`
+        State of the system: solild or liquid. 
+        Set either the Einstein crystal as a reference system or the UF liquid.
+    method: :class:`str`
+        Type of criterion :
+            - max, maximum difference between to consecutive step < criterion
+            - ave, average difference between to consecutive step < criterion
+        Default ``max``
+    criterion: :class:`float`
+        Stopping criterion value. Default ``1 meV``
+    frequence : :class:`int`
+        Interval of Mlacs step to compute the property. Default ``10``
+
+    """
+    def __init__(self,
+                 args,
+                 phase,
+                 method='max',
+                 criterion=0.001,
+                 frequence=10):
+
+        self.phase = phase
+        if self.phase == 'solid':
+            from mlacs.ti import EinsteinSolidState
+        elif self.phase == 'liquid':
+            from mlacs.ti import UFLiquidState
+#        else:
+#            print('abort_unkown_phase')
+#            exit(1)
+        self.freq = frequence
+        self.stop = criterion
+        self.method = method
+        self.ti_state = {}
+        self.kwargs = {}
+        for keys, values in args.items():
+            if keys in ti_args:
+                self.ti_state[keys] = values
+            else:
+                self.kwargs[keys] = values
+        self.isfirst = True
+        if self.phase == 'solid':
+            self.state = EinsteinSolidState(**self.ti_state)
+        elif self.phase == 'liquid':
+            self.state = UFLiquidState(**self.ti_state) 
+
+# ========================================================================== #
+    def _exec(self, wdir):
+        """
+        Exec a NETI calculation with lammps.
+        """
+        from mlacs.ti import ThermodynamicIntegration
+        # Creation of ti object ---------------------------------------------
+        self.ti = ThermodynamicIntegration(self.state,
+                                           wdir,
+                                           logfile= wdir + "TiCheckFe.log")
+
+        # Run the simu ------------------------------------------------------
+        self.ti.run()
+        # Get Fe ------------------------------------------------------------
+        _, self.new= self.state.postprocess(self.ti.get_fedir())
+        if self.isfirst:
+            self.old = 0.0
+            check = self._check
+            self.old = self.new
+            self.isfirst = False
+        else:
+            check = self._check
+            self.old = self.new
+        return check
+
+# ========================================================================== #
+    @property
+    def _check(self):
+        """
+        Check if convergence is achived.
+        """       
+        self.maxf = np.abs(self.new-self.old)
+        self.avef = np.abs(np.average(self.new-self.old))
+        if self.method == 'max' and self.maxf < self.stop:
+            return True
+        elif self.method == 'ave' and self.avef < self.stop:
+            return True
+        else:
+            return False
+
+# ========================================================================== #
+    def log_recap(self):
+        """
+        Return a string for the log with informations of the calculated
+        property.
+        """
+        msg = 'For the free energy convergence check:\n'
+        #msg += self.state.log_recap_state()
+        msg += f'Free energy at this step is: {self.new:10.6f} \n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
