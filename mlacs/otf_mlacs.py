@@ -116,6 +116,9 @@ class OtfMlacs:
         else:
             self.mlip = mlip
 
+        if self.mlip.mbar is None:
+            self.mlip.nthrow = max(self.neq)
+
         # Create property object
         if prop is None:
             self.prop = PropertyManager(None)
@@ -280,6 +283,8 @@ class OtfMlacs:
 
         # Training MLIP
         msg = "Training new MLIP\n"
+        if self.mlip.mbar is not None:
+            msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
@@ -311,8 +316,8 @@ class OtfMlacs:
                                self.nbeads)
         else:
             for istate in range(self.nstate):
-                if self.state[istate].isrestart:
-                    msg = "Starting from first configuration\n"
+                if self.state[istate].isrestart or eq[istate]:
+                    msg = " -> Starting from first atomic configuration"
                     self.log.logger_log.info(msg)
                     atoms_mlip[istate] = self.atoms_start[istate].copy()
                     self.state[istate].initialize_momenta(atoms_mlip[istate])

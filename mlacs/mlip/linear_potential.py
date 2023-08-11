@@ -38,6 +38,10 @@ class LinearPotential(MlipManager):
     stress_coefficient: :class:`float`
         Weight of the stress in the fit
         Default 1.0
+
+    mbar: :class:`MbarManager`
+        Weigth with the multistate Bennett acceptance ratio (MBAR) method.
+        Default :class:`None`
     """
     def __init__(self,
                  descriptor,
@@ -45,13 +49,15 @@ class LinearPotential(MlipManager):
                  parameters={},
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 stress_coefficient=1.0):
+                 stress_coefficient=1.0,
+                 mbar=None):
         MlipManager.__init__(self,
                              descriptor,
                              nthrow,
                              energy_coefficient,
                              forces_coefficient,
-                             stress_coefficient)
+                             stress_coefficient,
+                             mbar)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)
@@ -74,6 +80,7 @@ class LinearPotential(MlipManager):
     def train_mlip(self):
         """
         """
+        msg = ''
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
         amat_f = self.amat_f[idx_f:]
@@ -93,6 +100,10 @@ class LinearPotential(MlipManager):
                      ymat_f * fcoef,
                      ymat_s * scoef]
 
+        if self.mbar is not None:
+            if self.mbar.train_mlip:
+                amat, ymat = self.mbar.reweight_mlip(amat, ymat)
+
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
                                                 ymat,
@@ -106,20 +117,30 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
-        msg = "number of configurations for training: " + \
-              f"{len(self.natoms[idx_e:]):}\n"
-        msg += "number of atomic environments for training: " + \
+        msg += "\nNumber of configurations for training: " + \
+               f"{len(self.natoms[idx_e:]):}\n"
+        msg += "Number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n"
 
-        msg = self.compute_tests(amat_e, amat_f, amat_s,
-                                 ymat_e, ymat_f, ymat_s,
-                                 msg)
+        if self.mbar is not None:
+            if self.mbar.train_mlip:
+                msg += self.mbar.compute_tests(amat_e, amat_f, amat_s,
+                                               ymat_e, ymat_f, ymat_s,
+                                               self.coefficients)
+            else:
+                msg += self.compute_tests(amat_e, amat_f, amat_s,
+                                          ymat_e, ymat_f, ymat_s)
+            msg += self.mbar.run_weight(amat_e, self.coefficients)
+        else:
+            msg += self.compute_tests(amat_e, amat_f, amat_s,
+                                      ymat_e, ymat_f, ymat_s)
+
         self.descriptor.write_mlip(self.coefficients)
         return msg
 
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
-                      ymat_e, ymat_f, ymat_s, msg):
+                      ymat_e, ymat_f, ymat_s):
         e_mlip = np.einsum('ij,j->i', amat_e, self.coefficients)
         f_mlip = np.einsum('ij,j->i', amat_f, self.coefficients)
         s_mlip = np.einsum('ij,j->i', amat_s, self.coefficients)
@@ -134,7 +155,7 @@ class LinearPotential(MlipManager):
         mae_s = np.mean(np.abs((ymat_s - s_mlip) / GPa))
 
         # Prepare message to the log
-        msg += f"RMSE Energy    {rmse_e:.4f} eV/at\n"
+        msg = f"RMSE Energy    {rmse_e:.4f} eV/at\n"
         msg += f"MAE Energy     {mae_e:.4f} eV/at\n"
         msg += f"RMSE Forces    {rmse_f:.4f} eV/angs\n"
         msg += f"MAE Forces     {mae_f:.4f} eV/angs\n"

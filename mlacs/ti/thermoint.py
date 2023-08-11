@@ -124,7 +124,7 @@ class ThermodynamicIntegration:
         msg = f"Total number of state : {self.nstate}. "
         msg += "One state is equivalent to ninstance f/b\n"
         for istate in range(self.nstate):
-            msg += "State {0}/{1} :\n".format(istate+1, self.nstate)
+            msg += f"State {istate+1}/{self.nstate} :\n"
             msg += self.state[istate].log_recap_state()
             msg += "\n\n"
         self.log.logger_log.info(msg)
@@ -135,7 +135,6 @@ class ThermodynamicIntegration:
         Error and average in free energy instances for one state
         Computed if ninstance > 1
         """
-
         stateworkdir = self.workdir + self.state[istate].get_workdir()
         fe = []
         for i in range(self.ninstance):
