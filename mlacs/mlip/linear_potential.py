@@ -41,7 +41,7 @@ class LinearPotential(MlipManager):
 
     mbar: :class:`MbarManager`
         Weigth with the multistate Bennett acceptance ratio (MBAR) method.
-        Default :class: None
+        Default :class:`None`
     """
     def __init__(self,
                  descriptor,
