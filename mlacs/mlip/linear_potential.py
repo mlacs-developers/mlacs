@@ -96,8 +96,6 @@ class LinearPotential(MlipManager):
                      ymat_f * fcoef,
                      ymat_s * scoef]
 
-        print(f'Train A_mat : {len(amat_e)}')
-
         if self.mbar is not None:
             if self.mbar.train_mlip:
                 amat, ymat = self.mbar.reweight_mlip(amat, ymat)
@@ -118,13 +116,16 @@ class LinearPotential(MlipManager):
         msg += "\nNumber of configurations for training: " + \
                f"{len(self.natoms[idx_e:]):}\n"
         msg += "Number of atomic environments for training: " + \
-                f"{self.natoms[idx_e:].sum():}\n"
+               f"{self.natoms[idx_e:].sum():}\n"
 
         if self.mbar is not None:
             if self.mbar.train_mlip:
                 msg += self.mbar.compute_tests(amat_e, amat_f, amat_s,
                                                ymat_e, ymat_f, ymat_s,
                                                self.coefficients)
+            else:
+                msg += self.compute_tests(amat_e, amat_f, amat_s,
+                                          ymat_e, ymat_f, ymat_s)
             msg += self.mbar.run_weight(amat_e, self.coefficients)
         else:
             msg += self.compute_tests(amat_e, amat_f, amat_s,

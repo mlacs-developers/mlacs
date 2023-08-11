@@ -15,6 +15,7 @@ from ase.units import kB, GPa
 default_parameters = {"mode": "compute",
                       "step_start": 2,
                       "solver": "L-BFGS-B",
+                      "scale": 0.1,
                       }
 
 
@@ -39,7 +40,7 @@ class MbarManager:
         self._newddb = []
         self.Nk = []
         self.W = None
-        self.folder = Path(folder).absolute() 
+        self.folder = Path(folder).absolute()
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
@@ -98,10 +99,8 @@ class MbarManager:
         Return weigthted A and Y matrices.
         """
         w = self._init_weight()
-        print(w)
         we, wf, ws = self._build_W_efs(w)
         self.W = np.r_[we, wf, ws]
-        print(a.shape, y.shape, self.W[:,np.newaxis].shape, self.W.shape)
         return a * self.W[:, np.newaxis], y * self.W
 
 # ========================================================================== #
@@ -190,9 +189,10 @@ class MbarManager:
         n_tot = len(self.matsize)
         n_new = len(self._newddb)
         weight = np.ones(n_tot) / n_tot
-        print(weight, self.weight[-1])
-        weight = 0.1 * weight
-        weight[:-n_new] = self.weight[-1]
+        weight = self.parameters['scale'] * weight
+        if self.get_effective_conf() / n_tot > 0.8:
+            weight = 0.0 * weight
+        weight[n_new:] = self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -226,7 +226,6 @@ class MbarManager:
         w_e = w / np.sum(w)
         w_f = []
         w_s = []
-        print(self.matsize)
         for i, n in enumerate(self.matsize):
             w_f.extend(w[i] * np.ones(3 * n) / (3 * n))
             w_s.extend(w[i] * np.ones(6) / 6)
