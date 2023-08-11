@@ -38,6 +38,10 @@ class LinearPotential(MlipManager):
     stress_coefficient: :class:`float`
         Weight of the stress in the fit
         Default 1.0
+
+    mbar: :class:`MbarManager`
+        Weigth with the multistate Bennett acceptance ratio (MBAR) method.
+        Default :class: None
     """
     def __init__(self,
                  descriptor,

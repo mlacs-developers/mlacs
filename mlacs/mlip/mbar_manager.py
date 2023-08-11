@@ -13,7 +13,6 @@ from ase.units import kB, GPa
 
 
 default_parameters = {"mode": "compute",
-                      "step_start": 2,
                       "solver": "L-BFGS-B",
                       "scale": 0.1,
                       }
@@ -23,12 +22,42 @@ default_parameters = {"mode": "compute",
 # ========================================================================== #
 class MbarManager:
     """
-    M
+    Computation of weight according to the multistate Bennett acceptance
+    ratio (MBAR) method for the analysis of equilibrium samples from multiple
+    arbitrary thermodynamic states.
 
     Parameters
     ----------
+    mode: :class:`str`
+        Define how to use MBAR.
+            compute: Compute weights.
+            train: Compute weights and use it for MLIP training.
+        Default compute
+
+    solver: :class:`str`
+        Define type of solver for pymbar
+        Default L-BFGS-B
+
+    scale: :class:`str`
+        Imposes weights for the new configurations.
+        Only relevant in the train mode.
+        Default 0.1
+
+    database: :class:`ase.Trajectory`
+        Initial database (optional)
+        Default :class:`None`
+
+    weight: :class:`list` or :class:`str`
+        If you use an initial database, it needs weight.
+        Can a list or an np.array of values or a file.
+        Default :class:`None`
+
+    folder: :class:`str`
+        Define a folder to put the weight file (MLIP.weight).
+        A good idea is to put it in the same file as the MLIP.
+
     """
-    def __init__(self, database=None, parameters=dict(),
+    def __init__(self, parameters=dict(), database=None,
                  weight=None, folder=""):
         self.parameters = default_parameters
         self.parameters.update(parameters)
@@ -55,7 +84,7 @@ class MbarManager:
 # ========================================================================== #
     def run_weight(self, a, c):
         """
-        Get Ae matrices and SNAP coefficients.
+        Get A matrices and SNAP coefficients.
         Compute the matrice Ukn of partition fonctions.
         """
 
@@ -173,6 +202,7 @@ class MbarManager:
 # ========================================================================== #
     def update_database(self, atoms):
         """
+        Update the database.
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
@@ -185,6 +215,7 @@ class MbarManager:
     def _init_weight(self):
         """
         Initialize the weight matrice.
+        Need to be tested.
         """
         n_tot = len(self.matsize)
         n_new = len(self._newddb)
@@ -192,12 +223,13 @@ class MbarManager:
         weight = self.parameters['scale'] * weight
         if self.get_effective_conf() / n_tot > 0.8:
             weight = 0.0 * weight
-        weight[n_new:] = self.weight[-1]
+        weight[:-n_new] = self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
     def _get_ukn(self, a, c):
         """
+        Compute Ukn matrices.
         """
         ddb = self.database
         P = np.zeros(self.nconfs)
@@ -213,6 +245,11 @@ class MbarManager:
 # ========================================================================== #
     def _compute_weight(self, ukn):
         """
+        Uses pymbar.MAR() class.
+
+        [1] Shirts MR and Chodera JD. Statistically optimal analysis of
+        samples from multiple equilibrium states.
+        J. Chem. Phys. 129:124105, 2008.  http://dx.doi.org/10.1063/1.2978177
         """
         mbar = MBAR(ukn, self.Nk,
                     solver_protocol=[{'method': self.parameters['solver']}])
@@ -222,6 +259,7 @@ class MbarManager:
 # ========================================================================== #
     def _build_W_efs(self, w):
         """
+        Transform W to W_efs.
         """
         w_e = w / np.sum(w)
         w_f = []
