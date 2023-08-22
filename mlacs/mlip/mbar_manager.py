@@ -30,8 +30,8 @@ class MbarManager:
     ----------
     mode: :class:`str`
         Define how to use MBAR.
-            compute: Compute weights.
-            train: Compute weights and use it for MLIP training.
+            - compute: Compute weights.
+            - train: Compute weights and use it for MLIP training.
         Default compute
 
     solver: :class:`str`
