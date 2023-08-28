@@ -373,7 +373,7 @@ class CalcTi:
                 _, tmp_new = self.state.postprocess(self.ti.get_fedir() \
                                                     + f"for_back_{i+1}/")
                 tmp.append(tmp_new)                                      
-            self.new = np.mean(tmp_new)                                      
+            self.new = np.mean(tmp)                                      
 
         if self.isfirst:
             self.old = 0.0
