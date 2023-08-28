@@ -9,7 +9,7 @@ from ..utilities.thermolog import ThermoLog
 from .thermostate import ThermoState
 from concurrent.futures import ThreadPoolExecutor
 
-import logging
+#import logging
 # ========================================================================== #
 # ========================================================================== #
 class ThermodynamicIntegration:
@@ -28,17 +28,18 @@ class ThermodynamicIntegration:
     """
     def __init__(self,
                  thermostate,
-                 wdir=None,
                  ninstance=1,
+                 wdir=None,
                  logfile=None):
 
         self.log = ThermoLog(logfile)
         self.ninstance = ninstance
         self.logfile = logfile
+
         # Construct the working directory to run the thermodynamic integrations
-        if wdir==None:
+        if wdir is None:
             self.workdir = os.getcwd() + "/ThermoInt/"
-        else:
+        elif wdir is not None:
             self.workdir = wdir + "ThermoInt/" 
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
@@ -58,8 +59,8 @@ class ThermodynamicIntegration:
             raise TypeError(msg)
         self.nstate = len(self.state)
         self.recap_state()
-        self.log.logger_log.removeHandler(logging.FileHandler(self.logfile, 'a'))
-        logging.FileHandler(self.logfile, 'a').close()
+#        self.log.logger_log.removeHandler(logging.FileHandler(self.logfile, 'a'))
+#        logging.FileHandler(self.logfile, 'a').close()
 
 
 # ========================================================================== #
@@ -164,13 +165,13 @@ class ThermodynamicIntegration:
         Get the directory where free energy is.
         Useful to get free energy for property convergence during sampling
         """
-        if self.ninstance > 1:
-            for i in range(self.ninstance):
-                stateworkdir = self.workdir + \
-                               self.state.get_workdir() + \
-                               f"for_back_{i+1}/"
-        elif self.ninstance == 1:
-            for istate in range(self.nstate):
-                stateworkdir = self.workdir + \
-                               self.state[istate].get_workdir()
+        # if self.ninstance > 1:
+        #     for i in range(self.ninstance):
+        #         stateworkdir = self.workdir + \
+        #                        self.state.get_workdir() + \
+        #                        f"for_back_{i+1}/"
+        # elif self.ninstance == 1:
+        for istate in range(self.nstate):
+            stateworkdir = self.workdir + \
+                           self.state[istate].get_workdir()
         return stateworkdir

@@ -320,10 +320,12 @@ class CalcTi:
     def __init__(self,
                  args,
                  phase,
+                 ninstance=None,
                  method='max',
                  criterion=0.001,
                  frequence=10):
 
+        self.ninstance=ninstance
         self.phase = phase
         if self.phase == 'solid':
             from mlacs.ti import EinsteinSolidState
@@ -356,13 +358,23 @@ class CalcTi:
         from mlacs.ti import ThermodynamicIntegration
         # Creation of ti object ---------------------------------------------
         self.ti = ThermodynamicIntegration(self.state,
+                                           self.ninstance,
                                            wdir,
-                                           logfile= wdir + "TiCheckFe.log")
+                                           logfile = wdir + "TiCheckFe.log")
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
         # Get Fe ------------------------------------------------------------
-        _, self.new= self.state.postprocess(self.ti.get_fedir())
+        if self.ninstance==1:                                                
+            _, self.new = self.state.postprocess(self.ti.get_fedir())    
+        elif self.ninstance > 1:                                             
+            tmp = []                                                         
+            for i in range(self.ninstance):                                  
+                _, tmp_new = self.state.postprocess(self.ti.get_fedir() \
+                                                    + f"for_back_{i+1}/")
+                tmp.append(tmp_new)                                      
+            self.new = np.mean(tmp_new)                                      
+
         if self.isfirst:
             self.old = 0.0
             check = self._check
