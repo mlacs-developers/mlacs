@@ -65,7 +65,7 @@ class AbinitManager(CalcManager):
         self.ninstance = ninstance
 
         try:
-            self.ncfile = AbinitNC() 
+            self.ncfile = AbinitNC()
         except:
             self.ncfile = None
 
@@ -136,9 +136,9 @@ class AbinitManager(CalcManager):
         if self.ncfile is not None:
             dct = self.ncfile.read(cdir + "abinito_GSR.nc")
             results.update(dct)
-            atoms = set_aseAtoms(results) 
+            atoms = set_aseAtoms(results)
             atoms.set_velocities(at.get_velocities())
-            return atoms 
+            return atoms
 
         with open(cdir + "abinit.abo") as fd:
             dct = read_abinit_out(fd)

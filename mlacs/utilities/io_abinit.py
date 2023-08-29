@@ -4,11 +4,11 @@
 """
 import os
 import numpy as np
-from typing import (List, Union, Dict)
 
 from ase import Atoms
 from ase.units import Bohr, Hartree
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
+
 
 def set_aseAtoms(results=dict()) -> Atoms:
     """Read results dictionary to construct Ase Atoms object"""
@@ -19,6 +19,7 @@ def set_aseAtoms(results=dict()) -> Atoms:
     else:
         msg = 'No atomic positions found in dictionary'
         raise AttributeError(msg)
+
 
 def _set_from_outNC(results=dict()) -> Atoms:
     """Read results from OUT.nc"""
@@ -36,12 +37,13 @@ def _set_from_outNC(results=dict()) -> Atoms:
     atoms.calc = calc
     return atoms
 
+
 def _set_from_gsrNC(results=dict()) -> Atoms:
     """Read results from GSR.nc"""
-    Z = np.r_[[results['atomic_numbers'][i - 1] 
+    Z = np.r_[[results['atomic_numbers'][i - 1]
                for i in results['atom_species']]]
     cell = results['primitive_vectors'] * Bohr
-    positions = np.matmul(results['reduced_atom_positions'], cell) 
+    positions = np.matmul(results['reduced_atom_positions'], cell)
     atoms = Atoms(numbers=Z,
                   cell=cell,
                   positions=positions,
@@ -49,10 +51,11 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
     calc = SPCalc(atoms,
                   energy=results['etotal'] * Hartree,
                   forces=results['cartesian_forces'] * Hartree/Bohr,
-                  stress=results['cartesian_stress_tensor'] * Hartree / Bohr**3,
-                  free_energy= results['entropy'] * Hartree)
+                  stress=results['cartesian_stress_tensor'] * Hartree/Bohr**3,
+                  free_energy=results['entropy'] * Hartree)
     atoms.calc = calc
     return atoms
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -93,7 +96,7 @@ class AbinitNC:
             self.dataset = nc.Dataset(self.ncfile)
         else:
             raise FileNotFoundError('No NetCDF file defined')
-        
+
         self._keyvar = [_ for _ in self.dataset.variables]
         self._defattr()
         if not hasattr(self, 'results'):
@@ -115,16 +118,16 @@ class AbinitNC:
             value = getattr(self, attr)
             if isinstance(value, (int, float, str)):
                 continue
-            elif isinstance(value, np.ndarray): 
+            elif isinstance(value, np.ndarray):
                 setattr(self, attr, self._decodearray(value))
-            elif isinstance(value, memoryview): 
+            elif isinstance(value, memoryview):
                 if () == value.shape:
                     setattr(self, attr, value.tolist())
                 else:
                     setattr(self, attr, self._decodearray(value.obj))
             else:
                 delattr(self, attr)
-                msg = f'Unknown object type: {type(value)}\n' 
+                msg = f'Unknown object type: {type(value)}\n'
                 msg += '-> deleted attribute from AbiAtoms object.\n'
                 msg += 'Should be added in the class AbiAtoms, if needed !'
                 raise Warning(msg)
@@ -141,7 +144,7 @@ class AbinitNC:
         for s in value.tolist():
             if _chk == _str[-80:]:
                 break
-            _str += bytes.decode(s) 
+            _str += bytes.decode(s)
         return _str.strip()
 
 # ========================================================================== #

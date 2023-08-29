@@ -259,6 +259,7 @@ def get_diffusion_input(msdfile):
     input_string += "\n\n\n"
     return input_string
 
+
 # ========================================================================== #
 def write_lammps_NEB_ASCIIfile(filename, supercell):
     '''
@@ -282,6 +283,7 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
     with open(filename, "w") as w:
         w.write(instr)
 
+
 # ========================================================================== #
 def get_rdf_input(rdffile):
     """
@@ -294,4 +296,3 @@ def get_rdf_input(rdffile):
     input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
     return input_string
-

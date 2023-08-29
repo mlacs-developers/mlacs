@@ -160,7 +160,8 @@ class ThermoState:
                             ' ${vol} ${mypress} ${mypxx} ${mypyy} ' + \
                             '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                             'append mlmd.log title "# Step  Etot  Epot  ' + \
-                            'Ekin Temp Vol Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
+                            'Ekin Temp Vol Press  ' + \
+                            'Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
         else:
             input_string += 'fix mythermofile all print ' + \
                             f'{self.loginterval} "$t ' + \
@@ -169,7 +170,8 @@ class ThermoState:
                             '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                             f'append mlmd_{suffix}.log ' + \
                             'title "# Step  Etot  Epot  ' + \
-                            'Ekin Temp Vol Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
+                            'Ekin Temp Vol Press  ' + \
+                            'Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
         input_string += "#####################################\n"
         input_string += "\n\n\n"
         return input_string
