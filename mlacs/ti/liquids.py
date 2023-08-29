@@ -245,7 +245,11 @@ class UFLiquidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None:
             msg += "Free energy corrected :         " + \
                    f"{free_energy_corrected:10.6f} eV/at\n"
-        return msg
+
+        if self.fcorr1 is not None or self.fcorr2 is not None:
+            return msg, free_energy_corrected
+        else:
+            return msg, free_energy
 
 # ========================================================================== #
     def write_lammps_input(self, wdir):

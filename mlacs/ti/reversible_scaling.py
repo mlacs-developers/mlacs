@@ -9,7 +9,9 @@ from ase.units import kB
 
 from ..utilities.miscellanous import get_elements_Z_and_masses
 from .thermostate import ThermoState
-
+from .solids import EinsteinSolidState
+from .liquids import UFLiquidState
+from .thermoint import ThermodynamicIntegration
 
 # ========================================================================== #
 # ========================================================================== #
@@ -31,7 +33,10 @@ class ReversibleScalingState(ThermoState):
     t_end: :class:`float` (optional)
         Final temperature of the simulation, in Kelvin. Default ``1200``.
     fe_init: :class:`float` (optional)
-        Free energy of the initial temperature, in eV/at. Default ``0``.
+        Free energy of the initial temperature, in eV/at. Default ``None``.
+    ninstance: :class:`int` (optional)
+        If Free energy calculation has to be done before temperature sweep
+        Settles the number of forward abackward runs. Default ``1``.
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
     damp : :class:`float` (optional)
@@ -75,8 +80,10 @@ class ReversibleScalingState(ThermoState):
                  pair_coeff,
                  t_start=300,
                  t_end=1200,
-                 fe_init=0,
-                 dt=1,
+                 fe_init=None,
+                 phase=None,
+                 ninstance=1,
+                 dt=1.5,
                  damp=None,
                  pressure=None,
                  pdamp=None,
@@ -94,11 +101,69 @@ class ReversibleScalingState(ThermoState):
         self.t_start = t_start
         self.t_end = t_end
         self.fe_init = fe_init
+        self.ninstance = ninstance
         self.damp = damp
         self.pressure = pressure
         self.pdamp = pdamp
         self.gjf = gjf
 
+        # Free energy calculation before sweep
+        if self.fe_init is None:
+            if phase=='solid':
+                self.state = EinsteinSolidState(atoms,          
+                                                pair_style,     
+                                                pair_coeff,     
+                                                t_start,    
+                                                fcorr1=None,    
+                                                fcorr2=None,    
+                                                k=None,         
+                                                dt=dt,           
+                                                damp=None,      
+                                                nsteps=10000,   
+                                                nsteps_eq=5000, 
+                                                nsteps_msd=25000,
+                                                rng=None,       
+                                                suffixdir=None, 
+                                                logfile=True,   
+                                                trajfile=True,  
+                                                interval=500,   
+                                                loginterval=50, 
+                                                trajinterval=50)
+            elif phase=='liquid':
+                self.state = UFLiquidState(atoms,         
+                                           pair_style,    
+                                           pair_coeff,    
+                                           t_start,   
+                                           fcorr1=None,   
+                                           fcorr2=None,   
+                                           p=50,          
+                                           sigma=2.0,     
+                                           dt=dt,          
+                                           damp=None,     
+                                           nsteps=10000,  
+                                           nsteps_eq=5000,
+                                           rng=None,      
+                                           suffixdir=None,
+                                           logfile=True,  
+                                           trajfile=True, 
+                                           interval=500,  
+                                           loginterval=50,
+                                           trajinterval=50)
+            self.ti=ThermodynamicIntegration(self.state,
+                                             ninstance,
+                                             logfile='FreeEnergy.log')
+            self.ti.run()
+            # Get Fe
+            if self.ninstance==1:
+                _, self.fe_init = self.state.postprocess(self.ti.get_fedir())
+            elif self.ninstance > 1:
+                tmp = []
+                for i in range(self.ninstance):
+                    _, tmp_fe_init = self.state.postprocess(self.ti.get_fedir() \
+                                                            + f"for_back_{i+1}/")
+                    tmp.append(tmp_fe_init)
+                self.fe_init = np.mean(tmp)
+        # reversible scaling
         ThermoState.__init__(self,
                              atoms,
                              pair_style,
@@ -123,7 +188,7 @@ class ReversibleScalingState(ThermoState):
             self.suffixdir = suffixdir
         if self.suffixdir[-1] != "/":
             self.suffixdir += "/"
-
+ 
 # ========================================================================== #
     def run(self, wdir):
         """
@@ -131,7 +196,7 @@ class ReversibleScalingState(ThermoState):
         if not os.path.exists(wdir):
             os.makedirs(wdir)
 
-        self.run_dynamics(wdir)
+            self.run_dynamics(wdir)
 
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
