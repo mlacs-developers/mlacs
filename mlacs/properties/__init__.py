@@ -14,6 +14,6 @@ from .eos import eos_fit
 __all__ = ['PropertyManager',
            'CalcMfep',
            'CalcNeb',
+           'eos_fit',
            'CalcRdf',
-           'CalcTi',
-           'eos_fit']
+           'CalcTi']

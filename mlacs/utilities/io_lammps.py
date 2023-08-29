@@ -95,7 +95,9 @@ def get_general_input(pbc,
                       atom_style,
                       replicate=None,
                       filename='atoms.in',
-                      custom=''):
+                      custom='',
+                      nbeads=1,
+                      ispimd=False):
     """
     Function to write the general parameters in the input
     """
@@ -104,6 +106,8 @@ def get_general_input(pbc,
     input_string += "#####################################\n"
     input_string += "#           General parameters\n"
     input_string += "#####################################\n"
+    if ispimd:
+        input_string += "atom_modify map yes\n"
     input_string += "units        metal\n"
     input_string += "boundary     " + \
         "{0} {1} {2}\n".format(*tuple("sp"[int(x)] for x in pbc))
@@ -114,6 +118,8 @@ def get_general_input(pbc,
         input_string += f"replicate    {replicate}\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
+    if nbeads > 1:
+        input_string += f"variable ibead uloop {nbeads} pad\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -215,15 +221,18 @@ def get_interaction_input(pair_style,
 
 
 # ========================================================================== #
-def get_last_dump_input(workdir, elem, nsteps):
+def get_last_dump_input(workdir, elem, nsteps, nbeads=1):
     """
     Function to write the dump of the last configuration of the mlmd
     """
+    fname = "configurations.out"
+    if nbeads > 1:
+        fname = f"{fname}_${{ibead}}"
     input_string = "#####################################\n"
     input_string += "#         Dump last step\n"
     input_string += "#####################################\n"
     input_string += f"dump last all custom {nsteps} " + \
-                    "configurations.out  id type xu yu zu " + \
+                    f"{fname}  id type xu yu zu " + \
                     "vx vy vz fx fy fz element\n"
     input_string += "dump_modify last element "
     input_string += " ".join([p for p in elem])
