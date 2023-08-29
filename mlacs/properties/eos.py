@@ -48,11 +48,14 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
         e0 = a*v0**2 + b*v0 + c
         bounds = ([e0*2, b0/100, b0p/10, v0/2], [e0/2, b0*100, b0p*10, v0*2])
         if eos=='vinet':
-            fitted_params, ecov_ = curve_fit(eos_functions.e_vinet, x, y, bounds=bounds)
+            fitted_params, ecov_ = curve_fit(eos_functions.e_vinet, x, y,
+                                             bounds=bounds)
         if eos=='murnaghan':
-            fitted_params, ecov_ = curve_fit(eos_functions.e_murnaghan, x, y, bounds=bounds)
+            fitted_params, ecov_ = curve_fit(eos_functions.e_murnaghan, x, y, 
+                                             bounds=bounds)
         if eos=='bm':
-            fitted_params, ecov_ = curve_fit(eos_functions.e_bm, x, y, bounds=bounds)
+            fitted_params, ecov_ = curve_fit(eos_functions.e_bm, x, y, 
+                                             bounds=bounds)
 
         str = 'Fitted Parameters from EoS fit\n'
         str += '------------------------------\n'
@@ -65,11 +68,14 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
         bounds = ([b0/100, b0p/10, v0/2], [b0*100, b0p*10, v0*2])
         ph = 1
         if eos=='vinet':
-            fitted_params, pcov_ = curve_fit(eos_functions.p_vinet, x, y, bounds=bounds)
+            fitted_params, pcov_ = curve_fit(eos_functions.p_vinet, x, y,
+                                             bounds=bounds)
         if eos=='murnaghan':
-            fitted_params, pcov_ = curve_fit(eos_functions.p_murnaghan, x, y, bounds=bounds)
+            fitted_params, pcov_ = curve_fit(eos_functions.p_murnaghan, x, y,
+                                             bounds=bounds)
         if eos=='bm':
-            fitted_params, pcov_ = curve_fit(eos_functions.p_bm, x, y, bounds=bounds)
+            fitted_params, pcov_ = curve_fit(eos_functions.p_bm, x, y,
+                                             bounds=bounds)
 
         str = 'Fitted Parameters from EoS fit\n'
         str += '------------------------------\n'

@@ -20,6 +20,8 @@ from .miscellanous import (get_elements_Z_and_masses,
                            integrate_points,
                            normalized_integration,
                            )
+from .io_abinit import (AbinitNC,
+                        set_aseAtoms) 
 
 __all__ = ['compute_pdf',
            'get_elements_Z_and_masses',
@@ -32,4 +34,6 @@ __all__ = ['compute_pdf',
            'normalized_integration',
            'extract_data_from_files',
            'extract_data',
+           'AbinitNC',
+           'set_aseAtoms',
            ]

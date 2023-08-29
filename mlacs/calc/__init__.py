@@ -3,10 +3,10 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from .calc_manager import CalcManager
-from .abinit_manager import AbinitManager, AbinitNC
+from .abinit_manager import AbinitManager
 from .dlm_calc import DlmCalcManager
 
 __all__ = ["CalcManager",
            "DlmCalcManager",
            "AbinitManager",
-           "AbinitNC"]
+           ]
