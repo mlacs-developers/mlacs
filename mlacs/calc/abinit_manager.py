@@ -64,10 +64,7 @@ class AbinitManager(CalcManager):
                                posix=(os.name == "posix"))
         self.ninstance = ninstance
 
-        try:
-            self.ncfile = AbinitNC()
-        except:
-            self.ncfile = None
+        self.ncfile = AbinitNC()
 
         self.workdir = workdir
         if self.workdir is None:

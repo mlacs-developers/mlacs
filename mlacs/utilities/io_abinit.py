@@ -71,7 +71,10 @@ class AbinitNC:
     """
     def __init__(self, workdir=None, prefix='abinit'):
 
-        import netCDF4 as nc
+        try:
+            import netCDF4 as nc
+        except ImportError:
+            return None
 
         self.workdir = workdir
         if self.workdir is None:
