@@ -24,7 +24,7 @@ from ..utilities.io_lammps import (get_general_input,
 
 # ========================================================================== #
 # ========================================================================== #
-class LammpsState(StateManager):
+class RdfLammpsState(StateManager):
     """
     Class to manage States with LAMMPS
 
@@ -89,6 +89,8 @@ class LammpsState(StateManager):
 
     nsteps : :class:`int` (optional)
         Number of MLMD steps for production runs. Default ``1000`` steps.
+        as it is to test the mlip and compute physical properties, it is
+        recommended to run a MLMD on dozen of ps
 
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
@@ -107,28 +109,18 @@ class LammpsState(StateManager):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
 
-    msdfile : :class:`str` (optional)
-        Name of the file for diffusion coefficient calculation.
-        If ``None``, no file is created. Default ``None``.
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat.
+        Default correspond to :class:`numpy.random.default_rng()`
+
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD directory is created
 
     rdffile : :class:`str` (optional)
         Name of the file for radial distribution function calculation.
         If ``None``, no file is created. Default ``None``.
 
-    rng : RNG object (optional)
-        Rng object to be used with the Langevin thermostat.
-        Default correspond to :class:`numpy.random.default_rng()`
-
-    init_momenta : :class:`numpy.ndarray` (optional)
-        Gives the (Nat, 3) shaped momenta array that will be used
-        to initialize momenta when using
-        the `initialize_momenta` function.
-        If the default ``None`` is set, momenta are initialized with a
-        Maxwell Boltzmann distribution.
-
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
     """
     def __init__(self,
                  temperature,
@@ -153,7 +145,6 @@ class LammpsState(StateManager):
                  msdfile=None,
                  rdffile=None,
                  rng=None,
-                 init_momenta=None,
                  workdir=None):
         StateManager.__init__(self,
                               dt,
@@ -170,8 +161,6 @@ class LammpsState(StateManager):
         self.rng = rng
         if self.rng is None:
             self.rng = np.random.default_rng()
-
-        self.init_momenta = init_momenta
 
         self.atomsfname = "atoms.in"
         self.lammpsfname = "lammps_input.in"
@@ -190,7 +179,6 @@ class LammpsState(StateManager):
         self.qtb = qtb
         self.fd = fd
         self.n_f = n_f
-        self.nbeads = 1  # Dummy nbeads to help
 
         self.t_stop = t_stop
         self.p_stop = p_stop
@@ -206,6 +194,7 @@ class LammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
+                     replicate="2 2 2",
                      eq=False,
                      workdir=None):
         """
@@ -246,19 +235,19 @@ class LammpsState(StateManager):
                           velocities=True,
                           atom_style=atom_style)
 
-        if eq:
-            nsteps = self.nsteps_eq
-        else:
-            nsteps = self.nsteps
 
-        self.write_lammps_input(atoms,
-                                atom_style,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                nsteps,
-                                temp,
-                                press)
+        nsteps_eq = self.nsteps_eq
+        nsteps = self.nsteps
+        self.write_lammps_rdf(atoms,
+                              atom_style,
+                              replicate,
+                              pair_style,
+                              pair_coeff,
+                              model_post,
+                              nsteps_eq,
+                              nsteps,
+                              temp,
+                              press)
 
         lammps_command = self.cmd + " -in " + self.lammpsfname + \
             " -sc out.lmp"
@@ -268,6 +257,7 @@ class LammpsState(StateManager):
                          stderr=PIPE)
 
         if lmp_handle.returncode != 0:
+            print(lmp_handle.returncode)
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
@@ -281,17 +271,6 @@ class LammpsState(StateManager):
         return atoms.copy()
 
 # ========================================================================== #
-    def initialize_momenta(self, atoms):
-        """
-        """
-        if self.init_momenta is None:
-            MaxwellBoltzmannDistribution(atoms,
-                                         temperature_K=self.temperature,
-                                         rng=self.rng)
-        else:
-            atoms.set_momenta(self.init_momenta)
-
-# ========================================================================== #
     def _get_lammps_command(self):
         '''
         Function to load the batch command to run LAMMPS
@@ -303,15 +282,17 @@ class LammpsState(StateManager):
         self.cmd = cmd
 
 # ========================================================================== #
-    def write_lammps_input(self,
-                           atoms,
-                           atom_style,
-                           pair_style,
-                           pair_coeff,
-                           model_post,
-                           nsteps,
-                           temp,
-                           press):
+    def write_lammps_rdf(self,
+                         atoms,
+                         atom_style,
+                         replicate,
+                         pair_style,
+                         pair_coeff,
+                         model_post,
+                         nsteps_eq,
+                         nsteps,
+                         temp,
+                         press):
         """
         Write the LAMMPS input for the MD simulation
         """
@@ -323,31 +304,53 @@ class LammpsState(StateManager):
                                           masses,
                                           charges,
                                           atom_style,
-                                          nbeads=self.nbeads,
-                                          ispimd=self.ispimd)
+                                          replicate)
         input_string += get_interaction_input(pair_style,
                                               pair_coeff,
                                               model_post)
-        input_string += self.get_thermostat_input(temp, press)
         if self.logfile is not None:
             input_string += get_log_input(self.loginterval, self.logfile)
         if self.trajfile is not None:
             input_string += get_traj_input(self.loginterval,
                                            self.trajfile,
                                            elem)
-        if self.msdfile is not None:
-            input_string += get_diffusion_input(self.msdfile)
-        if self.rdffile is not None:
-            input_string += get_rdf_input(self.rdffile, self.nsteps)
+        input_string += self.get_equilibration_input(temp,
+                                                     press)
+        input_string += self.get_thermostat_input(temp, press)
+        input_string += get_rdf_input(self.rdffile, nsteps)
 
         input_string += get_last_dump_input(self.workdir,
                                             elem,
-                                            nsteps,
-                                            self.nbeads)
+                                            nsteps)
         input_string += f"run  {nsteps}"
 
         with open(self.workdir + "lammps_input.in", "w") as f:
             f.write(input_string)
+
+# ========================================================================== #
+    def get_equilibration_input(self, temp, press):
+        """
+        Function to equilibrate the system before computing physical qties
+        """        
+        damp = self.damp
+        nsteps_eq = self.nsteps_eq
+        if self.damp is None:
+            damp = "$(100*dt)"
+
+        pdamp = self.pdamp
+        if self.pdamp is None:
+            pdamp = "$(1000*dt)"
+        input_string = "#####################################\n"
+        input_string += "#      Thermostat/Integrator\n"
+        input_string += "#####################################\n"
+        input_string += "# Equilibration run\n"
+        input_string += "variable seed_factory   equal round(random(1,25000000,666)) \n"
+        input_string += f"velocity all create {temp} $((v_seed_factory)) dist gaussian \n"
+        input_string += "timestep      {0}\n".format(self.dt / 1000)
+        input_string += f"fix f1 all nvt temp {temp} {temp} {damp}\n"
+        input_string += f"run   {nsteps_eq}\n"
+        input_string += "unfix f1\n"
+        return input_string
 
 # ========================================================================== #
     def get_thermostat_input(self, temp, press):
@@ -364,20 +367,10 @@ class LammpsState(StateManager):
 
         if self.qtb:
             qtbseed = self.rng.integers(0, 999999)
-
-        input_string = "#####################################\n"
-        input_string += "#      Thermostat/Integrator\n"
-        input_string += "#####################################\n"
-        input_string += "timestep      {0}\n".format(self.dt / 1000)
+        
+        input_string ="# Average Run\n"
         if self.pressure is None:
-            if self.qtb:
-                # Integration part
-                input_string += "fix f2 all nve\n"
-                # QTB part
-                input_string += f"fix f1 all qtb temp {temp} " + \
-                                f"damp {damp} f_max {self.fd} " + \
-                                f"N_f {self.n_f} seed {qtbseed}\n"
-            elif self.langevin:
+            if self.langevin:
                 # Langevin part
                 input_string += f"fix  f1 all langevin {temp} " + \
                                 f"{temp}  {damp} " + \
@@ -389,16 +382,7 @@ class LammpsState(StateManager):
                 input_string += f"fix  f1 all nvt temp {temp} " + \
                                 f"{temp}  {damp}\n"
         else:
-            if self.qtb:
-                # Barostat part
-                input_string += f"fix    f2 all nph  {self.ptype} " + \
-                                f"{press*10000} " + \
-                                f"{press*10000} {pdamp}\n"
-                # QTB part
-                input_string += f"fix f1 all qtb temp {temp} " + \
-                                f"damp {damp} f_max {self.fd} " + \
-                                f"N_f {self.n_f} seed {qtbseed}\n"
-            elif self.langevin:
+            if self.langevin:
                 # Langevin part
                 input_string += f"fix  f1 all langevin {temp} " + \
                                 f"{temp}  {damp} " + \

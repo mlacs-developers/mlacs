@@ -9,7 +9,7 @@ from ..utilities.thermolog import ThermoLog
 from .thermostate import ThermoState
 from concurrent.futures import ThreadPoolExecutor
 
-
+#import logging
 # ========================================================================== #
 # ========================================================================== #
 class ThermodynamicIntegration:
@@ -20,6 +20,7 @@ class ThermodynamicIntegration:
     ----------
     thermostate: :class:`thermostate` or :class:`list` of :class:`thermostate`
         State for which the thermodynamic integration should be performed
+    wdir: :class:`str`
     ninstance: : class:`int`
         Numer of forward and backward to be performed, default 1
     logfile: :class:`str` (optional)
@@ -28,13 +29,18 @@ class ThermodynamicIntegration:
     def __init__(self,
                  thermostate,
                  ninstance=1,
+                 wdir=None,
                  logfile=None):
 
         self.log = ThermoLog(logfile)
         self.ninstance = ninstance
+        self.logfile = logfile
 
         # Construct the working directory to run the thermodynamic integrations
-        self.workdir = os.getcwd() + "/ThermoInt/"
+        if wdir is None:
+            self.workdir = os.getcwd() + "/ThermoInt/"
+        elif wdir is not None:
+            self.workdir = wdir + "ThermoInt/" 
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
@@ -53,6 +59,9 @@ class ThermodynamicIntegration:
             raise TypeError(msg)
         self.nstate = len(self.state)
         self.recap_state()
+#        self.log.logger_log.removeHandler(logging.FileHandler(self.logfile, 'a'))
+#        logging.FileHandler(self.logfile, 'a').close()
+
 
 # ========================================================================== #
     def run(self):
@@ -85,7 +94,7 @@ class ThermodynamicIntegration:
         if self.ninstance > 1:
             for istate in range(self.nstate):
                 self.error(istate)
-
+        
 # ========================================================================== #
     def _run_one_state(self, istate, i):
         """
@@ -148,3 +157,20 @@ class ThermodynamicIntegration:
         msg += f"- Mean: {femean:10.6f}\n"
         msg += f"- Error: {ferr:10.6f}\n"
         self.log.logger_log.info(msg)
+
+# ========================================================================== #
+    def get_fedir(self):
+        """
+        Get the directory where free energy is.
+        Useful to get free energy for property convergence during sampling
+        """
+        # if self.ninstance > 1:
+        #     for i in range(self.ninstance):
+        #         stateworkdir = self.workdir + \
+        #                        self.state.get_workdir() + \
+        #                        f"for_back_{i+1}/"
+        # elif self.ninstance == 1:
+        for istate in range(self.nstate):
+            stateworkdir = self.workdir + \
+                           self.state[istate].get_workdir()
+        return stateworkdir
