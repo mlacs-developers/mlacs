@@ -5,11 +5,15 @@
 
 from mlacs.properties.property_manager import PropertyManager
 from mlacs.properties.calc_property import (CalcMfep,
-                                            CalcNeb)
+                                            CalcNeb,
+                                            CalcRdf,
+                                            CalcTi)
 
 from .eos import eos_fit
 
 __all__ = ['PropertyManager',
            'CalcMfep',
            'CalcNeb',
-           'eos_fit']
+           'eos_fit',
+           'CalcRdf',
+           'CalcTi']
