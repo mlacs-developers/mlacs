@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 
-from ase.units import kB
+from ase.units import kB, J, kg, m
 from ase.io import read
 
 from .lammps_state import LammpsState
@@ -68,7 +68,11 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         If ``True``, a Langevin thermostat is used.
         Else, a Brownian dynamic is used.
         Default ``True``
-
+    linearmode: :class:`Bool`
+        If ``True``, the reaction coordinate function is contructed using
+        a linear interpolation of the true 3N coordinates.
+        Else, the reaction coordinate function is determined using NEB.
+        Default ``False``
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
 
@@ -105,6 +109,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  nsteps=1000,
                  nsteps_eq=100,
                  langevin=True,
+                 linearmode=False,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
@@ -139,6 +144,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         self.nsteps_eq = nsteps_eq
         self.NEBcoord = reaction_coordinate
         self.finder = None
+        self.xilinear = linearmode
         if self.NEBcoord is None:
             self.splprec = 1001
             self.finder = []
@@ -442,24 +448,34 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         psi = np.array(psi)
         maxjump = np.array(maxjump)
         F = -np.array(IntP(xi, dF, xi))
+        int_xi = np.linspace(xi[0], xi[F.argmax()], len(xi)//2)
+        v = np.array(IntP(xi, np.exp(- F / kB * self.temperature), int_xi))
+        vo = np.sqrt((kB * self.temperature * J) /
+                     (2 * np.pi * self.eff_masses * kg)) / (v[-1] * m)
         Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
+        dFM = max(F) - min(F)
         # Ipsi = np.array(IntP(xi, psi, xi))
         if self.print:
             with open(self.workdir + 'free_energy.dat', 'w') as w:
-                dFM = max(F) - min(F)
-                w.write(f'##  Free energy barier: {dFM} eV  ' +
+                w.write(f'##  Free energy barier: {dFM} eV | ' +
+                        f'frequency: {vo} s-1 | ' +
+                        f'effective mass: {self.eff_masses} uma\n' +
                         '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi)  NUsedConf  ##\n')
-                strformat = ('{:12.8f} ' * 7) + '\n'
+                        'cor  Fcor(xi) v(xi) NUsedConf ##\n')
+                strformat = ('{:18.10f} ' * 6) + ' {} {}\n'
                 for i in range(len(xi)):
+                    _v = v[-1]
+                    if i < len(v):
+                        _v = v[i]
                     w.write(strformat.format(xi[i],
                                              dF[i],
                                              F[i],
                                              psi[i],
                                              kB * self.temperature * cor[i],
                                              Fcor[i],
+                                             _v,
                                              ntot - len(maxjump[i])))
-        return Fcor
+        return dFM, vo, self.eff_masses
 
 # ========================================================================== #
     def log_recap_state(self):
