@@ -19,3 +19,13 @@ CalcNeb
 *******
 
 .. autoclass:: CalcNeb
+
+CalcTi
+********
+
+.. autoclass:: CalcTi
+
+CalcRdf
+*******
+
+.. autoclass:: CalcRdf
