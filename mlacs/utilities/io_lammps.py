@@ -265,6 +265,7 @@ def get_diffusion_input(msdfile):
     input_string += "\n\n\n"
     return input_string
 
+
 # ========================================================================== #
 def write_lammps_NEB_ASCIIfile(filename, supercell):
     '''
@@ -288,19 +289,21 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
     with open(filename, "w") as w:
         w.write(instr)
 
+
 # ========================================================================== #
 def get_rdf_input(rdffile, nsteps):
     """
     Function to compute and output the radial distribution function
     """
-    freq = int(nsteps/5)
+    # freq = int(nsteps/5)
     input_string = "#####################################\n"
     input_string += "#           Compute RDF\n"
     input_string += "#####################################\n"
     input_string += f"variable repeat equal {nsteps}/2 \n"
     input_string += "compute myrdf all rdf 500 1 1 \n"
-    #input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
-    input_string += "fix rdf all ave/time 1 ${repeat}" +f" {nsteps} c_myrdf[*] " + \
+    # input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
+    input_string += "fix rdf all ave/time 1 ${repeat}" + \
+                    f" {nsteps} c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"

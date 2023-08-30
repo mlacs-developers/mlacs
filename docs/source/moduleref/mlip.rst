@@ -6,6 +6,11 @@ Machine-Learning Interatomic Potential Manager
 .. index::
    single: Class reference; MlipManager
 
+MbarManager
+***********
+
+.. autoclass:: mlacs.mlip.mbar_manager.MbarManager
+
 Descriptor
 **********
 
