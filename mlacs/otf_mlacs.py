@@ -9,6 +9,7 @@ import numpy as np
 
 from ase.atoms import Atoms
 from ase.io import read, Trajectory
+from ase.io.formats import UnknownFileTypeError
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
@@ -134,11 +135,6 @@ class OtfMlacs:
         #######################
         # Initialize everything
         #######################
-        # Check if trajectory file already exists
-        if os.path.isfile(self.prefix_output[0] + ".traj"):
-            self.launched = True
-        else:
-            self.launched = False
 
         if self.pimd:
             nmax = self.nbeads
@@ -146,6 +142,9 @@ class OtfMlacs:
         else:
             nmax = self.nstate
             val = "state"
+
+        # Check if trajectory files already exists
+        self.launched = self._check_if_launched(nmax)
 
         self.log = MlacsLog("MLACS.log", self.launched)
         msg = ""
@@ -534,6 +533,13 @@ class OtfMlacs:
                 confs_init = self.confs_init
 
             if os.path.isfile("Training_configurations.traj"):
+                try:
+                    read("Training_configurations.traj")
+                    checkisfile = True
+                except UnknownFileTypeError:
+                    checkisfile = False
+
+            if checkisfile:
                 msg = "Training configurations found\n"
                 msg += "Adding them to the training data"
                 self.log.logger_log.info(msg)
@@ -663,6 +669,34 @@ class OtfMlacs:
         for istate in range(self.nstate):
             self.state[istate].set_workdir(prefworkdir +
                                            self.prefix_output[istate]+"/")
+
+# ========================================================================== #
+    def _check_if_launched(self, nmax):
+        """
+        Function to check simulation restarts:
+         - Check if trajectory files exist and are not empty.
+         - Check if the number of configuration found is at least two.
+        """
+        _nat_init = 0
+        for i in range(nmax):
+            _f = self.prefix_output[i] + ".traj"
+            if os.path.isfile(_f):
+                try:
+                    _nat_init += len(read(_f, index=':'))
+                except UnknownFileTypeError:
+                    return False
+            else:
+                return False
+        _f = "Training_configurations.traj"
+        if os.path.isfile(_f):
+            try:
+                _nat_init += len(read(_f, index=':'))
+            except UnknownFileTypeError:
+                return False
+        if 1 < _nat_init:
+            return True
+        else:
+            return False
 
 
 class TruePotentialError(Exception):

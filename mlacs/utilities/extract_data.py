@@ -3,9 +3,8 @@ import numpy as np
 from ase.io import read
 from ase.units import Bohr, GPa
 
+
 # ========================================================================== #
-
-
 def extract_data_from_files(file_confs, weights=None, **kwargs):
     '''
     Funtion to prepare input as ase object for pressure/volume calculations
