@@ -13,6 +13,7 @@ from .solids import EinsteinSolidState
 from .liquids import UFLiquidState
 from .thermoint import ThermodynamicIntegration
 
+
 # ========================================================================== #
 # ========================================================================== #
 class ReversibleScalingState(ThermoState):
@@ -109,58 +110,58 @@ class ReversibleScalingState(ThermoState):
 
         # Free energy calculation before sweep
         if self.fe_init is None:
-            if phase=='solid':
-                self.state = EinsteinSolidState(atoms,          
-                                                pair_style,     
-                                                pair_coeff,     
-                                                t_start,    
-                                                fcorr1=None,    
-                                                fcorr2=None,    
-                                                k=None,         
-                                                dt=dt,           
-                                                damp=None,      
-                                                nsteps=10000,   
-                                                nsteps_eq=5000, 
+            if phase == 'solid':
+                self.state = EinsteinSolidState(atoms,
+                                                pair_style,
+                                                pair_coeff,
+                                                t_start,
+                                                fcorr1=None,
+                                                fcorr2=None,
+                                                k=None,
+                                                dt=dt,
+                                                damp=None,
+                                                nsteps=10000,
+                                                nsteps_eq=5000,
                                                 nsteps_msd=25000,
-                                                rng=None,       
-                                                suffixdir=None, 
-                                                logfile=True,   
-                                                trajfile=True,  
-                                                interval=500,   
-                                                loginterval=50, 
+                                                rng=None,
+                                                suffixdir=None,
+                                                logfile=True,
+                                                trajfile=True,
+                                                interval=500,
+                                                loginterval=50,
                                                 trajinterval=50)
-            elif phase=='liquid':
-                self.state = UFLiquidState(atoms,         
-                                           pair_style,    
-                                           pair_coeff,    
-                                           t_start,   
-                                           fcorr1=None,   
-                                           fcorr2=None,   
-                                           p=50,          
-                                           sigma=2.0,     
-                                           dt=dt,          
-                                           damp=None,     
-                                           nsteps=10000,  
+            elif phase == 'liquid':
+                self.state = UFLiquidState(atoms,
+                                           pair_style,
+                                           pair_coeff,
+                                           t_start,
+                                           fcorr1=None,
+                                           fcorr2=None,
+                                           p=50,
+                                           sigma=2.0,
+                                           dt=dt,
+                                           damp=None,
+                                           nsteps=10000,
                                            nsteps_eq=5000,
-                                           rng=None,      
+                                           rng=None,
                                            suffixdir=None,
-                                           logfile=True,  
-                                           trajfile=True, 
-                                           interval=500,  
+                                           logfile=True,
+                                           trajfile=True,
+                                           interval=500,
                                            loginterval=50,
                                            trajinterval=50)
-            self.ti=ThermodynamicIntegration(self.state,
-                                             ninstance,
-                                             logfile='FreeEnergy.log')
+            self.ti = ThermodynamicIntegration(self.state,
+                                               ninstance,
+                                               logfile='FreeEnergy.log')
             self.ti.run()
             # Get Fe
-            if self.ninstance==1:
+            if self.ninstance == 1:
                 _, self.fe_init = self.state.postprocess(self.ti.get_fedir())
             elif self.ninstance > 1:
                 tmp = []
                 for i in range(self.ninstance):
-                    _, tmp_fe_init = self.state.postprocess(self.ti.get_fedir() \
-                                                            + f"for_back_{i+1}/")
+                    _, tmp_fe_init = self.state.postprocess(
+                                     self.ti.get_fedir() + f"for_back_{i+1}/")
                     tmp.append(tmp_fe_init)
                 self.fe_init = np.mean(tmp)
         # reversible scaling
@@ -188,7 +189,7 @@ class ReversibleScalingState(ThermoState):
             self.suffixdir = suffixdir
         if self.suffixdir[-1] != "/":
             self.suffixdir += "/"
- 
+
 # ========================================================================== #
     def run(self, wdir):
         """

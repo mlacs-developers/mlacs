@@ -29,6 +29,7 @@ ti_args = ['atoms',
            'nsteps',
            'nsteps_eq']
 
+
 # ========================================================================== #
 # ========================================================================== #
 class CalcMfep:
@@ -205,6 +206,7 @@ class CalcNeb:
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
 
+
 # ========================================================================== #
 # ========================================================================== #
 class CalcRdf:
@@ -256,7 +258,8 @@ class CalcRdf:
         self.kwargs['supercell'] = self.atoms
         self.kwargs['workdir'] = wdir + '/Rdf_Calculation/'
         self.state.run_dynamics(**self.kwargs)
-        self.new = np.loadtxt(self.kwargs['workdir'] + self.rdf['rdffile'], skiprows=4, usecols=(2))
+        self.new = np.loadtxt(self.kwargs['workdir'] +
+                              self.rdf['rdffile'], skiprows=4, usecols=(2))
         if self.isfirst:
             self.old = np.zeros(len(self.new))
             check = self._check
@@ -272,7 +275,7 @@ class CalcRdf:
     def _check(self):
         """
         Check if convergence is achived.
-        """       
+        """
         self.maxf = np.abs(max(self.new-self.old))
         self.avef = np.abs(np.average(self.new-self.old))
         if self.method == 'max' and self.maxf < self.stop:
@@ -294,17 +297,19 @@ class CalcRdf:
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
 
+
 # ========================================================================== #
 # ========================================================================== #
 class CalcTi:
     """
     Class to set a nonequilibrium thermodynamic integration calculation.
-    See ThermoState and EinsteinSolidState/UFLiquidState.run_dynamics parameters.
+    See ThermoState and the run_dynamics function parameters of the
+    EinsteinSolidState and UFLiquidState.
 
     Parameters
     ----------
     state: :class:`str`
-        State of the system: solild or liquid. 
+        State of the system: solild or liquid.
         Set either the Einstein crystal as a reference system or the UF liquid.
     method: :class:`str`
         Type of criterion :
@@ -325,7 +330,7 @@ class CalcTi:
                  criterion=0.001,
                  frequence=10):
 
-        self.ninstance=ninstance
+        self.ninstance = ninstance
         self.phase = phase
         if self.phase == 'solid':
             from mlacs.ti import EinsteinSolidState
@@ -348,7 +353,7 @@ class CalcTi:
         if self.phase == 'solid':
             self.state = EinsteinSolidState(**self.ti_state)
         elif self.phase == 'liquid':
-            self.state = UFLiquidState(**self.ti_state) 
+            self.state = UFLiquidState(**self.ti_state)
 
 # ========================================================================== #
     def _exec(self, wdir):
@@ -360,20 +365,20 @@ class CalcTi:
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
                                            wdir,
-                                           logfile = wdir + "TiCheckFe.log")
+                                           logfile=wdir + "TiCheckFe.log")
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
         # Get Fe ------------------------------------------------------------
-        if self.ninstance==1:                                                
-            _, self.new = self.state.postprocess(self.ti.get_fedir())    
-        elif self.ninstance > 1:                                             
-            tmp = []                                                         
-            for i in range(self.ninstance):                                  
-                _, tmp_new = self.state.postprocess(self.ti.get_fedir() \
+        if self.ninstance == 1:
+            _, self.new = self.state.postprocess(self.ti.get_fedir())
+        elif self.ninstance > 1:
+            tmp = []
+            for i in range(self.ninstance):
+                _, tmp_new = self.state.postprocess(self.ti.get_fedir()
                                                     + f"for_back_{i+1}/")
-                tmp.append(tmp_new)                                      
-            self.new = np.mean(tmp)                                      
+                tmp.append(tmp_new)
+            self.new = np.mean(tmp)
 
         if self.isfirst:
             self.old = 0.0
@@ -390,7 +395,7 @@ class CalcTi:
     def _check(self):
         """
         Check if convergence is achived.
-        """       
+        """
         self.maxf = np.abs(self.new-self.old)
         self.avef = np.abs(np.average(self.new-self.old))
         if self.method == 'max' and self.maxf < self.stop:
@@ -407,9 +412,7 @@ class CalcTi:
         property.
         """
         msg = 'For the free energy convergence check:\n'
-        #msg += self.state.log_recap_state()
         msg += f'Free energy at this step is: {self.new:10.6f} \n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
-

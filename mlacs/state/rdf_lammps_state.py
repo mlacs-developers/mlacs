@@ -16,7 +16,6 @@ from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (get_general_input,
                                    get_log_input,
                                    get_traj_input,
-                                   get_diffusion_input,
                                    get_rdf_input,
                                    get_interaction_input,
                                    get_last_dump_input)
@@ -145,6 +144,7 @@ class RdfLammpsState(StateManager):
                  msdfile=None,
                  rdffile=None,
                  rng=None,
+                 init_momenta=None,
                  workdir=None):
         StateManager.__init__(self,
                               dt,
@@ -234,7 +234,6 @@ class RdfLammpsState(StateManager):
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
-
 
         nsteps_eq = self.nsteps_eq
         nsteps = self.nsteps
@@ -331,21 +330,22 @@ class RdfLammpsState(StateManager):
     def get_equilibration_input(self, temp, press):
         """
         Function to equilibrate the system before computing physical qties
-        """        
+        """
         damp = self.damp
         nsteps_eq = self.nsteps_eq
         if self.damp is None:
             damp = "$(100*dt)"
 
-        pdamp = self.pdamp
-        if self.pdamp is None:
-            pdamp = "$(1000*dt)"
         input_string = "#####################################\n"
         input_string += "#      Thermostat/Integrator\n"
         input_string += "#####################################\n"
         input_string += "# Equilibration run\n"
-        input_string += "variable seed_factory   equal round(random(1,25000000,666)) \n"
-        input_string += f"velocity all create {temp} $((v_seed_factory)) dist gaussian \n"
+#        input_string += "variable seed_factory
+#                         equal round(random(1,25000000,666)) \n"
+#        input_string += f"velocity all create {temp}
+#                          $((v_seed_factory)) dist gaussian \n"
+        input_string += f"velocity all create {temp} "
+        input_string += f"{self.rng.integers(999999)} dist gaussian \n"
         input_string += "timestep      {0}\n".format(self.dt / 1000)
         input_string += f"fix f1 all nvt temp {temp} {temp} {damp}\n"
         input_string += f"run   {nsteps_eq}\n"
@@ -365,10 +365,7 @@ class RdfLammpsState(StateManager):
         if self.pdamp is None:
             pdamp = "$(1000*dt)"
 
-        if self.qtb:
-            qtbseed = self.rng.integers(0, 999999)
-        
-        input_string ="# Average Run\n"
+        input_string = "# Average Run\n"
         if self.pressure is None:
             if self.langevin:
                 # Langevin part
