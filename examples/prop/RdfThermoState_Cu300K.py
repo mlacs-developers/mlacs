@@ -9,7 +9,7 @@ from mlacs import OtfMlacs
 from mlacs.properties import CalcRdf
 
 """
-Example of a MLACS simulation of Cu at 300 K.
+Example of a MLACS simulation of Cu at 300 K to converge on RDF.
 The true potential is the EMT as implemented in ASE.
 """
 # System
