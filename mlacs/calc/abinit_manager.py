@@ -14,6 +14,8 @@ from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
 
 from .calc_manager import CalcManager
+from ..utilities.io_abinit import (AbinitNC,
+                                   set_aseAtoms)
 
 
 # ========================================================================== #
@@ -26,18 +28,23 @@ class AbinitManager(CalcManager):
     ----------
     parameters: :class:`dict`
         Dictionnary of abinit input
+
     pseudos: :class:`dict`
         Dictionnary for the pseudopotentials
         {'O': /path/to/pseudo}
+
     abinit_cmd: :class:`str`
         The command to execute the abinit binary.
+
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
+
     workdir: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
+
     ninstance: :class:`int` (optional)
         Number of instance of abinit to run in parallel.
         Default 1
@@ -56,6 +63,8 @@ class AbinitManager(CalcManager):
         self.cmd = shlex.split(abinit_cmd + " abinit.abi",
                                posix=(os.name == "posix"))
         self.ninstance = ninstance
+
+        self.ncfile = AbinitNC()
 
         self.workdir = workdir
         if self.workdir is None:
@@ -93,8 +102,8 @@ class AbinitManager(CalcManager):
 
         # Now we can read everything
         results_confs = []
-        for cdir in confdir:
-            self._read_output(cdir, results_confs)
+        for (cdir, at) in zip(confdir, confs):
+            results_confs.append(self._read_output_abi(cdir, at))
         # Tada !
         return results_confs
 
@@ -117,10 +126,17 @@ class AbinitManager(CalcManager):
                             self.pseudos)
 
 # ========================================================================== #
-    def _read_output(self, cdir, results_confs):
+    def _read_output(self, cdir, at):
         """
         """
         results = {}
+        if self.ncfile is not None:
+            dct = self.ncfile.read(cdir + "abinito_GSR.nc")
+            results.update(dct)
+            atoms = set_aseAtoms(results)
+            atoms.set_velocities(at.get_velocities())
+            return atoms
+
         with open(cdir + "abinit.abo") as fd:
             dct = read_abinit_out(fd)
             results.update(dct)
@@ -128,13 +144,15 @@ class AbinitManager(CalcManager):
         energy = results.pop("energy")
         forces = results.pop("forces")
         stress = results.pop("stress")
+
+        atoms.set_velocities(at.get_velocities())
         calc = SPCalc(atoms,
                       energy=energy,
                       forces=forces,
                       stress=stress)
         calc.version = results.pop("version")
         atoms.calc = calc
-        results_confs.append(atoms)
+        return atoms
 
 # ========================================================================== #
     def _organize_pseudos(self, pseudos):

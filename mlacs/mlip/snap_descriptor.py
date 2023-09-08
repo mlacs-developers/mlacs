@@ -20,18 +20,31 @@ class SnapDescriptor(Descriptor):
     ----------
     atoms : :class:`ase.atoms`
         Reference structure, with the elements for the descriptor
+
     rcut: :class:`float`
         The cutoff of the descriptor, in angstrom
         Default 5.0
+
     parameters: :class:`dict`
         A dictionnary of parameters for the descriptor input
+
+        The default values are
+            - twojmax = 8
+            - rfac0 = 0.99363
+            - rmin0 = 0.0
+            - switchflag = 1
+            - bzeroflag = 1
+            - wselfallflag = 0
+
     model: :class:`str`
         The type of model use. Can be either 'linear' or 'quadratic'
         Default `linear`
+
     alpha: :class:`float`
         The multiplication factor to the regularization parameter for
         ridge regression.
         Default 1.0
+
     alpha_quad: :class:`float`
         A multiplication factor for the regularization that apply only to
         the quadratic component of the descriptor
@@ -39,7 +52,7 @@ class SnapDescriptor(Descriptor):
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
                  model="linear", alpha=1.0, alpha_quad=1.0, folder="Snap"):
-        self.chemflag = parameters.get("chemflag", 0)
+        self.chemflag = parameters.pop("chemflag", 0)
         Descriptor.__init__(self, atoms, rcut, alpha)
         self.alpha_quad = alpha_quad
         self.folder = Path(folder).absolute()
@@ -167,12 +180,9 @@ class SnapDescriptor(Descriptor):
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
-            pass
-            """
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-            """
 
 # ========================================================================== #
     def cleanup(self):

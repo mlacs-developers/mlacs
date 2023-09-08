@@ -37,32 +37,42 @@ class MomentTensorPotential(SelfMlipManager):
     atoms: :class:`ase.Atoms`
         Prototypical configuration for the MLIP. Should have the desired
         species.
+
     mlpbin: :class:`str`
         The path to the  `mlp` binary. If mpi is desired, the command
-        shoudl be set as 'mpirun /path/to/mlp'
+        should be set as 'mpirun /path/to/mlp'
+
     folder: :class: `str`
         The folder in which `mlp` is run.
         Default 'MTP'
+
     mpt_parameters: :class:`dict`
         The dictionnary with inputs for the potential.
+
         The default values are set to
-        level = 8
-        radial_basis_type = 'RBChebyshev'
-        min_dist=1.0,
-        max_dist=5.0,
-        radial_basis_size=8
+            - level = 8
+            - radial_basis_type = 'RBChebyshev'
+            - min_dist=1.0,
+            - max_dist=5.0,
+            - radial_basis_size=8
+
     fit_parameters: :class:`dict`
         The parameters for the fit of the potential
+
         The default parameters are set to
-        scale_by_forces=0
-        max_iter=1000
-        bfgs_conv_tol=1e-3
-        weighting='vibrations'
-        init_params='random'
-        update_mindist=False
-    nthrow: :class: int
+            - scale_by_forces=0
+            - max_iter=1000
+            - bfgs_conv_tol=1e-3
+            - weighting='vibrations'
+            - init_params='random'
+            - update_mindist=False
+
+    nthrow: :class:`int`
+
     energy_coefficient: :class:`float`
+
     forces_coefficient: :class:`float`
+
     stress_coefficient: :class:`float`
     """
     def __init__(self,
@@ -71,7 +81,7 @@ class MomentTensorPotential(SelfMlipManager):
                  folder="MTP",
                  mtp_parameters={},
                  fit_parameters={},
-                 nthrow=10,
+                 nthrow=0,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0):
@@ -85,8 +95,8 @@ class MomentTensorPotential(SelfMlipManager):
         self.cmd = mlpbin
 
         self.level = mtp_parameters.pop("level", 8)
-        if self.level % 2 or self.level > 22:
-            msg = "Only even number between 2 and 22 are available as level"
+        if self.level % 2 or self.level > 28:
+            msg = "Only even number between 2 and 28 are available as level"
             raise ValueError(msg)
         self.mtp_parameters = default_mtp_parameters
         for key in mtp_parameters.keys():

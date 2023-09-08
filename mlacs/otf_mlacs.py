@@ -9,6 +9,7 @@ import numpy as np
 
 from ase.atoms import Atoms
 from ase.io import read, Trajectory
+from ase.io.formats import UnknownFileTypeError
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
@@ -31,25 +32,40 @@ class OtfMlacs:
     Parameters
     ----------
 
-    atoms: :class:`ase.Atoms` or :list: of `ase.Atoms`
-        the atom object on which the simulation is run. The atoms has to have
-        a calculator attached
-    state: :class:`StateManager` or :list: of :class: `StateManager`
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        the atom object on which the simulation is run.
+
+    state: :class:`StateManager` or :class:`list` of :class:`StateManager`
         Object determining the state to be sampled
+
     calc: :class:`ase.calculators` or :class:`CalcManager`
         Class controlling the potential energy of the system
         to be approximated.
         If a :class:`ase.calculators` is attached, the :class:`CalcManager`
         is automatically created.
+
     mlip: :class:`MlipManager` (optional)
         Object managing the MLIP to approximate the real distribution
         Default is a LammpsMlip object with a snap descriptor,
-        5.0 angstrom rcut with 8 twojmax.
+        ``5.0`` angstrom rcut with ``8`` twojmax.
+
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
+
+    nbeads: :class:`int` (optional)
+        The number of beads to use from Path-Integral simulations.
+        This value has to be lower than the number of beads used
+        in the State object, or equal to it.
+        If it is lower, this number indicates the number of beads
+        for which a trajectory will be created and computed
+        with the reference potential.
+        Default ``1``, ignored for non-path integral States
+
     prefix_output: :class:`str` (optional)
         Prefix for the output files of the simulation.
+        If several states are used, this input can be a list of :class:`str`.
         Default ``\"Trajectory\"``.
+
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
         if :class:`int`: Number of configuirations used
         to train a preliminary MLIP
@@ -57,9 +73,15 @@ class OtfMlacs:
         if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
         computed in order to create the initial training configurations
         Default ``1``.
+
     std_init: :class:`float` (optional)
         Variance (in angs^2) of the displacement when creating
         initial configurations. Default ``0.05`` angs^2
+
+    ntrymax: :class:`int`(optional)
+        The maximum number of tentative to retry a step if
+        the reference potential raises an error or didn't converge.
+        Default ``0``.
     """
     def __init__(self,
                  atoms,
@@ -95,6 +117,9 @@ class OtfMlacs:
         else:
             self.mlip = mlip
 
+        if self.mlip.mbar is None:
+            self.mlip.nthrow = max(self.neq)
+
         # Create property object
         if prop is None:
             self.prop = PropertyManager(None)
@@ -110,11 +135,6 @@ class OtfMlacs:
         #######################
         # Initialize everything
         #######################
-        # Check if trajectory file already exists
-        if os.path.isfile(self.prefix_output[0] + ".traj"):
-            self.launched = True
-        else:
-            self.launched = False
 
         if self.pimd:
             nmax = self.nbeads
@@ -122,6 +142,9 @@ class OtfMlacs:
         else:
             nmax = self.nstate
             val = "state"
+
+        # Check if trajectory files already exists
+        self.launched = self._check_if_launched(nmax)
 
         self.log = MlacsLog("MLACS.log", self.launched)
         msg = ""
@@ -259,6 +282,8 @@ class OtfMlacs:
 
         # Training MLIP
         msg = "Training new MLIP\n"
+        if self.mlip.mbar is not None:
+            msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
@@ -290,8 +315,8 @@ class OtfMlacs:
                                self.nbeads)
         else:
             for istate in range(self.nstate):
-                if self.state[istate].isrestart:
-                    msg = "Starting from first configuration\n"
+                if self.state[istate].isrestart or eq[istate]:
+                    msg = " -> Starting from first atomic configuration"
                     self.log.logger_log.info(msg)
                     atoms_mlip[istate] = self.atoms_start[istate].copy()
                     self.state[istate].initialize_momenta(atoms_mlip[istate])
@@ -508,6 +533,13 @@ class OtfMlacs:
                 confs_init = self.confs_init
 
             if os.path.isfile("Training_configurations.traj"):
+                try:
+                    read("Training_configurations.traj")
+                    checkisfile = True
+                except UnknownFileTypeError:
+                    checkisfile = False
+
+            if checkisfile:
                 msg = "Training configurations found\n"
                 msg += "Adding them to the training data"
                 self.log.logger_log.info(msg)
@@ -637,6 +669,34 @@ class OtfMlacs:
         for istate in range(self.nstate):
             self.state[istate].set_workdir(prefworkdir +
                                            self.prefix_output[istate]+"/")
+
+# ========================================================================== #
+    def _check_if_launched(self, nmax):
+        """
+        Function to check simulation restarts:
+         - Check if trajectory files exist and are not empty.
+         - Check if the number of configuration found is at least two.
+        """
+        _nat_init = 0
+        for i in range(nmax):
+            _f = self.prefix_output[i] + ".traj"
+            if os.path.isfile(_f):
+                try:
+                    _nat_init += len(read(_f, index=':'))
+                except UnknownFileTypeError:
+                    return False
+            else:
+                return False
+        _f = "Training_configurations.traj"
+        if os.path.isfile(_f):
+            try:
+                _nat_init += len(read(_f, index=':'))
+            except UnknownFileTypeError:
+                return False
+        if 1 < _nat_init:
+            return True
+        else:
+            return False
 
 
 class TruePotentialError(Exception):

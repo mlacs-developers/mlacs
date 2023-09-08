@@ -17,6 +17,7 @@ class CalcManager:
     ----------
     calc: :class:`ase.calculator`
         A ASE calculator object
+
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
         If ``None``, no initial magnetization. (Non magnetic calculation)

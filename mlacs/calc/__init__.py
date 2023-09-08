@@ -8,4 +8,5 @@ from .dlm_calc import DlmCalcManager
 
 __all__ = ["CalcManager",
            "DlmCalcManager",
-           "AbinitManager"]
+           "AbinitManager",
+           ]

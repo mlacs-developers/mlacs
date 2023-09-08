@@ -3,6 +3,8 @@ from subprocess import run, PIPE
 
 import numpy as np
 
+from scipy.spatial import distance
+
 from ase.io import write
 from ase.io.lammpsdata import (write_lammps_data)
 
@@ -30,25 +32,33 @@ class NebLammpsState(StateManager):
     configurations: :class:`list`
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
+
     reaction_coordinate: :class:`numpy.array` or `float`
         Value of the reaction coordinate for the constrained MD.
         Default ``None``
+
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
         Default ``1.0``
+
     Kspring: :class:`float` or :class:`string`
         Value of the reaction coordinate or sampling mode.
         Default ``rdm_memory``
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
+
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
+
     prt : :class:`Bool` (optional)
         Printing options. Default ``True``
+
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
@@ -90,6 +100,7 @@ class NebLammpsState(StateManager):
             raise TypeError('First and last configurations are not defined')
         self._get_lammps_command_replica()
         self.fixcell = configurations[0].get_cell()
+        self.masses = configurations[0].get_masses()
 
         self.xilinear = False
         self.ispimd = False
@@ -222,7 +233,7 @@ class NebLammpsState(StateManager):
         self.true_atoms = true_atoms
         self.path_coordinates = np.arange(self.nreplica)/(self.nreplica-1)
         self.true_coordinates = np.array(true_coordinates)
-        # RB check float
+        self.eff_masses = np.sum(self._compute_weight_masses() * self.masses)
         self.true_energies = np.array([true_atoms[i].get_potential_energy()
                                        for i in range(self.nreplica)])
         self.true_energies = self.true_energies.astype(float)
@@ -329,6 +340,17 @@ class NebLammpsState(StateManager):
             return x
         else:
             return None
+
+# ========================================================================== #
+    def _compute_weight_masses(self):
+        """
+        Return weights for effective masse.
+        """
+        coordinates = np.transpose(self.true_coordinates, (1, 0, 2))
+        weight = np.array([np.max(distance.cdist(d, d, "euclidean"))
+                           for d in coordinates])
+        weight = weight / np.max(weight)
+        return weight
 
 # ========================================================================== #
     def _COM_corrections(self, spline):

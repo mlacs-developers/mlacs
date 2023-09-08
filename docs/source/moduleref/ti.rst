@@ -1,12 +1,12 @@
 Thermodynamic Integration
-=========================
+#########################
 
 .. module:: mlacs.ti
 
 Modules to handle thermodynamic integration
 
 ThermodynamicIntegration
-------------------------
+************************
 
 .. autoclass:: ThermodynamicIntegration
    :members: run
@@ -14,7 +14,7 @@ ThermodynamicIntegration
 .. module:: mlacs.ti.thermostate
 
 ThermoState
------------
+***********
 
 .. autoclass:: ThermoState
 
@@ -22,7 +22,7 @@ ThermoState
 .. module:: mlacs.ti.solids
 
 EinsteinSolidState
-------------------
+******************
 
 .. autoclass:: EinsteinSolidState
 
@@ -30,7 +30,7 @@ EinsteinSolidState
 .. module:: mlacs.ti.liquids
 
 UFLiquidState
--------------
+*************
 
 .. autoclass:: UFLiquidState
 
@@ -38,7 +38,7 @@ UFLiquidState
 .. module:: mlacs.ti.reversible_scaling
 
 ReversibleScalingState
-----------------------
+**********************
 
 .. autoclass:: ReversibleScalingState
 
@@ -46,13 +46,13 @@ ReversibleScalingState
 .. module:: mlacs.ti.gpthermoint
 
 GpThermoIntT
-------------
+************
 
 .. autoclass:: GpThermoIntT
    :members: add_new_data, get_helmholtz_free_energy
 
 GpThermoIntVT
--------------
+*************
 
 .. autoclass:: GpThermoIntVT
    :members: add_new_data, get_helmholtz_free_energy, get_gibbs_free_energy, get_volume_from_press_temp, get_thermal_expansion
@@ -61,6 +61,6 @@ GpThermoIntVT
 .. module:: mlacs.ti.helpers
 
 prepare_ti
-----------
+**********
 
 .. autofunction:: prepare_ti
