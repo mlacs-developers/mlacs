@@ -14,6 +14,8 @@ from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
 
 from .calc_manager import CalcManager
+from ..utilities.io_abinit import (AbinitNC,
+                                   set_aseAtoms)
 
 
 # ========================================================================== #
@@ -62,6 +64,8 @@ class AbinitManager(CalcManager):
                                posix=(os.name == "posix"))
         self.ninstance = ninstance
 
+        self.ncfile = AbinitNC()
+
         self.workdir = workdir
         if self.workdir is None:
             self.workdir = os.getcwd() + "/DFT/"
@@ -98,8 +102,8 @@ class AbinitManager(CalcManager):
 
         # Now we can read everything
         results_confs = []
-        for (cdir,at) in zip(confdir, confs):
-            results_confs.append(self._read_output(cdir, at))
+        for (cdir, at) in zip(confdir, confs):
+            results_confs.append(self._read_output_abi(cdir, at))
         # Tada !
         return results_confs
 
@@ -126,6 +130,13 @@ class AbinitManager(CalcManager):
         """
         """
         results = {}
+        if self.ncfile is not None:
+            dct = self.ncfile.read(cdir + "abinito_GSR.nc")
+            results.update(dct)
+            atoms = set_aseAtoms(results)
+            atoms.set_velocities(at.get_velocities())
+            return atoms
+
         with open(cdir + "abinit.abo") as fd:
             dct = read_abinit_out(fd)
             results.update(dct)

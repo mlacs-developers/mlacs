@@ -24,6 +24,8 @@ def main(args, parser):
     density = False
     if args.density:
         density = True
+    if args.weight is not None:
+        weight = np.loadtxt(args.weight)
     cmap = args.cmap
     size = float(args.size)
     figsize = (float(args.figsize), float(args.figsize))
@@ -34,6 +36,7 @@ def main(args, parser):
                      data,
                      datatype=args.datatype,
                      density=density,
+                     weight=weight,
                      showrmse=rmse,
                      showmae=mae,
                      showrsquared=rsquared,
@@ -69,6 +72,8 @@ class CLICommand:
                             "energy, forces or stress")
         parser.add_argument('--density', action="store_true",
                             help="Color points according to the density")
+        parser.add_argument('--weight', default=None,
+                            help="Color points according to MBAR weights")
         parser.add_argument('--nomae', action="store_true",
                             help="To remove the MAE from the plot")
         parser.add_argument('--normse', action="store_true",

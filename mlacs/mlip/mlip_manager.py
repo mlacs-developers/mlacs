@@ -19,8 +19,12 @@ class MlipManager:
                  nthrow=0,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 stress_coefficient=0.0):
+                 stress_coefficient=1.0,
+                 mbar=None,
+                 no_zstress=False):
+
         self.descriptor = descriptor
+        self.mbar = mbar
 
         self.ecoef = energy_coefficient
         self.fcoef = forces_coefficient
@@ -34,7 +38,11 @@ class MlipManager:
         self.ymat_f = None
         self.ymat_s = None
 
+        self.no_zstress = no_zstress
+
         self.nthrow = nthrow
+        if self.mbar is not None:
+            self.nthrow = 0
         self.nconfs = 0
 
         # Some initialization for sampling interface
@@ -49,6 +57,8 @@ class MlipManager:
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
+        if self.mbar is not None:
+            self.mbar.update_database(atoms)
         amat_all = self.descriptor.calculate(atoms)
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []

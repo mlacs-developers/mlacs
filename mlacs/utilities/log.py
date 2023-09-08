@@ -27,7 +27,7 @@ class MlacsLog:
                     prev_step += 1
                 os.rename(logfile, logfile + "{:04d}".format(prev_step))
 
-        self.logger_log = logging.getLogger('output')
+        self.logger_log = logging.getLogger(__name__)
         self.logger_log.addHandler(logging.FileHandler(logfile, 'a'))
 
         if not restart:
@@ -142,7 +142,7 @@ class FitFactoryLog:
     Logging class for the fit factory
     '''
     def __init__(self, logfile):
-        self.logger_log = logging.getLogger('output')
+        self.logger_log = logging.getLogger(__name__)
         self.logger_log.addHandler(logging.FileHandler(logfile, 'w'))
 
 # ========================================================================== #

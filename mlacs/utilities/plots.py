@@ -20,6 +20,7 @@ def plot_correlation(ax,
                      color=blue,
                      datatype=None,
                      density=False,
+                     weight=None,
                      cmap="inferno",
                      showrmse=True,
                      showmae=True,
@@ -78,6 +79,20 @@ def plot_correlation(ax,
         idx = z.argsort()
         ax.scatter(datatrue[idx], datatest[idx], c=z[idx],
                    linewidths=5, norm=norm, s=size, cmap=cmap)
+    elif weight is not None:
+        if datatype != "energy":
+            w = []
+            if len(datatrue) % len(weight) == 0:
+                n = int(len(datatrue)/len(weight))
+                for i, _w in enumerate(weight):
+                    w.extend(_w * np.ones(n) / n)
+            else:
+                msg = "Number of weight not consistent with the Database"
+                raise ValueError(msg)
+            weight = np.r_[w] / np.sum(np.r_[w])
+        norm = mpl.colors.LogNorm(weight.min(), weight.max())
+        ax.scatter(datatrue, datatest, c=weight,
+                   linewidths=5, norm=norm, s=size, cmap=cmap)
     else:
         ax.plot(datatrue, datatest, ls="", marker="o",
                 c=color, rasterized=True, markersize=size,
@@ -98,7 +113,7 @@ def plot_correlation(ax,
             labely = "Model stress [GPa]"
             unit = "[GPa]"
         else:
-            msg = "datatype should be energy, forces or stress"
+            msg = "datVatype should be energy, forces or stress"
             raise ValueError(msg)
     else:
         labelx = None

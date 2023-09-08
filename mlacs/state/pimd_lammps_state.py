@@ -63,7 +63,7 @@ class PimdLammpsState(LammpsState):
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
 
     nbeads : :class:`int` (optional)
-        Number of beads used in the PIMD quantum polymer. Default ``1``, 
+        Number of beads used in the PIMD quantum polymer. Default ``1``,
         which revert to classical sampling.
 
     integrator : :class:`str` (optional)
@@ -194,7 +194,6 @@ class PimdLammpsState(LammpsState):
                 "implemented (yet !)"
             raise NotImplementedError(msg)
 
-
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
@@ -311,6 +310,8 @@ class PimdLammpsState(LammpsState):
                 fix += f"aniso {press} "
             fix += f"barostat {self.barostat} "
             fix += f"taup {pdamp} "
+        else:
+            fix += "ensemble nvt "
 
         fix += "\n"
         input_string += fix
