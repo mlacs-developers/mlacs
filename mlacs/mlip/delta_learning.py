@@ -53,6 +53,10 @@ class DeltaLearningPotential(MlipManager):
         self._ref_s = None
             
         # For the rest of the
+        self._create_pair_styles_coeff(pair_style, pair_coeff)
+
+# ========================================================================== #
+    def _create_pair_styles_coeff(self, pair_style, pair_coeff):
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(pair_style, list):
             pair_style = [pair_style]

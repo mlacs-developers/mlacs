@@ -4,34 +4,33 @@ from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
 
 from .mlip_manager import MlipManager
+from .delta_learning import DeltaLearningPotential
 
 
 # ========================================================================== #
 # ========================================================================== #
-class DeltaLearningPotential(MlipManager):
+class SpinLatticePotential(DeltaLearningPotential):
     """
+    Class to learn a MLIP on top of a spin-lattice potential as implemented
+    in LAMMPS
+
     Parameters
     ----------
     model: :class:`MlipManager`
         The MLIP model to train on the difference between the true energy
         and the energy of a LAMMPS reference model.
 
-    pair_style: :class:`str` or :class:`list` of :class:`str`
-        The pair_style of the LAMMPS reference potential.
-        If only one pair style is used, can be set as a :class:`str`.
-        If an overlay of pair style is used, this input as to be a
-        :class:`list` of :class:`str` of the pair_style.
-        For example :
-        pair_style = ['sw', 'zbl 3.0 4.0']
-        pair_coeff = [['* * Si.sw Si'],
-                      [* * 14 14]]
-
-    pair_coeff: :class:`list` of :class:`str`
-        The pair_coeff of the LAMMPS reference potential.
+    exchange: :class:`list`
+        The parameters of the exchange/spin pair_style
+    anisotropy: :class:`list`
+        The value of the anisotropy. Uses the precession/spin anisotropy
+        fix of the SPIN package in LAMMPS
     """
     def __init__(self,
                  model,
                  exchange,
+                 exchange_rcut=4.0,
+                 anisotropy=None
                  ):
 
         self.model = model
@@ -51,48 +50,41 @@ class DeltaLearningPotential(MlipManager):
         self._ref_e = None
         self._ref_f = None
         self._ref_s = None
-            
-        # For the rest of the
-        # We need to create the hybrid/overlay format of LAMMPS
-        if not isinstance(pair_style, list):
-            pair_style = [pair_style]
 
-        # First let's take care of only one reference potential
-        if len(pair_style) == 1:
-            self.ref_pair_style = pair_style[0]
-            self.pair_style = f"hybrid/overlay {pair_style[0]} " + \
-                              f"{self.model.pair_style}"
-            self.ref_pair_coeff = pair_coeff
-            refpcsplit = pair_coeff[0].split()
-            refpssplit = pair_style[0].split()
-            refpc = " ".join([*refpcsplit[:2],
-                              refpssplit[0],
-                              *refpcsplit[2:]])
-            mlpcsplit = self.model.pair_coeff[0].split()
-            mlpssplit = self.model.pair_style.split()
-            mlpc = " ".join([*mlpcsplit[:2],
-                             mlpssplit[0],
-                             *mlpcsplit[2:]])
-            self.pair_coeff = [refpc, mlpc]
+        # First let's care of the exchange
+        pair_style = [f"exchange/spin {exchange_rcut}"]
+        pair_coeff = [[str(param) for param in exchange]]
 
+        # Then the anisotropy
+        self.anisotropy = anisotropy
+
+        self._create_pair_styles_coeff(pair_style, pair_coeff)
 
 # ========================================================================== #
-    def update_matrices(self, atoms):
+    def update_matrices(self, atoms, spins):
         """
         """
         # First compute reference energy/forces/stress
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
+        # Make sure that the number of spins correspond to the atoms
+        # given in the dataset
+        assert spins.shape[0] == len(atoms)
+        assert spins.shape[1] == len(atoms[0])
+        assert spins.shape[2] == 3
+
         calc = LAMMPS(pair_style=self.ref_pair_style,
                       pair_coeff=self.ref_pair_coeff)
+
         energy = []
         forces = []
         stress = []
         dummy_at = []
-        for at in atoms:
+        for at, spin in zip(atoms, spins):
             at0 = at.copy()
-            at0.calc = calc
+
+            at0 = self._compute_spin_properties(at, spin)
             refe = at0.get_potential_energy()
             reff = at0.get_forces()
             refs = at0.get_stress()
@@ -128,3 +120,14 @@ class DeltaLearningPotential(MlipManager):
                       pair_coeff=self.pair_coeff,
                       keep_alive=False)
         return calc
+
+# ========================================================================== #
+    def _compute_spin_properties(self, atoms, spin):
+        write_atoms_lammps_spin_style(atoms, spin)
+        self._write_lammps_input()
+        self._run_lammps()
+        at, energy, forces = self._read_out()
+        calc = SinglePointCalculator(at, energy=energy, forces=forces,
+                                     stress=stress)
+        at.calc = calc
+        return at
