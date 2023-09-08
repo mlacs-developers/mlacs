@@ -24,7 +24,7 @@ def plot_correlation(ax,
                      showrmse=True,
                      showmae=True,
                      showrsquared=True,
-                     size=10):
+                     size=5):
     """
     Function to plot the correlation between true and model data on an axes
 
@@ -59,8 +59,8 @@ def plot_correlation(ax,
     """
 
     if datatype == "energy":
+        data[:, 1] -= data[:, 0].min()
         data[:, 0] -= data[:, 0].min()
-        data[:, 1] -= data[:, 1].min()
 
     datatrue = data[:, 0]
     datatest = data[:, 1]
