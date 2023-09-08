@@ -1,4 +1,3 @@
-import numpy as np
 from ase.atoms import Atoms
 from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -51,7 +50,7 @@ class DeltaLearningPotential(MlipManager):
         self._ref_e = None
         self._ref_f = None
         self._ref_s = None
-            
+
         # For the rest of the
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(pair_style, list):
@@ -111,9 +110,6 @@ class DeltaLearningPotential(MlipManager):
 
         calc = LAMMPS(pair_style=self.ref_pair_style,
                       pair_coeff=self.ref_pair_coeff)
-        energy = []
-        forces = []
-        stress = []
         dummy_at = []
         for at in atoms:
             at0 = at.copy()
@@ -153,3 +149,21 @@ class DeltaLearningPotential(MlipManager):
                       pair_coeff=self.pair_coeff,
                       keep_alive=False)
         return calc
+
+# ========================================================================== #
+    def __str__(self):
+        txt = " ".join(self.elements)
+        txt += "Delta Learning potential,"
+        txt += str(self.model)
+
+# ========================================================================== #
+    def __repr__(self):
+        txt = "Delta learning potential\n"
+        txt += "------------------------\n"
+        txt += "Reference potential :\n"
+        txt += f"pair_style {self.ref_pair_style}\n"
+        for pc in self.ref_pair_coeff:
+            txt += f"pair_coeff {pc}\n\n"
+        txt += "MLIP potential :\n"
+        txt += repr(self.model)
+        return txt
