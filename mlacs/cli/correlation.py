@@ -26,6 +26,8 @@ def main(args, parser):
         density = True
     if args.weight is not None:
         weight = np.loadtxt(args.weight)
+    else:
+        weight = None
     cmap = args.cmap
     size = float(args.size)
     figsize = (float(args.figsize), float(args.figsize))
