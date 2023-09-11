@@ -253,7 +253,8 @@ class EinsteinSolidState(ThermoState):
             pv = 0.0
         with open(wdir+"free_energy.dat", "w") as f:
             header = "#   T [K]     Fe tot [eV/at]     " + \
-                     "Fe harm [eV/at]      Work [eV/at]      Fe com [eV/at]      PV [eV/at]"
+                     "Fe harm [eV/at]      Work [eV/at]     " + \
+                     "Fe com [eV/at]      PV [eV/at]"
             results = f"{self.temperature:10.3f}     " + \
                       f"{free_energy:10.6f}         " + \
                       f"{f_harm:10.6f}          " + \
@@ -303,7 +304,7 @@ class EinsteinSolidState(ThermoState):
             if self.pressure is None:
                 return msg, free_energy
             else:
-                return msg, free_energy + pv    
+                return msg, free_energy + pv
 
 # ========================================================================== #
     def write_lammps_input(self, wdir):

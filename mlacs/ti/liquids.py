@@ -205,10 +205,10 @@ class UFLiquidState(ThermoState):
         if self.fcorr2 is not None:
             free_energy_corrected += self.fcorr2
 
-        if self.pressure is not None:                      
-            pv = self.pressure/(160.21766208)*vol/nat_tot  
-        else:                                              
-            pv = 0.0                                       
+        if self.pressure is not None:
+            pv = self.pressure / (160.21766208) * vol / nat_tot
+        else:
+            pv = 0.0
 
         # write the results
         with open(wdir+"free_energy.dat", "w") as f:
@@ -259,9 +259,9 @@ class UFLiquidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None:
             return msg, free_energy_corrected
         else:
-            if self.pressure is None:       
-                return msg, free_energy     
-            else:                           
+            if self.pressure is None:
+                return msg, free_energy
+            else:
                 return msg, free_energy + pv
 
 
