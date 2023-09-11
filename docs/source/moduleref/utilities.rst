@@ -25,6 +25,15 @@ Lammps IO
 
 .. autofunction:: write_lammps_NEB_ASCIIfile
 
+.. module:: mlacs.utilities.io_abinit
+
+Abinit IO
+*********
+
+.. autoclass:: AbinitNC
+
+.. autofunction:: set_aseAtoms 
+
 .. module:: mlacs.utilities.thermo
 
 Thermodynamic
