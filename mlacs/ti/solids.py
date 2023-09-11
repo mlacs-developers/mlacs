@@ -36,6 +36,8 @@ class EinsteinSolidState(ThermoState):
         pair_coeff for the LAMMPS input
     temperature: :class:`float`
         Temperature of the simulation
+    pressure: :class:`float`
+        Pressure. None default value
     fcorr1: :class:`float` or ``None``
         First order cumulant correction to the free energy, in eV/at,
         to be added to the results.
@@ -85,6 +87,7 @@ class EinsteinSolidState(ThermoState):
                  pair_style,
                  pair_coeff,
                  temperature,
+                 pressure=None,
                  fcorr1=None,
                  fcorr2=None,
                  k=None,
@@ -103,6 +106,7 @@ class EinsteinSolidState(ThermoState):
 
         self.atoms = atoms
         self.temperature = temperature
+        self.pressure = pressure
         self.damp = damp
         self.nsteps_msd = nsteps_msd
 
@@ -243,14 +247,19 @@ class EinsteinSolidState(ThermoState):
         if self.fcorr2 is not None:
             free_energy_corrected += self.fcorr2
 
+        if self.pressure is not None:
+            pv = self.pressure/(160.21766208)*vol/nat_tot
+        else:
+            pv = 0.0
         with open(wdir+"free_energy.dat", "w") as f:
             header = "#   T [K]     Fe tot [eV/at]     " + \
-                     "Fe harm [eV/at]      Work [eV/at]      Fe com [eV/at]"
+                     "Fe harm [eV/at]      Work [eV/at]      Fe com [eV/at]      PV [eV/at]"
             results = f"{self.temperature:10.3f}     " + \
                       f"{free_energy:10.6f}         " + \
                       f"{f_harm:10.6f}          " + \
                       f"{work:10.6f}         " + \
-                      f"{f_cm:10.6f}"
+                      f"{f_cm:10.6f}         " + \
+                      f"{pv:10.6f}"
             if self.fcorr1 is not None:
                 header += "    Delta F1 [eV/at]"
                 results += f"         {self.fcorr1:10.6f}"
@@ -291,7 +300,10 @@ class EinsteinSolidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None: 
             return msg, free_energy_corrected
         else:
-            return msg, free_energy
+            if self.pressure is None:
+                return msg, free_energy
+            else:
+                return msg, free_energy + pv    
 
 # ========================================================================== #
     def write_lammps_input(self, wdir):

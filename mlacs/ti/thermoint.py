@@ -150,7 +150,7 @@ class ThermodynamicIntegration:
             tmp_fe = np.loadtxt(stateworkdir +
                                 f"for_back_{i+1}/" +
                                 "free_energy.dat")
-            fe.append(tmp_fe[1])
+            fe.append(tmp_fe[1]+tmp_fe[len(tmp_fe)-1])
         ferr = np.std(fe, axis=0)
         femean = np.mean(fe, axis=0)
         msg = f"Free Energy mean and error for state {istate+1}:\n"
