@@ -110,8 +110,7 @@ class ReversibleScalingState(ThermoState):
         self.gjf = gjf
 
         # Free energy calculation before sweep
-        if self.fe_init is None: 
-
+        if self.fe_init is None:
             if phase == 'solid':
                 self.state = EinsteinSolidState(atoms,
                                                 pair_style,
@@ -132,8 +131,6 @@ class ReversibleScalingState(ThermoState):
                                                 interval=500,
                                                 loginterval=50,
                                                 trajinterval=50)
-
- 
             elif phase == 'liquid':
                 self.state = UFLiquidState(atoms,
                                            pair_style,
@@ -251,13 +248,14 @@ class ReversibleScalingState(ThermoState):
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
             input_string += "fix           f1  all langevin ${tstart} " + \
-                        f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+                f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
         else:
             # input_string += "fix           f2  all nph iso " + \
             #     f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
             #     "fixedpoint ${xcm} ${ycm} ${zcm}\n"
             input_string += "fix           f2  all npt temp ${tstart} " + \
-                f"${{tstart}} {damp} iso {self.pressure*10000} {self.pressure*10000} {pdamp} " + \
+                f"${{tstart}} {damp} iso {self.pressure*10000} " + \
+                f"{self.pressure*10000} {pdamp} " + \
                 "fixedpoint ${xcm} ${ycm} ${zcm}\n"
 
         input_string += "\n"
@@ -321,7 +319,7 @@ class ReversibleScalingState(ThermoState):
         """
         natoms = len(self.atoms)
         if self.pressure is not None:
-            p = self.pressure/160.21766208 #already divided by 100000
+            p = self.pressure/160.21766208  # already divided by 100000
         else:
             p = 0.0
         # Get data
@@ -331,11 +329,11 @@ class ReversibleScalingState(ThermoState):
         v_f /= lambda_f
         v_b /= lambda_b
 
-        #add pressure contribution 
-        fvol = fvol/natoms         
-        bvol = bvol/natoms         
-        v_f = v_f + p*fvol         
-        v_b = v_b + p*bvol         
+        # add pressure contribution
+        fvol = fvol / natoms
+        bvol = bvol / natoms
+        v_f = v_f + p * fvol
+        v_b = v_b + p * bvol
 
         # Integrate the forward and backward data
         int_f = cumtrapz(v_f, lambda_f, initial=0)
