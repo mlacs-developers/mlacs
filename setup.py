@@ -13,7 +13,10 @@ install_requires = ["numpy>=1.17.0",
                     "ase>=3.22"]
 
 extra_requires = ["icet>=1.4",
-                  "sklearn"]
+                  "scikit-learn",
+                  "pymbar"
+                  "cython",
+                  "netCDF4==1.2.2"]
 
 
 if __name__ == "__main__":

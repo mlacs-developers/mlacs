@@ -296,8 +296,8 @@ class EinsteinSolidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None:
             msg += "Free energy corrected :         " + \
                    f"{free_energy_corrected:10.6f} eV/at\n"
-        #add Fe or Fe_corrected to return to be read for cv purpose
-        if self.fcorr1 is not None or self.fcorr2 is not None: 
+        # add Fe or Fe_corrected to return to be read for cv purpose
+        if self.fcorr1 is not None or self.fcorr2 is not None:
             return msg, free_energy_corrected
         else:
             if self.pressure is None:

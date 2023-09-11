@@ -9,7 +9,7 @@ from ..utilities.thermolog import ThermoLog
 from .thermostate import ThermoState
 from concurrent.futures import ThreadPoolExecutor
 
-#import logging
+
 # ========================================================================== #
 # ========================================================================== #
 class ThermodynamicIntegration:
@@ -40,7 +40,7 @@ class ThermodynamicIntegration:
         if wdir is None:
             self.workdir = os.getcwd() + "/ThermoInt/"
         elif wdir is not None:
-            self.workdir = wdir + "ThermoInt/" 
+            self.workdir = wdir + "ThermoInt/"
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
@@ -59,9 +59,9 @@ class ThermodynamicIntegration:
             raise TypeError(msg)
         self.nstate = len(self.state)
         self.recap_state()
-#        self.log.logger_log.removeHandler(logging.FileHandler(self.logfile, 'a'))
+#        self.log.logger_log.removeHandler(
+#            logging.FileHandler(self.logfile, 'a'))
 #        logging.FileHandler(self.logfile, 'a').close()
-
 
 # ========================================================================== #
     def run(self):
@@ -94,7 +94,7 @@ class ThermodynamicIntegration:
         if self.ninstance > 1:
             for istate in range(self.nstate):
                 self.error(istate)
-        
+
 # ========================================================================== #
     def _run_one_state(self, istate, i):
         """

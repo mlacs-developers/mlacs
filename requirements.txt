@@ -1,2 +1,4 @@
 numpy
 ase
+pymbar
+scikit-learn
