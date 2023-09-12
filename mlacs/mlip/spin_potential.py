@@ -10,7 +10,7 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from ase.units import GPa
 
 from .delta_learning import DeltaLearningPotential
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, compute_correlation
 from ..utilities.io_lammps import (write_atoms_lammps_spin_style,
                                    get_interaction_input,
                                    get_last_dump_input,
@@ -171,14 +171,9 @@ class SpinLatticePotential(DeltaLearningPotential):
         ml_f = np.array(ml_f)
         ml_s = np.array(ml_s)
 
-        rmse_e = np.sqrt(np.mean((dft_e - ml_e)**2))
-        mae_e = np.mean(np.abs(dft_e - ml_e))
-
-        rmse_f = np.sqrt(np.mean((dft_f - ml_f)**2))
-        mae_f = np.mean(np.abs(dft_f - ml_f))
-
-        rmse_s = np.sqrt(np.mean((((dft_s - ml_s) / GPa)**2)))
-        mae_s = np.mean(np.abs((dft_s - ml_s) / GPa))
+        rmse_e, mae_e, rsq_e = compute_correlation(np.c_[dft_e, ml_e])
+        rmse_f, mae_f, rsq_f = compute_correlation(np.c_[dft_f, ml_f])
+        rmse_s, mae_s, rsq_s = compute_correlation(np.c_[dft_s, ml_s] / GPa)
 
         nat = np.array([len(at) for at in testset]).sum()
         msg = "number of configurations for training: " + \
