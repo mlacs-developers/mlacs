@@ -538,6 +538,8 @@ class OtfMlacs:
                     checkisfile = True
                 except UnknownFileTypeError:
                     checkisfile = False
+            else:
+                checkisfile = False
 
             if checkisfile:
                 msg = "Training configurations found\n"
