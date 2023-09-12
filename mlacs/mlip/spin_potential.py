@@ -7,6 +7,7 @@ from ase.atoms import Atoms
 from ase.io import read
 from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
+from ase.units import GPa
 
 from .delta_learning import DeltaLearningPotential
 from ..utilities import get_elements_Z_and_masses
@@ -120,6 +121,99 @@ class SpinLatticePotential(DeltaLearningPotential):
                       pair_coeff=self.pair_coeff,
                       keep_alive=False)
         return calc
+
+# ========================================================================== #
+    def test_mlip(self, testset, spins):
+        """
+        """
+        # TODO this is way too copypasta from mlip_manager.py
+        # Needs to be cut-down a bit over there to fix this.
+        calc = LAMMPS(pair_style=self.model.pair_style,
+                      pair_coeff=self.model.pair_coeff)
+
+        ml_e = []
+        ml_f = []
+        ml_s = []
+        dft_e = []
+        dft_f = []
+        dft_s = []
+        for at, spin in zip(testset, spins):
+            # First the Spin part
+            at0sp = at.copy()
+
+            at0sp = self._compute_spin_properties(at0sp, spin)
+            spe = at0sp.get_potential_energy()
+            spf = at0sp.get_forces()
+            sps = at0sp.get_stress()
+
+            at0ml = at.copy()
+            at0ml.calc = calc
+            mle = at0ml.get_potential_energy()
+            mlf = at0ml.get_forces()
+            mls = at0ml.get_stress()
+
+            ml_e.append((mle + spe) / len(at))
+            ml_f.extend((mlf + spf).flatten())
+            ml_s.extend(mls + sps)
+
+            e = at.get_potential_energy() / len(at)
+            f = at.get_forces().flatten()
+            s = at.get_stress()
+
+            dft_e.append(e)
+            dft_f.extend(f)
+            dft_s.extend(s)
+
+        dft_e = np.array(dft_e)
+        dft_f = np.array(dft_f)
+        dft_s = np.array(dft_s)
+        ml_e = np.array(ml_e)
+        ml_f = np.array(ml_f)
+        ml_s = np.array(ml_s)
+
+        rmse_e = np.sqrt(np.mean((dft_e - ml_e)**2))
+        mae_e = np.mean(np.abs(dft_e - ml_e))
+
+        rmse_f = np.sqrt(np.mean((dft_f - ml_f)**2))
+        mae_f = np.mean(np.abs(dft_f - ml_f))
+
+        rmse_s = np.sqrt(np.mean((((dft_s - ml_s) / GPa)**2)))
+        mae_s = np.mean(np.abs((dft_s - ml_s) / GPa))
+
+        nat = np.array([len(at) for at in testset]).sum()
+        msg = "number of configurations for training: " + \
+              f"{len(testset)}\n"
+        msg += "number of atomic environments for training: " + \
+               f"{nat}\n"
+
+        # Prepare message to the log
+        msg += f"RMSE Energy    {rmse_e:.4f} eV/at\n"
+        msg += f"MAE Energy     {mae_e:.4f} eV/at\n"
+        msg += f"RMSE Forces    {rmse_f:.4f} eV/angs\n"
+        msg += f"MAE Forces     {mae_f:.4f} eV/angs\n"
+        msg += f"RMSE Stress    {rmse_s:.4f} GPa\n"
+        msg += f"MAE Stress     {mae_s:.4f} GPa\n"
+        msg += "\n"
+
+        header = f"rmse: {rmse_e:.5f} eV/at,    " + \
+                 f"mae: {mae_e:.5f} eV/at\n" + \
+                 " True Energy           Predicted Energy"
+        np.savetxt("TestSet-Energy_comparison.dat",
+                   np.c_[dft_e, ml_e],
+                   header=header, fmt="%25.20f  %25.20f")
+        header = f"rmse: {rmse_f:.5f} eV/angs   " + \
+                 f"mae: {mae_f:.5f} eV/angs\n" + \
+                 " True Forces           Predicted Forces"
+        np.savetxt("TestSet-Forces_comparison.dat",
+                   np.c_[dft_f, ml_f],
+                   header=header, fmt="%25.20f  %25.20f")
+        header = f"rmse: {rmse_s:.5f} GPa       " + \
+                 f"mae: {mae_s:.5f} GPa\n" + \
+                 " True Stress           Predicted Stress"
+        np.savetxt("TestSet-Stress_comparison.dat",
+                   np.c_[dft_s, ml_s] / GPa,
+                   header=header, fmt="%25.20f  %25.20f")
+        return msg
 
 # ========================================================================== #
     def _compute_spin_properties(self, atoms, spin):

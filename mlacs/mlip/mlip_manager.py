@@ -103,6 +103,8 @@ class MlipManager:
         """
         calc = LAMMPS(pair_style=self.pair_style,
                       pair_coeff=self.pair_coeff)
+        if self.model_post is not None:
+            calc.set(model_post=self.model_post)
 
         ml_e = []
         ml_f = []
