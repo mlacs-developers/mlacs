@@ -103,7 +103,7 @@ class AbinitManager(CalcManager):
         # Now we can read everything
         results_confs = []
         for (cdir, at) in zip(confdir, confs):
-            results_confs.append(self._read_output_abi(cdir, at))
+            results_confs.append(self._read_output(cdir, at))
         # Tada !
         return results_confs
 

@@ -6,8 +6,8 @@ from .state import StateManager
 from .langevin import LangevinState
 from .lammps_state import LammpsState
 from .rdf_lammps_state import RdfLammpsState
-from .pafi_lammps_state import (PafiLammpsState,
-                                BlueMoonLammpsState)
+from .pafi_lammps_state import PafiLammpsState
+from .bluemoon_lammps_state  import BlueMoonLammpsState
 from .neb_lammps_state import NebLammpsState
 from .custom_lammps_state import CustomLammpsState
 from .ipi_state import IpiState
