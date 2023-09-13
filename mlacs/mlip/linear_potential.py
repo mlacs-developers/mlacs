@@ -4,6 +4,7 @@ import numpy as np
 from ase.units import GPa
 
 from . import MlipManager
+from ..utilities import compute_correlation
 
 
 default_parameters = {"method": "ols",
@@ -145,14 +146,9 @@ class LinearPotential(MlipManager):
         f_mlip = np.einsum('ij,j->i', amat_f, self.coefficients)
         s_mlip = np.einsum('ij,j->i', amat_s, self.coefficients)
 
-        rmse_e = np.sqrt(np.mean((ymat_e - e_mlip)**2))
-        mae_e = np.mean(np.abs(ymat_e - e_mlip))
-
-        rmse_f = np.sqrt(np.mean((ymat_f - f_mlip)**2))
-        mae_f = np.mean(np.abs(ymat_f - f_mlip))
-
-        rmse_s = np.sqrt(np.mean((((ymat_s - s_mlip) / GPa)**2)))
-        mae_s = np.mean(np.abs((ymat_s - s_mlip) / GPa))
+        rmse_e, mae_e, rsq_e = compute_correlation(np.c_[ymat_e, e_mlip])
+        rmse_f, mae_f, rsq_f = compute_correlation(np.c_[ymat_f, f_mlip])
+        rmse_s, mae_s, rsq_s = compute_correlation(np.c_[ymat_s, s_mlip] / GPa)
 
         # Prepare message to the log
         msg = f"RMSE Energy    {rmse_e:.4f} eV/at\n"

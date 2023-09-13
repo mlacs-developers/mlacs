@@ -256,10 +256,6 @@ class SnapDescriptor(Descriptor):
             for i in range(self.nel):
                 d2.append(np.eye(self.ndesc_lin) * self.alpha)
                 d2.append(np.eye(self.ndesc_quad) * self.alpha_quad)
-
-            print(d2)
-        for d in d2:
-            print(d.shape)
         return combine_reg(d2)
 
 # ========================================================================== #
