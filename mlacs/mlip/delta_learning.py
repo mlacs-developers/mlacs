@@ -35,13 +35,14 @@ class DeltaLearningPotential(MlipManager):
                  model_post=None):
         self.model = model
 
+        mbar = self.model.mbar
         ecoef = self.model.ecoef
         fcoef = self.model.fcoef
         scoef = self.model.scoef
         nthrow = self.model.nthrow
 
         MlipManager.__init__(self, self.model.descriptor,
-                             nthrow, ecoef, fcoef, scoef)
+                             nthrow, ecoef, fcoef, scoef, mbar)
 
         self.ref_pair_style = pair_style
         self.ref_pair_coeff = pair_coeff
