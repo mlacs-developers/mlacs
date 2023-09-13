@@ -532,6 +532,7 @@ class OtfMlacs:
             elif isinstance(self.confs_init, list):
                 confs_init = self.confs_init
 
+            checkisfile = False
             if os.path.isfile("Training_configurations.traj"):
                 try:
                     read("Training_configurations.traj")

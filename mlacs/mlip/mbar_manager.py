@@ -15,6 +15,7 @@ from ase.units import kB, GPa
 default_parameters = {"mode": "compute",
                       "solver": "L-BFGS-B",
                       "scale": 0.1,
+                      "start": 2,
                       }
 
 
