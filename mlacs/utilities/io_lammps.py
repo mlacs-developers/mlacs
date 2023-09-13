@@ -372,7 +372,7 @@ def write_atoms_lammps_spin_style(fd, atoms, spin):
         s = species.index(symbols[i]) + 1
         line = f"{i+1:>6} {s:>3} "  # Index and species
         line += f"{r[0]:23.17f} {r[1]:23.17f} {r[2]:23.17f} "  # Positions
-        line += f"{spin[i, 0]:23.17f}"  # Spin amplitude
-        line += f"{spin[i, 1]:23.17f} {spin[i, 2]:23.17f} {spin[i, 3]:23.17f} "
+        line += f"1.0 "  # Spin amplitude
+        line += f"{spin[i, 0]:23.17f} {spin[i, 1]:23.17f} {spin[i, 2]:23.17f} "
         line += "\n"
         fd.write(line)

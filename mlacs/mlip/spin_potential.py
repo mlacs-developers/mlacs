@@ -68,22 +68,19 @@ class SpinLatticePotential(DeltaLearningPotential):
         self.cmd = cmd
 
 # ========================================================================== #
-    def update_matrices(self, atoms, spins):
+    def update_matrices(self, atoms):
         """
         """
         # First compute reference energy/forces/stress
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
-        # Make sure that the number of spins correspond to the atoms
-        # given in the dataset
-        assert spins.shape[0] == len(atoms)
-        assert spins.shape[1] == len(atoms[0])
-        assert spins.shape[2] == 4
-
         dummy_at = []
-        for at, spin in zip(atoms, spins):
+        for at in atoms:
             at0 = at.copy()
+            spin = at.get_array("spins")
+            assert spin.shape[0] == len(at0)
+            assert spin.shape[1] == 3
 
             at0 = self._compute_spin_properties(at, spin)
             refe = at0.get_potential_energy()
@@ -123,7 +120,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         return calc
 
 # ========================================================================== #
-    def test_mlip(self, testset, spins):
+    def test_mlip(self, testset):
         """
         """
         # TODO this is way too copypasta from mlip_manager.py
@@ -137,9 +134,10 @@ class SpinLatticePotential(DeltaLearningPotential):
         dft_e = []
         dft_f = []
         dft_s = []
-        for at, spin in zip(testset, spins):
+        for at in testset:
             # First the Spin part
             at0sp = at.copy()
+            spin = at.get_array("spins")
 
             at0sp = self._compute_spin_properties(at0sp, spin)
             spe = at0sp.get_potential_energy()
