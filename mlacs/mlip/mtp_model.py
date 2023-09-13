@@ -140,7 +140,10 @@ class MomentTensorPotential(SelfMlipManager):
         """
         calc = LAMMPS(pair_style=self.pair_style,
                       pair_coeff=self.pair_coeff,
+                      atom_style=self.atom_style,
                       keep_alive=False)
+        if self.model_post is not None:
+            calc.set(model_post=self.model_post)
         return calc
 
 # ========================================================================== #

@@ -32,7 +32,8 @@ class DeltaLearningPotential(MlipManager):
                  model,
                  pair_style,
                  pair_coeff,
-                 model_post=None):
+                 model_post=None,
+                 atom_style="atomic"):
         self.model = model
 
         mbar = self.model.mbar
@@ -47,16 +48,19 @@ class DeltaLearningPotential(MlipManager):
         self.ref_pair_style = pair_style
         self.ref_pair_coeff = pair_coeff
         self.ref_model_post = model_post
+        self.model_post = model_post
+        self.ref_atom_style = atom_style
+        self.atom_style = atom_style
 
         self._ref_e = None
         self._ref_f = None
         self._ref_s = None
 
         # For the rest of the
-        self._create_pair_styles_coeff(pair_style, pair_coeff, model_post)
+        self._create_pair_styles_coeff(pair_style, pair_coeff)
 
 # ========================================================================== #
-    def _create_pair_styles_coeff(self, pair_style, pair_coeff, model_post):
+    def _create_pair_styles_coeff(self, pair_style, pair_coeff):
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(pair_style, list):
             pair_style = [pair_style]
@@ -105,8 +109,6 @@ class DeltaLearningPotential(MlipManager):
             self.pair_style += f"{self.model.pair_style}"
             self.pair_coeff.append(mlpc)
 
-        self.model_post = model_post
-
 # ========================================================================== #
     def update_matrices(self, atoms):
         """
@@ -116,9 +118,10 @@ class DeltaLearningPotential(MlipManager):
             atoms = [atoms]
 
         calc = LAMMPS(pair_style=self.ref_pair_style,
-                      pair_coeff=self.ref_pair_coeff)
+                      pair_coeff=self.ref_pair_coeff,
+                      atom_style=self.ref_atom_style)
         if self.model_post is not None:
-            calc.set(model_post=self.model_post)
+            calc.set(model_post=self.ref_model_post)
 
         dummy_at = []
         for at in atoms:
@@ -157,6 +160,7 @@ class DeltaLearningPotential(MlipManager):
         """
         calc = LAMMPS(pair_style=self.pair_style,
                       pair_coeff=self.pair_coeff,
+                      atom_style=self.atom_style,
                       keep_alive=False)
         if self.model_post is not None:
             calc.set(model_post=self.model_post)
