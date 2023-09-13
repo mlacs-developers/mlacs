@@ -103,10 +103,7 @@ class MlipManager:
     def test_mlip(self, testset):
         """
         """
-        calc = LAMMPS(pair_style=self.pair_style,
-                      pair_coeff=self.pair_coeff)
-        if self.model_post is not None:
-            calc.set(model_post=self.model_post)
+        calc = self.get_calculator()
 
         ml_e = []
         ml_f = []

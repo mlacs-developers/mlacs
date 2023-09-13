@@ -9,6 +9,7 @@ from ase.units import GPa
 
 from .descriptor import BlankDescriptor
 from .mlip_manager import SelfMlipManager
+from ..utilities import compute_correlation
 from ..utilities.io import write_cfg, read_cfg_data
 
 
@@ -139,7 +140,10 @@ class MomentTensorPotential(SelfMlipManager):
         """
         calc = LAMMPS(pair_style=self.pair_style,
                       pair_coeff=self.pair_coeff,
+                      atom_style=self.atom_style,
                       keep_alive=False)
+        if self.model_post is not None:
+            calc.set(model_post=self.model_post)
         return calc
 
 # ========================================================================== #
@@ -268,14 +272,9 @@ class MomentTensorPotential(SelfMlipManager):
             f_dft.extend(at.get_forces().flatten())
             s_dft.extend(at.get_stress())
 
-        rmse_e = np.sqrt(np.mean((e_dft - e_mlip)**2))
-        mae_e = np.mean(np.abs(e_dft - e_mlip))
-
-        rmse_f = np.sqrt(np.mean((f_dft - f_mlip)**2))
-        mae_f = np.mean(np.abs(f_dft - f_mlip))
-
-        rmse_s = np.sqrt(np.mean((((s_dft - s_mlip) / GPa)**2)))
-        mae_s = np.mean(np.abs((s_dft - s_mlip) / GPa))
+        rmse_e, mae_e, rsq_e = compute_correlation(np.c_[e_dft, e_mlip])
+        rmse_f, mae_f, rsq_f = compute_correlation(np.c_[f_dft, f_mlip])
+        rmse_s, mae_s, rsq_s = compute_correlation(np.c_[s_dft, s_mlip] / GPa)
 
         # Prepare message to the log
         msg += f"RMSE Energy    {rmse_e:.4f} eV/at\n"
