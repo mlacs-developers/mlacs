@@ -18,6 +18,7 @@ colors = [blue, red, orange, green, violet, cyan, grey]
 def plot_correlation(ax,
                      data,
                      color=blue,
+                     marker="o",
                      datatype=None,
                      density=False,
                      weight=None,
@@ -94,7 +95,7 @@ def plot_correlation(ax,
         ax.scatter(datatrue, datatest, c=weight,
                    linewidths=5, norm=norm, s=size, cmap=cmap)
     else:
-        ax.plot(datatrue, datatest, ls="", marker="o",
+        ax.plot(datatrue, datatest, ls="", marker=marker,
                 c=color, rasterized=True, markersize=size,
                 markeredgewidth=size/5)
     ax.plot(minmax, minmax, ls="--", alpha=0.75, c=red)

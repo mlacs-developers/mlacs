@@ -43,7 +43,8 @@ def main(args, parser):
                      showmae=mae,
                      showrsquared=rsquared,
                      cmap=cmap,
-                     size=size)
+                     size=size,
+                     marker=args.marker)
     ax.set_aspect("equal")
     if args.save is not None:
         plt.savefig(args.save)
@@ -88,6 +89,8 @@ class CLICommand:
                             help="Colormap for the density plot")
         parser.add_argument("--size", default=5,
                             help="Size of the marker")
+        parser.add_argument("--marker", default='o',
+                            help="Markers for the data")
 
     @staticmethod
     def run(args, parser):
