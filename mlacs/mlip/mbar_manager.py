@@ -74,10 +74,8 @@ class MbarManager:
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
-                weight = np.loadtxt(self.folder + weight)
+                weight = np.loadtxt(self.folder / "MLIP.weight")
             self.weight.append(weight)
-            we, wf, ws = self._build_W_efs(weight)
-            self.W = np.r_[we, wf, ws]
         self.train_mlip = False
         self.mlip_amat = []
         self.mlip_coef = []
