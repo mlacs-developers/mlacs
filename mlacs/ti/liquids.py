@@ -275,11 +275,19 @@ class UFLiquidState(ThermoState):
         if damp is None:
             damp = "$(100*dt)"
 
-        pair_coeff = self.pair_coeff.split()
         pair_style = self.pair_style.split()
-        hybrid_pair_coeff = " ".join([*pair_coeff[:2],
-                                      pair_style[0],
-                                      *pair_coeff[2:]])
+        if len(self.pair_coeff) == 1:
+            pair_coeff = self.pair_coeff.split()
+            hybrid_pair_coeff = " ".join([*pair_coeff[:2],
+                                          pair_style[0],
+                                          *pair_coeff[2:]])
+
+        else:
+            hybrid_pair_coeff = []
+            for pc in self.pair_coeff:
+                pc_ = pc.split()
+                hpc_=" ".join([*pc_[:2], *pc_[2:]])
+                hybrid_pair_coeff.append(hpc_)
 
         input_string = self.get_general_input()
 
@@ -345,15 +353,24 @@ class UFLiquidState(ThermoState):
             "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
         input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
+        # pair_style comd compatible only with one zbl, To be fixed
         input_string += "pair_style   hybrid/scaled v_lambda_true " + \
-            f"{pair_style[0]} v_lambda_ufm ufm ${{rc}}\n"
-        input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
+            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} v_lambda_true " + \
+            f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
+        input_string += "pair_coeff   " + hybrid_pair_coeff[0] + "\n"
+        input_string += "pair_coeff   " + hybrid_pair_coeff[1] + "\n"
         input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
         input_string += "\n"
-        input_string += f"compute      c2 all pair {pair_style[0]}\n"
-        input_string += "compute      c3 all pair ufm\n"
+        if len(self.pair_coeff)==1:
+            input_string += f"compute      c2 all pair {pair_style[0]}\n"
+            input_string += "compute      c3 all pair ufm\n"
+            input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
+        else:
+            input_string += f"compute      c2 all pair {pair_style[1]}\n"
+            input_string += f"compute      c4 all pair {pair_style[4]}\n"
+            input_string += "compute      c3 all pair ufm\n"
+            input_string += "variable     dU equal ((c_c2+c_c4)-c_c3)/atoms\n"
         input_string += "\n"
-        input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
         input_string += "variable     lamb equal 1-v_lambda_true\n"
         input_string += "\n"
         input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
@@ -374,9 +391,23 @@ class UFLiquidState(ThermoState):
         input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
         input_string += "pair_style   hybrid/scaled v_lambda_true " + \
-            f"{pair_style[0]} v_lambda_ufm ufm ${{rc}}\n"
-        input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
+            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} v_lambda_true " + \
+            f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
+        input_string += "pair_coeff   " + hybrid_pair_coeff[0] + "\n"
+        input_string += "pair_coeff   " + hybrid_pair_coeff[1] + "\n"
         input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
+        input_string += "\n"
+        if len(self.pair_coeff)==1:
+            input_string += f"compute      c2 all pair {pair_style[0]}\n"
+            input_string += "compute      c3 all pair ufm\n"
+            input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
+        else:
+            input_string += f"compute      c2 all pair {pair_style[1]}\n"
+            input_string += f"compute      c4 all pair {pair_style[4]}\n"
+            input_string += "compute      c3 all pair ufm\n"
+            input_string += "variable     dU equal ((c_c2+c_c4)-c_c3)/atoms\n"
+        input_string += "\n"
+        input_string += "variable     lamb equal 1-v_lambda_true\n"
         input_string += "\n"
         input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
             "title \"# dU lambda\" screen no append backward.dat\n"
