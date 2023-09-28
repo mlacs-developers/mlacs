@@ -4,6 +4,7 @@
 """
 from pathlib import Path
 
+import os
 import numpy as np
 
 from pymbar import MBAR
@@ -15,7 +16,7 @@ from ase.units import kB, GPa
 default_parameters = {"mode": "compute",
                       "solver": "L-BFGS-B",
                       "scale": 0.1,
-                      "start": 2,
+                      "start": 0,
                       }
 
 
@@ -76,6 +77,15 @@ class MbarManager:
             if isinstance(weight, str):
                 weight = np.loadtxt(self.folder / "MLIP.weight")
             self.weight.append(weight)
+        elif os.path.isfile("MLIP.weight"):
+            weight = np.loadtxt("MLIP.weight")
+            self.weight.append(weight)
+        elif os.path.isfile(self.folder / "MLIP.weight"):
+            print('yolo')
+            weight = np.loadtxt(self.folder / "MLIP.weight")
+            self.weight.append(weight)
+        else:
+            self.weight = []
         self.train_mlip = False
         self.mlip_amat = []
         self.mlip_coef = []
@@ -106,7 +116,7 @@ class MbarManager:
         self._newddb = []
 
         header = ''
-        if not 0 == len(self.mlip_coef):
+        if  1 < len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
             ukn = np.zeros(shape)
             for istep, coeff in enumerate(self.mlip_coef):
@@ -220,9 +230,10 @@ class MbarManager:
         n_new = len(self._newddb)
         weight = np.ones(n_tot) / n_tot
         weight = self.parameters['scale'] * weight
-        if self.get_effective_conf() / n_tot > 0.8:
-            weight = 0.0 * weight
-        weight[:-n_new] = self.weight[-1]
+        #if self.get_effective_conf() / n_tot > 0.8:
+        #    weight = 0.0 * weight
+        if 0 != len(self.weight):
+            weight[:-n_new] = self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
