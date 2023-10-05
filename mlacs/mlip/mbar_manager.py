@@ -95,7 +95,7 @@ class MbarManager:
 
         self._newddb = []
         self._nstart = self.parameters['start']
-        if 1 <= self._nstart:
+        if self._nstart <= 1:
             msg = 'The "start" variable has to be higher than 2.\n'
             msg += 'You need at least two potentials to compare them.'
             raise ValueError(msg)
@@ -126,7 +126,7 @@ class MbarManager:
         self._newddb = []
 
         header = ''
-        if  self._nstart <= len(self.mlip_coef):
+        if self._nstart <= len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
             ukn = np.zeros(shape)
             for istep, coeff in enumerate(self.mlip_coef):
@@ -233,10 +233,9 @@ class MbarManager:
 # ========================================================================== #
     def _init_weight(self):
         """
-        Initialize the weight matrice with W = 1/N.
+        Initialize the weight matrice with W = scale * 1/N.
         """
         n_tot = len(self.matsize)
-        n_new = len(self._newddb)
         weight = np.ones(n_tot) / n_tot
         weight = self.parameters['scale'] * weight
         if self._nstart < len(self.weight):
