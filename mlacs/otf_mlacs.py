@@ -283,7 +283,8 @@ class OtfMlacs:
         # Training MLIP
         msg = "Training new MLIP\n"
         if self.mlip.mbar is not None:
-            msg += "Computing weights with MBAR\n"
+            if self.mlip.mbar._nstart <= min(self.nconfs):
+                msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
