@@ -4,6 +4,7 @@
 """
 import os
 import shlex
+import logging
 from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor
 
@@ -59,6 +60,13 @@ class AbinitManager(CalcManager):
 
         CalcManager.__init__(self, "dummy", magmoms)
         self.parameters = parameters
+        if 'IXC' in self.parameters.keys():
+            self.parameters['ixc'] = self.parameters['IXC']
+            del self.parameters['IXC']
+        if 'ixc' not in self.parameters.keys():
+            msg = 'WARNING AbinitManager:\n'
+            msg += 'You should specify an ixc value or ASE will set 7 (LDA) !'
+            logging.warning(msg)
         self._organize_pseudos(pseudos)
         self.cmd = shlex.split(abinit_cmd + " abinit.abi",
                                posix=(os.name == "posix"))
