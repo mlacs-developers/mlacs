@@ -261,7 +261,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
-        input_string += "fix_modify    f2 temp c1\n"
+        input_string += "fix_modify    f1 temp c1\n"
         if self.pressure is not None:
             input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
