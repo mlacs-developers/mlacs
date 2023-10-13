@@ -20,6 +20,7 @@ class ThermodynamicIntegration:
     ----------
     thermostate: :class:`thermostate` or :class:`list` of :class:`thermostate`
         State for which the thermodynamic integration should be performed
+    wdir: :class:`str`
     ninstance: : class:`int`
         Numer of forward and backward to be performed, default 1
     logfile: :class:`str` (optional)
@@ -28,13 +29,18 @@ class ThermodynamicIntegration:
     def __init__(self,
                  thermostate,
                  ninstance=1,
+                 wdir=None,
                  logfile=None):
 
         self.log = ThermoLog(logfile)
         self.ninstance = ninstance
+        self.logfile = logfile
 
         # Construct the working directory to run the thermodynamic integrations
-        self.workdir = os.getcwd() + "/ThermoInt/"
+        if wdir is None:
+            self.workdir = os.getcwd() + "/ThermoInt/"
+        elif wdir is not None:
+            self.workdir = wdir + "ThermoInt/"
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
@@ -53,6 +59,9 @@ class ThermodynamicIntegration:
             raise TypeError(msg)
         self.nstate = len(self.state)
         self.recap_state()
+#        self.log.logger_log.removeHandler(
+#            logging.FileHandler(self.logfile, 'a'))
+#        logging.FileHandler(self.logfile, 'a').close()
 
 # ========================================================================== #
     def run(self):
@@ -141,10 +150,27 @@ class ThermodynamicIntegration:
             tmp_fe = np.loadtxt(stateworkdir +
                                 f"for_back_{i+1}/" +
                                 "free_energy.dat")
-            fe.append(tmp_fe[1])
+            fe.append(tmp_fe[1]+tmp_fe[len(tmp_fe)-1])
         ferr = np.std(fe, axis=0)
         femean = np.mean(fe, axis=0)
         msg = f"Free Energy mean and error for state {istate+1}:\n"
         msg += f"- Mean: {femean:10.6f}\n"
         msg += f"- Error: {ferr:10.6f}\n"
         self.log.logger_log.info(msg)
+
+# ========================================================================== #
+    def get_fedir(self):
+        """
+        Get the directory where free energy is.
+        Useful to get free energy for property convergence during sampling
+        """
+        # if self.ninstance > 1:
+        #     for i in range(self.ninstance):
+        #         stateworkdir = self.workdir + \
+        #                        self.state.get_workdir() + \
+        #                        f"for_back_{i+1}/"
+        # elif self.ninstance == 1:
+        for istate in range(self.nstate):
+            stateworkdir = self.workdir + \
+                           self.state[istate].get_workdir()
+        return stateworkdir

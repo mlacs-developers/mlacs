@@ -206,10 +206,14 @@ class LammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     workdir=None):
         """
         Function to run the dynamics
         """
+        if workdir is not None:
+            self.workdir = workdir
+
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
@@ -334,7 +338,7 @@ class LammpsState(StateManager):
         if self.msdfile is not None:
             input_string += get_diffusion_input(self.msdfile)
         if self.rdffile is not None:
-            input_string += get_rdf_input(self.rdffile)
+            input_string += get_rdf_input(self.rdffile, self.nsteps)
 
         input_string += get_last_dump_input(self.workdir,
                                             elem,

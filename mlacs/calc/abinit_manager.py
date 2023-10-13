@@ -5,8 +5,11 @@
 import os
 import numpy as np
 import shlex
+<<<<<<< HEAD
 
+# IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
 from subprocess import Popen
+import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from ase.symbols import symbols2numbers
@@ -14,6 +17,8 @@ from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
 from .calc_manager import CalcManager
+from ..utilities.io_abinit import (AbinitNC,
+                                   set_aseAtoms)
 
 
 # ========================================================================== #
@@ -83,6 +88,13 @@ class AbinitManager(CalcManager):
 
         CalcManager.__init__(self, "dummy", magmoms)
         self.parameters = parameters
+        if 'IXC' in self.parameters.keys():
+            self.parameters['ixc'] = self.parameters['IXC']
+            del self.parameters['IXC']
+        if 'ixc' not in self.parameters.keys():
+            msg = 'WARNING AbinitManager:\n'
+            msg += 'You should specify an ixc value or ASE will set 7 (LDA) !'
+            logging.warning(msg)
         self._organize_pseudos(pseudos)
         self.abinit_cmd = abinit_cmd
         self.mpi_runner = mpi_runner
@@ -94,6 +106,7 @@ class AbinitManager(CalcManager):
 
         self.logfile = logfile
         self.errfile = errfile
+        self.ncfile = AbinitNC()
         self.workdir = workdir
         if self.workdir is None:
             self.workdir = os.getcwd() + "/DFT/"
@@ -194,6 +207,13 @@ class AbinitManager(CalcManager):
         """
         """
         results = {}
+        if self.ncfile is not None:
+            dct = self.ncfile.read(cdir + "abinito_GSR.nc")
+            results.update(dct)
+            atoms = set_aseAtoms(results)
+            atoms.set_velocities(at.get_velocities())
+            return atoms
+
         with open(cdir + "abinit.abo") as fd:
             dct = read_abinit_out(fd)
             results.update(dct)

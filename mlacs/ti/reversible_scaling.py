@@ -9,6 +9,9 @@ from ase.units import kB
 
 from ..utilities.miscellanous import get_elements_Z_and_masses
 from .thermostate import ThermoState
+from .solids import EinsteinSolidState
+from .liquids import UFLiquidState
+from .thermoint import ThermodynamicIntegration
 
 
 # ========================================================================== #
@@ -31,7 +34,10 @@ class ReversibleScalingState(ThermoState):
     t_end: :class:`float` (optional)
         Final temperature of the simulation, in Kelvin. Default ``1200``.
     fe_init: :class:`float` (optional)
-        Free energy of the initial temperature, in eV/at. Default ``0``.
+        Free energy of the initial temperature, in eV/at. Default ``None``.
+    ninstance: :class:`int` (optional)
+        If Free energy calculation has to be done before temperature sweep
+        Settles the number of forward and backward runs. Default ``1``.
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
     damp : :class:`float` (optional)
@@ -75,8 +81,10 @@ class ReversibleScalingState(ThermoState):
                  pair_coeff,
                  t_start=300,
                  t_end=1200,
-                 fe_init=0,
-                 dt=1,
+                 fe_init=None,
+                 phase=None,
+                 ninstance=1,
+                 dt=1.5,
                  damp=None,
                  pressure=None,
                  pdamp=None,
@@ -91,14 +99,73 @@ class ReversibleScalingState(ThermoState):
                  loginterval=50,
                  trajinterval=50):
 
+        self.atoms = atoms
         self.t_start = t_start
         self.t_end = t_end
         self.fe_init = fe_init
+        self.ninstance = ninstance
         self.damp = damp
         self.pressure = pressure
         self.pdamp = pdamp
         self.gjf = gjf
 
+        # Free energy calculation before sweep
+        if self.fe_init is None:
+            if phase == 'solid':
+                self.state = EinsteinSolidState(atoms,
+                                                pair_style,
+                                                pair_coeff,
+                                                t_start,
+                                                fcorr1=None,
+                                                fcorr2=None,
+                                                k=None,
+                                                dt=dt,
+                                                damp=None,
+                                                nsteps=10000,
+                                                nsteps_eq=5000,
+                                                nsteps_msd=25000,
+                                                rng=None,
+                                                suffixdir=None,
+                                                logfile=True,
+                                                trajfile=True,
+                                                interval=500,
+                                                loginterval=50,
+                                                trajinterval=50)
+            elif phase == 'liquid':
+                self.state = UFLiquidState(atoms,
+                                           pair_style,
+                                           pair_coeff,
+                                           t_start,
+                                           fcorr1=None,
+                                           fcorr2=None,
+                                           p=50,
+                                           sigma=2.0,
+                                           dt=dt,
+                                           damp=None,
+                                           nsteps=10000,
+                                           nsteps_eq=5000,
+                                           rng=None,
+                                           suffixdir=None,
+                                           logfile=True,
+                                           trajfile=True,
+                                           interval=500,
+                                           loginterval=50,
+                                           trajinterval=50)
+            self.ti = ThermodynamicIntegration(self.state,
+                                               ninstance,
+                                               logfile='FreeEnergy.log')
+            self.ti.run()
+            # Get Fe
+            if self.ninstance == 1:
+                _, self.fe_init = self.state.postprocess(self.ti.get_fedir())
+            elif self.ninstance > 1:
+                tmp = []
+                for i in range(self.ninstance):
+                    _, tmp_fe_init = self.state.postprocess(
+                                     self.ti.get_fedir() + f"for_back_{i+1}/")
+                    tmp.append(tmp_fe_init)
+                self.fe_init = np.mean(tmp)
+        # reversible scaling
         ThermoState.__init__(self,
                              atoms,
                              pair_style,
@@ -131,7 +198,7 @@ class ReversibleScalingState(ThermoState):
         if not os.path.exists(wdir):
             os.makedirs(wdir)
 
-        self.run_dynamics(wdir)
+            self.run_dynamics(wdir)
 
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
@@ -180,16 +247,21 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      zcm equal xcm(all,z)\n"
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
+            input_string += "fix           f1  all langevin ${tstart} " + \
+                f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
         else:
-            input_string += "fix           f2  all nph iso " + \
-                f"{self.pressure} {self.pressure} {pdamp} " + \
+            # input_string += "fix           f2  all nph iso " + \
+            #     f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
+            #     "fixedpoint ${xcm} ${ycm} ${zcm}\n"
+            input_string += "fix           f2  all npt temp ${tstart} " + \
+                f"${{tstart}} {damp} iso {self.pressure*10000} " + \
+                f"{self.pressure*10000} {pdamp} " + \
                 "fixedpoint ${xcm} ${ycm} ${zcm}\n"
-        input_string += "fix           f1  all langevin ${tstart} " + \
-            f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+
         input_string += "\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
-        input_string += "fix_modify    f1 temp c1\n"
+        input_string += "fix_modify    f2 temp c1\n"
         if self.pressure is not None:
             input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
@@ -213,8 +285,8 @@ class ReversibleScalingState(ThermoState):
         input_string += "fix          f3 all adapt 1 pair " + \
             f"{self.pair_style} scale * * v_lambda\n"
         input_string += "fix          f4 all print 1 " + \
-            "\"$(pe/atoms) ${lambda}\" screen no " + \
-            "append forward.dat title \"# pe    lambda\"\n"
+            "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
+            "append forward.dat title \"# pe    pressure    vol    lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "unfix        f3\n"
         input_string += "unfix        f4\n"
@@ -232,8 +304,8 @@ class ReversibleScalingState(ThermoState):
         input_string += "fix          f3 all adapt 1 pair " + \
             f"{self.pair_style} scale * * v_lambda\n"
         input_string += "fix          f4 all print 1 " + \
-            "\"$(pe/atoms) ${lambda}\" screen no " + \
-            "append backward.dat title \"# pe    lambda\"\n"
+            "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
+            "append backward.dat title \"# pe    pressure    vol    lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
@@ -245,13 +317,23 @@ class ReversibleScalingState(ThermoState):
         """
         Compute the free energy from the simulation
         """
-
+        natoms = len(self.atoms)
+        if self.pressure is not None:
+            p = self.pressure/160.21766208  # already divided by 100000
+        else:
+            p = 0.0
         # Get data
-        v_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
-        v_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
+        v_f, fp, fvol, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
+        v_b, bp, bvol, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
 
         v_f /= lambda_f
         v_b /= lambda_b
+
+        # add pressure contribution
+        fvol = fvol / natoms
+        bvol = bvol / natoms
+        v_f = v_f + p * fvol
+        v_b = v_b + p * bvol
 
         # Integrate the forward and backward data
         int_f = cumtrapz(v_f, lambda_f, initial=0)

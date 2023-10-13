@@ -1,3 +1,4 @@
+from ase.calculators.lammps import Prism, convert
 
 
 # ========================================================================== #
@@ -29,7 +30,7 @@ def get_log_input(loginterval, logfile):
                     '${mytemp}  ${mypress} ${mypxx} ${mypyy} ' + \
                     '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                     f'append {logfile} title "# Step  Vol  Etot  ' + \
-                    'Epot  Ekin  Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
+                    'Epot  Ekin  Temp Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -93,6 +94,7 @@ def get_general_input(pbc,
                       masses,
                       charges,
                       atom_style,
+                      replicate=None,
                       filename='atoms.in',
                       custom='',
                       nbeads=1,
@@ -113,6 +115,8 @@ def get_general_input(pbc,
     input_string += f"atom_style {atom_style}\n"
     input_string += custom
     input_string += f"read_data    {filename}\n"
+    if replicate is not None:
+        input_string += f"replicate    {replicate}\n"
     for i, mass in enumerate(masses):
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
     if nbeads > 1:
@@ -205,7 +209,10 @@ def get_interaction_input(pair_style,
 
     input_string += f"pair_style    {pair_style}\n"
     for pair in pair_coeff:
-        input_string += f"pair_coeff    {pair}\n"
+        if 'hybrid' in pair_style:
+            input_string += f"pair_coeff    {pair}\n"
+        else:
+            input_string += f"pair_coeff    {pair}\n"
     if model_post is not None:
         for model in model_post:
             input_string += model
@@ -215,7 +222,7 @@ def get_interaction_input(pair_style,
 
 
 # ========================================================================== #
-def get_last_dump_input(workdir, elem, nsteps, nbeads=1):
+def get_last_dump_input(workdir, elem, nsteps, nbeads=1, with_delay=True):
     """
     Function to write the dump of the last configuration of the mlmd
     """
@@ -231,7 +238,8 @@ def get_last_dump_input(workdir, elem, nsteps, nbeads=1):
     input_string += "dump_modify last element "
     input_string += " ".join([p for p in elem])
     input_string += "\n"
-    input_string += f"dump_modify last delay {nsteps}\n"
+    if with_delay:
+        input_string += f"dump_modify last delay {nsteps}\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -259,6 +267,7 @@ def get_diffusion_input(msdfile):
     input_string += "\n\n\n"
     return input_string
 
+
 # ========================================================================== #
 def write_lammps_NEB_ASCIIfile(filename, supercell):
     '''
@@ -282,16 +291,63 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
     with open(filename, "w") as w:
         w.write(instr)
 
+
 # ========================================================================== #
-def get_rdf_input(rdffile):
+def get_rdf_input(rdffile, nsteps):
     """
     Function to compute and output the radial distribution function
     """
+    # freq = int(nsteps/5)
     input_string = "#####################################\n"
-    input_string += "# Compute RDF\n"
+    input_string += "#           Compute RDF\n"
     input_string += "#####################################\n"
-    input_string += "compute myrdf all rdf 250 1 1 \n"
-    input_string += "fix rdf all ave/time 100 10 1000 c_myrdf[*] " + \
+    input_string += f"variable repeat equal {nsteps}/2 \n"
+    input_string += "compute myrdf all rdf 500 1 1 \n"
+    # input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
+    input_string += "fix rdf all ave/time 1 ${repeat}" + \
+                    f" {nsteps} c_myrdf[*] " + \
                     f"file {rdffile} mode vector\n"
+    input_string += "#####################################\n"
+    input_string += "\n\n\n"
     return input_string
 
+
+# ========================================================================== #
+def write_atoms_lammps_spin_style(fd, atoms, spin):
+    """
+    Function to write atoms in the LAMMPS spin style
+    Loosely adapted from ASE write_lammpsdata function
+    """
+    fd.write("# Atoms in spin style, Written by MLACS\n\n")
+
+    nat = len(atoms)
+    fd.write(f"{nat} atoms\n")
+
+    symbols = atoms.get_chemical_symbols()
+    species = sorted(set(symbols))
+    n_atom_type = len(species)
+    fd.write(f"{n_atom_type} atom types\n\n")
+
+    prismobj = Prism(atoms.get_cell())
+    xhi, yhi, zhi, xy, xz, yz = convert(prismobj.get_lammps_prism(),
+                                        'distance',
+                                        'ASE',
+                                        'metal')
+
+    fd.write(f'0.0 {xhi:23.17g} xlo xhi\n')
+    fd.write(f'0.0 {yhi:23.17g} ylo yhi\n')
+    fd.write(f'0.0 {zhi:23.17g} zlo zhi\n')
+    fd.write("\n\n")
+
+    fd.write("Atoms # spin\n\n")
+
+    pos = prismobj.vector_to_lammps(atoms.get_positions(), wrap=False)
+    for i, r in enumerate(pos):
+        r = convert(r, "distance", "ASE", "metal")
+        s = species.index(symbols[i]) + 1
+        line = f"{i+1:>6} {s:>3} "  # Index and species
+        line += f"{r[0]:23.17f} {r[1]:23.17f} {r[2]:23.17f} "  # Positions
+        line += f"{spin[i, 0]:23.17f}"  # Spin amplitude
+        line += f"{spin[i, 1]:23.17f} {spin[i, 2]:23.17f} {spin[i, 3]:23.17f} "
+        line += "\n"
+        fd.write(line)

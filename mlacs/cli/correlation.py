@@ -26,6 +26,8 @@ def main(args, parser):
         density = True
     if args.weight is not None:
         weight = np.loadtxt(args.weight)
+    else:
+        weight = None
     cmap = args.cmap
     size = float(args.size)
     figsize = (float(args.figsize), float(args.figsize))
@@ -84,7 +86,7 @@ class CLICommand:
                             help="Size of the figure for matplotlib")
         parser.add_argument("--cmap", default="inferno",
                             help="Colormap for the density plot")
-        parser.add_argument("--size", default=25,
+        parser.add_argument("--size", default=5,
                             help="Size of the marker")
 
     @staticmethod

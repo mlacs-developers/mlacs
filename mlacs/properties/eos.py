@@ -1,9 +1,10 @@
 import numpy as np
 import mlacs.utilities.eos_functions as eos_functions
 
-from ase.units import Ha, Bohr
-Bohr_GPa = 29421.033 
 from scipy.optimize import curve_fit
+
+Bohr_GPa = 29421.033
+
 
 def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
     '''
@@ -12,13 +13,13 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
 
     be aware of used units:
     - for P(V) GPa and Angstrom^3 work
-    - for E(V) all should be in Ha (Bohr^3, Ha/Bohr^3) 
+    - for E(V) all should be in Ha (Bohr^3, Ha/Bohr^3)
       or in eV (Angstrom^3 and eV/Angstrom^3)
 
     Parameters
     ----------
 
-    x: volume 1D array, 
+    x: volume 1D array,
        per atom pay an attention to hexa phases for instance
     y: energy or pressure 1D array
     y_type: str
@@ -37,22 +38,25 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
     '''
 
     # get x and y from canonical sampling if not given
-    
     # initial guess
     a, b, c = np.polyfit(x, y, 2)
     v0 = -b/(2*a)
     b0 = 2*a*v0
     b0p = 4.0
-    
-    if y_type=='energy':
-        e0 = a*v0**2 + b*v0 + c
-        bounds = ([e0*2, b0/100, b0p/10, v0/2], [e0/2, b0*100, b0p*10, v0*2])
-        if eos=='vinet':
-            fitted_params, ecov_ = curve_fit(eos_functions.e_vinet, x, y, bounds=bounds)
-        if eos=='murnaghan':
-            fitted_params, ecov_ = curve_fit(eos_functions.e_murnaghan, x, y, bounds=bounds)
-        if eos=='bm':
-            fitted_params, ecov_ = curve_fit(eos_functions.e_bm, x, y, bounds=bounds)
+
+    if y_type == 'energy':
+        e0 = a * v0**2 + b * v0 + c
+        bounds = ([e0 * 2, b0 / 100, b0p / 10, v0 / 2],
+                  [e0 / 2, b0 * 100, b0p * 10, v0 * 2])
+        if eos == 'vinet':
+            fitted_params, ecov_ = curve_fit(eos_functions.e_vinet, x, y,
+                                             bounds=bounds)
+        if eos == 'murnaghan':
+            fitted_params, ecov_ = curve_fit(eos_functions.e_murnaghan, x, y,
+                                             bounds=bounds)
+        if eos == 'bm':
+            fitted_params, ecov_ = curve_fit(eos_functions.e_bm, x, y,
+                                             bounds=bounds)
 
         str = 'Fitted Parameters from EoS fit\n'
         str += '------------------------------\n'
@@ -62,14 +66,17 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
         str += 'E0 = {:12.8f} eV/at\n'.format(fitted_params[0])
 
     else:
-        bounds = ([b0/100, b0p/10, v0/2], [b0*100, b0p*10, v0*2])
-        ph = 1
-        if eos=='vinet':
-            fitted_params, pcov_ = curve_fit(eos_functions.p_vinet, x, y, bounds=bounds)
-        if eos=='murnaghan':
-            fitted_params, pcov_ = curve_fit(eos_functions.p_murnaghan, x, y, bounds=bounds)
-        if eos=='bm':
-            fitted_params, pcov_ = curve_fit(eos_functions.p_bm, x, y, bounds=bounds)
+        bounds = ([b0 / 100, b0p / 10, v0 / 2], [b0 * 100, b0p * 10, v0 * 2])
+        # ph = 1
+        if eos == 'vinet':
+            fitted_params, pcov_ = curve_fit(eos_functions.p_vinet, x, y,
+                                             bounds=bounds)
+        if eos == 'murnaghan':
+            fitted_params, pcov_ = curve_fit(eos_functions.p_murnaghan, x, y,
+                                             bounds=bounds)
+        if eos == 'bm':
+            fitted_params, pcov_ = curve_fit(eos_functions.p_bm, x, y,
+                                             bounds=bounds)
 
         str = 'Fitted Parameters from EoS fit\n'
         str += '------------------------------\n'

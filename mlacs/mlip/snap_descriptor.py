@@ -52,7 +52,7 @@ class SnapDescriptor(Descriptor):
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
                  model="linear", alpha=1.0, alpha_quad=1.0, folder="Snap"):
-        self.chemflag = parameters.get("chemflag", 0)
+        self.chemflag = parameters.pop("chemflag", 0)
         Descriptor.__init__(self, atoms, rcut, alpha)
         self.alpha_quad = alpha_quad
         self.folder = Path(folder).absolute()
@@ -256,10 +256,6 @@ class SnapDescriptor(Descriptor):
             for i in range(self.nel):
                 d2.append(np.eye(self.ndesc_lin) * self.alpha)
                 d2.append(np.eye(self.ndesc_quad) * self.alpha_quad)
-
-            print(d2)
-        for d in d2:
-            print(d.shape)
         return combine_reg(d2)
 
 # ========================================================================== #
