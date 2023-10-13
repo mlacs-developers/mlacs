@@ -5,7 +5,6 @@
 import os
 import numpy as np
 import shlex
-<<<<<<< HEAD
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
 from subprocess import Popen
