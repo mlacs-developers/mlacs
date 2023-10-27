@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
+import shutil
 import numpy as np
 import shlex
 
@@ -51,22 +52,19 @@ class AbinitManager(CalcManager):
     workdir: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
-    
+
     logfile: :class:`str` (optional)
         The name of the Abinit log file inside the workdir folder
         Default 'abinit.log'
-    
+
     errfile: :class:`str` (optional)
         The name of the Abinit error file inside the workdir folder
         Default 'abinit.err'
-    
+
     nproc: :class:`int` (optional)
         Number of processor available for Abinit.
         Distributed equally over all submitted calculations
         And start MPI abinit calculation if more than 1 processor
-    
-    nomp_thread :class: `int` (optional)
-        Number of OpenMP thread to use per processor.
 
     ninstance: :class:`int` (optional)
         Number of instance of abinit to run in parallel.
@@ -82,8 +80,7 @@ class AbinitManager(CalcManager):
                  workdir=None,
                  logfile="abinit.log",
                  errfile="abinit.err",
-                 nproc=1,
-                 nomp_thread=1):
+                 nproc=1):
 
         CalcManager.__init__(self, "dummy", magmoms)
         self.parameters = parameters
@@ -94,14 +91,11 @@ class AbinitManager(CalcManager):
             msg = 'WARNING AbinitManager:\n'
             msg += 'You should specify an ixc value or ASE will set 7 (LDA) !'
             logging.warning(msg)
+
         self._organize_pseudos(pseudos)
         self.abinit_cmd = abinit_cmd
         self.mpi_runner = mpi_runner
-
-        if nomp_thread != 1:
-            print("Warning : OpenMP is still in development.")
         self.nproc = nproc
-        self.nomp_thread = nomp_thread
 
         self.logfile = logfile
         self.errfile = errfile
@@ -124,15 +118,18 @@ class AbinitManager(CalcManager):
         """
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]
-        confdir = []
+        prefix = []
         for i, at in enumerate(confs):
             at.set_initial_magnetic_moments(self.magmoms)
-            cdir = self.workdir + state[i] + f"/Step{step[i]}/"
-            confdir.append(cdir)
-            self._write_input(at, cdir)
+            stateprefix = self.workdir \
+                + state[i] \
+                + f"/Step{step[i]}/{state[i]}_"
+
+            prefix.append(stateprefix)
+            self._write_input(at, stateprefix)
 
         # Define the function to be called by every process.
-        def submit_abinit_calc(cmd, logfile, errfile):
+        def submit_abinit_calc(cmd, logfile, errfile, cdir):
             with open(logfile, 'w') as lfile, \
                  open(errfile, 'w') as efile:
                 process = Popen(cmd,
@@ -144,76 +141,113 @@ class AbinitManager(CalcManager):
 
         # Calculate the number of processor assigned to each task
         # Divide them equally between each calculation.
-        ntask = len(confdir)
+        ntask = len(prefix)
         nproc = self.nproc
-        proc_per_task = 1 if nproc <= ntask else nproc//ntask
 
         # Yeah for threading
         with ThreadPoolExecutor(max_workers=ntask) as executor:
-            for cdir in confdir:
-                command = self._make_command(cdir, proc_per_task)
+            for stateprefix in prefix:
+                command = self._make_command(stateprefix, nproc)
+                # Get the directory but remove the prefix to abifile
+                cdir = '/'.join(stateprefix.split('/')[:-1])
                 executor.submit(submit_abinit_calc,
                                 command,
-                                cdir+self.logfile,
-                                cdir+self.errfile)
+                                stateprefix+self.logfile,
+                                stateprefix+self.errfile,
+                                cdir=cdir)
+            executor.shutdown(wait=True, cancel_futures=False)
 
         # Now we can read everything
         results_confs = []
-        for (cdir, at) in zip(confdir, confs):
-            results_confs.append(self._read_output(cdir, at))
+        for (stateprefix, at) in zip(prefix, confs):
+            results_confs.append(self._read_output(stateprefix, at))
         # Tada !
         return results_confs
 
 # ========================================================================== #
-    def _make_command(self, cdir, nproc):
+    def _make_command(self, stateprefix, nproc):
         """
-        Make the command to call Abinit including MPI and OpenMP :
-        env OMP_NUM_THREADS=1 mpirun -n 2 abinit /path/abinit.abi
+        Make the command to call Abinit including MPI :
         """
-        abinit_cmd = self.abinit_cmd + " " + cdir + "abinit.abi"
-        omp_cmd = "env OMP_NUM_THREADS={n}".format(n=self.nomp_thread)
+        abinit_cmd = self.abinit_cmd + " " + stateprefix + "abinit.abi"
 
         if nproc > 1:
             mpi_cmd = "{} -n {}".format(self.mpi_runner, nproc)
         else:
             mpi_cmd = ""
 
-        full_cmd = "{} {} {}".format(omp_cmd, mpi_cmd, abinit_cmd)
+        full_cmd = "{} {}".format(mpi_cmd, abinit_cmd)
         full_cmd = shlex.split(full_cmd, posix=(os.name == "posix"))
 
         return full_cmd
 
 # ========================================================================== #
-    def _write_input(self, atoms, confdir):
+    def _write_input(self, atoms, stateprefix):
         """
         Write the input for the current atoms
         """
-        if os.path.exists(confdir):
-            self._remove_previous_run(confdir)
-        else:
-            os.makedirs(confdir)
+        if os.path.exists(stateprefix):
+            self._remove_previous_run(stateprefix)
+        else:  # Get the directory but remove the prefix to abifile
+            cdir = '/'.join(stateprefix.split('/')[:-1])
+            os.makedirs(cdir)
+
         # First we need to prepare some stuff
+        original_pseudos = self.pseudos.copy()
         species = sorted(set(atoms.numbers))
-        with open(confdir + "abinit.abi", "w") as fd:
+        self._create_unique_file(stateprefix)
+        with open(stateprefix + "abinit.abi", "w") as fd:
             write_abinit_in(fd,
                             atoms,
                             self.parameters,
                             species,
                             self.pseudos)
+        self.pseudos = original_pseudos
 
 # ========================================================================== #
-    def _read_output(self, cdir, at):
+    def _create_unique_file(self, stateprefix):
+        """
+        Create a unique file for each read/write operation
+        to prevent netCDF4 error.
+        The path and the filename must be unique.
+        """
+        def _create_copy(source, dest):
+            if os.path.exists(dest):
+                return
+            else:
+                shutil.copy(source, dest)
+        new_psp = []
+        self.parameters.update({"outdata_prefix": stateprefix})
+        pp_dirpath = self.parameters.get("pp_dirpath")
+        pseudos = self.pseudos
+
+        # Create an unique psp file in the DFT/State/Step folder
+        if pp_dirpath is None:
+            pp_dirpath = ""
+        if isinstance(pseudos, str):
+            pseudos = [pseudos]
+        for psp in pseudos:
+            fn = psp.split('/')[-1]
+            source = pp_dirpath+psp
+            dest = stateprefix+fn
+            _create_copy(source, dest)
+            new_psp.append(dest)
+        self.pseudos = new_psp
+        self.parameters.pop('pspdir', None)
+
+# ========================================================================== #
+    def _read_output(self, stateprefix, at):
         """
         """
         results = {}
         if self.ncfile is not None:
-            dct = self.ncfile.read(cdir + "abinito_GSR.nc")
+            dct = self.ncfile.read(stateprefix + "abinito_GSR.nc")
             results.update(dct)
             atoms = set_aseAtoms(results)
             atoms.set_velocities(at.get_velocities())
             return atoms
 
-        with open(cdir + "abinit.abo") as fd:
+        with open(stateprefix + "abinit.abo") as fd:
             dct = read_abinit_out(fd)
             results.update(dct)
         atoms = results.pop("atoms")
@@ -248,27 +282,27 @@ class AbinitManager(CalcManager):
         self.pseudos = pseudolist
 
 # ========================================================================== #
-    def _remove_previous_run(self, confdir):
+    def _remove_previous_run(self, stateprefix):
         """
         Little function to remove any trace of previous calculation
         """
-        if os.path.exists(confdir + "abinit.abi"):
-            os.remove(confdir + "abinit.abi")
-        if os.path.exists(confdir + "abinit.abo"):
-            os.remove(confdir + "abinit.abo")
-        if os.path.exists(confdir + "abinit.log"):
-            os.remove(confdir + "abinit.log")
-        if os.path.exists(confdir + "abinito_GSR.nc"):
-            os.remove(confdir + "abinito_GSR.nc")
-        if os.path.exists(confdir + "abinito_OUT.nc"):
-            os.remove(confdir + "abinito_OUT.nc")
-        if os.path.exists(confdir + "abinito_DEN"):
-            os.remove(confdir + "abinito_DEN")
-        if os.path.exists(confdir + "abinito_WF"):
-            os.remove(confdir + "abinito_WF")
-        if os.path.exists(confdir + "abinito_DDB"):
-            os.remove(confdir + "abinito_DDB")
-        if os.path.exists(confdir + "abinito_EIG"):
-            os.remove(confdir + "abinito_EIG")
-        if os.path.exists(confdir + "abinito_EBANDS.agr"):
-            os.remove(confdir + "abinito_EBANDS.agr")
+        if os.path.exists(stateprefix + "abinit.abi"):
+            os.remove(stateprefix + "abinit.abi")
+        if os.path.exists(stateprefix + "abinit.abo"):
+            os.remove(stateprefix + "abinit.abo")
+        if os.path.exists(stateprefix + "abinit.log"):
+            os.remove(stateprefix + "abinit.log")
+        if os.path.exists(stateprefix + "abinito_GSR.nc"):
+            os.remove(stateprefix + "abinito_GSR.nc")
+        if os.path.exists(stateprefix + "abinito_OUT.nc"):
+            os.remove(stateprefix + "abinito_OUT.nc")
+        if os.path.exists(stateprefix + "abinito_DEN"):
+            os.remove(stateprefix + "abinito_DEN")
+        if os.path.exists(stateprefix + "abinito_WF"):
+            os.remove(stateprefix + "abinito_WF")
+        if os.path.exists(stateprefix + "abinito_DDB"):
+            os.remove(stateprefix + "abinito_DDB")
+        if os.path.exists(stateprefix + "abinito_EIG"):
+            os.remove(stateprefix + "abinito_EIG")
+        if os.path.exists(stateprefix + "abinito_EBANDS.agr"):
+            os.remove(stateprefix + "abinito_EBANDS.agr")

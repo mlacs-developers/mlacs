@@ -3,7 +3,7 @@ import os
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import MliapDescriptor, LinearPotential
 from mlacs.state.langevin import LangevinState
 from mlacs import OtfMlacs
 
@@ -32,13 +32,26 @@ cell_size = 2      # Multiplicity of the supercell, here 2x2x2.
 atoms = bulk('Cu', cubic=True).repeat(cell_size)
 
 # Lammps Exe ------------------------------------------------------------------
-lmp_exe = 'lammps'
-os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
+lmp_exe = 'lmp_serial'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
-# Creation of the MLIP Manager
-mlip = LammpsMlip(atoms, rcut=rcut, descriptor_parameters=mlip_params)
+# Creation of the MLIP
+snap_descriptor = MliapDescriptor(atoms=atoms, 
+                                  rcut=rcut, 
+                                  parameters=mlip_params, 
+                                  model="linear", 
+                                  style="snap", 
+                                  alpha="1.0")
+
+mlip = LinearPotential(descriptor=snap_descriptor, 
+                       nthrow=0,
+                       parameters={},
+                       energy_coefficient=1.0,
+                       forces_coefficient=1.0,
+                       stress_coefficient=1.0,
+                       mbar=None)
 
 # Creation of the State Manager
 state = LangevinState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq)
@@ -50,4 +63,5 @@ calc = EMT()
 sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
 
 # Run the simulation
+
 sampling.run(nconfs)
