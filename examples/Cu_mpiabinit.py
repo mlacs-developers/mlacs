@@ -21,7 +21,7 @@ http://www.pseudo-dojo.org
 
 To run this example, you need to have :
     Additional software : Abinit
-    Additional python module : netCDF4
+    Additional python module : netCDF4, mpi4py, pymbar
 
 OpenMP thread can be used by setting the variable OMP_NUM_THREADS
 in your environment before calling this python script.
@@ -59,7 +59,6 @@ variables = dict(
     shiftk=[0, 0, 0],
     toldfe=1e-7,
     autoparal=1,
-    iomode=0,
     nsym=1)
 
 pseudos = {"Cu": "Cu.psp8"}

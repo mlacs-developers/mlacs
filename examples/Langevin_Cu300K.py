@@ -63,5 +63,4 @@ calc = EMT()
 sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
 
 # Run the simulation
-
 sampling.run(nconfs)
