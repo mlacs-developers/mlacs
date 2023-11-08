@@ -216,9 +216,9 @@ def get_minimize_input(style,
     input_string += "thermo    1\n"
     input_string += f"min_style {style}\n"
     input_string += f"minimize  {etol} {ftol} {nitmax} {nitmax}\n"
-    input_string += "reset_timestep  0\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
+    return input_string
 
 
 # ========================================================================== #

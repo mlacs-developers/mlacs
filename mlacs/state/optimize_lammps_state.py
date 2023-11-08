@@ -202,10 +202,10 @@ class OptimizeLammpsState(LammpsState):
 
         input_string += get_last_dump_input(self.workdir,
                                             elem,
-                                            nsteps,
+                                            1,
                                             self.nbeads)
 
-        input_string += get_minimize_input(self.min_style,
+        input_string += get_minimize_input(self.style,
                                            self.criterions,
                                            nsteps,
                                            self.pressure,

@@ -161,6 +161,8 @@ class OtfMlacs:
             for i in range(nmax):
                 if self.pimd:
                     self.state[0].initialize_momenta(self.atoms[i])
+                elif self.state[i].temperature is None:
+                    pass
                 else:
                     self.state[i].initialize_momenta(self.atoms[i])
                 with open(self.prefix_output[i] + "_potential.dat", "w") as f:
@@ -320,6 +322,8 @@ class OtfMlacs:
                     msg = " -> Starting from first atomic configuration"
                     self.log.logger_log.info(msg)
                     atoms_mlip[istate] = self.atoms_start[istate].copy()
+                    if self.state[istate].temperature is None:
+                        continue
                     self.state[istate].initialize_momenta(atoms_mlip[istate])
             # With those thread, we can execute all the states in parallell
             futures = []
