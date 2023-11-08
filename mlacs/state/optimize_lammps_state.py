@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
+import numpy as np
 from subprocess import run, PIPE
 
 from ase.io import read
@@ -167,6 +168,7 @@ class OptimizeLammpsState(LammpsState):
         if charges is not None:
             atoms.set_initial_charges(init_charges)
 
+        print(np.max(atoms.get_forces()))
         return atoms.copy()
 
 # ========================================================================== #
