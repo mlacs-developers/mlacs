@@ -2,10 +2,9 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-
+import ase
+import importlib
 import numpy as np
-
-from 
 
 pafi_args = ['temperature',
              'configurations',
@@ -40,7 +39,7 @@ class CalcProperty:
     """
 
     def __init__(self,
-                 args,
+                 args={},
                  method='max',
                  criterion=0.001,
                  frequence=1):
@@ -48,14 +47,13 @@ class CalcProperty:
         self.freq = frequence
         self.stop = criterion
         self.method = method
-        self.neb = {}
         self.kwargs = args
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
 
 # ========================================================================== #
-    def _exec(self, *args):
+    def _exec(self, wdir=None):
         """
         Dummy execution function.
         """
@@ -65,15 +63,21 @@ class CalcProperty:
     @property
     def isconverged(self):
         """
-        Check if the property is converged. 
+        Check if the property is converged.
         """
         if self.isfirst:
-            self.old = np.zeros(len(self.new))
+            if isinstance(self.new, np.ndarray):
+                self.old = np.zeros(self.new.shape)
+            else:
+                self.new = np.r_[self.new]
+                self.old = np.zeros(self.new.shape)
             check = self._check
             self.old = self.new
             self.isfirst = False
         else:
             check = self._check
+            if not isinstance(self.new, np.ndarray):
+                self.new = np.r_[self.new]
             self.old = self.new
         return check
 
@@ -84,7 +88,7 @@ class CalcProperty:
         Check criterions.
         """
         self.maxf = np.max(np.abs(self.new-self.old))
-        if not self.isvar:
+        if not self.isgradient:
             self.maxf = np.max(np.abs(self.new))
         self.avef = np.average(np.abs(self.new-self.old))
         if self.method == 'max' and self.maxf < self.stop:
@@ -99,7 +103,10 @@ class CalcProperty:
         """
         If reference configuration needed.
         """
-        self.atoms = atoms
+        if isinstance(atoms, ase.atoms.Atoms):
+            self.atoms = [atoms]
+        else:
+            self.atoms = atoms
 
 # ========================================================================== #
     def __repr__(self):
@@ -107,7 +114,7 @@ class CalcProperty:
         Dummy function for the real logger.
         """
         return ""
-    
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -134,7 +141,7 @@ class CalcMfep(CalcProperty):
                  method='max',
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, method, criterion, frequence)
 
         from mlacs.state import PafiLammpsState
         self.pafi = {}
@@ -196,7 +203,7 @@ class CalcNeb(CalcProperty):
                  method='max',
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, method, criterion, frequence)
 
         from mlacs.state import NebLammpsState
         self.neb = {}
@@ -261,7 +268,7 @@ class CalcRdf(CalcProperty):
                  method='max',
                  criterion=0.05,
                  frequence=5):
-        CalcProperty.__init__(args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, method, criterion, frequence)
 
         from mlacs.state import RdfLammpsState
         self.atoms = atoms
@@ -330,7 +337,7 @@ class CalcTi(CalcProperty):
                  method='max',
                  criterion=0.001,
                  frequence=10):
-        CalcProperty.__init__(args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, method, criterion, frequence)
 
         self.ninstance = ninstance
         self.phase = phase
@@ -376,7 +383,7 @@ class CalcTi(CalcProperty):
                 _, tmp_new = self.state.postprocess(self.ti.get_fedir()
                                                     + f"for_back_{i+1}/")
                 tmp.append(tmp_new)
-            self.new = np.mean(tmp)
+            self.new = np.r_[np.mean(tmp)]
         return self.isconverged
 
 # ========================================================================== #
@@ -417,26 +424,30 @@ class CalcExecFunction(CalcProperty):
                  function,
                  args,
                  module=None,
+                 aseatoms=True,
                  gradient=False,
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(args, 'max', criterion, frequence)
+        CalcProperty.__init__(self, args, 'max', criterion, frequence)
 
-        self.function = function
-        self.namefunc = function
+        self._function = function
         if module is not None:
-            module = importlib.import_module(module)
-            self.function = getattr(module, function)
+            importlib.import_module(module)
+            self._function = getattr(module, function)
         self.isfirst = True
-        self.useatoms = True
+        self.useatoms = aseatoms
         self.isgradient = gradient
 
 # ========================================================================== #
-    def _exec(self, *args):
+    def _exec(self, wdir=None):
         """
-        Execute function 
+        Execute function
         """
-        self.new = self.function(*args)
+        if self.useatoms:
+            self._function = [getattr(_, self._function) for _ in self.atoms]
+            self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
         return self.isconverged
 
 # ========================================================================== #

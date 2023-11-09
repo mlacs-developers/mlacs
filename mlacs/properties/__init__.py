@@ -7,13 +7,21 @@ from mlacs.properties.property_manager import PropertyManager
 from mlacs.properties.calc_property import (CalcMfep,
                                             CalcNeb,
                                             CalcRdf,
-                                            CalcTi)
+                                            CalcTi,
+                                            CalcExecFunction,
+                                            CalcProperty,
+                                            )
 
-from .eos import eos_fit
+from .basic_function import (eos_fit,
+                             tolmaxforces)
 
 __all__ = ['PropertyManager',
+           'CalcProperty',
            'CalcMfep',
            'CalcNeb',
-           'eos_fit',
            'CalcRdf',
-           'CalcTi']
+           'CalcTi',
+           'CalcExecFunction',
+           'eos_fit',
+           'tolmaxforces',
+           ]
