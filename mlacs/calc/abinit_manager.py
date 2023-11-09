@@ -217,7 +217,6 @@ class AbinitManager(CalcManager):
             else:
                 shutil.copy(source, dest)
         new_psp = []
-        self.parameters.update({"outdata_prefix": stateprefix})
         pp_dirpath = self.parameters.get("pp_dirpath")
         pseudos = self.pseudos
 
