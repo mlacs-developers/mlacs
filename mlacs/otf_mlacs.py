@@ -6,6 +6,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+import logging
 
 from ase.atoms import Atoms
 from ase.io import read, Trajectory
@@ -20,7 +21,6 @@ from .state import StateManager
 from .utilities.log import MlacsLog
 from .utilities import create_random_structures
 from .utilities.path_integral import compute_centroid_atoms
-
 
 # ========================================================================== #
 # ========================================================================== #
@@ -666,6 +666,18 @@ class OtfMlacs:
             elif isinstance(prefix_output, list):
                 assert len(prefix_output) == self.nstate
                 self.prefix_output = prefix_output
+                unique = len(set(prefix_output)) == len(prefix_output)
+                if unique: # Every name must be unique because of netcdf error
+                    self.prefix_output = prefix_output
+                else:
+                    self.prefix_output = []
+                    msg = "Every state prefix must be unique.\n"
+                    msg += "Appending a number to differentiate them."
+                    logging.warning(msg)
+                    for i in range(self.nstate):
+                        self.prefix_output.append(prefix_output[i] +
+                            f"{i+1}")
+
             else:
                 msg = "prefix_output should be a string or a list of strings"
                 raise TypeError(msg)
