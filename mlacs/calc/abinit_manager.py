@@ -104,7 +104,7 @@ class AbinitManager(CalcManager):
         if self.workdir is None:
             self.workdir = os.getcwd() + "/DFT/"
         if self.workdir[-1] != "/":
-            self.workdir[-1] += "/"
+            self.workdir += "/"
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 

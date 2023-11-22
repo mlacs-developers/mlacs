@@ -34,6 +34,7 @@ class PropertyManager:
     @property
     def check_criterion(self):
         """
+        Check all criterions. They have to converged at the same time.
         """
         for _ in self.check:
             if not _:
@@ -41,8 +42,9 @@ class PropertyManager:
         return True
 
 # ========================================================================== #
-    def run(self, wdir, step):
+    def run(self, step, wdir):
         """
+        Run property calculation.
         """
         dircheck = False
         for prop in self.manager:
@@ -51,8 +53,17 @@ class PropertyManager:
         if not os.path.exists(wdir) and dircheck:
             os.makedirs(wdir)
         msg = ""
-        for i in range(len(self.manager)):
-            if step % self.manager[i].freq == 0:
-                self.check[i] = self.manager[i]._exec(wdir)
-                msg += self.manager[i].log_recap()
+        for i, prop in enumerate(self.manager):
+            if step % prop.freq == 0:
+                self.check[i] = prop._exec(wdir)
+                msg += repr(prop)
         return msg
+
+# ========================================================================== #
+    def calc_initialize(self, **kwargs):
+        """
+        Add on the fly arguments for calculation of properties.
+        """
+        for prop in self.manager:
+            if prop.useatoms:
+                prop.get_atoms(kwargs['atoms'])

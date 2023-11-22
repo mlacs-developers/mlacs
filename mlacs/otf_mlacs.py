@@ -410,10 +410,11 @@ class OtfMlacs:
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
 
-        # Computing properties with ML potential.
+        # Computing "on the fly" properties.
         if self.prop.manager is not None:
-            msg = self.prop.run(self.prop.workdir + f"Step{self.step}/",
-                                self.step)
+            self.prop.calc_initialize(atoms=self.atoms)
+            msg = self.prop.run(self.step,
+                                self.prop.workdir + f"Step{self.step}/")
             self.log.logger_log.info(msg)
             if self.prop.check_criterion:
                 msg = "All property calculations are converged, " + \

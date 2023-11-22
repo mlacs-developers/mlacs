@@ -194,6 +194,7 @@ class NebLammpsState(StateManager):
                                           masses,
                                           charges,
                                           atom_style,
+                                          None,
                                           filename,
                                           custom)
         input_string += get_interaction_input(pair_style,
