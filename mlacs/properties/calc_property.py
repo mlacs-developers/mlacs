@@ -407,15 +407,22 @@ class CalcTi(CalcProperty):
 # ========================================================================== #
 class CalcExecFunction(CalcProperty):
     """
-    Class to set a NEB calculation.
-    See NebLammpsState and NebLammpsState.run_NEB parameters.
+    Class to execute on the fly a python function and converge on the result.
 
     Parameters
     ----------
+    function: :class:`str` or `function`
+        Function to call. If the function is a `str`, you to define the
+        module to load the function.
+    args: :class:`dict`
+        Arguments of the function.
+    module: :class:`str`
+        Module to load the function.
+    useatoms: :class:`bool`
+        True if the function is called from an ase.Atoms object.
     method: :class:`str`
         Type of criterion :
             - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
         Default ``max``
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
