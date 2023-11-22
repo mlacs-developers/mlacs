@@ -2,9 +2,10 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import ase
 import importlib
 import numpy as np
+
+from ase.atoms import Atoms
 
 pafi_args = ['temperature',
              'configurations',
@@ -103,10 +104,10 @@ class CalcProperty:
         """
         If reference configuration needed.
         """
-        if isinstance(atoms, ase.atoms.Atoms):
-            self.atoms = [atoms]
+        if isinstance(atoms, Atoms):
+            self.atoms = [atoms.copy()]
         else:
-            self.atoms = atoms
+            self.atoms = atoms.copy()
 
 # ========================================================================== #
     def __repr__(self):
@@ -393,7 +394,10 @@ class CalcTi(CalcProperty):
         property.
         """
         msg = 'For the free energy convergence check:\n'
-        msg += f'Free energy at this step is: {self.new:10.6f} \n'
+        msg += 'Free energy at this step is: '
+        for _ in self.new:
+            msg += f' {_:10.6f}'
+        msg += '\n'
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'
         return msg
@@ -422,7 +426,7 @@ class CalcExecFunction(CalcProperty):
 
     def __init__(self,
                  function,
-                 args,
+                 args={},
                  module=None,
                  aseatoms=True,
                  gradient=False,
@@ -430,7 +434,7 @@ class CalcExecFunction(CalcProperty):
                  frequence=1):
         CalcProperty.__init__(self, args, 'max', criterion, frequence)
 
-        self._function = function
+        self._func = function
         if module is not None:
             importlib.import_module(module)
             self._function = getattr(module, function)
@@ -444,7 +448,7 @@ class CalcExecFunction(CalcProperty):
         Execute function
         """
         if self.useatoms:
-            self._function = [getattr(_, self._function) for _ in self.atoms]
+            self._function = [getattr(_, self._func) for _ in self.atoms]
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
@@ -456,7 +460,7 @@ class CalcExecFunction(CalcProperty):
         Return a string for the log with informations of the calculated
         property.
         """
-        msg = f'Converging on the result of {self.namefunc} function\n'
+        msg = f'Converging on the result of {self._func} function\n'
         if self.isgradient:
             msg += 'Computed with the previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'

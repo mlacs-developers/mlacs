@@ -412,7 +412,7 @@ class OtfMlacs:
 
         # Computing "on the fly" properties.
         if self.prop.manager is not None:
-            self.prop.calc_initiliaze(atoms=self.atoms)
+            self.prop.calc_initialize(atoms=self.atoms)
             msg = self.prop.run(self.step,
                                 self.prop.workdir + f"Step{self.step}/")
             self.log.logger_log.info(msg)
