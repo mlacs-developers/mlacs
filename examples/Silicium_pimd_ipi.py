@@ -21,7 +21,8 @@ with 4 beads
 
 atoms = bulk("Si", cubic=True).repeat(3)
 calc = LAMMPS(pair_style="tersoff/mod",
-              pair_coeff=["* * ../Si.tersoff.mod Si"])
+              pair_coeff=["* * ../Si.tersoff.mod Si"],
+              keep_tmp_files=False)
 
 # Parameters ------------------------------------------------------------------
 temperature = 20  # K
