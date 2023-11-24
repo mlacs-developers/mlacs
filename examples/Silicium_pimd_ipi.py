@@ -53,11 +53,8 @@ os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation---------
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms,
-                  rcut=rcut,
-                  stress_coefficient=scoef,
-                  style=style,
-                  descriptor_parameters=mlip_params)
+descriptor = SnapDescriptor(atoms, rcut, mlip_params)
+mlip = LinearPotential(descriptor, stress_coefficient=1.0)
 
 # Creation of the State Manager
 state = IpiState(temperature,
