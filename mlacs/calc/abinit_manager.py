@@ -66,10 +66,6 @@ class AbinitManager(CalcManager):
         Distributed equally over all submitted calculations
         And start MPI abinit calculation if more than 1 processor
 
-    ninstance: :class:`int` (optional)
-        Number of instance of abinit to run in parallel.
-        Default 1
-
     """
     def __init__(self,
                  parameters,
@@ -155,7 +151,7 @@ class AbinitManager(CalcManager):
                                 stateprefix+self.logfile,
                                 stateprefix+self.errfile,
                                 cdir=cdir)
-            executor.shutdown(wait=True, cancel_futures=False)
+            executor.shutdown(wait=True)
 
         # Now we can read everything
         results_confs = []
@@ -186,10 +182,10 @@ class AbinitManager(CalcManager):
         """
         Write the input for the current atoms
         """
-        if os.path.exists(stateprefix):
-            self._remove_previous_run(stateprefix)
+        cdir = '/'.join(stateprefix.split('/')[:-1])
+        if os.path.exists(cdir):
+            self._remove_previous_run(cdir)
         else:  # Get the directory but remove the prefix to abifile
-            cdir = '/'.join(stateprefix.split('/')[:-1])
             os.makedirs(cdir)
 
         # First we need to prepare some stuff
