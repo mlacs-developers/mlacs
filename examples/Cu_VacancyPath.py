@@ -51,7 +51,8 @@ calc = EMT()
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(neb[0], rcut=rcut, descriptor_parameters=mlip_params)
+descriptor = SnapDescriptor(atoms, rcut, mlip_params)
+mlip = LinearPotential(descriptor, stress_coefficient=1.0)
 
 # Creation of the Property Manager
 xi = np.arange(0, 1.1, 0.1)
