@@ -259,12 +259,12 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      xcm equal xcm(all,x)\n"
             input_string += "variable      ycm equal xcm(all,y)\n"
             input_string += "variable      zcm equal xcm(all,z)\n"
-        input_string += "fix           f2  all nve\n"
-        if self.pressure is None:
-            input_string += "fix           f1  all langevin ${tstart} " + \
+        input_string += "fix           f1  all langevin ${tstart} " + \
                 f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+        if self.pressure is None:
+            input_string += "fix           f2  all nve\n"
         else:
-            input_string += "fix           f1  all nph iso " + \
+            input_string += "fix           f2  all nph iso " + \
                 f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
                 "fixedpoint ${xcm} ${ycm} ${zcm}\n"
             # input_string += "fix           f2  all npt temp ${tstart} " + \
@@ -276,7 +276,8 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
-        input_string += "fix_modify    f2 temp c1\n"
+        if self.pressire is not None:
+            input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
 
         input_string += "\n\n"
