@@ -18,6 +18,7 @@ from .calc import CalcManager
 from .properties import PropertyManager
 from .state import StateManager
 from .utilities.log import MlacsLog
+from .utilities.miscellanous import compute_volume
 from .utilities import create_random_structures
 from .utilities.path_integral import compute_centroid_atoms
 
@@ -409,6 +410,21 @@ class OtfMlacs:
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
 
+        for istate in range(self.nstate):
+            if self.state[istate].pressure is not None:
+                msg = 'Computing the average volume\n'
+                self.log.logger_log.info(msg)
+                confs = read(self.prefix_output[istate] + '.traj', index=':')
+                if self.mlip.mbar is not None:
+                    weights = np.loadtxt(self.mlip.mbar.folder + 'MLIP.weight' )
+                else:
+                    weights = None
+                cell, volume = compute_volume(confs, weights)
+                msg += "Average structure:\n"
+                msg += f"- cell: {cell[0][0]:20.15f} angs\n"
+                msg += f"- vol/atom: {volume:20.15f} angs^3\n"
+                self.log.logger_log.info(msg)
+            
         # Computing properties with ML potential.
         if self.prop.manager is not None:
             msg = self.prop.run(self.prop.workdir + f"Step{self.step}/",
@@ -532,11 +548,14 @@ class OtfMlacs:
             elif isinstance(self.confs_init, list):
                 confs_init = self.confs_init
 
+            checkisfile = False
             if os.path.isfile("Training_configurations.traj"):
                 try:
                     read("Training_configurations.traj")
                     checkisfile = True
                 except UnknownFileTypeError:
+                    checkisfile = False
+                else:
                     checkisfile = False
 
             if checkisfile:
