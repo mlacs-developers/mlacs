@@ -68,12 +68,12 @@ class EinsteinSolidState(ThermoState):
         Suffix for the directory in which the computation will be run.
         If ``None``, a directory ``\"Solid_TXK\"`` is created,
         where X is the temperature. Default ``None``.
-    logfile : :class:`str` (optional)
-        Name of the file for logging the MLMD trajectory.
-        If ``None``, no log file is created. Default ``None``.
-    trajfile : :class:`str` (optional)
-        Name of the file for saving the MLMD trajectory.
-        If ``None``, no traj file is created. Default ``None``.
+    logfile : :class:`Bool` (optional)
+        Activate file for logging the MLMD trajectory.
+        If ``False``, no log file is created. Default ``True``.
+    trajfile : :class:`Bool` (optional)
+        Activate Name of the file for saving the MLMD trajectory dump.
+        If ``False``, no traj file is created. Default ``True``.
     interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
         loginterval and trajinterval. Default ``50``.
@@ -114,7 +114,7 @@ class EinsteinSolidState(ThermoState):
 
         self.fcorr1 = fcorr1
         self.fcorr2 = fcorr2
-
+    
         ThermoState.__init__(self,
                              atoms,
                              pair_style,
@@ -355,10 +355,10 @@ class EinsteinSolidState(ThermoState):
 
         input_string += "\n\n"
 
-        if self.logfile is not None:
-            input_string += self.get_log_input()
-        if self.trajfile is not None:
-            input_string += self.get_traj_input()
+        if self.logfile:
+            input_string += self.get_log_input("neti")
+        if self.trajfile:
+            input_string += self.get_traj_input("neti")
 
         input_string += "\n"
 
@@ -453,9 +453,9 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "\n\n"
 
-        if self.logfile is not None:
+        if self.logfile:
             input_string += self.get_log_input("msd")
-        if self.trajfile is not None:
+        if self.trajfile:
             input_string += self.get_traj_input("msd")
 
         input_string += "#####################################\n"

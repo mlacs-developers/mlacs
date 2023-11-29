@@ -65,11 +65,11 @@ class UFLiquidState(ThermoState):
         If ``None``, a directory ``\"Liquid_TXK\"`` is created,
         where X is the temperature. Default ``None``.
     logfile : :class:`str` (optional)
-        Name of the file for logging the MLMD trajectory.
-        If ``None``, no log file is created. Default ``None``.
+        Activate file for logging the MLMD trajectory.
+        If ``False``, no log file is created. Default ``True``.
     trajfile : :class:`str` (optional)
-        Name of the file for saving the MLMD trajectory.
-        If ``None``, no traj file is created. Default ``None``.
+        Activate Name of the file for saving the MLMD trajectory dump.
+        If ``False``, no dump file is created. Default ``True``.
     interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
         loginterval and trajinterval. Default ``50``.
@@ -331,9 +331,9 @@ class UFLiquidState(ThermoState):
 
         input_string += "\n\n"
 
-        if self.logfile is not None:
+        if self.logfile:
             input_string += self.get_log_input()
-        if self.trajfile is not None:
+        if self.trajfile:
             input_string += self.get_traj_input()
 
         input_string += "\n"
