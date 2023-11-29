@@ -436,16 +436,15 @@ class EinsteinSolidState(ThermoState):
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
         # input_string += "fix    f2  all nve\n"
-        input_string += f"fix    f1  all langevin {self.temperature} " + \
-                        f"{self.temperature} {damp}  " + \
+        input_string += f"fix           f1  all langevin {self.temperature} " + \
+                        f"{self.temperature} {damp} " + \
                         f"{self.rng.integers(99999)} zero yes\n"
         if self.pressure is None:                                             
             input_string += "fix           f2  all nve\n"
         else:               
             input_string += "fix           f2  all nph iso " + \
-                            f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
-                            "fixedpoint ${xcm} ${ycm} ${zcm}\n"
-
+                            f"{self.pressure*10000} {self.pressure*10000} {pdamp}\n"
+        
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -464,7 +463,7 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += "run         ${nstepseq}\n"
         if self.pressure is not None:
-            input_string += "unfix       f2\n"
+            input_string += "unfix           f2\n"
             input_string += "fix           f2  all nve\n" #Let us replace in NVT to compute msd
         for iel, el in enumerate(self.elem):
             input_string += f"fix         f{iel+3} {el} print 1 " + \
