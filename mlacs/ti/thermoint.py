@@ -109,9 +109,10 @@ class ThermodynamicIntegration:
             msg = f"State {ii} instance_{i+1} : Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
             self.log.logger_log.info(msg)
+            msg, _ = self.state[istate].postprocess(stateworkdir)
+            self.log.logger_log.info(msg)
             msg = '=' * 59 + "\n"
             msg += f"State {ii} instance_{i+1}: Post-process Done\n"
-            msg += self.state[istate].postprocess(stateworkdir)
             msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
         elif self.ninstance == 1:
@@ -120,12 +121,13 @@ class ThermodynamicIntegration:
             msg = f"State {ii}: Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
             self.log.logger_log.info(msg)
+            msg, _ = self.state[istate].postprocess(stateworkdir)
+            self.log.logger_log.info(msg)
             msg = "=" * 59 + "\n"
             msg += f"State {istate+1}: Post-process Done\n"
-            msg += self.state[istate].postprocess(stateworkdir)
             msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
-
+            
 # ========================================================================== #
     def recap_state(self):
         """

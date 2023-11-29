@@ -93,6 +93,7 @@ class EinsteinSolidState(ThermoState):
                  k=None,
                  dt=1,
                  damp=None,
+                 pdamp=None,
                  nsteps=10000,
                  nsteps_eq=5000,
                  nsteps_msd=25000,
@@ -108,6 +109,7 @@ class EinsteinSolidState(ThermoState):
         self.temperature = temperature
         self.pressure = pressure
         self.damp = damp
+        self.pdamp = pdamp
         self.nsteps_msd = nsteps_msd
 
         self.fcorr1 = fcorr1
@@ -297,9 +299,12 @@ class EinsteinSolidState(ThermoState):
         if self.fcorr1 is not None or self.fcorr2 is not None:
             msg += "Free energy corrected :         " + \
                    f"{free_energy_corrected:10.6f} eV/at\n"
-        # add Fe or Fe_corrected to return to be read for cv purpose
+        # add Fe or Fe_corrected to return to be read for cv purpose and RS
         if self.fcorr1 is not None or self.fcorr2 is not None:
-            return msg, free_energy_corrected
+            if self.pressure is None:
+                return msg, free_energy_corrected
+            else:
+                return msg, free_energy_corrected + pv
         else:
             if self.pressure is None:
                 return msg, free_energy
@@ -394,10 +399,19 @@ class EinsteinSolidState(ThermoState):
     def write_lammps_input_msd(self, wdir):
         """
         Write the LAMMPS input for the MLMD simulation
+        Each method should close all the fixes. Run equilibration routine
+        to reach the given finite pressure.
+        Be aware that the thermostat can work faster than the barostat and 
+        that the structure can melt before the pressure is scaled. 
+        An equilibrated structure .json is returned while msd is also computed.
         """
         damp = self.damp
         if damp is None:
             damp = "$(100*dt)"
+
+        pdamp = self.pdamp
+        if pdamp is None:
+            pdamp = "$(1000*dt)"
 
         input_string = self.get_general_input()
 
@@ -421,13 +435,22 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
-        input_string += "fix    f2  all nve\n"
+        # input_string += "fix    f2  all nve\n"
         input_string += f"fix    f1  all langevin {self.temperature} " + \
                         f"{self.temperature} {damp}  " + \
                         f"{self.rng.integers(99999)} zero yes\n"
+        if self.pressure is None:                                             
+            input_string += "fix           f2  all nve\n"
+        else:               
+            input_string += "fix           f2  all nph iso " + \
+                            f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
+                            "fixedpoint ${xcm} ${ycm} ${zcm}\n"
+
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
+        if self.pressure is not None:
+            input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
         input_string += "\n\n"
 
@@ -440,6 +463,9 @@ class EinsteinSolidState(ThermoState):
         input_string += "#           Compute MSD\n"
         input_string += "#####################################\n"
         input_string += "run         ${nstepseq}\n"
+        if self.pressure is not None:
+            input_string += "unfix       f2\n"
+            input_string += "fix           f2  all nve\n" #Let us replace in NVT to compute msd
         for iel, el in enumerate(self.elem):
             input_string += f"fix         f{iel+3} {el} print 1 " + \
                             f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"
