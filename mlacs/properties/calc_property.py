@@ -287,7 +287,7 @@ class CalcRdf(CalcProperty):
         """
         Exec a Rdf calculation with lammps.
         """
-        self.kwargs['supercell'] = self.atoms
+        self.kwargs['supercell'] = self.atoms[0]
         self.kwargs['workdir'] = wdir + '/Rdf_Calculation/'
         self.state.run_dynamics(**self.kwargs)
         self.new = np.loadtxt(self.kwargs['workdir'] +
