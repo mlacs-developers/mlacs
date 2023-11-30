@@ -6,6 +6,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+import logging
 
 from ase.atoms import Atoms
 from ase.io import read, Trajectory
@@ -21,7 +22,6 @@ from .utilities.log import MlacsLog
 from .utilities.miscellanous import compute_volume
 from .utilities import create_random_structures
 from .utilities.path_integral import compute_centroid_atoms
-
 
 # ========================================================================== #
 # ========================================================================== #
@@ -284,7 +284,8 @@ class OtfMlacs:
         # Training MLIP
         msg = "Training new MLIP\n"
         if self.mlip.mbar is not None:
-            msg += "Computing weights with MBAR\n"
+            if self.mlip.mbar._nstart <= min(self.nconfs):
+                msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
         msg = self.mlip.train_mlip()
         self.log.logger_log.info(msg)
@@ -409,7 +410,7 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
-
+            
         for istate in range(self.nstate):
             if self.state[istate].pressure is not None:
                 msg = 'Computing the average volume\n'
@@ -426,9 +427,12 @@ class OtfMlacs:
                 self.log.logger_log.info(msg)
             
         # Computing properties with ML potential.
+        # Computing "on the fly" properties.
+
         if self.prop.manager is not None:
-            msg = self.prop.run(self.prop.workdir + f"Step{self.step}/",
-                                self.step)
+            self.prop.calc_initialize(atoms=self.atoms)
+            msg = self.prop.run(self.step,
+                                self.prop.workdir + f"Step{self.step}/")
             self.log.logger_log.info(msg)
             if self.prop.check_criterion:
                 msg = "All property calculations are converged, " + \
@@ -555,8 +559,8 @@ class OtfMlacs:
                     checkisfile = True
                 except UnknownFileTypeError:
                     checkisfile = False
-                else:
-                    checkisfile = False
+            else:
+                checkisfile = False
 
             if checkisfile:
                 msg = "Training configurations found\n"
@@ -680,6 +684,18 @@ class OtfMlacs:
             elif isinstance(prefix_output, list):
                 assert len(prefix_output) == self.nstate
                 self.prefix_output = prefix_output
+                unique = len(set(prefix_output)) == len(prefix_output)
+                if unique: # Every name must be unique because of netcdf error
+                    self.prefix_output = prefix_output
+                else:
+                    self.prefix_output = []
+                    msg = "Every state prefix must be unique.\n"
+                    msg += "Appending a number to differentiate them."
+                    logging.warning(msg)
+                    for i in range(self.nstate):
+                        self.prefix_output.append(prefix_output[i] +
+                            f"{i+1}")
+
             else:
                 msg = "prefix_output should be a string or a list of strings"
                 raise TypeError(msg)

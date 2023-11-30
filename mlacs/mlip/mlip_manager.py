@@ -4,8 +4,9 @@
 """
 import numpy as np
 from ase.atoms import Atoms
-from ase.calculators.lammpsrun import LAMMPS
 from ase.units import GPa
+
+from ..utilities import compute_correlation
 
 
 # ========================================================================== #
@@ -101,8 +102,7 @@ class MlipManager:
     def test_mlip(self, testset):
         """
         """
-        calc = LAMMPS(pair_style=self.pair_style,
-                      pair_coeff=self.pair_coeff)
+        calc = self.get_calculator()
 
         ml_e = []
         ml_f = []
@@ -136,14 +136,9 @@ class MlipManager:
         ml_f = np.array(ml_f)
         ml_s = np.array(ml_s)
 
-        rmse_e = np.sqrt(np.mean((dft_e - ml_e)**2))
-        mae_e = np.mean(np.abs(dft_e - ml_e))
-
-        rmse_f = np.sqrt(np.mean((dft_f - ml_f)**2))
-        mae_f = np.mean(np.abs(dft_f - ml_f))
-
-        rmse_s = np.sqrt(np.mean((((dft_s - ml_s) / GPa)**2)))
-        mae_s = np.mean(np.abs((dft_s - ml_s) / GPa))
+        rmse_e, mae_e, rsq_e = compute_correlation(np.c_[dft_e, ml_e])
+        rmse_f, mae_f, rsq_f = compute_correlation(np.c_[dft_f, ml_f])
+        rmse_s, mae_s, rsq_s = compute_correlation(np.c_[dft_s, ml_s] / GPa)
 
         nat = np.array([len(at) for at in testset]).sum()
         msg = "number of configurations for training: " + \

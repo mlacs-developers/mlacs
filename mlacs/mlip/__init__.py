@@ -9,7 +9,8 @@ from .snap_descriptor import SnapDescriptor
 from .mtp_model import MomentTensorPotential
 from .linear_potential import LinearPotential
 from .delta_learning import DeltaLearningPotential
-
+from .spin_potential import SpinLatticePotential
+from .mbar_manager import MbarManager
 
 __all__ = ['MlipManager',
            'Descriptor',
@@ -18,4 +19,6 @@ __all__ = ['MlipManager',
            'SnapDescriptor',
            'LinearPotential',
            'MomentTensorPotential',
-           'DeltaLearningPotential']
+           'DeltaLearningPotential',
+           'SpinLatticePotential',
+           'MbarManager']

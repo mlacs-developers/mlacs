@@ -431,7 +431,9 @@ class LammpsState(StateManager):
         if pdamp is None:
             pdamp = 1000 * self.dt
 
-        if self.pressure is None:
+        if self.temperature is None and self.pressure is None:
+            msg = "Geometry optimization as implemented in LAMMPS\n"
+        elif self.pressure is None:
             msg = "NVT dynamics as implemented in LAMMPS\n"
         else:
             msg = "NPT dynamics as implemented in LAMMPS\n"
@@ -443,9 +445,10 @@ class LammpsState(StateManager):
         msg += f"Number of MLMD equilibration steps :    {self.nsteps_eq}\n"
         msg += f"Number of MLMD production steps :       {self.nsteps}\n"
         msg += f"Timestep (in fs) :                      {self.dt}\n"
-        msg += f"Themostat damping parameter (in fs) :   {self.dt}\n"
-        if self.pressure is not None:
-            msg += f"Barostat damping parameter (in fs) :    {pdamp}\n"
+        if self.temperature is not None:
+            msg += f"Themostat damping parameter (in fs) :   {damp}\n"
+            if self.pressure is not None:
+                msg += f"Barostat damping parameter (in fs) :    {pdamp}\n"
         msg += "\n"
         return msg
 

@@ -289,7 +289,6 @@ class UFLiquidState(ThermoState):
             else:
                 return msg, free_energy + pv
 
-
 # ========================================================================== #
     def write_lammps_input(self, wdir, atomsfname):
         """
