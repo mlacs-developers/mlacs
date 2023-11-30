@@ -7,7 +7,11 @@ from pathlib import Path
 import os
 import numpy as np
 
-from pymbar import MBAR
+try:
+    from pymbar import MBAR
+    ispymbar = True
+except ModuleNotFoundError:
+    ispymbar = False
 
 from ase.atoms import Atoms
 from ase.units import kB, GPa
@@ -64,8 +68,13 @@ class MbarManager:
         A good idea is to put it in the same file as the MLIP.
 
     """
+
     def __init__(self, parameters=dict(), database=None,
                  weight=None, folder=""):
+        if not ispymbar:
+            msg = "You need pymbar installed to use the MBAR manager"
+            raise ModuleNotFoundError(msg)
+
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
