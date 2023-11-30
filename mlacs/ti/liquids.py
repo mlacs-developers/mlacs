@@ -43,13 +43,16 @@ class UFLiquidState(ThermoState):
         Second order cumulant correction to the free energy, in eV/at,
         to be added to the results.
         If ``None``, no value is added. Default ``None``.
+    equilibrate: :class:`Bool` (optional)
+        Equilibrate the ideal strucutre at zero or finite pressure. 
+        Default ``True``
     p: :class:`int`
         p parameter of the Uhlenbeck-Ford potential.
         Should be ``1``, ``25``, ``50``, ``75`` or ``100``. Default ``50``
     p: :class:`float`
         sigma parameter of the Uhlenbeck-Ford potential. Default ``2.0``.
     dt: :class:`int` (optional)
-        Timestep for the simulations, in fs. Default ``1.5``
+        Timestep for the simulations, in fs. Default ``1``
     damp : :class:`float` (optional)
         Damping parameter.
         If ``None``, a damping parameter of 100 x dt is used.
@@ -57,19 +60,25 @@ class UFLiquidState(ThermoState):
         Number of production steps. Default ``10000``.
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
+    nsteps_averaging: :class:`int` (optional)                                      
+        Number of step for equilibrate ideal structure at zero or finite pressure. 
+        Default ``10000``.
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
+    langevin: :class:`Bool`
+        Settle or not a langevin thermostat to equilibrate 
+        an ideal structure at zero or finite pressure. Default ``False``
     suffixdir: :class:`str`
         Suffix for the directory in which the computation will be run.
         If ``None``, a directory ``\"Liquid_TXK\"`` is created,
         where X is the temperature. Default ``None``.
-    logfile : :class:`str` (optional)
-        Name of the file for logging the MLMD trajectory.
-        If ``None``, no log file is created. Default ``None``.
-    trajfile : :class:`str` (optional)
-        Name of the file for saving the MLMD trajectory.
-        If ``None``, no traj file is created. Default ``None``.
+    logfile : :class:`Bool` (optional)
+        Activate file for logging the MLMD trajectory.
+        If ``False``, no log file is created. Default ``True``.
+    trajfile : :class:`Bool` (optional)
+        Activate Name of the file for saving the MLMD trajectory dump.
+        If ``False``, no dump file is created. Default ``True``.
     interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
         loginterval and trajinterval. Default ``50``.
@@ -92,7 +101,9 @@ class UFLiquidState(ThermoState):
                  damp=None,
                  nsteps=10000,
                  nsteps_eq=5000,
+                 nsteps_averaging=10000,
                  rng=None,
+                 langevin=False,
                  suffixdir=None,
                  logfile=True,
                  trajfile=True,
@@ -111,6 +122,9 @@ class UFLiquidState(ThermoState):
         self.p = p
         self.sigma = sigma
 
+        if self.pressure is not None:
+            self.equilibrate = True
+         
         if self.p not in p_tabled:
             msg = "The p value of the UF potential has to be one for " + \
                   "which the free energy of the Uhlenbeck-Ford potential " + \
@@ -125,7 +139,9 @@ class UFLiquidState(ThermoState):
                              dt,
                              nsteps,
                              nsteps_eq,
+                             nsteps_averaging,
                              rng,
+                             langevin,
                              logfile,
                              trajfile,
                              interval,
@@ -145,6 +161,9 @@ class UFLiquidState(ThermoState):
         if not os.path.exists(wdir):
             os.makedirs(wdir)
 
+        if self.equilibrate:
+            self.eq_structure = self.run_averaging(wdir)
+
         self.run_dynamics(wdir)
 
         with open(wdir + "MLMD.done", "w") as f:
@@ -154,13 +173,19 @@ class UFLiquidState(ThermoState):
     def run_dynamics(self, wdir):
         """
         """
-        atomsfname = wdir + "atoms.in"
+        if self.equilibrate:
+            atomsfname = wdir + "eq_atoms.in"
+            write_lammps_data(atomsfname, self.eq_structure)
+            atomsfname = "eq_atoms.in"
+        else:
+            atomsfname = wdir + "atoms.in"
+            write_lammps_data(atomsfname, self.atoms)
+            atomsfname = "atoms.in"
         lammpsfname = wdir + "lammps_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-        write_lammps_data(atomsfname, self.atoms)
 
-        self.write_lammps_input(wdir)
+        self.write_lammps_input(wdir, atomsfname)
         call(lammps_command, shell=True, cwd=wdir)
 
 # ========================================================================== #
@@ -265,7 +290,7 @@ class UFLiquidState(ThermoState):
                 return msg, free_energy + pv
 
 # ========================================================================== #
-    def write_lammps_input(self, wdir):
+    def write_lammps_input(self, wdir, atomsfname):
         """
         Write the LAMMPS input for the MLMD simulation
         """
@@ -274,13 +299,21 @@ class UFLiquidState(ThermoState):
         if damp is None:
             damp = "$(100*dt)"
 
-        pair_coeff = self.pair_coeff.split()
         pair_style = self.pair_style.split()
-        hybrid_pair_coeff = " ".join([*pair_coeff[:2],
-                                      pair_style[0],
-                                      *pair_coeff[2:]])
+        if len(self.pair_coeff) == 1:
+            pair_coeff = self.pair_coeff.split()
+            hybrid_pair_coeff = " ".join([*pair_coeff[:2],
+                                          pair_style[0],
+                                          *pair_coeff[2:]])
 
-        input_string = self.get_general_input()
+        else:
+            hybrid_pair_coeff = []
+            for pc in self.pair_coeff:
+                pc_ = pc.split()
+                hpc_=" ".join([*pc_[:2], *pc_[2:]])
+                hybrid_pair_coeff.append(hpc_)
+
+        input_string = self.get_general_input(atomsfname)
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -322,9 +355,9 @@ class UFLiquidState(ThermoState):
 
         input_string += "\n\n"
 
-        if self.logfile is not None:
+        if self.logfile:
             input_string += self.get_log_input()
-        if self.trajfile is not None:
+        if self.trajfile:
             input_string += self.get_traj_input()
 
         input_string += "\n"
@@ -344,15 +377,31 @@ class UFLiquidState(ThermoState):
             "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
         input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
-        input_string += "pair_style   hybrid/scaled v_lambda_true " + \
-            f"{pair_style[0]} v_lambda_ufm ufm ${{rc}}\n"
-        input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
-        input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
+        if len(self.pair_style)==1:
+            input_string += "fix          hybrid/scaled v_lambda_true " + \
+                            f"{pair_style} v_lambda_ufm ufm ${{rc}}\n"
+            input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
+            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
+            input_string += "\n"
+        # pair_style comd compatible only with one zbl, To be fixed
+        else:
+            input_string += "pair_style   hybrid/scaled v_lambda_true " + \
+            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} v_lambda_true " + \
+            f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
+            input_string += "pair_coeff   " + hybrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff   " + hybrid_pair_coeff[1] + "\n"
+            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
+            input_string += "\n"
+        if len(self.pair_coeff)==1:
+            input_string += f"compute      c2 all pair {pair_style[0]}\n"
+            input_string += "compute      c3 all pair ufm\n"
+            input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
+        else:
+            input_string += f"compute      c2 all pair {pair_style[1]}\n"
+            input_string += f"compute      c4 all pair {pair_style[4]}\n"
+            input_string += "compute      c3 all pair ufm\n"
+            input_string += "variable     dU equal ((c_c2+c_c4)-c_c3)/atoms\n"
         input_string += "\n"
-        input_string += f"compute      c2 all pair {pair_style[0]}\n"
-        input_string += "compute      c3 all pair ufm\n"
-        input_string += "\n"
-        input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
         input_string += "variable     lamb equal 1-v_lambda_true\n"
         input_string += "\n"
         input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
@@ -372,11 +421,20 @@ class UFLiquidState(ThermoState):
             "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
         input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
-        input_string += "pair_style   hybrid/scaled v_lambda_true " + \
-            f"{pair_style[0]} v_lambda_ufm ufm ${{rc}}\n"
-        input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
-        input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
-        input_string += "\n"
+        if len(self.pair_style)==1:
+            input_string += "fix          hybrid/scaled v_lambda_true " + \
+                            f"{pair_style} v_lambda_ufm ufm ${{rc}}\n"
+            input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
+            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
+            input_string += "\n"
+        else:
+            input_string += "pair_style   hybrid/scaled v_lambda_true " + \
+            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} v_lambda_true " + \
+            f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
+            input_string += "pair_coeff   " + hybrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff   " + hybrid_pair_coeff[1] + "\n"
+            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
+            input_string += "\n"
         input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
             "title \"# dU lambda\" screen no append backward.dat\n"
         input_string += "run          ${nsteps}\n"
