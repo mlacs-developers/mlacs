@@ -230,7 +230,7 @@ class ReversibleScalingState(ThermoState):
             for pc in self.pair_coeff:
                 pc_ = pc.split()
                 hpc_ = " ".join([*pc_[:2], *pc_[2:]])
-                hybrid_pair_coeff.append(hoc_)
+                hybrid_pair_coeff.append(hpc_)
 
         input_string = self.get_general_input()
 
@@ -260,7 +260,7 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      ycm equal xcm(all,y)\n"
             input_string += "variable      zcm equal xcm(all,z)\n"
         input_string += "fix           f1  all langevin ${tstart} " + \
-                f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+                        f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
         else:
@@ -276,7 +276,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
-        if self.pressire is not None:
+        if self.pressure is not None:
             input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
 
@@ -303,8 +303,8 @@ class ReversibleScalingState(ThermoState):
             input_string += "pair_style hybrid/scaled v_lamda " + \
                             f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
                             f"v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[1] + "\n"
+            input_string += "pair_coeff    " + hybdrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff    " + hybdrid_pair_coeff[1] + "\n"
             input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
@@ -331,8 +331,8 @@ class ReversibleScalingState(ThermoState):
             input_string += "pair_style hybrid/scaled v_lamda " + \
                             f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
                             f"v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[1] + "\n"
+            input_string += "pair_coeff    " + hybdrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff    " + hybdrid_pair_coeff[1] + "\n"
             input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \

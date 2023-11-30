@@ -104,7 +104,7 @@ class ThermoState:
 
         write_lammps_data(atomsfname, self.atoms)
         self.write_lammps_equilibrate_input(wdir)
-        
+
         call(lammps_command, shell=True, cwd=wdir)
 
         last_dump_atoms = read(wdir + 'dump_averaging')
@@ -150,12 +150,13 @@ class ThermoState:
         damp = self.damp
         if damp is None:
             damp = "$(100*dt)"
-
+            
         pdamp = self.pdamp
         if pdamp is None:
             pdamp = "$(1000*dt)"
 
         input_string = self.get_general_input()
+
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -163,7 +164,7 @@ class ThermoState:
         input_string += f"variable      nsteps_averaging equal {self.nsteps_averaging}\n"
         input_string += f"timestep      {self.dt/1000}\n"
         input_string += "\n\n\n"
-        
+
         input_string += self.get_interaction_input()
 
         input_string += "#####################################\n"

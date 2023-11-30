@@ -99,6 +99,7 @@ class UFLiquidState(ThermoState):
                  sigma=2.0,
                  dt=1,
                  damp=None,
+                 pdamp=None,
                  nsteps=10000,
                  nsteps_eq=5000,
                  nsteps_averaging=10000,
@@ -115,6 +116,7 @@ class UFLiquidState(ThermoState):
         self.temperature = temperature
         self.pressure = pressure
         self.damp = damp
+        self.pdamp = pdamp
 
         self.fcorr1 = fcorr1
         self.fcorr2 = fcorr2
@@ -124,6 +126,8 @@ class UFLiquidState(ThermoState):
 
         if self.pressure is not None:
             self.equilibrate = True
+        else:
+            self.equilibrate = False
          
         if self.p not in p_tabled:
             msg = "The p value of the UF potential has to be one for " + \
@@ -184,7 +188,6 @@ class UFLiquidState(ThermoState):
         lammpsfname = wdir + "lammps_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-
         self.write_lammps_input(wdir, atomsfname)
         call(lammps_command, shell=True, cwd=wdir)
 
@@ -195,7 +198,10 @@ class UFLiquidState(ThermoState):
         """
         pass
         # Get needed value/constants
-        vol = self.atoms.get_volume()  # angs**3
+        if self.equilibrate:
+            vol = self.atoms.get_volume()
+        else:
+            vol = self.eq_structure.get_volume()  # angs**3
         nat_tot = len(self.atoms)
 
         nat = []
@@ -300,19 +306,18 @@ class UFLiquidState(ThermoState):
             damp = "$(100*dt)"
 
         pair_style = self.pair_style.split()
-        if len(self.pair_coeff) == 1:
-            pair_coeff = self.pair_coeff.split()
+        if len(self.pair_coeff)==1:
+            pair_coeff = self.pair_coeff[0].split()
             hybrid_pair_coeff = " ".join([*pair_coeff[:2],
                                           pair_style[0],
                                           *pair_coeff[2:]])
-
         else:
             hybrid_pair_coeff = []
             for pc in self.pair_coeff:
                 pc_ = pc.split()
                 hpc_=" ".join([*pc_[:2], *pc_[2:]])
                 hybrid_pair_coeff.append(hpc_)
-
+                
         input_string = self.get_general_input(atomsfname)
 
         input_string += "#####################################\n"
@@ -325,7 +330,7 @@ class UFLiquidState(ThermoState):
         input_string += "#####################################\n"
 
         input_string += "\n\n\n"
-
+        
         input_string += self.get_interaction_input()
 
         input_string += "#####################################\n"
@@ -377,9 +382,10 @@ class UFLiquidState(ThermoState):
             "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
         input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
-        if len(self.pair_style)==1:
-            input_string += "fix          hybrid/scaled v_lambda_true " + \
-                            f"{pair_style} v_lambda_ufm ufm ${{rc}}\n"
+
+        if len(self.pair_coeff)==1:
+            input_string += "pair_style          hybrid/scaled v_lambda_true " + \
+                            f"{pair_style[0]} v_lambda_ufm ufm ${{rc}}\n"
             input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
             input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
             input_string += "\n"
@@ -421,9 +427,9 @@ class UFLiquidState(ThermoState):
             "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
         input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
         input_string += "\n"
-        if len(self.pair_style)==1:
-            input_string += "fix          hybrid/scaled v_lambda_true " + \
-                            f"{pair_style} v_lambda_ufm ufm ${{rc}}\n"
+        if len(self.pair_coeff)==1:
+            input_string += "pair_style          hybrid/scaled v_lambda_true " + \
+                            f"{pair_style[0]} v_lambda_ufm ufm ${{rc}}\n"
             input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
             input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
             input_string += "\n"

@@ -125,6 +125,8 @@ class EinsteinSolidState(ThermoState):
 
         if self.pressure is not None:
             self.equilibrate = True
+        else:
+            self.equilibrate = False
     
         ThermoState.__init__(self,
                              atoms,
@@ -231,7 +233,10 @@ class EinsteinSolidState(ThermoState):
         Compute the free energy from the simulation
         """
         # Get needed value/constants
-        vol = self.eq_structure.get_volume()
+        if self.equilibrate:
+            vol = self.eq_structure.get_volume()
+        else:
+            vol = self.atoms.get_volume()
         nat_tot = len(self.atoms)
 
         # Compute some oscillator frequencies and number
