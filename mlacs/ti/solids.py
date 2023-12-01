@@ -206,13 +206,18 @@ class EinsteinSolidState(ThermoState):
     def compute_msd(self, wdir):
         """
         """
-        atomsfname = wdir + "atoms.in"
+        
+        if self.equilibrate:
+            atomsfname = wdir + "eq_atoms.in"
+            write_lammps_data(atomsfname, self.eq_structure)
+            atomsfname = "eq_atoms.in"
+        else:
+            atomsfname = wdir + "atoms.in"
+            write_lammps_data(atomsfname, self.atoms)
         lammpsfname = wdir + "lammps_msd_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-        write_lammps_data(atomsfname, self.atoms)
-                
-        self.write_lammps_input_msd(wdir)
+        self.write_lammps_input_msd(wdir, atomsfname)
                 
         call(lammps_command, shell=True, cwd=wdir)
     
@@ -347,7 +352,10 @@ class EinsteinSolidState(ThermoState):
         if damp is None:
             damp = "$(100*dt)"
 
-        input_string = self.get_general_input(atomsfname)
+        if self.equilibrate:
+            input_string = self.get_general_input(atomsfname)
+        else:
+            input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -422,7 +430,7 @@ class EinsteinSolidState(ThermoState):
             f.write(input_string)
 
 # ========================================================================== #
-    def write_lammps_input_msd(self, wdir):
+    def write_lammps_input_msd(self, wdir, atomsfname):
         """
         Write the LAMMPS input for msd computation
         during the MLMD simulation
@@ -435,7 +443,10 @@ class EinsteinSolidState(ThermoState):
         if pdamp is None:
             pdamp = "$(1000*dt)"
             
-        input_string = self.get_general_input()
+        if self.equilibrate:
+            input_string = self.get_general_input(atomsfname)
+        else:
+            input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
