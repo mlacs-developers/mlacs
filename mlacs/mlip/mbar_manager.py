@@ -254,8 +254,6 @@ class MbarManager:
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         ekn = self.get_mlip_energy(a, c)
-        e = np.array([_.get_potential_energy() for _ in ddb])
-        print(ekn, e)
         assert len(ekn) == self.nconfs
         ukn = (ekn + P * V) / (kB * T)
         return ukn
