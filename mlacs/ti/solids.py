@@ -12,7 +12,7 @@ from ase.io.lammpsdata import write_lammps_data
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                 free_energy_com_harmonic_oscillator)
 from .thermostate import ThermoState
-
+from ase.io import read, write
 
 eV = 1.602176634e-19  # eV
 hbar = 6.582119514e-16  # hbar
@@ -174,14 +174,14 @@ class EinsteinSolidState(ThermoState):
             os.makedirs(wdir)
 
         if self.equilibrate:
-            self.eq_structure = self.run_averaging(wdir)
-            
+            self.run_averaging(wdir)
+             
         if self.k is None:
             # First get optimal spring constant
             self.compute_msd(wdir)
 
         self.run_dynamics(wdir)
-
+        
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
 
@@ -190,8 +190,10 @@ class EinsteinSolidState(ThermoState):
         """
         """
         if self.equilibrate:
+            # red last_dump_atoms
+            eq_structure = read(wdir + 'dump_averaging')
             atomsfname = wdir + "eq_atoms.in"
-            write_lammps_data(atomsfname, self.eq_structure)
+            write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
             atomsfname = wdir + "atoms.in"
@@ -208,8 +210,10 @@ class EinsteinSolidState(ThermoState):
         """
         
         if self.equilibrate:
+            # red last_dump_atoms
+            eq_structure = read(wdir + 'dump_averaging')
             atomsfname = wdir + "eq_atoms.in"
-            write_lammps_data(atomsfname, self.eq_structure)
+            write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
             atomsfname = wdir + "atoms.in"
@@ -239,7 +243,8 @@ class EinsteinSolidState(ThermoState):
         """
         # Get needed value/constants
         if self.equilibrate:
-            vol = self.eq_structure.get_volume()
+            eq_structure = read(wdir + 'dump_averaging')
+            vol = eq_structure.get_volume()
         else:
             vol = self.atoms.get_volume()
         nat_tot = len(self.atoms)

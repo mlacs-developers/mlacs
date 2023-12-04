@@ -107,10 +107,6 @@ class ThermoState:
 
         call(lammps_command, shell=True, cwd=wdir)
 
-        last_dump_atoms = read(wdir + 'dump_averaging')
-        equlibrated_structure = last_dump_atoms
-        return equlibrated_structure
-    
 # ========================================================================== #
     def run_dynamics(self, wdir):
         """

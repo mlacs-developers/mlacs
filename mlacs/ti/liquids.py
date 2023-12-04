@@ -11,7 +11,7 @@ from ase.io.lammpsdata import write_lammps_data
 from .thermostate import ThermoState
 from ..utilities.thermo import (free_energy_uhlenbeck_ford,
                                 free_energy_ideal_gas)
-
+from ase.io import read, write
 
 p_tabled = [1, 25, 50, 75, 100]
 
@@ -178,8 +178,10 @@ class UFLiquidState(ThermoState):
         """
         """
         if self.equilibrate:
+            # red last_dump_atoms
+            eq_structure = read(wdir + 'dump_averaging')
             atomsfname = wdir + "eq_atoms.in"
-            write_lammps_data(atomsfname, self.eq_structure)
+            write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
             atomsfname = wdir + "atoms.in"
@@ -199,9 +201,10 @@ class UFLiquidState(ThermoState):
         pass
         # Get needed value/constants
         if self.equilibrate:
-            vol = self.atoms.get_volume()
+            eq_structure = read(wdir + 'dump_averaging')
+            vol = eq_structure.get_volume()
         else:
-            vol = self.eq_structure.get_volume()  # angs**3
+            vol = self.atoms.get_volume()  # angs**3
         nat_tot = len(self.atoms)
 
         nat = []
