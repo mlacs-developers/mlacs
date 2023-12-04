@@ -166,7 +166,7 @@ class UFLiquidState(ThermoState):
             os.makedirs(wdir)
 
         if self.equilibrate:
-            self.eq_structure = self.run_averaging(wdir)
+            self.run_averaging(wdir)
 
         self.run_dynamics(wdir)
 
