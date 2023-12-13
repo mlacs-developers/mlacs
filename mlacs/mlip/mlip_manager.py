@@ -4,8 +4,9 @@
 """
 import numpy as np
 from ase.atoms import Atoms
-from ase.calculators.lammpsrun import LAMMPS
 from ase.units import GPa
+
+from ..utilities import compute_correlation
 
 
 # ========================================================================== #
@@ -101,9 +102,8 @@ class MlipManager:
     def test_mlip(self, testset):
         """
         """
-        calc = LAMMPS(pair_style=self.pair_style,
-                      pair_coeff=self.pair_coeff)
-        
+        calc = self.get_calculator()
+
         ml_e = []
         ml_f = []
         ml_s = []
@@ -111,26 +111,23 @@ class MlipManager:
         dft_f = []
         dft_s = []
         for at in testset:
-            try:
-                mlat = at.copy()
-                mlat.calc = calc
-                e = mlat.get_potential_energy() / len(mlat)
-                f = mlat.get_forces().flatten()
-                s = mlat.get_stress()
+            mlat = at.copy()
+            mlat.calc = calc
+            e = mlat.get_potential_energy() / len(mlat)
+            f = mlat.get_forces().flatten()
+            s = mlat.get_stress()
 
-                ml_e.append(e)
-                ml_f.extend(f)
-                ml_s.extend(s)
+            ml_e.append(e)
+            ml_f.extend(f)
+            ml_s.extend(s)
 
-                e = at.get_potential_energy() / len(at)
-                f = at.get_forces().flatten()
-                s = at.get_stress()
+            e = at.get_potential_energy() / len(at)
+            f = at.get_forces().flatten()
+            s = at.get_stress()
 
-                dft_e.append(e)
-                dft_f.extend(f)
-                dft_s.extend(s)
-            except:
-                pass
+            dft_e.append(e)
+            dft_f.extend(f)
+            dft_s.extend(s)
 
         dft_e = np.array(dft_e)
         dft_f = np.array(dft_f)
@@ -139,17 +136,9 @@ class MlipManager:
         ml_f = np.array(ml_f)
         ml_s = np.array(ml_s)
 
-
-        rmse_e = np.sqrt(np.mean((dft_e - ml_e)**2))
-        mae_e = np.mean(np.abs(dft_e - ml_e))
-
-        rmse_f = np.sqrt(np.mean((dft_f - ml_f)**2))
-        mae_f = np.mean(np.abs(dft_f - ml_f))
-
-        rmse_s = np.sqrt(np.mean((((dft_s - ml_s) / GPa)**2)))
-        mae_s = np.mean(np.abs((dft_s - ml_s) / GPa))
-
-
+        rmse_e, mae_e, rsq_e = compute_correlation(np.c_[dft_e, ml_e])
+        rmse_f, mae_f, rsq_f = compute_correlation(np.c_[dft_f, ml_f])
+        rmse_s, mae_s, rsq_s = compute_correlation(np.c_[dft_s, ml_s] / GPa)
 
         nat = np.array([len(at) for at in testset]).sum()
         msg = "number of configurations for training: " + \

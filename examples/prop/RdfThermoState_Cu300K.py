@@ -3,13 +3,13 @@ import os
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
-from mlacs.mlip import LammpsMlip
+from mlacs.mlip import MliapDescriptor, LinearPotential
 from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
 
 """
-Example of a MLACS simulation of Cu at 300 K to converged on rdf with Lammps.
+Example of a MLACS simulation of Cu at 300 K.
 The true potential is the EMT as implemented in ASE.
 """
 # System
@@ -45,7 +45,16 @@ friction = 0.01    # Friction coefficient for the Langevin thermostat.
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms, rcut=rcut, descriptor_parameters=mlip_params)
+snap_descriptor = MliapDescriptor(atoms=atoms,
+                                   rcut=rcut,
+                                   parameters=mlip_params,
+                                   model='linear',
+                                   style='snap')
+mlip = LinearPotential(descriptor=snap_descriptor,
+                       energy_coefficient=1.0,
+                       forces_coefficient=1.0,
+                       stress_coefficient=1.0,
+                       mbar=None)
 # Creation of the State Manager
 state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq, rdffile='rdf.dat')
 # Creation of the OtfMLACS object

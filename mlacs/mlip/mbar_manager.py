@@ -4,9 +4,14 @@
 """
 from pathlib import Path
 
+import os
 import numpy as np
 
-from pymbar import MBAR
+try:
+    from pymbar import MBAR
+    ispymbar = True
+except ModuleNotFoundError:
+    ispymbar = False
 
 from ase.atoms import Atoms
 from ase.units import kB, GPa
@@ -14,7 +19,8 @@ from ase.units import kB, GPa
 
 default_parameters = {"mode": "compute",
                       "solver": "L-BFGS-B",
-                      "scale": 0.1,
+                      "scale": 1.0,
+                      "start": 2,
                       }
 
 
@@ -38,10 +44,15 @@ class MbarManager:
         Define type of solver for pymbar
         Default L-BFGS-B
 
-    scale: :class:`str`
+    scale: :class:`float`
         Imposes weights for the new configurations.
         Only relevant in the train mode.
-        Default 0.1
+        Default 1.0
+
+    start: :class:`int`
+        Step to start weight computation.
+        At least 2 since you need two potentials to compare them.
+        Default 2
 
     database: :class:`ase.Trajectory`
         Initial database (optional)
@@ -57,8 +68,13 @@ class MbarManager:
         A good idea is to put it in the same file as the MLIP.
 
     """
+
     def __init__(self, parameters=dict(), database=None,
                  weight=None, folder=""):
+        if not ispymbar:
+            msg = "You need pymbar installed to use the MBAR manager"
+            raise ModuleNotFoundError(msg)
+
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
@@ -66,25 +82,37 @@ class MbarManager:
         self.matsize = None
         if database is not None:
             self.matsize = [len(a) for a in database]
-        self._newddb = []
         self.Nk = []
         self.W = None
         self.folder = Path(folder).absolute()
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
-                weight = np.loadtxt(self.folder + weight)
+                weight = np.loadtxt(self.folder / "MLIP.weight")
             self.weight.append(weight)
-            we, wf, ws = self._build_W_efs(weight)
-            self.W = np.r_[we, wf, ws]
+        elif os.path.isfile("MLIP.weight"):
+            weight = np.loadtxt("MLIP.weight")
+            self.weight.append(weight)
+        elif os.path.isfile(self.folder / "MLIP.weight"):
+            weight = np.loadtxt(self.folder / "MLIP.weight")
+            self.weight.append(weight)
+        else:
+            self.weight = []
         self.train_mlip = False
         self.mlip_amat = []
         self.mlip_coef = []
 
+        self._newddb = []
+        self._nstart = self.parameters['start']
+        if self._nstart <= 1:
+            msg = 'The "start" variable has to be higher than 2.\n'
+            msg += 'You need at least two potentials to compare them.'
+            raise ValueError(msg)
+
 # ========================================================================== #
     def run_weight(self, a, c):
         """
-        Get A matrices and SNAP coefficients.
+        Get A matrices and linear coefficients.
         Compute the matrice Ukn of partition fonctions.
         """
 
@@ -107,7 +135,7 @@ class MbarManager:
         self._newddb = []
 
         header = ''
-        if not 0 == len(self.mlip_coef):
+        if self._nstart <= len(self.mlip_coef):
             shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
             ukn = np.zeros(shape)
             for istep, coeff in enumerate(self.mlip_coef):
@@ -214,16 +242,13 @@ class MbarManager:
 # ========================================================================== #
     def _init_weight(self):
         """
-        Initialize the weight matrice.
-        Need to be tested.
+        Initialize the weight matrice with W = scale * 1/N.
         """
         n_tot = len(self.matsize)
-        n_new = len(self._newddb)
         weight = np.ones(n_tot) / n_tot
         weight = self.parameters['scale'] * weight
-        if self.get_effective_conf() / n_tot > 0.8:
-            weight = 0.0 * weight
-        weight[:-n_new] = self.weight[-1]
+        if self._nstart < len(self.weight):
+            weight[:len(self.weight[-1])] = self.weight[-1]
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -239,7 +264,7 @@ class MbarManager:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         ekn = self.get_mlip_energy(a, c)
         assert len(ekn) == self.nconfs
-        ukn = (ekn + P * V * GPa) / (kB * T)
+        ukn = (ekn + P * V) / (kB * T)
         return ukn
 
 # ========================================================================== #

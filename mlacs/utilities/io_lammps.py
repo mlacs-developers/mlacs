@@ -1,3 +1,4 @@
+from ase.calculators.lammps import Prism, convert
 
 
 class LammpsIo:
@@ -229,6 +230,31 @@ def get_neb_input(dt,
 
 
 # ========================================================================== #
+def get_minimize_input(style,
+                       criterions,
+                       nitmax,
+                       press=None,
+                       ptype="iso",
+                       vmax=None):
+    """
+    Function to write the general parameters for geometric optimization
+    """
+    etol, ftol = criterions
+    input_string = "#####################################\n"
+    input_string += "# Geometry optimization \n"
+    input_string += "#####################################\n"
+    if press is not None:
+        input_string += "fix      box all box/relax " + \
+                        f"{ptype} {press*10000} vmax {vmax}\n"
+    input_string += "thermo    1\n"
+    input_string += f"min_style {style}\n"
+    input_string += f"minimize  {etol} {ftol} {nitmax} {nitmax}\n"
+    input_string += "#####################################\n"
+    input_string += "\n\n\n"
+    return input_string
+
+
+# ========================================================================== #
 def get_interaction_input(pair_style,
                           pair_coeff,
                           model_post):
@@ -254,7 +280,7 @@ def get_interaction_input(pair_style,
 
 
 # ========================================================================== #
-def get_last_dump_input(workdir, elem, nsteps, nbeads=1):
+def get_last_dump_input(workdir, elem, nsteps, nbeads=1, with_delay=True):
     """
     Function to write the dump of the last configuration of the mlmd
     """
@@ -270,7 +296,8 @@ def get_last_dump_input(workdir, elem, nsteps, nbeads=1):
     input_string += "dump_modify last element "
     input_string += " ".join([p for p in elem])
     input_string += "\n"
-    input_string += f"dump_modify last delay {nsteps}\n"
+    if with_delay:
+        input_string += f"dump_modify last delay {nsteps}\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -341,3 +368,44 @@ def get_rdf_input(rdffile, nsteps):
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
+
+
+# ========================================================================== #
+def write_atoms_lammps_spin_style(fd, atoms, spin):
+    """
+    Function to write atoms in the LAMMPS spin style
+    Loosely adapted from ASE write_lammpsdata function
+    """
+    fd.write("# Atoms in spin style, Written by MLACS\n\n")
+
+    nat = len(atoms)
+    fd.write(f"{nat} atoms\n")
+
+    symbols = atoms.get_chemical_symbols()
+    species = sorted(set(symbols))
+    n_atom_type = len(species)
+    fd.write(f"{n_atom_type} atom types\n\n")
+
+    prismobj = Prism(atoms.get_cell())
+    xhi, yhi, zhi, xy, xz, yz = convert(prismobj.get_lammps_prism(),
+                                        'distance',
+                                        'ASE',
+                                        'metal')
+
+    fd.write(f'0.0 {xhi:23.17g} xlo xhi\n')
+    fd.write(f'0.0 {yhi:23.17g} ylo yhi\n')
+    fd.write(f'0.0 {zhi:23.17g} zlo zhi\n')
+    fd.write("\n\n")
+
+    fd.write("Atoms # spin\n\n")
+
+    pos = prismobj.vector_to_lammps(atoms.get_positions(), wrap=False)
+    for i, r in enumerate(pos):
+        r = convert(r, "distance", "ASE", "metal")
+        s = species.index(symbols[i]) + 1
+        line = f"{i+1:>6} {s:>3} "  # Index and species
+        line += f"{r[0]:23.17f} {r[1]:23.17f} {r[2]:23.17f} "  # Positions
+        line += f"1.0 "  # Spin amplitude
+        line += f"{spin[i, 0]:23.17f} {spin[i, 1]:23.17f} {spin[i, 2]:23.17f} "
+        line += "\n"
+        fd.write(line)

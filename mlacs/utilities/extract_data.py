@@ -8,6 +8,7 @@ from ase.units import Bohr, GPa
 def extract_data_from_files(file_confs, weights=None, **kwargs):
     '''
     Funtion to prepare input as ase object for pressure/volume calculations
+    POST-TREATMENT
 
     Parameters
     ----------
@@ -21,9 +22,9 @@ def extract_data_from_files(file_confs, weights=None, **kwargs):
     --------
     '''
 
-    confs = read('configurations.json', index=':')
+    confs = read(file_confs, index=':')
     if weights:
-        weights = np.loadtxt('weights.dat')
+        weights = np.loadtxt(weights.dat)
     return extract_data(confs, weights)
 
 
@@ -51,15 +52,25 @@ def extract_data(confs,
     if weights is None:
         weights = np.ones(nconfs) / nconfs
 
-    cell = confs[0].get_cell() / Bohr
     natom = len(confs[0].get_scaled_positions(wrap=False))
-    volume = cell[0][0]*cell[1][1]*cell[2][2] / natom
+    if self.npt is None:
+        cell = confs[0].get_cell() / Bohr
+        volume = cell[0][0]*cell[1][1]*cell[2][2] / natom
+    else:
+        cell = []
+        volume = []
+        for i in range(len(confs)):
+            cell.append(confs[i].get_cell() * weights[i])
+            volume.append(confs[i].get_volume() * weights[i] / natom)
+        cell = np.sum(cell, axis=0)
+        volume = np.sum(volume)
+
     stress = np.array([at.get_stress(voigt=True, include_ideal_gas=True) / GPa
                        for at in confs])
 
     stress_av = []
     pressure_pot = 0
-    for i in range(len(stress)):
+    for i in range(len(confs)):
         sum = 0
         for j in range(3):
             sum += stress[i][j]

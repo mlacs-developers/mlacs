@@ -37,7 +37,7 @@ class ReversibleScalingState(ThermoState):
         Free energy of the initial temperature, in eV/at. Default ``None``.
     ninstance: :class:`int` (optional)
         If Free energy calculation has to be done before temperature sweep
-        Settles the number of forward abackward runs. Default ``1``.
+        Settles the number of forward and backward runs. Default ``1``.
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
     damp : :class:`float` (optional)
@@ -99,6 +99,7 @@ class ReversibleScalingState(ThermoState):
                  loginterval=50,
                  trajinterval=50):
 
+        self.atoms = atoms
         self.t_start = t_start
         self.t_end = t_end
         self.fe_init = fe_init
@@ -217,6 +218,20 @@ class ReversibleScalingState(ThermoState):
         if pdamp is None:
             pdamp = "$(1000*dt)"
 
+        pair_style = self.pair_style.split()
+        if len(self.pair_coeff) == 1:
+            pair_coeff = self.pair_coeff[0].split()
+            hybrid_pair_coeff = " ".join([*pair_coeff[:2],
+                                          pair_style[0],
+                                          *pair_coeff[2:]])
+
+        else:
+            hybrid_pair_coeff = []
+            for pc in self.pair_coeff:
+                pc_ = pc.split()
+                hpc_ = " ".join([*pc_[:2], *pc_[2:]])
+                hybrid_pair_coeff.append(hoc_)
+
         input_string = self.get_general_input()
 
         input_string += "#####################################\n"
@@ -244,19 +259,24 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      xcm equal xcm(all,x)\n"
             input_string += "variable      ycm equal xcm(all,y)\n"
             input_string += "variable      zcm equal xcm(all,z)\n"
+        input_string += "fix           f1  all langevin ${tstart} " + \
+                f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
         else:
             input_string += "fix           f2  all nph iso " + \
-                f"{self.pressure} {self.pressure} {pdamp} " + \
+                f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
                 "fixedpoint ${xcm} ${ycm} ${zcm}\n"
-        input_string += "fix           f1  all langevin ${tstart} " + \
-            f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+            # input_string += "fix           f2  all npt temp ${tstart} " + \
+            #     f"${{tstart}} {damp} iso {self.pressure*10000} " + \
+            #     f"{self.pressure*10000} {pdamp} " + \
+            #     "fixedpoint ${xcm} ${ycm} ${zcm}\n"
+
         input_string += "\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
-        if self.pressure is not None:
+        if self.pressire is not None:
             input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
 
@@ -276,13 +296,22 @@ class ReversibleScalingState(ThermoState):
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
             "1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        input_string += "fix          f3 all adapt 1 pair " + \
-            f"{self.pair_style} scale * * v_lambda\n"
+        if len(self.pair_coeff) ==1:
+            input_string += "fix          f3 all adapt 1 pair " + \
+                            f"{self.pair_style} scale * * v_lambda\n"
+        else:
+            input_string += "pair_style hybrid/scaled v_lamda " + \
+                            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
+                            f"v_lambda {pair_style[4]}\n"
+            input_string += "pair_coeff" + hybdrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff" + hybdrid_pair_coeff[1] + "\n"
+            input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
-            "\"$(pe/atoms) ${lambda}\" screen no " + \
-            "append forward.dat title \"# pe    lambda\"\n"
+            "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
+            "append forward.dat title \"# pe    pressure    vol    lambda\"\n"
         input_string += "run          ${nsteps}\n"
-        input_string += "unfix        f3\n"
+        if len(self.pair_coeff) == 1:
+            input_string += "unfix        f3\n"
         input_string += "unfix        f4\n"
         input_string += "#####################################\n"
 
@@ -295,11 +324,19 @@ class ReversibleScalingState(ThermoState):
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
             "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        input_string += "fix          f3 all adapt 1 pair " + \
-            f"{self.pair_style} scale * * v_lambda\n"
+        if len(self.pair_coeff) ==1:
+            input_string += "fix          f3 all adapt 1 pair " + \
+                            f"{self.pair_style} scale * * v_lambda\n"
+        else:
+            input_string += "pair_style hybrid/scaled v_lamda " + \
+                            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
+                            f"v_lambda {pair_style[4]}\n"
+            input_string += "pair_coeff" + hybdrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff" + hybdrid_pair_coeff[1] + "\n"
+            input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
-            "\"$(pe/atoms) ${lambda}\" screen no " + \
-            "append backward.dat title \"# pe    lambda\"\n"
+            "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
+            "append backward.dat title \"# pe    pressure    vol    lambda\"\n"
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
@@ -311,13 +348,23 @@ class ReversibleScalingState(ThermoState):
         """
         Compute the free energy from the simulation
         """
-
+        natoms = len(self.atoms)
+        if self.pressure is not None:
+            p = self.pressure/160.21766208  # already divided by 100000
+        else:
+            p = 0.0
         # Get data
-        v_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
-        v_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
+        v_f, fp, fvol, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
+        v_b, bp, bvol, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
 
         v_f /= lambda_f
         v_b /= lambda_b
+
+        # add pressure contribution
+        fvol = fvol / natoms
+        bvol = bvol / natoms
+        v_f = v_f + p * fvol
+        v_b = v_b + p * bvol
 
         # Integrate the forward and backward data
         int_f = cumtrapz(v_f, lambda_f, initial=0)

@@ -109,9 +109,10 @@ class ThermodynamicIntegration:
             msg = f"State {ii} instance_{i+1} : Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
             self.log.logger_log.info(msg)
+            msg, _ = self.state[istate].postprocess(stateworkdir)
+            self.log.logger_log.info(msg)
             msg = '=' * 59 + "\n"
             msg += f"State {ii} instance_{i+1}: Post-process Done\n"
-            msg += self.state[istate].postprocess(stateworkdir)
             msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
         elif self.ninstance == 1:
@@ -120,12 +121,13 @@ class ThermodynamicIntegration:
             msg = f"State {ii}: Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
             self.log.logger_log.info(msg)
+            msg, _ = self.state[istate].postprocess(stateworkdir)
+            self.log.logger_log.info(msg)
             msg = "=" * 59 + "\n"
             msg += f"State {istate+1}: Post-process Done\n"
-            msg += self.state[istate].postprocess(stateworkdir)
             msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
-
+            
 # ========================================================================== #
     def recap_state(self):
         """
@@ -147,10 +149,12 @@ class ThermodynamicIntegration:
         stateworkdir = self.workdir + self.state[istate].get_workdir()
         fe = []
         for i in range(self.ninstance):
-            tmp_fe = np.loadtxt(stateworkdir +
-                                f"for_back_{i+1}/" +
-                                "free_energy.dat")
-            fe.append(tmp_fe[1])
+            # tmp_fe = np.loadtxt(stateworkdir +
+            #                     f"for_back_{i+1}/" +
+            #                     "free_energy.dat")
+            # fe.append(tmp_fe[1]+tmp_fe[len(tmp_fe)-1])
+            _, tmp_fe = self.state[istate].postprocess(stateworkdir+f"for_back_{i+1}/")
+            fe.append(tmp_fe)
         ferr = np.std(fe, axis=0)
         femean = np.mean(fe, axis=0)
         msg = f"Free Energy mean and error for state {istate+1}:\n"

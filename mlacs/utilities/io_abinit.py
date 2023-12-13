@@ -9,6 +9,11 @@ from ase import Atoms
 from ase.units import Bohr, Hartree
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
+try:
+    import netCDF4 as nc
+except ImportError:
+    nc = None
+
 
 def set_aseAtoms(results=dict()) -> Atoms:
     """Read results dictionary to construct Ase Atoms object"""
@@ -71,10 +76,8 @@ class AbinitNC:
     """
     def __init__(self, workdir=None, prefix='abinit'):
 
-        try:
-            import netCDF4 as nc
-        except ImportError:
-            return None
+        if nc is None:
+            raise ImportError("You need Netcdf4 to use the AbinitNC class")
 
         self.workdir = workdir
         if self.workdir is None:
@@ -90,8 +93,6 @@ class AbinitNC:
 # ========================================================================== #
     def read(self, filename=None):
         """Read NetCDF output of Abinit"""
-
-        import netCDF4 as nc
 
         if filename is not None:
             self.dataset = nc.Dataset(filename)
