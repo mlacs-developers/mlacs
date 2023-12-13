@@ -16,13 +16,13 @@ from ..utilities.io_lammps import write_atoms_lammps_spin_style
 
 # ========================================================================== #
 # ========================================================================== #
-class PimdLammpsState(LammpsState):
+class SpinLammpsState(LammpsState):
     """
-    Class to manage PIMD simulations with LAMMPS
+    Class to manage spin-lattice simulations with LAMMPS
     """
     def __init__(self,
                  temperature,
-                 temperature_spin,
+                 temperature_spin=None,
                  pressure=None,
                  t_stop=None,
                  p_stop=None,
@@ -67,12 +67,14 @@ class PimdLammpsState(LammpsState):
                      pair_style,
                      pair_coeff,
                      model_post=None,
-                     atom_style="atomic",
-                     eq=False,
-                     nbeads_return=1):
+                     atom_style="spin",
+                     eq=False):
 
         atoms = supercell.copy()
         spins = atoms.get_array("spins")
+
+        if not os.path.exists(self.workdir):
+            os.makedirs(self.workdir)
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
@@ -96,10 +98,8 @@ class PimdLammpsState(LammpsState):
             MaxwellBoltzmannDistribution(atoms,
                                          temperature_K=temp,
                                          rng=self.rng)
-        write_lammps_data(self.workdir + self.atomsfname,
-                          atoms,
-                          velocities=True,
-                          atom_style=atom_style)
+        with open(self.workdir + self.atomsfname, "w") as fd:
+            write_atoms_lammps_spin_style(fd, atoms, spins)
 
         if eq:
             nsteps = self.nsteps_eq
@@ -115,8 +115,7 @@ class PimdLammpsState(LammpsState):
                                 temp,
                                 press)
 
-        lammps_command = f"{self.cmd} -partition {self.nbeads}x1 -in " + \
-            f"{self.lammpsfname} -sc out.lmp"
+        lammps_command = f"{self.cmd} -in {self.lammpsfname} -sc out.lmp"
         lmp_handle = run(lammps_command,
                          shell=True,
                          cwd=self.workdir,
@@ -130,12 +129,45 @@ class PimdLammpsState(LammpsState):
         if charges is not None:
             init_charges = atoms.get_initial_charges()
         fname = "configurations.out"
-        if self.nbeads > 1:
-            ndigit = len(str(self.nbeads))
-            # Will be changed for the full PIMD simulations
-            fname += f"_{1:0{ndigit}d}"
         atoms = read(f"{self.workdir}{fname}")
         if charges is not None:
             atoms.set_initial_charges(init_charges)
 
         return atoms.copy()
+
+# ========================================================================== #
+    def get_thermostat_input(self, temp, press):
+        """
+
+        """
+        damp = self.damp
+        if self.damp is None:
+            damp = "$(100*dt)"
+
+        pdamp = self.pdamp
+        if self.pdamp is None:
+            pdamp = "$(1000*dt)"
+
+        input_string = "#####################################\n"
+        input_string += "#      Thermostat/Integrator\n"
+        input_string += "#####################################\n"
+        input_string += "timestep      {0}\n".format(self.dt / 1000)
+
+        seed = self.rng.integers(1, 99999999)
+        if self.pressure is None:
+            fix_latt = f"fix f1 all nvt temp {temp} {temp} {damp}"
+        else:
+            fix_latt = f"fix f1 all npt temp {temp} {temp} {damp}" + \
+                f"{self.ptype} {press*10000} {press*10000} {pdamp}"
+        fix_spin = f"fix fspin all langevin/spin {temp} {damp} {seed}"
+        fix_nve = "fix fsl all nve/spin lattice moving"
+
+        input_string += f"{fix_latt}\n"
+        input_string += f"{fix_spin}\n"
+        input_string += f"{fix_nve}\n"
+        if self.fixcm:
+            input_string += "fix    fcm all recenter INIT INIT INIT\n"
+        input_string += "#####################################\n"
+        input_string += "\n\n\n"
+        return input_string
+
