@@ -1,38 +1,175 @@
+import numpy as np
 from ase.calculators.lammps import Prism, convert
 
 
-class LammpsIo:
+class LammpsInput:
     """
+
     """
-    def __init__(self, fix_wargs, potentials=None):
-        self._vars=dict
+    def __init__(self, preambule=None):
+        if preambule is not None:
+            self.preambule = f"# {preambule}"
+        else:
+            self.preambule = ""
+        self.nvar = 0
+        self.vardict = dict()
 
-    def __delitem__(self, key):
-        return self.vars.__delitem__(key)
+    def add_block(self, name, block, order=-1, before=None, after=None):
+        """
 
-    def __getitem__(self, key):
-        return self.vars.__getitem__(key)
+        """
+        if before is not None and after is not None:
+            msg = "before and after can't be both set"
+            raise ValueError(msg)
 
-    def __getitem__(self, key, value):
-        self._check_varname(key)
-        return self.vars.__setitem__(key, value)
+        if before is not None:
+            order = self.vardict[before]["order"]
+        elif after is not None:
+            order = self.vardict[after]["order"] + 1
+
+        if order < 0:
+            order = self.nvar + 1
+        else:
+            keys = []
+            values = []
+            for key, val in self.vardict.items():
+                keys.append(key)
+                values.append(val["order"])
+            keys = np.array(keys)
+            values = np.array(values)
+            argsort = np.argsort(values)
+            values = values[argsort]
+            keys = keys[argsort]
+            if order > np.max(values) or order not in values:
+                self.vardict["name"]["order"] = order
+            elif order in values:
+                values[values >= order] += 1
+                for i, (key, val) in enumerate(zip(keys, values)):
+                    self.vardict[key]["order"] = values[i]
+        self.vardict[name] = dict(order=order, block=block)
+        self.nvar += 1
+
+    def to_string(self):
+        """
+
+        """
+        keys = []
+        orders = []
+        blocks = []
+        for key, val in self.vardict.items():
+            keys.append(key)
+            orders.append(val["order"])
+            blocks.append(val["block"])
+
+        keys = np.array(keys)
+        orders = np.array(orders)
+        blocks = np.array(blocks)
+
+        argsort = np.argsort(orders)
+        blocks = blocks[argsort]
+
+        txt = self.preambule
+        txt += "\n\n".join(str(block) for block in blocks)
+        return txt
+
+    def pop(self, name):
+        return self.vardict.pop(name)
 
     def __str__(self):
         return self.to_string()
 
-    def __iter__(self):
-        return self.vars.__iter__()
+    def __call__(self, name, block, order=-1):
+        self.add_block(name, block, order)
 
-    def __len__(self):
-        return len(self.vars)
 
-    @property
-    def vars(self):
-        return self._vars
+class LammpsBlockInput:
+    """
 
-    def set_vars(self, *args, **kwargs):
+    """
+    def __init__(self, name, title=None):
+        self.name = name
+        self.vardict = dict()
+        self.nvar = 0
+        if title is not None:
+            title = title.strip()
+            nchar = len(title)
+            self.title = "#" * (12 + nchar) + "\n"
+            self.title += title.center(nchar + 10, " ").center(nchar + 12, "#")
+            self.title += "\n"
+            self.title += "#" * (12 + nchar) + "\n"
+        else:
+            self.title = "\n"
 
-    
+    def add_variable(self, name, line, order=-1, before=None, after=None):
+        """
+
+        """
+        if before is not None and after is not None:
+            msg = "before and after can't be both set"
+            raise ValueError(msg)
+
+        if before is not None:
+            order = self.vardict[before]["order"]
+        elif after is not None:
+            order = self.vardict[after]["order"] + 1
+
+        if order < 0:
+            order = self.nvar + 1
+        else:
+            keys = []
+            values = []
+            for key, val in self.vardict.items():
+                keys.append(key)
+                values.append(val["order"])
+            keys = np.array(keys)
+            values = np.array(values)
+            argsort = np.argsort(values)
+            values = values[argsort]
+            keys = keys[argsort]
+            if order > np.max(values) or order not in values:
+                self.vardict["name"]["order"] = order
+            elif order in values:
+                values[values >= order] += 1
+                for i, (key, val) in enumerate(zip(keys, values)):
+                    self.vardict[key]["order"] = values[i]
+        self.vardict[name] = dict(order=order, line=line)
+        self.nvar += 1
+
+    def to_string(self):
+        """
+
+        """
+        keys = []
+        orders = []
+        lines = []
+        for key, val in self.vardict.items():
+            keys.append(key)
+            orders.append(val["order"])
+            lines.append(val["line"])
+
+        keys = np.array(keys)
+        orders = np.array(orders)
+        lines = np.array(lines)
+
+        argsort = np.argsort(orders)
+        line = lines[argsort]
+
+        txt = self.title
+        txt += "\n".join(line)
+        return txt
+
+    def pop(self, name):
+        return self.vardict.pop(name)
+
+    def __str__(self):
+        return self.to_string()
+
+    def __repr__(self):
+        return f"LammbsBlockInput({self.name})"
+
+    def __call__(self, name, line, order=-1):
+        self.add_variable(name, line, order)
+
 
 # ========================================================================== #
 def get_log_input(loginterval, logfile):

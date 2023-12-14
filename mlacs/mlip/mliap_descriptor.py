@@ -7,6 +7,7 @@ from ase.io.lammpsdata import write_lammps_data
 
 from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor, combine_reg
+from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
 
 default_snap = {"twojmax": 8,
@@ -152,49 +153,56 @@ class MliapDescriptor(Descriptor):
     def _write_lammps_input(self, masses, pbc):
         """
         """
-        input_string = "# LAMMPS input file for extracting MLIP descriptors\n"
-        input_string += "clear\n"
-        input_string += "boundary         "
-        for ppp in pbc:
-            if ppp:
-                input_string += "p "
-            else:
-                input_string += "f "
-        input_string += "\n"
-        input_string += "atom_style      atomic\n"
-        input_string += "units            metal\n"
-        input_string += "read_data        atoms.lmp\n"
-        for n1 in range(len(self.masses)):
-            input_string += f"mass             {n1+1} {self.masses[n1]}\n"
+        txt = "LAMMPS input file for extracting MLIP descriptors"
+        lmp_in = LammpsInput(txt)
 
-        input_string += f"pair_style       zero {2*self.rcut}\n"
-        input_string += "pair_coeff       * *\n"
+        block = LammpsBlockInput("init", "Initialization")
+        block("clear", "clear")
+        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        block("boundary", f"boundary {pbc_txt}")
+        block("atom_style", "atom_style  atomic")
+        block("units", "units metal")
+        block("read_data", "read_data atoms.lmp")
+        for i, m in enumerate(masses):
+            block(f"mass{i}", f"mass   {i+1} {m}")
+        lmp_in("init", block)
 
-        input_string += "thermo         100\n"
-        input_string += "timestep       0.005\n"
-        input_string += "neighbor       1.0 bin\n"
-        input_string += "neigh_modify   once no every 1 delay 0 check yes\n"
+        block = LammpsBlockInput("interaction", "Interactions")
+        block("pair_style", f"pair_style zero {2*self.rcut}")
+        block("pair_coeff", "pair_coeff  * *")
+        lmp_in("interaction", block)
 
+        block = LammpsBlockInput("fake_dynamic", "Fake dynamic")
+        block("thermo", "thermo 100")
+        block("timestep", "timestep 0.005")
+        block("neighbor", "neighbor 1.0 bin")
+        block("neigh_modify", "neigh_modify once no every 1 delay 0 check yes")
+        lmp_in("fake_dynamic", block)
+
+
+        block = LammpsBlockInput("compute", "Compute")
         if self.style == "snap":
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        input_string += "compute          ml all mliap  descriptor " + \
-                        f"{style} MLIP.descriptor  model {self.model}\n"
-        input_string += "fix          ml all ave/time 1 1 1 c_ml[*] " + \
-                        "file descriptor.out mode vector format \"%25.20f \"\n"
-        input_string += "run              0\n"
+        txt = f"compute ml all mliap descriptor {style} MLIP.descriptor " + \
+              f"model {self.model}"
+        block("compute", txt)
+        block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
+              "file descriptor.out mode vector")
+        block("run", "run 0")
+        lmp_in("compute", block)
 
-        with open(self.folder / "base.in", "w") as fd:
-            fd.write(input_string)
+        with open(self.folder / "lammps_input.in", "w") as fd:
+            fd.write(str(lmp_in))
 
 # ========================================================================== #
     def _run_lammps(self, lmp_atoms_fname):
         '''
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
-        lammps_command = self.cmd + ' -in base.in -log none -sc lmp.out'
-        lmp_handle = run(lammps_command,
+        lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
+        lmp_handle = run(lmp_cmd,
                          shell=True,
                          stderr=PIPE,
                          cwd=self.folder)
@@ -216,7 +224,7 @@ class MliapDescriptor(Descriptor):
         '''
         (self.folder / "lmp.out").unlink()
         (self.folder / "descriptor.out").unlink()
-        (self.folder / "base.in").unlink()
+        (self.folder / "lammps_input.in").unlink()
         (self.folder / "atoms.lmp").unlink()
 
 # ========================================================================== #

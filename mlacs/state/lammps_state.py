@@ -3,6 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
+from pathlib import Path
 from subprocess import run, PIPE
 
 import numpy as np
@@ -13,7 +14,9 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from .state import StateManager
 from ..utilities import get_elements_Z_and_masses
-from ..utilities.io_lammps import (get_general_input,
+from ..utilities.io_lammps import (LammpsInput,
+                                   LammpsBlockInput,
+                                   get_general_input,
                                    get_log_input,
                                    get_traj_input,
                                    get_diffusion_input,
@@ -183,14 +186,18 @@ class LammpsState(StateManager):
         self.temperature = temperature
         self.langevin = langevin
         self.pressure = pressure
-        self.damp = damp
         self.gjf = gjf
-        self.pdamp = pdamp
         self.ptype = ptype
         self.qtb = qtb
         self.fd = fd
         self.n_f = n_f
         self.nbeads = 1  # Dummy nbeads to help
+        self.damp = damp
+        self.pdamp = pdamp
+        if self.damp is None:
+            self.damp = "$(100*dt)"
+        if self.pdamp is None:
+            self.pdamp = "$(1000*dt)"
 
         self.t_stop = t_stop
         self.p_stop = p_stop
@@ -206,63 +213,28 @@ class LammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False,
-                     workdir=None):
+                     eq=False):
         """
         Function to run the dynamics
         """
-        if workdir is not None:
-            self.workdir = workdir
-
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
-
         atoms = supercell.copy()
-
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        if self.t_stop is None:
-            temp = self.temperature
-        else:
-            if eq:
-                temp = self.t_stop
-            else:
-                temp = self.rng.uniform(self.temperature, self.t_stop)
+        self.workdir.mkdir(exist_ok=True, parents=True)
 
-        if self.p_stop is None:
-            press = self.pressure
-        else:
-            if eq:
-                press = self.pressure
-            else:
-                press = self.rng.uniform(self.pressure, self.p_stop)
+        blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
+                                        model_post, atom_style, eq)
+        lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+        for block in blocks:
+            lmp_input(block.name, block)
 
-        if self.t_stop is not None:
-            MaxwellBoltzmannDistribution(atoms,
-                                         temperature_K=temp,
-                                         rng=self.rng)
-        write_lammps_data(self.workdir + self.atomsfname,
-                          atoms,
-                          velocities=True,
-                          atom_style=atom_style)
+        with open(self.workdir / "lammps_input.in", "w") as fd:
+            fd.write(str(lmp_input))
 
-        if eq:
-            nsteps = self.nsteps_eq
-        else:
-            nsteps = self.nsteps
+        self._write_lammps_atoms(atoms, atom_style)
 
-        self.write_lammps_input(atoms,
-                                atom_style,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                nsteps,
-                                temp,
-                                press)
-
-        lammps_command = self.cmd + " -in " + self.lammpsfname + \
-            " -sc out.lmp"
-        lmp_handle = run(lammps_command,
+        lmp_cmd = f"{self.cmd} -in {self.lammpsfname} -sc out.lmp"
+        lmp_handle = run(lmp_cmd,
                          shell=True,
                          cwd=self.workdir,
                          stderr=PIPE)
@@ -274,11 +246,198 @@ class LammpsState(StateManager):
 
         if charges is not None:
             init_charges = atoms.get_initial_charges()
-        atoms = read(self.workdir + "configurations.out")
+        atoms = read(self.workdir / "configurations.out")
         if charges is not None:
             atoms.set_initial_charges(init_charges)
 
         return atoms.copy()
+
+# ========================================================================== #
+    def _write_lammps_atoms(self, atoms, atom_style):
+        """
+
+        """
+        write_lammps_data(self.workdir / self.atomsfname,
+                          atoms,
+                          velocities=True,
+                          atom_style=atom_style)
+
+# ========================================================================== #
+    def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
+                          atom_style, eq):
+        """
+
+        """
+        blocks = []
+        blocks.append(self._get_block_init(atoms, atom_style))
+        blocks.append(self._get_block_interactions(pair_style, pair_coeff,
+                                                   model_post, atom_style))
+        blocks.append(self._get_block_thermostat(eq))
+        if self.logfile is not None:
+            blocks.append(self._get_block_log())
+        if self.trajfile is not None:
+            blocks.append(self._get_block_traj(atoms))
+        blocks.append(self._get_block_lastdump(atoms, eq))
+        blocks.append(self._get_block_run(eq))
+        return blocks
+
+# ========================================================================== #
+    def _get_block_init(self, atoms, atom_style):
+        """
+
+        """
+        pbc = atoms.get_pbc()
+        pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+
+        block = LammpsBlockInput("init", "Initialization")
+        block("units", "units metal")
+        block("boundary", f"boundary {pbc}")
+        block("atom_style", f"atom_style {atom_style}")
+        block("read_data", "read_data atoms.in")
+        for i, mass in enumerate(masses):
+            block(f"mass{i}", f"mass {i+1}  {mass}")
+        return block
+
+# ========================================================================== #
+    def _get_block_run(self, eq):
+        """
+
+        """
+        if eq:
+            nsteps = self.nsteps_eq
+        else:
+            nsteps = self.nsteps
+        block = LammpsBlockInput("run")
+        block("run", f"run {nsteps}")
+        return block
+
+# ========================================================================== #
+    def _get_block_interactions(self, pair_style, pair_coeff, model_post,
+                                atom_style):
+        """
+
+        """
+        block = LammpsBlockInput("interaction", "Interaction")
+        block("pair_style", f"pair_style {pair_style}")
+        for i, pair in enumerate(pair_coeff):
+            block(f"pair_coeff{i}", f"pair_coeff {pair}")
+        if model_post is not None:
+            for i, model in enumerate(model_post):
+                block(f"model{i}", f"{model}")
+        return block
+
+# ========================================================================== #
+    def _get_block_thermostat(self, eq):
+        """
+
+        """
+
+        if self.t_stop is None:
+            temp = self.temperature
+        else:
+            if eq:
+                temp = self.t_stop
+            else:
+                temp = self.rng.uniform(self.temperature, self.t_stop)
+        if self.p_stop is None:
+            press = self.pressure
+        else:
+            press = self.rng.uniform(self.pressure, self.p_stop)
+        if self.qtb:
+            qtbseed = self.rng.integers(1, 99999999)
+        if self.langevin:
+            langevinseed = self.rng.integers(1, 9999999)
+
+        block = LammpsBlockInput("thermostat", "Thermostat")
+        block("timestep", f"timestep {self.dt / 1000}")
+        if self.pressure is None:
+            if self.qtb:
+                block("nve", "fix f1 all nve")
+                txt = f"fix f2 all qtb temp {temp} damp {self.damp} " + \
+                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
+                block("qtb", txt)
+            elif self.langevin:
+                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+                      f"{langevinseed} gjf {self.gjf} zero yes"
+                block("langevin", txt)
+                block("nve", "fix f2 all nve")
+            else:
+                block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
+        else:
+            if self.qtb:
+                txt = f"fix f1 all nph {self.ptype} " + \
+                      f"{press*10000} {press*10000} {self.pdamp}"
+                block("nph", txt)
+                txt = f"fix f1 all qtb temp {temp} damp {self.damp}" + \
+                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
+                block("qtb", txt)
+            elif self.langevin:
+                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+                      f"{langevinseed} gjf {self.gjf} zero yes"
+                block("langevin", txt)
+                txt = f"fix f2 all nph {self.ptype} " + \
+                      f"{press*10000} {press*10000} {self.pdamp}"
+                block("nph", txt)
+            else:
+                txt = f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
+                      f"{self.ptype} {press*10000} {press*10000} {self.pdamp}"
+                block("npt", txt)
+        if self.fixcm:
+            block("cm", "fix fcm all recenter INIT INIT INIT")
+        return block
+
+# ========================================================================== #
+    def _get_block_log(self):
+        """
+
+        """
+        block = LammpsBlockInput("log", "Logging")
+        variables = ["t equal step", "mytemp equal temp",
+                     "mype equal pe", "myke equal ke", "myetot equal etotal",
+                     "mypress equal press/10000", "vol equal (lx*ly*lz)"]
+        for i, var in enumerate(variables):
+            block(f"variable{i}", f"variable {var}")
+        txt = f"fix mylog all print {self.loginterval} " + \
+              '"$t ${mytemp} ${vol} ${myetot} ${mype} ${myke} ${mypress}" ' + \
+              f"append {self.logfile} title " + \
+              '"# Step Temp Vol Etot Epot Ekin Press"'
+        block("fix", txt)
+        return block
+
+# ========================================================================== #
+    def _get_block_lastdump(self, atoms, eq):
+        """
+
+        """
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        if eq:
+            nsteps = self.nsteps_eq
+        else:
+            nsteps = self.nsteps
+        block = LammpsBlockInput("lastdump", "Dump last configuration")
+        txt = f"dump last all custom {nsteps} configurations.out " + \
+              "id type xu yu zu vx vy vz fx fy fz element"
+        block("dump", txt)
+        txt = "dump_modify last element " + " ".join([p for p in el])
+        block("dump_modify1", txt)
+        block("dump_modify2", f"dump_modify last delay {nsteps}")
+        return block
+
+# ========================================================================== #
+    def _get_block_traj(self, atoms):
+        """
+
+        """
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        block = LammpsBlockInput("traj", "Dumping trajectory")
+        txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
+              "id type xu yu zu vx vy vz fx fy fz element"
+        block("dump", txt)
+        block("dump_modify1", "dump_modify dum1 append yes")
+        txt = "dump_modify dum1 element " + " ".join([p for p in el])
+        block("dump_modify2", txt)
+        return block
 
 # ========================================================================== #
     def initialize_momenta(self, atoms):
@@ -301,123 +460,6 @@ class LammpsState(StateManager):
         if cmd is None:
             cmd = "lmp_serial"
         self.cmd = cmd
-
-# ========================================================================== #
-    def write_lammps_input(self,
-                           atoms,
-                           atom_style,
-                           pair_style,
-                           pair_coeff,
-                           model_post,
-                           nsteps,
-                           temp,
-                           press):
-        """
-        Write the LAMMPS input for the MD simulation
-        """
-        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        pbc = atoms.get_pbc()
-
-        input_string = ""
-        input_string += get_general_input(pbc,
-                                          masses,
-                                          charges,
-                                          atom_style,
-                                          nbeads=self.nbeads,
-                                          ispimd=self.ispimd)
-        input_string += get_interaction_input(pair_style,
-                                              pair_coeff,
-                                              model_post)
-        input_string += self.get_thermostat_input(temp, press)
-        if self.logfile is not None:
-            input_string += get_log_input(self.loginterval, self.logfile)
-        if self.trajfile is not None:
-            input_string += get_traj_input(self.loginterval,
-                                           self.trajfile,
-                                           elem)
-        if self.msdfile is not None:
-            input_string += get_diffusion_input(self.msdfile)
-        if self.rdffile is not None:
-            input_string += get_rdf_input(self.rdffile, self.nsteps)
-
-        input_string += get_last_dump_input(self.workdir,
-                                            elem,
-                                            nsteps,
-                                            self.nbeads)
-        input_string += f"run  {nsteps}"
-
-        with open(self.workdir + "lammps_input.in", "w") as f:
-            f.write(input_string)
-
-# ========================================================================== #
-    def get_thermostat_input(self, temp, press):
-        """
-        Function to write the thermostat of the mlmd run
-        """
-        damp = self.damp
-        if self.damp is None:
-            damp = "$(100*dt)"
-
-        pdamp = self.pdamp
-        if self.pdamp is None:
-            pdamp = "$(1000*dt)"
-
-        if self.qtb:
-            qtbseed = self.rng.integers(0, 999999)
-
-        input_string = "#####################################\n"
-        input_string += "#      Thermostat/Integrator\n"
-        input_string += "#####################################\n"
-        input_string += "timestep      {0}\n".format(self.dt / 1000)
-        if self.pressure is None:
-            if self.qtb:
-                # Integration part
-                input_string += "fix f2 all nve\n"
-                # QTB part
-                input_string += f"fix f1 all qtb temp {temp} " + \
-                                f"damp {damp} f_max {self.fd} " + \
-                                f"N_f {self.n_f} seed {qtbseed}\n"
-            elif self.langevin:
-                # Langevin part
-                input_string += f"fix  f1 all langevin {temp} " + \
-                                f"{temp}  {damp} " + \
-                                f"{self.rng.integers(999999)} " + \
-                                f"gjf {self.gjf} zero yes\n"
-                # Integration part
-                input_string += "fix   f2 all nve\n"
-            else:
-                input_string += f"fix  f1 all nvt temp {temp} " + \
-                                f"{temp}  {damp}\n"
-        else:
-            if self.qtb:
-                # Barostat part
-                input_string += f"fix    f2 all nph  {self.ptype} " + \
-                                f"{press*10000} " + \
-                                f"{press*10000} {pdamp}\n"
-                # QTB part
-                input_string += f"fix f1 all qtb temp {temp} " + \
-                                f"damp {damp} f_max {self.fd} " + \
-                                f"N_f {self.n_f} seed {qtbseed}\n"
-            elif self.langevin:
-                # Langevin part
-                input_string += f"fix  f1 all langevin {temp} " + \
-                                f"{temp}  {damp} " + \
-                                f"{self.rng.integers(999999)} " + \
-                                f"gjf {self.gjf} zero yes\n"
-                # Barostat part
-                input_string += f"fix    f2 all nph  {self.ptype} " + \
-                                f"{press*10000} " + \
-                                f"{press*10000} {pdamp}\n"
-            else:
-                input_string += f"fix  f1 all npt temp {temp} " + \
-                                f"{temp}  {damp} {self.ptype} " + \
-                                f"{press*10000} " + \
-                                f"{press*10000} {pdamp}\n"
-        if self.fixcm:
-            input_string += "fix    fcm all recenter INIT INIT INIT\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
 
 # ========================================================================== #
     def log_recap_state(self):
@@ -456,4 +498,4 @@ class LammpsState(StateManager):
     def set_workdir(self, workdir):
         """
         """
-        self.workdir = workdir
+        self.workdir = Path(workdir).absolute()
