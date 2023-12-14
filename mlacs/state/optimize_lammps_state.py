@@ -2,23 +2,9 @@
 // (c) 2023 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
-from subprocess import run, PIPE
-
-from ase.io import read
-from ase.io.lammpsdata import write_lammps_data
-
 from .lammps_state import LammpsState
-from ..utilities import get_elements_Z_and_masses
-from ..utilities.io_lammps import (LammpsInput,
-                                   LammpsBlockInput,
-                                   EmptyLammpsBlockInput,
-                                   get_general_input,
-                                   get_log_input,
-                                   get_minimize_input,
-                                   get_traj_input,
-                                   get_interaction_input,
-                                   get_last_dump_input)
+from ..utilities.io_lammps import (LammpsBlockInput,
+                                   EmptyLammpsBlockInput)
 
 
 # ========================================================================== #
