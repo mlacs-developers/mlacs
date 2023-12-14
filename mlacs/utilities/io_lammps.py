@@ -171,6 +171,17 @@ class LammpsBlockInput:
         self.add_variable(name, line, order)
 
 
+class EmptyLammpsBlockInput(LammpsBlockInput):
+    """
+
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def to_string(self):
+        return ""
+
+
 # ========================================================================== #
 def get_log_input(loginterval, logfile):
     """

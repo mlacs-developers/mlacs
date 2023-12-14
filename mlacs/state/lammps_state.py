@@ -277,8 +277,8 @@ class LammpsState(StateManager):
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
             blocks.append(self._get_block_traj(atoms))
-        blocks.append(self._get_block_lastdump(atoms, eq))
         blocks.append(self._get_block_run(eq))
+        blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
 
 # ========================================================================== #
@@ -411,17 +411,13 @@ class LammpsState(StateManager):
 
         """
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        if eq:
-            nsteps = self.nsteps_eq
-        else:
-            nsteps = self.nsteps
         block = LammpsBlockInput("lastdump", "Dump last configuration")
-        txt = f"dump last all custom {nsteps} configurations.out " + \
+        txt = "dump last all custom 1 configurations.out " + \
               "id type xu yu zu vx vy vz fx fy fz element"
         block("dump", txt)
         txt = "dump_modify last element " + " ".join([p for p in el])
         block("dump_modify1", txt)
-        block("dump_modify2", f"dump_modify last delay {nsteps}")
+        block("run_dump", "run 0")
         return block
 
 # ========================================================================== #
