@@ -3,11 +3,8 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
-from subprocess import run, PIPE
 
 from ase.io import read
-from ase.io.lammpsdata import write_lammps_data
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from .lammps_state import LammpsState
 from ..utilities import get_elements_Z_and_masses
@@ -66,6 +63,13 @@ class PimdLammpsState(LammpsState):
     nbeads : :class:`int` (optional)
         Number of beads used in the PIMD quantum polymer. Default ``1``,
         which revert to classical sampling.
+
+    nprocs : :class:`int` (optional)
+        Total number of process used to run LAMMPS.
+        Have to be a multiple of the number of beads.
+        If nprocs > than nbeads, each replica will be parallelized using the
+        partition scheme of LAMMPS.
+        Per default it assumes that nprocs = nbeads
 
     integrator : :class:`str` (optional)
         Type of integrator to use. Can be baoab or obabo. Default ``'baoab'``
