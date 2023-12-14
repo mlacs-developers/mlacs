@@ -126,9 +126,7 @@ class LammpsBlockInput:
             argsort = np.argsort(values)
             values = values[argsort]
             keys = keys[argsort]
-            if order > np.max(values) or order not in values:
-                self.vardict["name"]["order"] = order
-            elif order in values:
+            if order in values:
                 values[values >= order] += 1
                 for i, (key, val) in enumerate(zip(keys, values)):
                     self.vardict[key]["order"] = values[i]

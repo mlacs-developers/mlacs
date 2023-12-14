@@ -172,7 +172,6 @@ class LammpsState(StateManager):
         self.atomsfname = "atoms.in"
         self.lammpsfname = "lammps_input.in"
 
-        self._get_lammps_command()
         self.ispimd = False
         self.isrestart = False
 
@@ -211,6 +210,7 @@ class LammpsState(StateManager):
         Function to run the dynamics
         """
         atoms = supercell.copy()
+        initial_charges = atoms.get_initial_charges()
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         self.workdir.mkdir(exist_ok=True, parents=True)
@@ -226,7 +226,7 @@ class LammpsState(StateManager):
 
         self._write_lammps_atoms(atoms, atom_style)
 
-        lmp_cmd = f"{self.cmd} -in {self.lammpsfname} -sc out.lmp"
+        lmp_cmd = self._get_lammps_command()
         lmp_handle = run(lmp_cmd,
                          shell=True,
                          cwd=self.workdir,
@@ -237,12 +237,7 @@ class LammpsState(StateManager):
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
 
-        if charges is not None:
-            init_charges = atoms.get_initial_charges()
-        atoms = read(self.workdir / "configurations.out")
-        if charges is not None:
-            atoms.set_initial_charges(init_charges)
-
+        atoms = self._get_atoms_results(initial_charges)
         return atoms.copy()
 
 # ========================================================================== #
@@ -429,6 +424,16 @@ class LammpsState(StateManager):
         return block
 
 # ========================================================================== #
+    def _get_atoms_results(self, initial_charges):
+        """
+
+        """
+        atoms = read(self.workdir / "configurations.out")
+        if initial_charges is not None:
+            atoms.set_initial_charges(initial_charges)
+        return atoms
+
+# ========================================================================== #
     def initialize_momenta(self, atoms):
         """
         """
@@ -448,7 +453,7 @@ class LammpsState(StateManager):
         cmd = os.environ.get(envvar)
         if cmd is None:
             cmd = "lmp_serial"
-        self.cmd = cmd
+        return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
     def log_recap_state(self):
