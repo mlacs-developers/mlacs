@@ -517,7 +517,7 @@ def get_rdf_input(rdffile, nsteps):
 
 
 # ========================================================================== #
-def write_atoms_lammps_spin_style(fd, atoms, spin):
+def write_atoms_lammps_spin_style(fd, atoms, spin, velocities=True):
     """
     Function to write atoms in the LAMMPS spin style
     Loosely adapted from ASE write_lammpsdata function
@@ -551,7 +551,20 @@ def write_atoms_lammps_spin_style(fd, atoms, spin):
         s = species.index(symbols[i]) + 1
         line = f"{i+1:>6} {s:>3} "  # Index and species
         line += f"{r[0]:23.17f} {r[1]:23.17f} {r[2]:23.17f} "  # Positions
-        line += f"1.0 "  # Spin amplitude
+        line += "1.0 "  # Spin amplitude
         line += f"{spin[i, 0]:23.17f} {spin[i, 1]:23.17f} {spin[i, 2]:23.17f} "
         line += "\n"
         fd.write(line)
+
+    if velocities and atoms.get_velocities() is not None:
+        fd.write("\n\nVelocities \n\n")
+        vel = prismobj.vector_to_lammps(atoms.get_velocities())
+        for i, v in enumerate(vel):
+            v = convert(v, "velocity", "ASE", "metal")
+            fd.write(
+                "{0:>6} {1:23.17g} {2:23.17g} {3:23.17g}\n".format(
+                    *(i + 1,) + tuple(v)
+                )
+            )
+
+    fd.flush()
