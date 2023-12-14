@@ -194,7 +194,7 @@ class RdfLammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     replicate="2 2 2",
+                     replicate="1 1 1",
                      eq=False,
                      workdir=None):
         """

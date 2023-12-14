@@ -21,7 +21,8 @@ with 4 beads
 
 atoms = bulk("Si", cubic=True).repeat(3)
 calc = LAMMPS(pair_style="tersoff/mod",
-              pair_coeff=["* * ../Si.tersoff.mod Si"])
+              pair_coeff=["* * ../Si.tersoff.mod Si"],
+              keep_tmp_files=False)
 
 # Parameters ------------------------------------------------------------------
 temperature = 20  # K
@@ -52,11 +53,8 @@ os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation---------
 
 # Creation of the MLIP Manager
-mlip = LammpsMlip(atoms,
-                  rcut=rcut,
-                  stress_coefficient=scoef,
-                  style=style,
-                  descriptor_parameters=mlip_params)
+descriptor = SnapDescriptor(atoms, rcut, mlip_params)
+mlip = LinearPotential(descriptor, stress_coefficient=1.0)
 
 # Creation of the State Manager
 state = IpiState(temperature,

@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 
 from ase.atoms import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator as SPC
-
+from ase.io import read
 
 # ========================================================================== #
 def get_elements_Z_and_masses(supercell):
@@ -155,6 +155,22 @@ def compute_averaged(traj):
                                energy=energy)
     return atoms.copy()
 
+# ========================================================================== #
+def compute_volume(confs, weights):
+    nconfs = len(confs)
+    natoms = len(confs[0])        
+    vol = []                              
+    cell = []
+    if weights is None:
+         weights = np.ones(nconfs) / nconfs
+    for i in range(len(confs)):
+        cell.append(confs[i].get_cell() * weights[i])
+        vol.append(confs[i].get_volume() * weights[i] / natoms)
+
+    cell = np.sum(cell, axis=0)
+    vol = np.sum(vol)
+
+    return cell, vol
 
 # ========================================================================== #
 def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):

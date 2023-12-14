@@ -197,6 +197,31 @@ def get_neb_input(dt,
 
 
 # ========================================================================== #
+def get_minimize_input(style,
+                       criterions,
+                       nitmax,
+                       press=None,
+                       ptype="iso",
+                       vmax=None):
+    """
+    Function to write the general parameters for geometric optimization
+    """
+    etol, ftol = criterions
+    input_string = "#####################################\n"
+    input_string += "# Geometry optimization \n"
+    input_string += "#####################################\n"
+    if press is not None:
+        input_string += "fix      box all box/relax " + \
+                        f"{ptype} {press*10000} vmax {vmax}\n"
+    input_string += "thermo    1\n"
+    input_string += f"min_style {style}\n"
+    input_string += f"minimize  {etol} {ftol} {nitmax} {nitmax}\n"
+    input_string += "#####################################\n"
+    input_string += "\n\n\n"
+    return input_string
+
+
+# ========================================================================== #
 def get_interaction_input(pair_style,
                           pair_coeff,
                           model_post):

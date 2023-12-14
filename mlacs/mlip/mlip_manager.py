@@ -4,7 +4,6 @@
 """
 import numpy as np
 from ase.atoms import Atoms
-from ase.calculators.lammpsrun import LAMMPS
 from ase.units import GPa
 
 from ..utilities import compute_correlation
