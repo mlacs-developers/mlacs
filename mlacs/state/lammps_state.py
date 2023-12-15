@@ -339,6 +339,12 @@ class LammpsState(StateManager):
 
         block = LammpsBlockInput("thermostat", "Thermostat")
         block("timestep", f"timestep {self.dt / 1000}")
+
+        # If we are using Langevin, we want to remove the random part
+        # of the forces
+        if self.langevin:
+            block("rmv_langevin", "fix ff all store/force")
+
         if self.pressure is None:
             if self.qtb:
                 block("nve", "fix f1 all nve")
@@ -416,7 +422,10 @@ class LammpsState(StateManager):
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
         block = LammpsBlockInput("traj", "Dumping trajectory")
         txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
-              "id type xu yu zu vx vy vz fx fy fz element"
+              "id type xu yu zu vx vy vz fx fy fz "
+        if self.langevin:
+            txt += "f_ff[1] f_ff[2] f_ff[3] "
+        txt += "element"
         block("dump", txt)
         block("dump_modify1", "dump_modify dum1 append yes")
         txt = "dump_modify dum1 element " + " ".join([p for p in el])

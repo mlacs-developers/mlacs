@@ -178,6 +178,7 @@ class SpinLammpsState(LammpsState):
 
         block = LammpsBlockInput("thermostat", "Thermostat")
         block("timestep", f"timestep {self.dt / 1000}")
+        block("rmv_langevin", "fix ff all store/force")
 
         txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
               f"{langevinseed} gjf {self.gjf} zero yes"
@@ -199,7 +200,8 @@ class SpinLammpsState(LammpsState):
         txt = "compute spin all property/atom sp spx spy spz fmx fmy fmz"
         block("compute", txt)
         txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
-              "id type xu yu zu vx vy vz fx fy fz c_spin[1] " + \
+              "id type xu yu zu vx vy vz fx fy fz " + \
+              "f_ff[1] f_ff[2] f_ff[3] c_spin[1] " + \
               "c_spin[2] c_spin[3] c_spin[4] c_spin[5] c_spin[6] c_spin[7]" + \
               " element"
         block("dump", txt)
@@ -236,7 +238,7 @@ class SpinLammpsState(LammpsState):
         txt += f"append {self.logfile} title "
         titles = ["Step", "T_at", "T_spin", "Vol", "Etot", "Epot", "Ekin",
                   "Espin", "Press", "Magn_x", "Magn_y", "Magn_z", "Magn_norm"]
-        txt += "\"#" + " ".join(titles) + "\""
+        txt += "\"# " + " ".join(titles) + "\""
         block("fix", txt)
         return block
 

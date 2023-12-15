@@ -1,5 +1,11 @@
+from pathlib import Path
+
 import numpy as np
+from ase.io import read
+from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.lammps import Prism, convert
+
+from .path_integral import hbar
 
 
 class LammpsInput:
@@ -574,3 +580,79 @@ def write_atoms_lammps_spin_style(fd, atoms, spin, velocities=True):
             )
 
     fd.flush()
+
+
+def reconstruct_mlmd_trajectory(trajfile, logfile):
+    """
+    Function to reconstruct a trajectory from LAMMPS
+    Note that this function is made specifically for
+    trajectory launched with MLACS, and won't work
+    for general LAMMPS trajectories.
+
+    Parameters
+    ----------
+    trajfile: Path or str
+        The file for the trajectory
+    logfile: Path or str
+        The file for the log
+    return
+    ------
+        Traj: list of ase.Atoms object
+    """
+    trajfile = Path(trajfile)
+    logfile = Path(logfile)
+
+    isspin = False
+
+    # First we get the index of the quantities we want
+    with open(logfile, "r") as fd:
+        line = np.array(fd.readline().split())
+        assert line[0] == "#"
+
+        idx_epot = np.where(line == "Epot")[0][0] - 1
+
+        if "Magn_x" in line:
+            isspin = True
+            idx_emagn = np.where(line == "Espin")
+
+    trajconf = read(trajfile, ":")
+    log = np.loadtxt(logfile)[:-1]  # the -1 is due to the last dump
+    nconf = len(trajconf)
+    assert nconf == log.shape[0]
+
+    traj = []
+    for at, logat in zip(trajconf, log):
+        newat = at.copy()
+        epot = logat[idx_epot]
+        if isspin:
+            espin = logat[idx_emagn]
+
+            sp_n = newat.arrays.pop("c_spin[1]")
+            sp_x = newat.arrays.pop("c_spin[2]")
+            sp_y = newat.arrays.pop("c_spin[3]")
+            sp_z = newat.arrays.pop("c_spin[4]")
+            sp = np.c_[sp_x, sp_y, sp_z] * sp_n
+
+            fsp_x = newat.arrays.pop("c_spin[5]")
+            fsp_y = newat.arrays.pop("c_spin[6]")
+            fsp_z = newat.arrays.pop("c_spin[7]")
+            fsp = np.c_[fsp_x, fsp_y, fsp_z] * hbar / (2 * np.pi)
+
+            epot = epot + espin
+
+            newat.set_array("spins", sp)
+            newat.set_array("spin_forces", fsp)
+
+        try:
+            f_x = newat.arrays.pop("f_ff[1]")
+            f_y = newat.arrays.pop("f_ff[2]")
+            f_z = newat.arrays.pop("f_ff[3]")
+            forces = np.c_[f_x, f_y, f_z]
+        except KeyError:
+            forces = at.get_forces()
+
+        calc = SinglePointCalculator(newat, energy=epot, forces=forces,
+                                     stress=np.zeros(6))
+        newat.calc = calc
+        traj.append(newat)
+    return traj
