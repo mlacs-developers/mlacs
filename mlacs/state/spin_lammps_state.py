@@ -119,6 +119,7 @@ class SpinLammpsState(LammpsState):
                              pressure=pressure,
                              t_stop=t_stop,
                              p_stop=p_stop,
+                             langevin=True,
                              damp=damp,
                              pdamp=pdamp,
                              ptype=ptype,
@@ -132,6 +133,10 @@ class SpinLammpsState(LammpsState):
                              rng=rng,
                              init_momenta=init_momenta,
                              workdir=workdir)
+
+        if self.pressure is not None:
+            msg = "NPT simulations are not available with spin-lattice"
+            raise NotImplementedError(msg)
 
         self.ispimd = False
         if self.trajfile is not None and self.nbeads > 1:
@@ -168,55 +173,85 @@ class SpinLammpsState(LammpsState):
                 temp = self.t_stop
             else:
                 temp = self.rng.uniform(self.temperature, self.t_stop)
-        if self.p_stop is None:
-            press = self.pressure
-        else:
-            press = self.rng.uniform(self.pressure, self.p_stop)
-        if self.qtb:
-            qtbseed = self.rng.integers(1, 99999999)
-        if self.langevin:
-            langevinseed = self.rng.integers(1, 9999999)
+        langevinseed = self.rng.integers(1, 9999999)
         spinseed = self.rng.integers(1, 9999999)
 
         block = LammpsBlockInput("thermostat", "Thermostat")
         block("timestep", f"timestep {self.dt / 1000}")
-        if self.pressure is None:
-            if self.qtb:
-                block("nve", "fix f1 all nve")
-                txt = f"fix f2 all qtb temp {temp} damp {self.damp} " + \
-                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
-                block("qtb", txt)
-            elif self.langevin:
-                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
-                      f"{langevinseed} gjf {self.gjf} zero yes"
-                block("langevin", txt)
-                block("nve", "fix f2 all nve")
-            else:
-                block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
-        else:
-            if self.qtb:
-                txt = f"fix f1 all nph {self.ptype} " + \
-                      f"{press*10000} {press*10000} {self.pdamp}"
-                block("nph", txt)
-                txt = f"fix f1 all qtb temp {temp} damp {self.damp}" + \
-                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
-                block("qtb", txt)
-            elif self.langevin:
-                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
-                      f"{langevinseed} gjf {self.gjf} zero yes"
-                block("langevin", txt)
-                txt = f"fix f2 all nph {self.ptype} " + \
-                      f"{press*10000} {press*10000} {self.pdamp}"
-                block("nph", txt)
-            else:
-                txt = f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
-                      f"{self.ptype} {press*10000} {press*10000} {self.pdamp}"
-                block("npt", txt)
+
+        txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+              f"{langevinseed} gjf {self.gjf} zero yes"
+        block("langevin", txt)
         txt = f"fix fspin all langevin/spin {temp} {self.damp} {spinseed}"
         block("nvt_spin", txt)
         block("nve_spin", "fix fspin2 all nve/spin lattice moving")
         if self.fixcm:
             block("cm", "fix fcm all recenter INIT INIT INIT")
+        return block
+
+# ========================================================================== #
+    def _get_block_traj(self, atoms):
+        """
+
+        """
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        block = LammpsBlockInput("traj", "Dumping trajectory")
+        txt = "compute spin all property/atom sp spx spy spz fmx fmy fmz"
+        block("compute", txt)
+        txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
+              "id type xu yu zu vx vy vz fx fy fz c_spin[1] " + \
+              "c_spin[2] c_spin[3] c_spin[4] c_spin[5] c_spin[6] c_spin[7]" + \
+              " element"
+        block("dump", txt)
+        block("dump_modify1", "dump_modify dum1 append yes")
+        txt = "dump_modify dum1 element " + " ".join([p for p in el])
+        block("dump_modify2", txt)
+        return block
+
+# ========================================================================== #
+    def _get_block_log(self):
+        """
+
+        """
+        block = LammpsBlockInput("log", "Logging")
+        # First we compute the magnetic quantities
+        block("compute", "compute out_mag all spin")
+        block("magx", "variable magx equal c_out_mag[1]")
+        block("magy", "variable magy equal c_out_mag[2]")
+        block("magz", "variable magz equal c_out_mag[3]")
+        block("magn", "variable magn equal c_out_mag[4]")
+        block("mage", "variable mage equal c_out_mag[5]")
+        block("magt", "variable magt equal c_out_mag[6]")
+
+        variables = ["t equal step", "mytemp equal temp",
+                     "mype equal pe", "myke equal ke", "myetot equal etotal",
+                     "mypress equal press/10000", "vol equal (lx*ly*lz)"]
+        for i, var in enumerate(variables):
+            block(f"variable{i}", f"variable {var}")
+        txt = f"fix mylog all print {self.loginterval} \""
+        variables = ["$t", "${mytemp}", "$(v_magt)", "${vol}", "${myetot}",
+                     "${myke}", "$(v_mage)", "${mypress}",
+                     "$(v_magx)", "$(v_magy)", "$(v_magz)", "$(v_magn)"]
+        txt += " ".join(variables) + "\" "
+        txt += f"append {self.logfile} title "
+        titles = ["Step", "T_at", "T_spin", "Vol", "Etot", "Epot", "Ekin",
+                  "Espin", "Press", "Magn_x", "Magn_y", "Magn_z", "Magn_norm"]
+        txt += "\"#" + " ".join(titles) + "\""
+        block("fix", txt)
+        return block
+
+# ========================================================================== #
+    def _get_block_lastdump(self, atoms, eq):
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        block = LammpsBlockInput("lastdump", "Dump last configuration")
+        txt = "dump last all custom 1 configurations.out " + \
+              "id type xu yu zu vx vy vz fx fy fz c_spin[1] " + \
+              "c_spin[2] c_spin[3] c_spin[4] c_spin[5] c_spin[6] c_spin[7]" + \
+              " element"
+        block("dump", txt)
+        txt = "dump_modify last element " + " ".join([p for p in el])
+        block("dump_modify1", txt)
+        block("run_dump", "run 0")
         return block
 
 # ========================================================================== #
