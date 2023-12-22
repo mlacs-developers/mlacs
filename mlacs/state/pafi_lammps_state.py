@@ -109,7 +109,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
                  nsteps=1000,
                  nsteps_eq=100,
                  langevin=True,
-                 linearmode=False,
+                 mode=False,
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
@@ -144,7 +144,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         self.nsteps_eq = nsteps_eq
         self.NEBcoord = reaction_coordinate
         self.finder = None
-        self.xilinear = linearmode
+        self.xilinear = mode
         if self.NEBcoord is None:
             self.splprec = 1001
             self.finder = []
