@@ -21,7 +21,6 @@ class StateManager:
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 msdfile=None,
                  rdffile=None,
                  workdir=None):
 
@@ -32,7 +31,6 @@ class StateManager:
         self.logfile = logfile
         self.trajfile = trajfile
         self.loginterval = loginterval
-        self.msdfile = msdfile
         self.rdffile = rdffile
 
         if workdir is None:

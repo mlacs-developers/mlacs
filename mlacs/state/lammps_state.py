@@ -92,6 +92,10 @@ class LammpsState(StateManager):
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
 
+    block : :class:`LammpsBlockInput` (optional)
+        Custom block input class.
+        If ``None``, nothing is added in the input. Default ``None``.
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
@@ -102,10 +106,6 @@ class LammpsState(StateManager):
 
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-
-    msdfile : :class:`str` (optional)
-        Name of the file for diffusion coefficient calculation.
-        If ``None``, no file is created. Default ``None``.
 
     rdffile : :class:`str` (optional)
         Name of the file for radial distribution function calculation.
@@ -143,10 +143,10 @@ class LammpsState(StateManager):
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
+                 block=None
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 msdfile=None,
                  rdffile=None,
                  rng=None,
                  init_momenta=None,
@@ -159,7 +159,6 @@ class LammpsState(StateManager):
                               logfile,
                               trajfile,
                               loginterval,
-                              msdfile,
                               rdffile,
                               workdir)
 
@@ -197,6 +196,8 @@ class LammpsState(StateManager):
             if self.pressure is None:
                 msg = "You need to put a pressure with p_stop"
                 raise ValueError(msg)
+
+        self._block_custom = block
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -265,6 +266,7 @@ class LammpsState(StateManager):
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
             blocks.append(self._get_block_traj(atoms))
+        blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
         blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
@@ -431,6 +433,16 @@ class LammpsState(StateManager):
         txt = "dump_modify dum1 element " + " ".join([p for p in el])
         block("dump_modify2", txt)
         return block
+
+# ========================================================================== #
+    def _get_block_custom(self):
+        """
+
+        """
+        if self._block_custom is not None:
+            return self._block_custom
+        else
+            return EmptyLammpsBlockInput("empty_custom")
 
 # ========================================================================== #
     def _get_atoms_results(self, initial_charges):
