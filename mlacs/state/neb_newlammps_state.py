@@ -1,12 +1,11 @@
 import os
-from subprocess import run, PIPE
 
 import numpy as np
 
 from scipy.spatial import distance
 
 from ase.io import write
-from ase.io.lammpsdata import (write_lammps_data)
+from ase.io.lammpsdata import write_lammps_data
 
 from .lammps_state import LammpsState
 from ..utilities.io_lammps import (LammpsBlockInput,
@@ -15,12 +14,9 @@ from ..utilities.io_lammps import (LammpsBlockInput,
 from ..utilities import (get_elements_Z_and_masses,
                          _create_ASE_object)
 
-from ..utilities.io_lammps import (get_general_input,
-                                   get_interaction_input,
-                                   write_lammps_NEB_ASCIIfile,
-                                   get_neb_input)
+from ..utilities.io_lammps import write_lammps_NEB_ASCIIfile
 
-from ..utilities import interpolate_points as IP
+from ..utilities import interpolate_points as intpts
 
 
 # ========================================================================== #
@@ -68,6 +64,7 @@ class NebNewLammpsState(LammpsState):
     def __init__(self,
                  configurations,
                  reaction_coordinate=None,
+                 min_style='quickmin',
                  Kspring=1.0,
                  etol=0.0,
                  ftol=1.0e-3,
@@ -75,6 +72,7 @@ class NebNewLammpsState(LammpsState):
                  nprocs=None,
                  nreplica=10,
                  mode='rdm_memory',
+                 linear=False,
                  logfile=None,
                  trajfile=None,
                  interval=50,
@@ -87,14 +85,16 @@ class NebNewLammpsState(LammpsState):
                              pressure=None,
                              ptype="iso",
                              dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
+                             nsteps=1000,
+                             nsteps_eq=100,
                              logfile=logfile,
                              trajfile=trajfile,
                              loginterval=loginterval,
                              workdir=workdir)
 
         self.NEBcoord = reaction_coordinate
+        self.style = min_style
+        self.criterions = (etol, ftol)
         self.finder = None
         self.nprocs = nprocs
         self.nreplica = nreplica
@@ -112,82 +112,7 @@ class NebNewLammpsState(LammpsState):
         self.fixcell = configurations[0].get_cell()
         self.masses = configurations[0].get_masses()
 
-        self.linear = False
-
-# ========================================================================== #
-    def run_NEB(self,
-                pair_style,
-                pair_coeff,
-                model_post=None,
-                atom_style="atomic",
-                workdir=None):
-        """
-        Run a NEB calculation with lammps. Use replicas.
-        """
-        if workdir is not None:
-            self.workdir = workdir
-        self.NEBworkdir = self.workdir + "NEB/"
-        if not os.path.exists(self.NEBworkdir):
-            os.makedirs(self.NEBworkdir)
-        write_lammps_data(self.NEBworkdir+'atoms-0.data',
-                          self.atoms[0])
-        write_lammps_NEB_ASCIIfile(self.NEBworkdir+'atoms-1.data',
-                                   self.atoms[1])
-
-        fname = self.NEBworkdir + "lammps_input.in"
-        self.write_lammps_input_NEB(self.atoms[0],
-                                    atom_style,
-                                    pair_style,
-                                    pair_coeff,
-                                    model_post,
-                                    fname)
-        lammps_command = self.cmdreplica + " -in " + fname + \
-            " -sc out.lmp"
-        lmp_handle = run(lammps_command,
-                         shell=True,
-                         cwd=self.NEBworkdir,
-                         stderr=PIPE)
-
-        if lmp_handle.returncode != 0:
-            msg = "LAMMPS stopped with the exit code \n" + \
-                  f"{lmp_handle.stderr.decode()}"
-            raise RuntimeError(msg)
-
-# ========================================================================== #
-    def write_lammps_input_NEB(self,
-                               atoms,
-                               atom_style,
-                               pair_style,
-                               pair_coeff,
-                               model_post,
-                               fname):
-        """
-        Write the LAMMPS input for NEB simulation
-        """
-        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        pbc = atoms.get_pbc()
-
-        custom = "atom_modify  map array sort 0 0.0\n"
-        custom += "neigh_modify every 2 delay 10" + \
-                  " check yes page 1000000 one 100000\n\n"
-        filename = "atoms-0.data"
-        input_string = ""
-        input_string += get_general_input(pbc,
-                                          masses,
-                                          charges,
-                                          atom_style,
-                                          None,
-                                          filename,
-                                          custom)
-        input_string += get_interaction_input(pair_style,
-                                              pair_coeff,
-                                              model_post)
-        input_string += get_neb_input(self.dt / 1000,
-                                      self.Kspring,
-                                      self.xilinear)
-
-        with open(fname, "w") as f:
-            f.write(input_string)
+        self.linear = linear
 
 # ========================================================================== #
     def _write_lammps_atoms(self, atoms, atom_style):
@@ -244,9 +169,27 @@ class NebNewLammpsState(LammpsState):
         return atoms
 
 # ========================================================================== #
+    def _get_block_run(self, eq):
+        etol, ftol = self.criterions
+
+        block = LammpsBlockInput("transpath", "Transition Path")
+        block("thermo", "thermo 1")
+        block("timestep", f"timestep {self.dt / 1000}")
+        block("fix_neb", f"fix neb all neb {self.Kspring} parallel ideal")
+        block("run", "run 100")
+        block("reset", "reset_timestep 0")
+        block("image", "variable i equal part")
+        block("min_style", f"min_style {self.style}")
+        if self.linear:
+            block("neb", f"neb {etol} {ftol} 1 1 1 final atoms-1.data")
+        else:
+            block("neb", f"neb {etol} {ftol} 200 100 1 final atoms-1.data")
+        block("write_data", "write_data neb.$i")
+        return block
+
+# ========================================================================== #
     def extract_NEB_configurations(self):
         """
-        Step 1:
         Extract the positions and energies of a NEB calculation for all
         replicas.
         """
@@ -281,7 +224,6 @@ class NebNewLammpsState(LammpsState):
 # ========================================================================== #
     def compute_spline(self, xi=None):
         """
-        Step 2:
         Compute a 1D CubicSpline interpolation from a NEB calculation.
         The function also set up the lammps data file for a constrained MD.
             - Three first columns: atomic positons at reaction coordinate xi.
@@ -298,32 +240,31 @@ class NebNewLammpsState(LammpsState):
                 xi = self.NEBcoord
             else:
                 x = np.linspace(0, 1, self.splprec)
-                y = IP(self.path_coordinates,
-                       self.true_energies,
-                       x, 0, border=1)
+                y = intpts(self.path_coordinates, self.true_energies,
+                           x, 0, border=1)
                 y = np.array(y)
                 xi = x[y.argmax()]
 
             if self.finder is not None:
                 self.finder.append(xi)
 
-        self.spline_energies = IP(self.path_coordinates,
-                                  self.true_energies,
-                                  xi, 0, border=1)
+        self.spline_energies = intpts(self.path_coordinates,
+                                      self.true_energies,
+                                      xi, 0, border=1)
         spline_coordinates = []
 
         # Spline interpolation of the referent path and calculation of
         # the path tangent and path tangent derivate
         for i in range(N):
-            coord = [IP(self.path_coordinates,
-                        self.true_coordinates[:, i, j],
-                        xi, 0) for j in range(3)]
-            coord.extend([IP(self.path_coordinates,
-                             self.true_coordinates[:, i, j],
-                             xi, 1) for j in range(3)])
-            coord.extend([IP(self.path_coordinates,
-                             self.true_coordinates[:, i, j],
-                             xi, 2) for j in range(3)])
+            coord = [intpts(self.path_coordinates,
+                            self.true_coordinates[:, i, j],
+                            xi, 0) for j in range(3)]
+            coord.extend([intpts(self.path_coordinates,
+                                 self.true_coordinates[:, i, j],
+                                 xi, 1) for j in range(3)])
+            coord.extend([intpts(self.path_coordinates,
+                                 self.true_coordinates[:, i, j],
+                                 xi, 2) for j in range(3)])
             spline_coordinates.append(coord)
         spline_coordinates = np.array(spline_coordinates)
 
