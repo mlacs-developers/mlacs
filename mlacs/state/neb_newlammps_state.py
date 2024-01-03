@@ -92,23 +92,22 @@ class NebNewLammpsState(LammpsState):
                              loginterval=loginterval,
                              workdir=workdir)
 
-        self.NEBcoord = reaction_coordinate
+        self.xi = reaction_coordinate
         self.style = min_style
         self.criterions = (etol, ftol)
         self.finder = None
         self.nprocs = nprocs
         self.nreplica = nreplica
         self.atomsfname = "atoms-0.data"
-        if self.NEBcoord is None:
+        self.mode = mode
+        if self.xi is None:
             self.splprec = 1001
             self.finder = [0.0, 1.0]
-            self.mode = mode
         self.print = prt
         self.Kspring = Kspring
         self.atoms = configurations
         if len(self.atoms) != 2:
             raise TypeError('First and last configurations are not defined')
-        self._get_lammps_command_replica()
         self.fixcell = configurations[0].get_cell()
         self.masses = configurations[0].get_masses()
 
@@ -123,7 +122,7 @@ class NebNewLammpsState(LammpsState):
                           self.atoms[0],
                           velocities=False,
                           atom_style=atom_style)
-        write_lammps_NEB_ASCIIfile(self.workdir / self.atomsfname,
+        write_lammps_NEB_ASCIIfile(self.workdir / "atoms-1.data",
                                    self.atoms[1])
 
 # ========================================================================== #
@@ -139,11 +138,11 @@ class NebNewLammpsState(LammpsState):
         block("units", "units metal")
         block("boundary", f"boundary {pbc}")
         block("atom_style", f"atom_style {atom_style}")
-        block("read_data", "read_data atoms-0.data")
         block("atom_modify", "atom_modify  map array sort 0 0.0")
         txt = "neigh_modify every 2 delay 10" + \
               " check yes page 1000000 one 100000"
         block("neigh_modify", txt)
+        block("read_data", "read_data atoms-0.data")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
         return block
@@ -151,6 +150,10 @@ class NebNewLammpsState(LammpsState):
 # ========================================================================== #
     def _get_block_thermostat(self, eq):
         return EmptyLammpsBlockInput("empty_thermostat")
+
+# ========================================================================== #
+    def _get_block_lastdump(self, atoms, eq):
+        return EmptyLammpsBlockInput("empty_lastdump")
 
 # ========================================================================== #
     def _get_atoms_results(self, initial_charges):
@@ -197,11 +200,11 @@ class NebNewLammpsState(LammpsState):
         true_coordinates = []
         Z = self.atoms[0].get_atomic_numbers()
         for rep in range(int(self.nreplica)):
-            nebfile = self.NEBworkdir + f'neb.{rep}'
+            nebfile = self.workdir / f'neb.{rep}'
             positions, cell = self._read_lammpsdata(nebfile)
             true_coordinates.append(positions)
             check = False
-            with open(self.NEBworkdir + f'log.lammps.{rep}') as r:
+            with open(self.workdir / f'log.lammps.{rep}') as r:
                 for _ in r:
                     if check:
                         etotal = _.split()[2]
@@ -218,7 +221,7 @@ class NebNewLammpsState(LammpsState):
                                        for i in range(self.nreplica)])
         self.true_energies = self.true_energies.astype(float)
         if self.print:
-            write(self.NEBworkdir + 'pos_neb_path.xyz',
+            write(self.workdir / 'pos_neb_path.xyz',
                   true_atoms, format='extxyz')
 
 # ========================================================================== #
@@ -236,8 +239,8 @@ class NebNewLammpsState(LammpsState):
         N = len(self.atoms[0])
 
         if xi is None:
-            if self.NEBcoord is not None:
-                xi = self.NEBcoord
+            if self.xi is not None:
+                xi = self.xi
             else:
                 x = np.linspace(0, 1, self.splprec)
                 y = intpts(self.path_coordinates, self.true_energies,
@@ -288,7 +291,7 @@ class NebNewLammpsState(LammpsState):
                     Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
                     self.atoms[0].get_cell(), self.spline_energies[rep]))
         if self.print:
-            write(self.NEBworkdir + 'pos_neb_spline.xyz',
+            write(self.workdir / 'pos_neb_spline.xyz',
                   self.spline_atoms, format='extxyz')
 
 # ========================================================================== #
@@ -303,8 +306,8 @@ class NebNewLammpsState(LammpsState):
                 m.append(np.abs(_l[i+1] - _l[i]))
             i = np.array(m).argmax()
             return _l[i+1], _l[i]
-        if self.NEBcoord is not None:
-            return self.NEBcoord
+        if self.xi is not None:
+            return self.xi
         if isinstance(mode, float):
             return mode
         elif mode == 'rdm_spl':

@@ -179,7 +179,6 @@ class MliapDescriptor(Descriptor):
         block("neigh_modify", "neigh_modify once no every 1 delay 0 check yes")
         lmp_in("fake_dynamic", block)
 
-
         block = LammpsBlockInput("compute", "Compute")
         if self.style == "snap":
             style = "sna"
