@@ -411,7 +411,7 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
-        
+
         # RB need to clean that.
         for istate in range(self.nstate):
             if self.state[istate].pressure is not None:

@@ -15,6 +15,7 @@ from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from .state import StateManager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
+                                   EmptyLammpsBlockInput,
                                    LammpsBlockInput)
 
 
@@ -143,7 +144,7 @@ class LammpsState(StateManager):
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
-                 block=None
+                 block=None,
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
@@ -266,7 +267,7 @@ class LammpsState(StateManager):
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
             blocks.append(self._get_block_traj(atoms))
-        blocks.append(self._get_block_custom())
+        blocks.extend(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
         blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
@@ -439,10 +440,12 @@ class LammpsState(StateManager):
         """
 
         """
-        if self._block_custom is not None:
+        if isinstance(self._block_custom, list):
             return self._block_custom
-        else
-            return EmptyLammpsBlockInput("empty_custom")
+        elif isinstance(self._block_custom, LammpsBlockInput):
+            return [self._block_custom]
+        else:
+            return [EmptyLammpsBlockInput("empty_custom")]
 
 # ========================================================================== #
     def _get_atoms_results(self, initial_charges):
