@@ -104,26 +104,30 @@ class PafiNewLammpsState(LammpsState):
                  prt=True,
                  workdir=None):
         LammpsState.__init__(self,
-                             dt,
-                             nsteps,
-                             nsteps_eq,
-                             fixcm,
-                             logfile,
-                             trajfile,
-                             loginterval,
-                             rng,
-                             init_momenta,
-                             workdir)
+                             temperature,
+                             pressure=None,
+                             dt=dt,
+                             nsteps=nsteps,
+                             nsteps_eq=nsteps_eq,
+                             fixcm=fixcm,
+                             logfile=logfile,
+                             trajfile=trajfile,
+                             loginterval=loginterval,
+                             rng=rng,
+                             init_momenta=None,
+                             workdir=workdir)
 
         self.temperature = temperature
         self.path = path
         if path is None:
             raise TypeError('A NebLammpsState must be given!')
+        self.path.print = prt
+        self.path.xi = None
+        self.path.mode = None
         self.path.workdir = self.workdir / 'TransPath'
         self.print = prt
-        self.path.print = prt
         self.maxjump = maxjump
-        self.dt = dt
+        self.damp = damp
         if self.damp is None:
             self.damp = "$(10*dt)"
         self.langevin = langevin
@@ -150,6 +154,7 @@ class PafiNewLammpsState(LammpsState):
                                atom_style)
         self.path.extract_NEB_configurations()
         self.path.compute_spline()
+        supercell = self.path.spline_atoms[0].copy()
         self.isrestart = False
         atoms = LammpsState.run_dynamics(self,
                                          supercell,
@@ -219,6 +224,8 @@ class PafiNewLammpsState(LammpsState):
 
         """
         _rep = self.replica
+        afnames = self.workdir / self.atomsfname
+
         if _rep is None:
             splatoms = self.path.spline_atoms[0]
             splcoord = self.path.spline_coordinates[0]
@@ -226,7 +233,7 @@ class PafiNewLammpsState(LammpsState):
             splatoms = self.path.spline_atoms[_rep]
             splcoord = self.path.spline_coordinates[_rep]
 
-        self._write_PafiPath_atoms(self.atomsfname, splatoms, splcoord)
+        self._write_PafiPath_atoms(afnames, splatoms, splcoord)
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -272,6 +279,7 @@ class PafiNewLammpsState(LammpsState):
         block("c_pat", txt)
         block("run_compute", "run 0")
 
+        # RB
         # If we are using Langevin, we want to remove the random part
         # of the forces. RB don't know if i have to do it.
         # if self.langevin:
@@ -299,7 +307,7 @@ class PafiNewLammpsState(LammpsState):
         if self.replica is None:
             _rep = 0
 
-        block = LammpsBlockInput("pafi", "Pafi log files")
+        block = LammpsBlockInput("pafilog", "Pafi log files")
         block("v_dU", "variable dU equal f_pafi[1]")
         block("v_dUe", "variable dUerr equal f_pafi[2]")
         block("v_psi", "variable psi equal f_pafi[3]")

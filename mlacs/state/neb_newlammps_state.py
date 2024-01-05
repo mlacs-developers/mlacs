@@ -75,15 +75,12 @@ class NebNewLammpsState(LammpsState):
                  linear=False,
                  logfile=None,
                  trajfile=None,
-                 interval=50,
                  loginterval=50,
-                 trajinterval=50,
                  prt=True,
                  workdir=None):
         LammpsState.__init__(self,
                              temperature=0.0,
                              pressure=None,
-                             ptype="iso",
                              dt=dt,
                              nsteps=1000,
                              nsteps_eq=100,
@@ -160,8 +157,7 @@ class NebNewLammpsState(LammpsState):
 
         """
         self.extract_NEB_configurations()
-        xi = self._xifinder(self.mode)
-        self.compute_spline(xi)
+        xi = self.compute_spline(self._xifinder(self.mode))
         atoms = self.spline_atoms[-1].copy()
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
@@ -292,6 +288,7 @@ class NebNewLammpsState(LammpsState):
         if self.print:
             write(self.workdir / 'pos_neb_spline.xyz',
                   self.spline_atoms, format='extxyz')
+        return xi
 
 # ========================================================================== #
     def _xifinder(self, mode):

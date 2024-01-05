@@ -14,7 +14,7 @@ class LammpsInput:
     """
     def __init__(self, preambule=None):
         if preambule is not None:
-            self.preambule = f"# {preambule}"
+            self.preambule = f"# {preambule}\n\n"
         else:
             self.preambule = ""
         self.nvar = 0
