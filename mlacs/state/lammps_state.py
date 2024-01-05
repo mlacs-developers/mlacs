@@ -93,8 +93,8 @@ class LammpsState(StateManager):
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
 
-    block : :class:`LammpsBlockInput` (optional)
-        Custom block input class.
+    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
+        Custom block input class. Can be a list of blocks.
         If ``None``, nothing is added in the input. Default ``None``.
 
     logfile : :class:`str` (optional)
@@ -144,7 +144,7 @@ class LammpsState(StateManager):
                  nsteps=1000,
                  nsteps_eq=100,
                  fixcm=True,
-                 block=None,
+                 blocks=None,
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
@@ -198,7 +198,12 @@ class LammpsState(StateManager):
                 msg = "You need to put a pressure with p_stop"
                 raise ValueError(msg)
 
-        self._block_custom = block
+        self.myblock = blocks
+        if isinstance(blocks, list):
+            self.myblock = blocks[0]
+            if len(blocks) != 1:
+                for block in blocks[1:]:
+                    self.myblock.extend(block)
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -223,7 +228,7 @@ class LammpsState(StateManager):
         for block in blocks:
             lmp_input(block.name, block)
 
-        with open(self.workdir / "lammps_input.in", "w") as fd:
+        with open(self.workdir / self.lammpsfname, "w") as fd:
             fd.write(str(lmp_input))
 
         self._write_lammps_atoms(atoms, atom_style)
@@ -267,7 +272,7 @@ class LammpsState(StateManager):
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
             blocks.append(self._get_block_traj(atoms))
-        blocks.extend(self._get_block_custom())
+        blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
         blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
@@ -285,7 +290,7 @@ class LammpsState(StateManager):
         block("units", "units metal")
         block("boundary", f"boundary {pbc}")
         block("atom_style", f"atom_style {atom_style}")
-        block("read_data", "read_data atoms.in")
+        block("read_data", f"read_data {self.atomsfname}")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
         return block
@@ -440,12 +445,10 @@ class LammpsState(StateManager):
         """
 
         """
-        if isinstance(self._block_custom, list):
-            return self._block_custom
-        elif isinstance(self._block_custom, LammpsBlockInput):
-            return [self._block_custom]
+        if isinstance(self.myblock, LammpsBlockInput):
+            return self.myblock
         else:
-            return [EmptyLammpsBlockInput("empty_custom")]
+            return EmptyLammpsBlockInput("empty_custom")
 
 # ========================================================================== #
     def _get_atoms_results(self, initial_charges):

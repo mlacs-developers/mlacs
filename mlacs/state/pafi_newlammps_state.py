@@ -8,12 +8,10 @@ from ase.units import kB, J, kg, m
 from ase.io import read
 
 from .lammps_state import LammpsState
-from .neb_lammps_state import NebLammpsState
 
 from ..utilities import get_elements_Z_and_masses
 
-from ..utilities.io_lammps import (LammpsBlockInput,
-                                   EmptyLammpsBlockInput)
+from ..utilities.io_lammps import LammpsBlockInput
 
 from ..utilities import integrate_points as IntP
 
@@ -126,7 +124,7 @@ class PafiNewLammpsState(LammpsState):
         self.path = path
         if path is None:
             raise TypeError('A NebLammpsState must be given!')
-        self.path.workdir = self.workdir / 'TransPath' 
+        self.path.workdir = self.workdir / 'TransPath'
         self.print = prt
         self.path.print = prt
         self.maxjump = maxjump
@@ -255,8 +253,7 @@ class PafiNewLammpsState(LammpsState):
             splatoms = self.path.spline_atoms[_rep]
             splcoord = self.path.spline_coordinates[_rep]
 
-        _write_PafiPath_atoms(self.atomsfname, 
-                              splatoms, splcoord)
+        self._write_PafiPath_atoms(self.atomsfname, splatoms, splcoord)
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -277,7 +274,7 @@ class PafiNewLammpsState(LammpsState):
         block("neigh_modify", txt)
         txt = "fix pat all property/atom d_nx d_ny d_nz" + \
               " d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz"
-        block("property_atoms", txt) 
+        block("property_atoms", txt)
         txt = f"read_data {self.atomsfname} fix pat NULL PafiPath"
         block("read_data", txt)
         for i, mass in enumerate(masses):
@@ -296,7 +293,7 @@ class PafiNewLammpsState(LammpsState):
 
         block("timestep", f"timestep {self.dt / 1000}")
         block("thermo", "thermo 1")
-        block("min_style", "min_style fire") # RB test if we can modify
+        block("min_style", "min_style fire")  # RB test if we can modify
         txt = "compute cpat all property/atom d_nx d_ny d_nz " + \
               "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz"
         block("c_pat", txt)

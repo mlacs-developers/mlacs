@@ -165,6 +165,10 @@ class LammpsBlockInput:
     def pop(self, name):
         return self.vardict.pop(name)
 
+    def extend(self, block):
+        for key, val in block.vardict.items():
+            self.__call__(key, val['line'])
+
     def __str__(self):
         return self.to_string()
 

@@ -108,7 +108,6 @@ class NebNewLammpsState(LammpsState):
         self.atoms = configurations
         if len(self.atoms) != 2:
             raise TypeError('First and last configurations are not defined')
-        self.fixcell = configurations[0].get_cell()
         self.masses = configurations[0].get_masses()
 
         self.linear = linear

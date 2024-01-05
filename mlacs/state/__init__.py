@@ -7,10 +7,10 @@ from .langevin import LangevinState
 from .lammps_state import LammpsState
 from .rdf_lammps_state import RdfLammpsState
 from .pafi_lammps_state import PafiLammpsState
+from .pafi_newlammps_state import PafiNewLammpsState
 from .neb_lammps_state import NebLammpsState
 from .neb_newlammps_state import NebNewLammpsState
 from .optimize_lammps_state import OptimizeLammpsState
-from .custom_lammps_state import CustomLammpsState
 from .ipi_state import IpiState
 from .pimd_lammps_state import PimdLammpsState
 
@@ -19,9 +19,9 @@ __all__ = ['StateManager',
            'LammpsState',
            'RdfLammpsState',
            'PafiLammpsState',
+           'PafiNewLammpsState',
            'NebLammpsState',
            'NebNewLammpsState',
            'OptimizeLammpsState',
-           'CustomLammpsState',
            'IpiState',
            'PimdLammpsState']
