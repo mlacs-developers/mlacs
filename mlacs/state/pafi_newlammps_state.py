@@ -215,8 +215,8 @@ class PafiNewLammpsState(LammpsState):
         self.replica = None
         self.atomsfname = afname
         self.lammpsfname = lfname
-        F = self.log_free_energy(xi, wdir, nthrow)
-        return F
+        pafi = self.log_free_energy(xi, wdir, nthrow)
+        return pafi
 
 # ========================================================================== #
     def _write_lammps_atoms(self, atoms, atom_style):
@@ -405,9 +405,8 @@ class PafiNewLammpsState(LammpsState):
         v = np.array(intgpts(xi, np.exp(- F / kB * temp), int_xi))
         vo = np.sqrt((kB * temp * J) / (2 * np.pi * meff * kg)) / (v[-1] * m)
         Fcor = -np.array(intgpts(xi, dF + kB * temp * cor, xi))
-        dFM = max(F) - min(F)
         # Ipsi = np.array(intgpts(xi, psi, xi))
-        txt = f'##  Free energy barier: {dFM} eV | frequency: {vo} s-1 | ' + \
+        txt = f'##  Max free energy: {max(F)} eV | frequency: {vo} s-1 | ' + \
               f'effective mass: {meff} uma\n' + \
               '##  xi <dF/dxi> <F(xi)> <psi> cor Fcor(xi) v(xi) NConf ##\n'
         with open(self.workdir / 'free_energy.dat', 'w') as w:
@@ -420,7 +419,7 @@ class PafiNewLammpsState(LammpsState):
                 w.write(strformat.format(xi[i], dF[i], F[i], psi[i],
                                          kB * temp * cor[i], Fcor[i], _v,
                                          ntot - len(maxjump[i])))
-        return dFM, vo, meff
+        return np.r_[[F, Fcor, _v]]
 
 # ========================================================================== #
     def log_recap_state(self):

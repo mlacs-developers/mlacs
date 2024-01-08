@@ -7,13 +7,6 @@ import numpy as np
 
 from ase.atoms import Atoms
 
-pafi_args = ['temperature',
-             'configurations',
-             'Kspring',
-             'maxjump',
-             'dt',
-             'damp',
-             'brownian']
 rdf_args = ['temperature',
             'dt',
             'nsteps',
@@ -119,7 +112,7 @@ class CalcProperty:
 
 # ========================================================================== #
 # ========================================================================== #
-class CalcMfep(CalcProperty):
+class CalcPafi(CalcProperty):
     """
     Class to set a minimum free energy calculation.
     See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
@@ -145,24 +138,15 @@ class CalcMfep(CalcProperty):
                  frequence=1):
         CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
-        from mlacs.state import PafiLammpsState
-        self.pafi = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in pafi_args:
-                self.pafi[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = PafiLammpsState(**self.pafi)
-
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.kwargs['workdir'] = wdir + 'Mfep_Calculation/'
-        self.state.run_MFEP(**self.kwargs)
-        self.new = np.loadtxt(self.state.workdir + 'free_energy.dat').T[5]
+        self.state.workdir = wdir / 'PafiPath_Calculation'
+        atoms = self.state.atoms[0]
+        self.state.run_dynamics(atoms, **self.kwargs)
+        self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
         return self.isconverged
 
 # ========================================================================== #
