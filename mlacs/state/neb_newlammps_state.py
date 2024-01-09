@@ -31,17 +31,52 @@ class NebNewLammpsState(LammpsState):
         List of ase.Atoms object, the list contain initial and final
         configurations of the reaction path.
 
-    reaction_coordinate: :class:`numpy.array` or `float`
+    xi_coordinate: :class:`numpy.array` or `float`
         Value of the reaction coordinate for the constrained MD.
         Default ``None``
+
+    min_style: :class:`str`
+        Choose a minimization algorithm to use when a minimize command is
+        performed. Default `quickmin`.
 
     Kspring: :class:`float`
         Spring constante for the NEB calculation.
         Default ``1.0``
 
-    Kspring: :class:`float` or :class:`string`
-        Value of the reaction coordinate or sampling mode.
+    etol: :class:`float`
+        Stopping tolerance for energy
+        Default ``0.0``
+
+    ftol: :class:`float`
+        Stopping tolerance for energy
+        Default ``1.0e-3``
+
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+
+    nimages : :class:`int` (optional)
+        Number of images used along the reaction coordinate. Default ``1``.
+        which is suposed the saddle point.
+
+    nprocs : :class:`int` (optional)
+        Total number of process used to run LAMMPS.
+        Have to be a multiple of the number of images.
+        If nprocs > than nimages, each image will be parallelized using the
+        partition scheme of LAMMPS.
+        Per default it assumes that nprocs = nimages
+
+    mode: :class:`float` or :class:`string`
+        Value of the reaction coordinate or sampling mode:
+        - ``float`` sampling at a precise coordinate.
+        - ``rdm_true`` randomly return the coordinate of an images.
+        - ``rdm_spl`` randomly return the coordinate of a splined images.
+        - ``rdm_memory`` homogeneously sample the splined reaction coordinate.
+        - ``None`` return the saddle point.
         Default ``rdm_memory``
+
+    linear : :class:`Bool` (optional)
+        If true, the reaction coordinate is a linear interpolation.
+        Default ``False``
 
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
@@ -63,14 +98,14 @@ class NebNewLammpsState(LammpsState):
     """
     def __init__(self,
                  configurations,
-                 reaction_coordinate=None,
+                 xi_coordinate=None,
                  min_style='quickmin',
                  Kspring=1.0,
                  etol=0.0,
                  ftol=1.0e-3,
                  dt=1.5,
+                 nimages=1,
                  nprocs=None,
-                 nreplica=10,
                  mode='rdm_memory',
                  linear=False,
                  logfile=None,
@@ -89,12 +124,12 @@ class NebNewLammpsState(LammpsState):
                              loginterval=loginterval,
                              workdir=workdir)
 
-        self.xi = reaction_coordinate
+        self.xi = xi_coordinate
         self.style = min_style
         self.criterions = (etol, ftol)
         self.finder = None
         self.nprocs = nprocs
-        self.nreplica = nreplica
+        self.nreplica = nimages
         self.atomsfname = "atoms-0.data"
         self.mode = mode
         if self.xi is None:
@@ -354,13 +389,31 @@ class NebNewLammpsState(LammpsState):
         envvar = "ASE_LAMMPSRUN_COMMAND"
         cmd = os.environ.get(envvar)
         if cmd is None:
-            cmd = "lmp_serial"
-        n1 = self.nreplica
-        if self.nprocs is not None:
-            n2 = self.nprocs // self.nreplica
+            cmd = "lmp_mpi"
+        exe = cmd.split()[-1]
+
+        if "-partition" in cmd:
+            return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
+
+        if self.nreplica is not None and self.nprocs is not None:
+            pass
+        elif self.nreplica is not None and self.nprocs is None:
+            if '-n' in cmd:
+                _ = cmd.split().index('-n')+1
+                self.nprocs = int(cmd.split()[_])
+            else:
+                self.nprocs = self.nreplica
+        elif self.nreplica is None and self.nprocs is not None:
+            self.nreplica = self.nprocs
         else:
+            self.nreplica, self.nprocs = 1, 1
+
+        n1, n2 = self.nreplica, self.nprocs // self.nreplica
+        cmd = f"{cmd} -partition {n1}x{n2}"
+        if n2 == 0:
             n2 = 1
-        return f"{cmd} -partition {n1}x{n2} -in {self.lammpsfname} -sc out.lmp"
+            cmd = f"mpirun -n {int(n1*n2)} {exe} -partition {n1}x{n2}"
+        return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
     def _read_lammpsdata(self, filename, wrap=True):
