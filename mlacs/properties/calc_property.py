@@ -144,8 +144,7 @@ class CalcPafi(CalcProperty):
         Exec a MFEP calculation with lammps. Use replicas.
         """
         self.state.workdir = wdir / 'PafiPath_Calculation'
-        atoms = self.state.atoms[0]
-        self.state.run_dynamics(atoms, **self.kwargs)
+        atoms = self.state.path.atoms[0]
         self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
         return self.isconverged
 

@@ -110,6 +110,8 @@ class PafiNewLammpsState(LammpsState):
         self.path.print = prt
         if self.path.xi is None:
             self.path.mode = None
+        else:
+            self.path.mode = self.path.xi
         self.path.workdir = self.workdir / 'TransPath'
         self.print = prt
         self.maxjump = maxjump

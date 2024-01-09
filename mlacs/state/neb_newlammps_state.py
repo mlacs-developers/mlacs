@@ -104,7 +104,7 @@ class NebNewLammpsState(LammpsState):
                  etol=0.0,
                  ftol=1.0e-3,
                  dt=1.5,
-                 nimages=1,
+                 nimages=None,
                  nprocs=None,
                  mode='rdm_memory',
                  linear=False,
@@ -384,7 +384,7 @@ class NebNewLammpsState(LammpsState):
 # ========================================================================== #
     def _get_lammps_command(self):
         '''
-        Function to load the batch command to run LAMMPS
+        Function to load the batch command to run LAMMPS with replica.
         '''
         envvar = "ASE_LAMMPSRUN_COMMAND"
         cmd = os.environ.get(envvar)
@@ -393,6 +393,9 @@ class NebNewLammpsState(LammpsState):
         exe = cmd.split()[-1]
 
         if "-partition" in cmd:
+            _ = cmd.split().index('-n')+1
+            self.nprocs = int(cmd.split()[_])
+            self.nreplica = int(cmd.split('x')[0][-1])
             return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
         if self.nreplica is not None and self.nprocs is not None:
@@ -406,13 +409,17 @@ class NebNewLammpsState(LammpsState):
         elif self.nreplica is None and self.nprocs is not None:
             self.nreplica = self.nprocs
         else:
-            self.nreplica, self.nprocs = 1, 1
+            if '-n' in cmd:
+                _ = cmd.split().index('-n')+1
+                self.nprocs = int(cmd.split()[_])
+                self.nreplica = self.nprocs
+            else:
+                self.nreplica, self.nprocs = 1, 1
 
         n1, n2 = self.nreplica, self.nprocs // self.nreplica
-        cmd = f"{cmd} -partition {n1}x{n2}"
         if n2 == 0:
             n2 = 1
-            cmd = f"mpirun -n {int(n1*n2)} {exe} -partition {n1}x{n2}"
+        cmd = f"mpirun -n {int(n1*n2)} {exe} -partition {n1}x{n2}"
         return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
