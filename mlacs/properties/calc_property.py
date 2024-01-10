@@ -257,22 +257,20 @@ class CalcRdf(CalcProperty):
             - ave, average difference between to consecutive step < criterion
         Default ``max``
     criterion: :class:`float`
-        Stopping criterion value. Default ``0.1``
+        Stopping criterion value. Default ``0.05``
     frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
+        Interval of Mlacs step to compute the property. Default ``20``
 
     """
 
     def __init__(self,
                  args,
-                 atoms,
                  method='max',
                  criterion=0.05,
-                 frequence=5):
+                 frequence=2):
         CalcProperty.__init__(self, args, method, criterion, frequence)
 
         from mlacs.state import RdfLammpsState
-        self.atoms = atoms
         self.rdf = {}
         self.kwargs = {}
         for keys, values in args.items():
@@ -287,6 +285,7 @@ class CalcRdf(CalcProperty):
         """
         Exec a Rdf calculation with lammps.
         """
+        # take the current conf of istate 0
         self.kwargs['supercell'] = self.atoms[0]
         self.kwargs['workdir'] = wdir + '/Rdf_Calculation/'
         self.state.run_dynamics(**self.kwargs)

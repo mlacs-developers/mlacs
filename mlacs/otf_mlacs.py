@@ -23,6 +23,7 @@ from .utilities.miscellanous import compute_volume
 from .utilities import create_random_structures
 from .utilities.path_integral import compute_centroid_atoms
 
+
 # ========================================================================== #
 # ========================================================================== #
 class OtfMlacs:
@@ -410,14 +411,14 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
-            
+
         for istate in range(self.nstate):
             if self.state[istate].pressure is not None:
                 msg = 'Computing the average volume\n'
                 self.log.logger_log.info(msg)
                 confs = read(self.prefix_output[istate] + '.traj', index=':')
                 if self.mlip.mbar is not None:
-                    weights = np.loadtxt(self.mlip.mbar.folder + 'MLIP.weight' )
+                    weights = np.loadtxt(self.mlip.mbar.folder + 'MLIP.weight')
                 else:
                     weights = None
                 cell, volume = compute_volume(confs, weights)
@@ -425,10 +426,9 @@ class OtfMlacs:
                 msg += f"- cell: {cell[0][0]:20.15f} angs\n"
                 msg += f"- vol/atom: {volume:20.15f} angs^3\n"
                 self.log.logger_log.info(msg)
-            
+
         # Computing properties with ML potential.
         # Computing "on the fly" properties.
-
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
             msg = self.prop.run(self.step,
@@ -685,7 +685,7 @@ class OtfMlacs:
                 assert len(prefix_output) == self.nstate
                 self.prefix_output = prefix_output
                 unique = len(set(prefix_output)) == len(prefix_output)
-                if unique: # Every name must be unique because of netcdf error
+                if unique:  # Every name must be unique because of netcdf error
                     self.prefix_output = prefix_output
                 else:
                     self.prefix_output = []
@@ -694,7 +694,7 @@ class OtfMlacs:
                     logging.warning(msg)
                     for i in range(self.nstate):
                         self.prefix_output.append(prefix_output[i] +
-                            f"{i+1}")
+                                                  f"{i+1}")
 
             else:
                 msg = "prefix_output should be a string or a list of strings"

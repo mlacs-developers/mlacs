@@ -1,7 +1,7 @@
 import numpy as np
 
 from ase.io import read
-from ase.units import Bohr, GPa
+from ase.units import GPa
 
 
 # ========================================================================== #
@@ -53,17 +53,13 @@ def extract_data(confs,
         weights = np.ones(nconfs) / nconfs
 
     natom = len(confs[0].get_scaled_positions(wrap=False))
-    if self.npt is None:
-        cell = confs[0].get_cell() / Bohr
-        volume = cell[0][0]*cell[1][1]*cell[2][2] / natom
-    else:
-        cell = []
-        volume = []
-        for i in range(len(confs)):
-            cell.append(confs[i].get_cell() * weights[i])
-            volume.append(confs[i].get_volume() * weights[i] / natom)
-        cell = np.sum(cell, axis=0)
-        volume = np.sum(volume)
+    cell = []
+    volume = []
+    for i in range(len(confs)):
+        cell.append(confs[i].get_cell() * weights[i])
+        volume.append(confs[i].get_volume() * weights[i] / natom)
+    cell = np.sum(cell, axis=0)
+    volume = np.sum(volume)
 
     stress = np.array([at.get_stress(voigt=True, include_ideal_gas=True) / GPa
                        for at in confs])

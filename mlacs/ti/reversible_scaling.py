@@ -260,7 +260,8 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      ycm equal xcm(all,y)\n"
             input_string += "variable      zcm equal xcm(all,z)\n"
         input_string += "fix           f1  all langevin ${tstart} " + \
-                        f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+                        f"${{tstart}}  {damp}  {self.rng.integers(99999)}" + \
+                        "zero yes\n"
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
         else:
@@ -295,16 +296,16 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
-            "1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        if len(self.pair_coeff) ==1:
+            "1/(1 + (elapsed / ${nsteps}) * (${tend} / ${tstart} - 1))\n"
+        if len(self.pair_coeff) == 1:
             input_string += "fix          f3 all adapt 1 pair " + \
                             f"{self.pair_style} scale * * v_lambda\n"
         else:
             input_string += "pair_style hybrid/scaled v_lamda " + \
-                            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
-                            f"v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff    " + hybdrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff    " + hybdrid_pair_coeff[1] + "\n"
+                            f"{pair_style[1]} {pair_style[2]} " + \
+                            f"{pair_style[3]} + v_lambda {pair_style[4]}\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[1] + "\n"
             input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
@@ -323,16 +324,16 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
-            "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        if len(self.pair_coeff) ==1:
+            "1 / (1 + (1 - elapsed / ${nsteps}) * (${tend} / ${tstart} - 1))\n"
+        if len(self.pair_coeff) == 1:
             input_string += "fix          f3 all adapt 1 pair " + \
                             f"{self.pair_style} scale * * v_lambda\n"
         else:
             input_string += "pair_style hybrid/scaled v_lamda " + \
-                            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
-                            f"v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff    " + hybdrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff    " + hybdrid_pair_coeff[1] + "\n"
+                            f"{pair_style[1]} {pair_style[2]} " + \
+                            f"{pair_style[3]} v_lambda {pair_style[4]}\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[1] + "\n"
             input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
