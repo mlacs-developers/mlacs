@@ -29,6 +29,14 @@ class ReversibleScalingState(ThermoState):
         pair_style for the LAMMPS input
     pair_coeff: :class:`str` or :class:`list` of :class:`str`
         pair_coeff for the LAMMPS input
+    fcorr1: :class:`float` or ``None``
+        First order cumulant correction to the free energy, in eV/at,
+        to be added to the results.
+        If ``None``, no value is added. Default ``None``.
+    fcorr2: :class:`float` or ``None``
+        Second order cumulant correction to the free energy, in eV/at,
+        to be added to the results.
+        If ``None``, no value is added. Default ``None``.
     t_start: :class:`float` (optional)
         Initial temperature of the simulation, in Kelvin. Default ``300``.
     t_end: :class:`float` (optional)
@@ -122,20 +130,19 @@ class ReversibleScalingState(ThermoState):
                                                 pressure,
                                                 fcorr1,
                                                 fcorr2,
-                                                k,
-                                                dt,
-                                                damp,
-                                                pdamp,
-                                                nsteps,
-                                                nsteps_eq,
-                                                nsteps_msd,
-                                                rng,
-                                                suffixdir=None,
-                                                logfile=True,
-                                                trajfile=True,
-                                                interval=500,
-                                                loginterval=50,
-                                                trajinterval=50)
+                                                k=None,
+                                                dt=dt,
+                                                damp=damp,
+                                                pdamp=pdamp,
+                                                nsteps=nsteps,
+                                                nsteps_eq=nsteps_eq,
+                                                rng=rng,
+                                                suffixdir=suffixdir,
+                                                logfile=logfile,
+                                                trajfile=trajfile,
+                                                interval=interval,
+                                                loginterval=loginterval,
+                                                trajinterval=trajinterval)
             elif phase == 'liquid':
                 self.state = UFLiquidState(atoms,
                                            pair_style,
@@ -144,18 +151,18 @@ class ReversibleScalingState(ThermoState):
                                            pressure,
                                            fcorr1,
                                            fcorr2,
-                                           dt,
-                                           damp,
-                                           pdamp,
-                                           nsteps,
-                                           nsteps_eq,
-                                           rng,
-                                           suffixdir=None,
-                                           logfile=True,
-                                           trajfile=True,
-                                           interval=500,
-                                           loginterval=50,
-                                           trajinterval=50)
+                                           dt=dt,
+                                           damp=damp,
+                                           pdamp=pdamp,
+                                           nsteps=nsteps,
+                                           nsteps_eq=nsteps_eq,
+                                           rng=rng,
+                                           suffixdir=suffixdir,
+                                           logfile=logfile,
+                                           trajfile=trajfile,
+                                           interval=interval,
+                                           loginterval=loginterval,
+                                           trajinterval=trajinterval)
             self.ti = ThermodynamicIntegration(self.state,
                                                ninstance,
                                                logfile='FreeEnergy.log')
