@@ -79,12 +79,14 @@ class ReversibleScalingState(ThermoState):
                  atoms,
                  pair_style,
                  pair_coeff,
+                 fcorr1=None,
+                 fcorr2=None,
                  t_start=300,
                  t_end=1200,
                  fe_init=None,
                  phase=None,
                  ninstance=1,
-                 dt=1.5,
+                 dt=1,
                  damp=None,
                  pressure=None,
                  pdamp=None,
@@ -108,6 +110,7 @@ class ReversibleScalingState(ThermoState):
         self.pressure = pressure
         self.pdamp = pdamp
         self.gjf = gjf
+        self.dt = dt
 
         # Free energy calculation before sweep
         if self.fe_init is None:
@@ -116,15 +119,17 @@ class ReversibleScalingState(ThermoState):
                                                 pair_style,
                                                 pair_coeff,
                                                 t_start,
-                                                fcorr1=None,
-                                                fcorr2=None,
-                                                k=None,
-                                                dt=dt,
-                                                damp=None,
-                                                nsteps=10000,
-                                                nsteps_eq=5000,
-                                                nsteps_msd=25000,
-                                                rng=None,
+                                                pressure,
+                                                fcorr1,
+                                                fcorr2,
+                                                k,
+                                                dt,
+                                                damp,
+                                                pdamp,
+                                                nsteps,
+                                                nsteps_eq,
+                                                nsteps_msd,
+                                                rng,
                                                 suffixdir=None,
                                                 logfile=True,
                                                 trajfile=True,
@@ -136,15 +141,15 @@ class ReversibleScalingState(ThermoState):
                                            pair_style,
                                            pair_coeff,
                                            t_start,
-                                           fcorr1=None,
-                                           fcorr2=None,
-                                           p=50,
-                                           sigma=2.0,
-                                           dt=dt,
-                                           damp=None,
-                                           nsteps=10000,
-                                           nsteps_eq=5000,
-                                           rng=None,
+                                           pressure,
+                                           fcorr1,
+                                           fcorr2,
+                                           dt,
+                                           damp,
+                                           pdamp,
+                                           nsteps,
+                                           nsteps_eq,
+                                           rng,
                                            suffixdir=None,
                                            logfile=True,
                                            trajfile=True,
@@ -173,12 +178,12 @@ class ReversibleScalingState(ThermoState):
                              dt,
                              nsteps,
                              nsteps_eq,
-                             rng,
-                             logfile,
-                             trajfile,
-                             interval,
-                             loginterval,
-                             trajinterval)
+                             rng=rng,
+                             logfile=logfile,
+                             trajfile=trajfile,
+                             interval=interval,
+                             loginterval=loginterval,
+                             trajinterval=trajinterval)
 
         self.suffixdir = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
         if self.pressure is None:
@@ -198,7 +203,7 @@ class ReversibleScalingState(ThermoState):
         if not os.path.exists(wdir):
             os.makedirs(wdir)
 
-            self.run_dynamics(wdir)
+        self.run_dynamics(wdir)
 
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
@@ -261,7 +266,7 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      zcm equal xcm(all,z)\n"
         input_string += "fix           f1  all langevin ${tstart} " + \
                         f"${{tstart}}  {damp}  {self.rng.integers(99999)}" + \
-                        "zero yes\n"
+                        " zero yes\n"
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
         else:
@@ -296,7 +301,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
-            "1/(1 + (elapsed / ${nsteps}) * (${tend} / ${tstart} - 1))\n"
+            "1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
         if len(self.pair_coeff) == 1:
             input_string += "fix          f3 all adapt 1 pair " + \
                             f"{self.pair_style} scale * * v_lambda\n"
@@ -324,7 +329,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Equilibration\n"
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
-            "1 / (1 + (1 - elapsed / ${nsteps}) * (${tend} / ${tstart} - 1))\n"
+            "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
         if len(self.pair_coeff) == 1:
             input_string += "fix          f3 all adapt 1 pair " + \
                             f"{self.pair_style} scale * * v_lambda\n"

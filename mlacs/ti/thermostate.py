@@ -117,6 +117,7 @@ class ThermoState:
         write_lammps_data(atomsfname, self.atoms)
 
         self.write_lammps_input(wdir)
+
         call(lammps_command, shell=True, cwd=wdir)
 
 # ========================================================================== #
