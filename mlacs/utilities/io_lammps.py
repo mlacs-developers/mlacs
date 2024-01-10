@@ -191,6 +191,58 @@ class EmptyLammpsBlockInput(LammpsBlockInput):
 
 
 # ========================================================================== #
+def get_block_rdf(nsteps, filename='spce-rdf.dat', rmax=None):
+    """
+    Function to compute and output the radial distribution function
+    """
+    # freq = int(nsteps/5)
+    block = LammpsBlockInput("RDF", "Compute RDF")
+    block("v_rep", f"variable repeat equal {nsteps}/2")
+    txt = "compute rdf all rdf ${repeat} 1 1"
+    if rmax is not None:
+        txt += ' cutoff {rmax}'
+    block("c_rdf", txt)
+    txt = "fix rdf all ave/time 1 ${repeat}" + \
+          f" {nsteps} c_rdf[*] file {filename} mode vector\n"
+    block("rdf", txt)
+    return block
+
+
+# ========================================================================== #
+def get_block_adf(nsteps, filename='spce-adf.dat'):
+    """
+    Function to compute and output the angle distribution function
+    """
+    # freq = int(nsteps/5)
+    block = LammpsBlockInput("ADF", "Compute ADF")
+    block("v_rep", "variable repeat equal 1")
+    block("c_adf", "compute adf all adf 360 * * *")
+    txt = "fix adf all ave/time 100 ${repeat}" + \
+          f" {nsteps} c_adf[*] file {filename} mode vector\n"
+    block("adf", txt)
+    return block
+
+
+# ========================================================================== #
+def get_block_diffusion(nsteps, filename='diffusion.dat'):
+    """
+    Function to compute and output the diffusion coefficient
+    """
+    # freq = int(nsteps/5)
+    block = LammpsBlockInput("MSD", "Compute MSD and diffusion coefficient")
+    block("v_t", "variable t equal step")
+    block("c_msd", "compute msd all msd")
+    block("v_msd", "variable msd equal c_msd[4]")
+    block("v_twopts", "variable twopoint equal c_msd[4]/6/(step*dt+1.0e-6)")
+    block("f_msd", "fix msd all vector 1000 c_msd[4]")
+    block("v_slope", "variable fislope equal slope(f_msd)/6/(10000*dt)")
+    txt = 'fix dcoeff all print 100 "${t} ${msd} ${twopoint} ${fitslope}"' + \
+          f' append {filename} title "# Step MSD D(start) D(slope)"'
+    block("diffusion", txt)
+    return block
+
+
+# ========================================================================== #
 def get_log_input(loginterval, logfile):
     """
     Function to write the log of the mlmd run
@@ -483,6 +535,26 @@ def get_diffusion_input(msdfile):
 
 
 # ========================================================================== #
+def get_rdf_input(rdffile, nsteps):
+    """
+    Function to compute and output the radial distribution function
+    """
+    # freq = int(nsteps/5)
+    input_string = "#####################################\n"
+    input_string += "#           Compute RDF\n"
+    input_string += "#####################################\n"
+    input_string += f"variable repeat equal {nsteps}/2 \n"
+    input_string += "compute myrdf all rdf 500 1 1 \n"
+    # input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
+    input_string += "fix rdf all ave/time 1 ${repeat}" + \
+                    f" {nsteps} c_myrdf[*] " + \
+                    f"file {rdffile} mode vector\n"
+    input_string += "#####################################\n"
+    input_string += "\n\n\n"
+    return input_string
+
+
+# ========================================================================== #
 def write_lammps_NEB_ASCIIfile(filename, supercell):
     '''
     Convert Ase Atoms into an ASCII file for lammps neb calculations.
@@ -504,26 +576,6 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
         instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
     with open(filename, "w") as w:
         w.write(instr)
-
-
-# ========================================================================== #
-def get_rdf_input(rdffile, nsteps):
-    """
-    Function to compute and output the radial distribution function
-    """
-    # freq = int(nsteps/5)
-    input_string = "#####################################\n"
-    input_string += "#           Compute RDF\n"
-    input_string += "#####################################\n"
-    input_string += f"variable repeat equal {nsteps}/2 \n"
-    input_string += "compute myrdf all rdf 500 1 1 \n"
-    # input_string += "fix rdf all ave/time 100 10 ${freq} c_myrdf[*] " + \
-    input_string += "fix rdf all ave/time 1 ${repeat}" + \
-                    f" {nsteps} c_myrdf[*] " + \
-                    f"file {rdffile} mode vector\n"
-    input_string += "#####################################\n"
-    input_string += "\n\n\n"
-    return input_string
 
 
 # ========================================================================== #
