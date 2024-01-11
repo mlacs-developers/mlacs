@@ -2,18 +2,16 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import copy
 import importlib
 import numpy as np
 
 from ase.atoms import Atoms
 
-rdf_args = ['temperature',
-            'dt',
-            'nsteps',
-            'nsteps_eq',
-            'langevin',
-            'logfile',
-            'rdffile']
+from ..utilities.io_lammps import (LammpsBlockInput,
+                                   get_block_rdf)
+from ..utilities.miscellanous import read_distribution_files as read_df
+
 ti_args = ['atoms',
            'pair_style',
            'pair_coeff',
@@ -44,7 +42,7 @@ class CalcProperty:
         self.isgradient = True
         self.useatoms = True
         if state is not None:
-            self.state = state
+            self.state = copy.deepcopy(state)
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -241,34 +239,37 @@ class CalcRdf(CalcProperty):
 
     def __init__(self,
                  args,
-                 atoms,
                  state=None,
                  method='max',
                  criterion=0.05,
                  frequence=5):
         CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
-        from mlacs.state import RdfLammpsState
-        self.atoms = atoms
-        self.rdf = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in rdf_args:
-                self.rdf[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = RdfLammpsState(**self.rdf)
+        self.useatoms = True
+        self.step = self.state.nsteps_eq
+        if 'nsteps' in self.kwargs.keys():
+            self.step = self.kwargs['nsteps'] / 10
+            self.state.nsteps = self.kwargs['nsteps']
+            self.kwargs.pop('nsteps')
+        self.filename = 'spce-rdf.dat'
+        if 'filename' in self.kwargs.keys():
+            self.filename = self.kwargs['filename']
+            self.kwargs.pop('filename')
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a Rdf calculation with lammps.
         """
-        self.kwargs['supercell'] = self.atoms
-        self.kwargs['workdir'] = wdir + '/Rdf_Calculation/'
-        self.state.run_dynamics(**self.kwargs)
-        self.new = np.loadtxt(self.kwargs['workdir'] +
-                              self.rdf['rdffile'], skiprows=4, usecols=(2))
+        self.state.workdir = wdir / 'Rdf_Calculation'
+        if self.state.myblock is None:
+            block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
+            block("equilibrationrun", f"run {self.step}")
+            block("reset_timestep", "reset_timestep 0")
+            block.extend(get_block_rdf(self.step, self.filename))
+            self.state.myblock = block
+        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
+        self.new = read_df(self.state.workdir / self.filename)[0]
         return self.isconverged
 
 # ========================================================================== #
