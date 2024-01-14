@@ -8,8 +8,7 @@ import numpy as np
 
 from ase.atoms import Atoms
 
-from ..utilities.io_lammps import (LammpsBlockInput,
-                                   get_block_rdf)
+from ..utilities.io_lammps import LammpsBlockInput
 from ..utilities.miscellanous import read_distribution_files as read_df
 
 ti_args = ['atoms',
@@ -221,7 +220,6 @@ class CalcNeb(CalcProperty):
 class CalcRdf(CalcProperty):
     """
     Class to set a radial distribution function calculation.
-    See RdfLammpsState and RdfLammpsState.run_dynamics parameters.
 
     Parameters
     ----------
@@ -261,6 +259,9 @@ class CalcRdf(CalcProperty):
         """
         Exec a Rdf calculation with lammps.
         """
+
+        from ..utilities.io_lammps import get_block_rdf
+
         self.state.workdir = wdir / 'Rdf_Calculation'
         if self.state.myblock is None:
             block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
@@ -279,6 +280,77 @@ class CalcRdf(CalcProperty):
         property.
         """
         msg = 'For the radial distribution function g(r):\n'
+        msg += self.state.log_recap_state()
+        msg += f'        - Maximum  : {self.maxf}\n'
+        msg += f'        - Averaged : {self.avef}\n\n'
+        return msg
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcAdf(CalcProperty):
+    """
+    Class to set the angle distribution function calculation.
+
+    Parameters
+    ----------
+    method: :class:`str`
+        Type of criterion :
+            - max, maximum difference between to consecutive step < criterion
+            - ave, average difference between to consecutive step < criterion
+        Default ``max``
+    criterion: :class:`float`
+        Stopping criterion value. Default ``0.1``
+    frequence : :class:`int`
+        Interval of Mlacs step to compute the property. Default ``1``
+
+    """
+
+    def __init__(self,
+                 args,
+                 state=None,
+                 method='max',
+                 criterion=0.05,
+                 frequence=5):
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
+
+        self.useatoms = True
+        self.step = self.state.nsteps_eq
+        if 'nsteps' in self.kwargs.keys():
+            self.step = self.kwargs['nsteps'] / 10
+            self.state.nsteps = self.kwargs['nsteps']
+            self.kwargs.pop('nsteps')
+        self.filename = 'spce-adf.dat'
+        if 'filename' in self.kwargs.keys():
+            self.filename = self.kwargs['filename']
+            self.kwargs.pop('filename')
+
+# ========================================================================== #
+    def _exec(self, wdir):
+        """
+        Exec an Adf calculation with lammps.
+        """
+
+        from ..utilities.io_lammps import get_block_adf
+
+        self.state.workdir = wdir / 'Adf_Calculation'
+        if self.state.myblock is None:
+            block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
+            block("equilibrationrun", f"run {self.step}")
+            block("reset_timestep", "reset_timestep 0")
+            block.extend(get_block_adf(self.step, self.filename))
+            self.state.myblock = block
+        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
+        self.new = read_df(self.state.workdir / self.filename)[0]
+        return self.isconverged
+
+# ========================================================================== #
+    def __repr__(self):
+        """
+        Return a string for the log with informations of the calculated
+        property.
+        """
+        msg = 'For the angle distribution function g(theta):\n'
         msg += self.state.log_recap_state()
         msg += f'        - Maximum  : {self.maxf}\n'
         msg += f'        - Averaged : {self.avef}\n\n'

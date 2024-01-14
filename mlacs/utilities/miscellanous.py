@@ -354,4 +354,4 @@ def read_distribution_files(filename):
     _gav = np.average(np.c_[yaxis, buf].T, axis=0)
     _gmin = np.min(np.c_[yaxis, buf].T, axis=0)
     _gmax = np.max(np.c_[yaxis, buf].T, axis=0)
-    return _gav, _gmin, _gmax
+    return xaxis, _gav, _gmin, _gmax
