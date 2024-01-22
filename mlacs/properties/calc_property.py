@@ -7,16 +7,6 @@ import numpy as np
 
 from ase.atoms import Atoms
 
-pafi_args = ['temperature',
-             'configurations',
-             'Kspring',
-             'maxjump',
-             'dt',
-             'damp',
-             'brownian']
-neb_args = ['configurations',
-            'Kspring',
-            'dt']
 rdf_args = ['temperature',
             'dt',
             'nsteps',
@@ -41,6 +31,7 @@ class CalcProperty:
 
     def __init__(self,
                  args={},
+                 state=None,
                  method='max',
                  criterion=0.001,
                  frequence=1):
@@ -52,6 +43,8 @@ class CalcProperty:
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        if state is not None:
+            self.state = state
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -119,7 +112,7 @@ class CalcProperty:
 
 # ========================================================================== #
 # ========================================================================== #
-class CalcMfep(CalcProperty):
+class CalcPafi(CalcProperty):
     """
     Class to set a minimum free energy calculation.
     See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
@@ -139,29 +132,20 @@ class CalcMfep(CalcProperty):
 
     def __init__(self,
                  args,
+                 state=None,
                  method='max',
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
-
-        from mlacs.state import PafiLammpsState
-        self.pafi = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in pafi_args:
-                self.pafi[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = PafiLammpsState(**self.pafi)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.kwargs['workdir'] = wdir + 'Mfep_Calculation/'
-        self.state.run_MFEP(**self.kwargs)
-        self.new = np.loadtxt(self.state.workdir + 'free_energy.dat').T[5]
+        self.state.workdir = wdir / 'PafiPath_Calculation'
+        atoms = self.state.path.atoms[0]
+        self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
         return self.isconverged
 
 # ========================================================================== #
@@ -201,30 +185,22 @@ class CalcNeb(CalcProperty):
 
     def __init__(self,
                  args,
+                 state=None,
                  method='max',
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
-
-        from mlacs.state import NebLammpsState
-        self.neb = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in neb_args:
-                self.neb[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = NebLammpsState(**self.neb)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a NEB calculation with lammps. Use replicas.
         """
-        self.kwargs['workdir'] = wdir + '/NEB_Calculation/'
-        self.state.run_NEB(**self.kwargs)
+        self.state.workdir = wdir / 'NEB_Calculation'
+        atoms = self.state.atoms[0]
+        self.state.run_dynamics(atoms, **self.kwargs)
         self.state.extract_NEB_configurations()
-        self.new = self.state.true_energies
+        self.new = self.state.spline_energies
         return self.isconverged
 
 # ========================================================================== #
@@ -266,10 +242,11 @@ class CalcRdf(CalcProperty):
     def __init__(self,
                  args,
                  atoms,
+                 state=None,
                  method='max',
                  criterion=0.05,
                  frequence=5):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
         from mlacs.state import RdfLammpsState
         self.atoms = atoms
@@ -334,11 +311,12 @@ class CalcTi(CalcProperty):
     def __init__(self,
                  args,
                  phase,
+                 state=None,
                  ninstance=None,
                  method='max',
                  criterion=0.001,
                  frequence=10):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
         self.ninstance = ninstance
         self.phase = phase
@@ -439,7 +417,7 @@ class CalcExecFunction(CalcProperty):
                  gradient=False,
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(self, args, 'max', criterion, frequence)
+        CalcProperty.__init__(self, args, None, 'max', criterion, frequence)
 
         self._func = function
         if module is not None:

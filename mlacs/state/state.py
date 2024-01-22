@@ -2,7 +2,7 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
+from pathlib import Path
 
 import numpy as np
 
@@ -21,7 +21,6 @@ class StateManager:
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 msdfile=None,
                  rdffile=None,
                  workdir=None):
 
@@ -32,14 +31,11 @@ class StateManager:
         self.logfile = logfile
         self.trajfile = trajfile
         self.loginterval = loginterval
-        self.msdfile = msdfile
         self.rdffile = rdffile
 
-        self.workdir = workdir
-        if self.workdir is None:
-            self.workdir = os.getcwd() + "/MolecularDynamics/"
-        if self.workdir[-1] != "/":
-            self.workdir[-1] += "/"
+        if workdir is None:
+            workdir = "MolecularDynamics"
+        self.workdir = Path(workdir).absolute()
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -75,4 +71,4 @@ class StateManager:
     def set_workdir(self, workdir):
         """
         """
-        self.workdir = workdir
+        self.workdir = Path(workdir).absolute()

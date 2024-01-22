@@ -4,7 +4,7 @@
 """
 
 from mlacs.properties.property_manager import PropertyManager
-from mlacs.properties.calc_property import (CalcMfep,
+from mlacs.properties.calc_property import (CalcPafi,
                                             CalcNeb,
                                             CalcRdf,
                                             CalcTi,
@@ -17,7 +17,7 @@ from .basic_function import (eos_fit,
 
 __all__ = ['PropertyManager',
            'CalcProperty',
-           'CalcMfep',
+           'CalcPafi',
            'CalcNeb',
            'CalcRdf',
            'CalcTi',

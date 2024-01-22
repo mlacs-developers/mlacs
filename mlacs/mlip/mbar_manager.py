@@ -3,12 +3,22 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from pathlib import Path
+import logging
 
 import os
 import numpy as np
 
+
 try:
+    # With the annoying mandatory warning from mbar, we have to initialize
+    # the log here otherwise the log doesn't work
+    # I have to see how to handle this in a better way.
+    # This might be an indication of needing to redo the logging
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    logger = logging.getLogger()
+    logger.setLevel(logging.ERROR)
     from pymbar import MBAR
+    logger.setLevel(logging.INFO)
     ispymbar = True
 except ModuleNotFoundError:
     ispymbar = False
