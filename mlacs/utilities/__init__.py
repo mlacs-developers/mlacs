@@ -12,6 +12,7 @@ from .miscellanous import (get_elements_Z_and_masses,
                            compute_correlation,
                            integrate_points,
                            normalized_integration,
+                           subfolder,
                            )
 
 from .io_abinit import (AbinitNC,
@@ -29,4 +30,5 @@ __all__ = ['compute_pdf',
            'normalized_integration',
            'AbinitNC',
            'set_aseAtoms',
+           'subfolder',
            ]

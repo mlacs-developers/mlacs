@@ -1,8 +1,9 @@
+from pathlib import Path
 import numpy as np
 from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, subfolder
 
 
 # ========================================================================== #
@@ -28,6 +29,7 @@ class Descriptor:
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
+        self.mlip_location = Path.cwd()
 
 # ========================================================================== #
     def _compute_rij(self, atoms):
@@ -40,6 +42,7 @@ class Descriptor:
         return iat, jat, vdist, iel
 
 # ========================================================================== #
+    @subfolder
     def calculate(self, atoms, forces=True, stress=True):
         """
         """
@@ -137,6 +140,8 @@ class SumDescriptor(Descriptor):
                 co = coeff.split()
                 co.insert(2, style)
                 pair_coeff.append(" ".join(co))
+        print(pair_style, pair_coeff)
+        raise NotImplementedError("DEBUG")
         return pair_style, pair_coeff
 
 # ========================================================================== #

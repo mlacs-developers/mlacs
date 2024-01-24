@@ -2,11 +2,12 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+from pathlib import Path
 import numpy as np
 from ase.atoms import Atoms
 from ase.units import GPa
 
-from ..utilities import compute_correlation
+from ..utilities import compute_correlation, subfolder
 
 
 # ========================================================================== #
@@ -22,8 +23,10 @@ class MlipManager:
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
                  mbar=None,
+                 folder=Path("MLIP"),
                  no_zstress=False):
-
+        if isinstance(folder,str):
+            self.folder = Path(folder)
         self.descriptor = descriptor
         self.mbar = mbar
 
@@ -47,20 +50,36 @@ class MlipManager:
         self.nconfs = 0
 
         # Some initialization for sampling interface
-        self.pair_style = None
-        self.pair_coeff = None
         self.model_post = None
         self.atom_style = "atomic"
+        self._pair_style = None  # property
+        self._pair_coeff = None  # property
 
 # ========================================================================== #
-    def update_matrices(self, atoms):
+    @property
+    def pair_style(self):
+        return self.descriptor.get_pair_style()
+
+# ========================================================================== #
+    @property
+    def pair_coeff(self):
+        return self.descriptor.get_pair_coeff()
+        
+# ========================================================================== #
+    def update_matrices(self, atoms, mlip_subfolder=""):
         """
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         if self.mbar is not None:
             self.mbar.update_database(atoms)
-        amat_all = self.descriptor.calculate(atoms)
+
+        mlip_subfolder = self.folder / mlip_subfolder
+        for at in atoms:
+            if 'parent_mlip' not in at.info:
+                at.info['parent_mlip'] = self.descriptor.mlip_location / mlip_subfolder
+        print("Added one", at.info['parent_mlip'])
+        amat_all = self.descriptor.calculate(atoms, subfolder=mlip_subfolder)
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
         for at in atoms:

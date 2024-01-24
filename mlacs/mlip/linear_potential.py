@@ -1,5 +1,6 @@
 '''
 '''
+from pathlib import Path
 import numpy as np
 from ase.units import GPa
 
@@ -51,21 +52,19 @@ class LinearPotential(MlipManager):
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
-                 mbar=None):
+                 mbar=None, 
+                 folder=Path("MLIP")):
         MlipManager.__init__(self,
                              descriptor,
                              nthrow,
                              energy_coefficient,
                              forces_coefficient,
                              stress_coefficient,
-                             mbar)
+                             mbar,
+                             folder)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)
-
-        pair_style, pair_coeff = self.descriptor.get_pair_style_coeff()
-        self.pair_style = pair_style
-        self.pair_coeff = pair_coeff
 
         self.coefficients = None
 
@@ -78,7 +77,7 @@ class LinearPotential(MlipManager):
             self.parameters["hyperparameters"] = hyperparam
 
 # ========================================================================== #
-    def train_mlip(self):
+    def train_mlip(self, mlip_subfolder):
         """
         """
         msg = ''
@@ -131,12 +130,13 @@ class LinearPotential(MlipManager):
             else:
                 msg += self.compute_tests(amat_e, amat_f, amat_s,
                                           ymat_e, ymat_f, ymat_s)
-            msg += self.mbar.run_weight(amat_e, self.coefficients)
+            msg += self.mbar.run_weight(amat_e, self.coefficients, subfolder=mlip_subfolder)
         else:
             msg += self.compute_tests(amat_e, amat_f, amat_s,
                                       ymat_e, ymat_f, ymat_s)
 
-        self.descriptor.write_mlip(self.coefficients)
+        mlip_subfolder = self.folder / mlip_subfolder
+        self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
         return msg
 
 # ========================================================================== #
@@ -194,7 +194,8 @@ class LinearPotential(MlipManager):
         """
         assert self.coefficients is not None, 'The model has not been trained'
 
-        res = self.descriptor.calculate(atoms)[0]
+        parent_mlip = atoms.info['parent_mlip']  # Location of the last MLIP
+        res = self.descriptor.calculate(atoms, subfolder=parent_mlip)[0]
         energy = np.einsum('ij,j->', res['desc_e'], self.coefficients)
         forces = np.einsum('ij,j->i', res['desc_f'], self.coefficients)
         stress = np.einsum('ij,j->i', res['desc_s'], self.coefficients)

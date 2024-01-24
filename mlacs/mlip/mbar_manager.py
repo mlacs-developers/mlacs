@@ -7,7 +7,7 @@ import logging
 
 import os
 import numpy as np
-
+from ..utilities import subfolder
 
 try:
     # With the annoying mandatory warning from mbar, we have to initialize
@@ -120,6 +120,7 @@ class MbarManager:
             raise ValueError(msg)
 
 # ========================================================================== #
+    @subfolder
     def run_weight(self, a, c):
         """
         Get A matrices and linear coefficients.

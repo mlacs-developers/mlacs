@@ -288,7 +288,7 @@ class OtfMlacs:
             if self.mlip.mbar._nstart <= min(self.nconfs):
                 msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
-        msg = self.mlip.train_mlip()
+        msg = self.mlip.train_mlip(mlip_subfolder="DEBUG_SUBFOLDER")
         self.log.logger_log.info(msg)
 
         # Create MLIP atoms object
@@ -339,6 +339,7 @@ class OtfMlacs:
                     self.log.logger_log.info(msg)
                 for istate, exe in enumerate(futures):
                     atoms_mlip[istate] = exe.result()
+                    atoms_mlip[istate].info['parent_mlip'] = self.mlip.descriptor.mlip_location
 
         for i, at in enumerate(atoms_mlip):
             at.calc = self.mlip.get_calculator()
@@ -588,7 +589,7 @@ class OtfMlacs:
                               "didn't converge"
                         raise TruePotentialError(msg)
 
-                    self.mlip.update_matrices(conf)
+                    self.mlip.update_matrices(conf, mlip_subfolder="DEBUG_SUBFOLDER")
                     init_traj.write(conf)
                 # We dont need the initial configurations anymore
                 del self.confs_init
@@ -599,7 +600,7 @@ class OtfMlacs:
             self.log.logger_log.info(msg)
         # And now we add the starting configurations in the fit matrices
         for at in uniq_at:
-            self.mlip.update_matrices(at)
+            self.mlip.update_matrices(at, mlip_subfolder="DEBUG_SUBFOLDER")
         self.launched = True
 
 # ========================================================================== #

@@ -5,7 +5,7 @@ from subprocess import run, PIPE
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, subfolder
 from .descriptor import Descriptor, combine_reg
 from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
@@ -67,10 +67,9 @@ class MliapDescriptor(Descriptor):
         Default 1.0
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
-                 model="linear", style="snap", alpha=1.0, folder="Mliap"):
+                 model="linear", style="snap", alpha=1.0):
         self.chemflag = parameters.pop("chemflag", False)
         Descriptor.__init__(self, atoms, rcut, alpha)
-        self.folder = Path(folder).absolute()
 
         self.model = model
         self.style = style
@@ -117,12 +116,10 @@ class MliapDescriptor(Descriptor):
     def _compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
-        self.folder.mkdir(parents=True, exist_ok=True)
-
         nat = len(atoms)
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        lmp_atfname = self.folder / "atoms.lmp"
+        lmp_atfname = "atoms.lmp"
         self._write_lammps_input(masses, atoms.get_pbc())
         self._write_mlip_params()
 
@@ -135,7 +132,7 @@ class MliapDescriptor(Descriptor):
                           specorder=self.elements.tolist())
         self._run_lammps(lmp_atfname)
 
-        bispectrum = np.loadtxt(self.folder / "descriptor.out",
+        bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
         bispectrum[-6:, 1:-1] /= -atoms.get_volume()
 
@@ -192,7 +189,7 @@ class MliapDescriptor(Descriptor):
         block("run", "run 0")
         lmp_in("compute", block)
 
-        with open(self.folder / "lammps_input.in", "w") as fd:
+        with open("lammps_input.in", "w") as fd:
             fd.write(str(lmp_in))
 
 # ========================================================================== #
@@ -203,8 +200,7 @@ class MliapDescriptor(Descriptor):
         lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
         lmp_handle = run(lmp_cmd,
                          shell=True,
-                         stderr=PIPE,
-                         cwd=self.folder)
+                         stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
@@ -221,17 +217,17 @@ class MliapDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        (self.folder / "lmp.out").unlink()
-        (self.folder / "descriptor.out").unlink()
-        (self.folder / "lammps_input.in").unlink()
-        (self.folder / "atoms.lmp").unlink()
+        Path("lmp.out").unlink()
+        Path("descriptor.out").unlink()
+        Path("lammps_input.in").unlink()
+        Path("atoms.lmp").unlink()
 
 # ========================================================================== #
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        with open(self.folder / "MLIP.descriptor", "w") as f:
+        with open("MLIP.descriptor", "w") as f:
             f.write("# ")
             # Adding a commment line to know what elements are fitted here
             for elements in self.elements:
@@ -264,10 +260,12 @@ class MliapDescriptor(Descriptor):
                 f.write("bnormflag    1\n")
 
 # ========================================================================== #
+    @subfolder
     def write_mlip(self, coefficients, comments=""):
         """
         """
-        with open(self.folder / "MLIP.model", "w") as fd:
+        self.mlip_location = Path.cwd()
+        with open("MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -287,19 +285,22 @@ class MliapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        """
-        """
+    def get_pair_style(self):
         if self.style == "snap":
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = self.folder / "MLIP.model"
-        descfile = self.folder / "MLIP.descriptor"
+        modelfile = self.mlip_location / "MLIP.model"
+        descfile = self.mlip_location / "MLIP.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
-        pair_coeff = [f"* * {' '.join(self.elements)}"]
-        return pair_style, pair_coeff
+        return pair_style
+
+    def get_pair_coeff(self):
+        return [f"* * {' '.join(self.elements)}"]
+
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def __str__(self):
