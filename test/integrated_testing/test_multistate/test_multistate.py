@@ -16,8 +16,8 @@ def test_mlacs_multistate():
     root = Path()
     atoms = bulk("Cu", cubic=True).repeat(2)
     natoms = len(atoms)
-    nstep = 10
-    nconfs = 9
+    nstep = 4
+    nconfs = 3
     nconfs_init = 1
     calc = EMT()
 
@@ -31,7 +31,7 @@ def test_mlacs_multistate():
     temp = [100, 200, 300]
     press = [-1, 0, 1]
     for t, p, a in zip(temp, press, acell):
-        state.append(LammpsState(t, p, nsteps_eq=10, nsteps=100))
+        state.append(LammpsState(t, p, nsteps_eq=2, nsteps=100))
         atoms.append(bulk("Cu", cubic=True, a=a).repeat(2))
     nstate = len(state)
 

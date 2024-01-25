@@ -10,18 +10,19 @@ from mlacs.mlip.mlip_manager import MlipManager, SelfMlipManager
 
 
 def create_dum_data(atoms):
+    at = atoms.copy()
     energy = np.random.random()
     forces = np.random.random((len(atoms), 3))
     stress = np.random.random(6)
     calc = SinglePointCalculator(atoms, energy=energy, forces=forces,
                                  stress=stress)
-    atoms.calc = calc
-    return atoms
+    at.calc = calc
+    return at
 
 
 def test_update_matrices():
     at = bulk("Si")
-    desc = SnapDescriptor(at, 2.3)
+    desc = SnapDescriptor(at, 2.4)
     manager = MlipManager(desc)
 
     nconfs = 0

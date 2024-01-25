@@ -101,6 +101,9 @@ Si 0.5 1.0
 def test_writing_model():
     root = Path()
     snapfold = root / "Snap"
+    if snapfold.exists():
+        shutil.rmtree(snapfold)
+    snapfold.mkdir()
 
     at = bulk("Si")
 
@@ -109,9 +112,6 @@ def test_writing_model():
     snap = SnapDescriptor(at, rcut, parameters=parameters)
     coeff = np.arange(0, 21)
 
-    if snapfold.exists():
-        shutil.rmtree(snapfold)
-    snapfold.mkdir()
     snap.write_mlip(coeff)
 
     snapfile = snapfold / "MLIP.model"

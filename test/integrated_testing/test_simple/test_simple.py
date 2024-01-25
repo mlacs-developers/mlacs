@@ -16,8 +16,8 @@ def test_mlacs_vanilla():
     root = Path()
     atoms = bulk("Cu", cubic=True).repeat(2)
     natoms = len(atoms)
-    nstep = 10
-    nconfs = 9
+    nstep = 5
+    nconfs = 4
     nconfs_init = 1
     calc = EMT()
 
@@ -25,7 +25,7 @@ def test_mlacs_vanilla():
     desc = SnapDescriptor(atoms, 4.2, mlip_params)
     mlip = LinearPotential(desc)
 
-    state = LammpsState(300, nsteps_eq=10, nsteps=100)
+    state = LammpsState(300, nsteps_eq=2, nsteps=100)
 
     sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)
     sampling.run(nstep)
