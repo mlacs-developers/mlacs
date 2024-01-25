@@ -655,12 +655,12 @@ class OtfMlacs:
                     self.atoms.append(atoms.copy())
             elif isinstance(atoms, list):
                 assert len(atoms) == self.nstate
-                self.atoms = atoms
+                self.atoms = [at.copy() for at in atoms]
             else:
                 msg = "atoms should be a ASE Atoms object or " + \
                       "a list of ASE atoms objects"
                 raise TypeError(msg)
-            self.atoms_start = self.atoms
+            self.atoms_start = [at.copy() for at in self.atoms]
 
             # Create list of neq -> number of equilibration
             # mlmd runs for each state
