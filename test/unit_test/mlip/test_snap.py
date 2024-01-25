@@ -4,7 +4,7 @@ import shutil
 import numpy as np
 from ase.build import bulk
 
-from .. import context  # noqa
+from ... import context  # noqa
 from mlacs.mlip import SnapDescriptor
 
 

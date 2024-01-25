@@ -119,8 +119,8 @@ class OtfMlacs:
         else:
             self.mlip = mlip
 
-        if self.mlip.mbar is None:
-            self.mlip.nthrow = max(self.neq)
+        # if self.mlip.mbar is None:
+            # self.mlip.nthrow = max(self.neq)
 
         # Create property object
         if prop is None:

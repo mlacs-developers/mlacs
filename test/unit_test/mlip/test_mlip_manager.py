@@ -4,7 +4,7 @@ import numpy as np
 from ase.build import bulk
 from ase.calculators.singlepoint import SinglePointCalculator
 
-from .. import context  # noqa
+from ... import context  # noqa
 from mlacs.mlip import SnapDescriptor
 from mlacs.mlip.mlip_manager import MlipManager, SelfMlipManager
 

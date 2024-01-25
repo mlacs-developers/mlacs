@@ -2,7 +2,7 @@ import numpy as np
 from ase.atoms import Atoms
 from ase.build import bulk
 
-from .. import context  # noqa
+from ... import context  # noqa
 from mlacs.utilities.miscellanous import (get_elements_Z_and_masses,
                                           create_random_structures)
 
