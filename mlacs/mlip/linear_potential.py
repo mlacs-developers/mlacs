@@ -195,7 +195,9 @@ class LinearPotential(MlipManager):
         assert self.coefficients is not None, 'The model has not been trained'
 
         parent_mlip = atoms.info['parent_mlip']  # Location of the last MLIP
-        res = self.descriptor.calculate(atoms, subfolder=parent_mlip)[0]
+        res = self.descriptor.calculate(atoms, subfolder=self.folder)[0]
+
+        # We use the latest value coefficients to get the properties
         energy = np.einsum('ij,j->', res['desc_e'], self.coefficients)
         forces = np.einsum('ij,j->i', res['desc_f'], self.coefficients)
         stress = np.einsum('ij,j->i', res['desc_s'], self.coefficients)

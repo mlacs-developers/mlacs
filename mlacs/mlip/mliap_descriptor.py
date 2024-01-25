@@ -227,6 +227,7 @@ class MliapDescriptor(Descriptor):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
+        self.mlip_desc = Path.cwd()
         with open("MLIP.descriptor", "w") as f:
             f.write("# ")
             # Adding a commment line to know what elements are fitted here
@@ -264,7 +265,7 @@ class MliapDescriptor(Descriptor):
     def write_mlip(self, coefficients, comments=""):
         """
         """
-        self.mlip_location = Path.cwd()
+        self.mlip_model = Path.cwd()
         with open("MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
@@ -290,15 +291,17 @@ class MliapDescriptor(Descriptor):
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = self.mlip_location / "MLIP.model"
-        descfile = self.mlip_location / "MLIP.descriptor"
+        modelfile = self.mlip_model / "MLIP.model"
+        descfile = self.mlip_desc / "MLIP.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
         return pair_style
 
+# ========================================================================== #
     def get_pair_coeff(self):
         return [f"* * {' '.join(self.elements)}"]
 
+# ========================================================================== #
     def get_pair_style_coeff(self):
         return self.get_pair_style(), self.get_pair_coeff()
 

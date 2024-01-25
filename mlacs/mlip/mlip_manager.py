@@ -74,12 +74,16 @@ class MlipManager:
         if self.mbar is not None:
             self.mbar.update_database(atoms)
 
-        mlip_subfolder = self.folder / mlip_subfolder
         for at in atoms:
-            if 'parent_mlip' not in at.info:
-                at.info['parent_mlip'] = self.descriptor.mlip_location / mlip_subfolder
-        print("Added one", at.info['parent_mlip'])
-        amat_all = self.descriptor.calculate(atoms, subfolder=mlip_subfolder)
+            # if none, it means no mlip was used to generate this config
+            if mlip_subfolder is not None:
+                mlip_subfolder = self.folder / mlip_subfolder
+                if 'parent_mlip' not in at.info:
+                    at.info['parent_mlip'] = str(self.descriptor.mlip_model / mlip_subfolder)
+            else:
+                mlip_subfolder = self.folder
+        
+        amat_all = self.descriptor.calculate(atoms, subfolder=self.folder)
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
         for at in atoms:
@@ -229,12 +233,20 @@ class SelfMlipManager(MlipManager):
         self.natoms = []
 
 # ========================================================================== #
-    def update_matrices(self, atoms):
+    def update_matrices(self, atoms, mlip_subfolder=""):
         """
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         nat = np.array([len(at) for at in atoms], dtype=int)
+
+        for at in atoms:
+            # if none, it means no mlip was used to generate this config
+            if mlip_subfolder is not None:
+                mlip_subfolder = self.folder / mlip_subfolder
+                if 'parent_mlip' not in at.info:
+                    at.info['parent_mlip'] = str(self.descriptor.mlip_model / mlip_subfolder)
+
         self.configurations.extend(atoms)
         self.natoms = np.append(self.natoms, nat)
         self.natoms = np.array(self.natoms, dtype=int)

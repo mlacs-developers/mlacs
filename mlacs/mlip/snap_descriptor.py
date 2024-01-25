@@ -5,7 +5,7 @@ from subprocess import run, PIPE
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, subfolder
 from .mliap_descriptor import default_snap
 from .descriptor import Descriptor, combine_reg
 from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
@@ -56,7 +56,6 @@ class SnapDescriptor(Descriptor):
         self.chemflag = parameters.pop("chemflag", 0)
         Descriptor.__init__(self, atoms, rcut, alpha)
         self.alpha_quad = alpha_quad
-        self.folder = Path(folder).absolute()
         self.get_pair_style_coeff()
 
         self.model = model
@@ -97,13 +96,11 @@ class SnapDescriptor(Descriptor):
     def _compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
-        self.folder.mkdir(parents=True, exist_ok=True)
-
         nat = len(atoms)
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
         chemsymb = np.array(atoms.get_chemical_symbols())
 
-        lmp_atfname = self.folder / "atoms.lmp"
+        lmp_atfname = "atoms.lmp"
         self._write_lammps_input(masses, atoms.get_pbc())
         self._write_mlip_params()
 
@@ -116,7 +113,7 @@ class SnapDescriptor(Descriptor):
                           specorder=self.elements.tolist())
         self._run_lammps(lmp_atfname)
 
-        bispectrum = np.loadtxt(self.folder / "descriptor.out",
+        bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
         bispectrum[-6:, 1:-1] /= -atoms.get_volume()
 
@@ -170,7 +167,7 @@ class SnapDescriptor(Descriptor):
         block("run", "run 0")
         lmp_in("compute", block)
 
-        with open(self.folder / "lammps_input.in", "w") as fd:
+        with open("lammps_input.in", "w") as fd:
             fd.write(str(lmp_in))
 
 # ========================================================================== #
@@ -181,8 +178,7 @@ class SnapDescriptor(Descriptor):
         lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
         lmp_handle = run(lmp_cmd,
                          shell=True,
-                         stderr=PIPE,
-                         cwd=self.folder)
+                         stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
@@ -196,17 +192,18 @@ class SnapDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        (self.folder / "lmp.out").unlink()
-        (self.folder / "descriptor.out").unlink()
-        (self.folder / "lammps_input.in").unlink()
-        (self.folder / "atoms.lmp").unlink()
+        Path("lmp.out").unlink()
+        Path("descriptor.out").unlink()
+        Path("lammps_input.in").unlink()
+        Path("atoms.lmp").unlink()
 
 # ========================================================================== #
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        with open(self.folder / "MLIP.descriptor", "w") as f:
+        self.mlip_desc = Path.cwd()
+        with open("MLIP.descriptor", "w") as f:
             f.write("# ")
             # Adding a commment line to know what elements are fitted here
             for elements in self.elements:
@@ -226,14 +223,15 @@ class SnapDescriptor(Descriptor):
                 f.write("quadraticflag  1")
 
 # ========================================================================== #
+    @subfolder
     def write_mlip(self, coefficients, folder=None, comments=""):
         """
         """
-
+        self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
 
-        with open(self.folder / "MLIP.model", "w") as fd:
+        with open("MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -265,15 +263,20 @@ class SnapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        """
-        """
-        modelfile = self.folder / "MLIP.model"
-        descfile = self.folder / "MLIP.descriptor"
-        pair_style = "snap"
+    def get_pair_style(self):
+        return "snap"
+
+# ========================================================================== #
+    def get_pair_coeff(self):
+        modelfile = self.mlip_model / "MLIP.model"
+        descfile = self.mlip_desc / "MLIP.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
-        return pair_style, pair_coeff
+        return pair_coeff
+
+# ========================================================================== #
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def _snap_opt_str(self):

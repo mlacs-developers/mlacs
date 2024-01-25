@@ -29,7 +29,8 @@ class Descriptor:
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
-        self.mlip_location = Path.cwd()
+        self.mlip_model = Path.cwd()
+        self.mlip_desc = Path.cwd()
 
 # ========================================================================== #
     def _compute_rij(self, atoms):
@@ -81,7 +82,9 @@ class SumDescriptor(Descriptor):
         self.ncolumns = np.sum([d.ncolumns for d in self.desc])
 
 # ========================================================================== #
+    @subfolder
     def write_mlip(self, coefficients):
+        self.mlip_model = Path.cwd()
         icol = 0
         for d in self.desc:
             fcol = icol + d.ncolumns
@@ -89,6 +92,7 @@ class SumDescriptor(Descriptor):
             icol = fcol
 
 # ========================================================================== #
+    @subfolder
     def calculate(self, atoms, forces=True, stress=True):
         """
         """
@@ -129,20 +133,28 @@ class SumDescriptor(Descriptor):
         return reg
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
+    def get_pair_style(self):
         pair_style = "hybrid/overlay "
+        for d in self.desc:
+            pair_style_d = d.get_pair_style()
+            pair_style += f"{pair_style_d} "
+        return pair_style
+
+# ========================================================================== #
+    def get_pair_coeff(self):
         pair_coeff = []
         for d in self.desc:
             pair_style_d, pair_coeff_d = d.get_pair_style_coeff()
-            pair_style += f"{pair_style_d} "
             for coeff in pair_coeff_d:
                 style = pair_style_d.split()[0]
                 co = coeff.split()
                 co.insert(2, style)
                 pair_coeff.append(" ".join(co))
-        print(pair_style, pair_coeff)
-        raise NotImplementedError("DEBUG")
-        return pair_style, pair_coeff
+        return pair_coeff
+
+# ========================================================================== #
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def to_dict(self):
