@@ -108,10 +108,6 @@ class LammpsState(StateManager):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
 
-    rdffile : :class:`str` (optional)
-        Name of the file for radial distribution function calculation.
-        If ``None``, no file is created. Default ``None``.
-
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
@@ -148,7 +144,6 @@ class LammpsState(StateManager):
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 rdffile=None,
                  rng=None,
                  init_momenta=None,
                  workdir=None):
@@ -160,7 +155,6 @@ class LammpsState(StateManager):
                               logfile,
                               trajfile,
                               loginterval,
-                              rdffile,
                               workdir)
 
         self.rng = rng

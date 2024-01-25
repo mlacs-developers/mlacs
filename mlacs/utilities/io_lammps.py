@@ -216,7 +216,7 @@ def get_block_adf(nsteps, filename='spce-adf.dat'):
     # freq = int(nsteps/5)
     block = LammpsBlockInput("ADF", "Compute ADF")
     block("v_rep", "variable repeat equal 1")
-    block("c_adf", "compute adf all adf 360 * * *")
+    block("c_adf", "compute adf all adf 360")
     txt = "fix adf all ave/time 100 ${repeat}" + \
           f" {nsteps} c_adf[*] file {filename} mode vector\n"
     block("adf", txt)
