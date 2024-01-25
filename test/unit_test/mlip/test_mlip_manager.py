@@ -1,0 +1,97 @@
+import shutil
+
+import numpy as np
+from ase.build import bulk
+from ase.calculators.singlepoint import SinglePointCalculator
+
+from .. import context  # noqa
+from mlacs.mlip import SnapDescriptor
+from mlacs.mlip.mlip_manager import MlipManager, SelfMlipManager
+
+
+def create_dum_data(atoms):
+    energy = np.random.random()
+    forces = np.random.random((len(atoms), 3))
+    stress = np.random.random(6)
+    calc = SinglePointCalculator(atoms, energy=energy, forces=forces,
+                                 stress=stress)
+    atoms.calc = calc
+    return atoms
+
+
+def test_update_matrices():
+    at = bulk("Si")
+    desc = SnapDescriptor(at, 2.3)
+    manager = MlipManager(desc)
+
+    nconfs = 0
+    nparams = desc.ncolumns
+    assert manager.nconfs == nconfs
+
+    # Let's try adding one atom
+    fakeat = create_dum_data(at)
+    manager.update_matrices(fakeat)
+    nconfs += 1
+    assert manager.nconfs == nconfs
+
+    nf = 3 * len(at) * nconfs
+    ns = nconfs * 6
+    assert manager.amat_e.shape == (nconfs, nparams)
+    assert manager.amat_f.shape == (nf, nparams)
+    assert manager.amat_s.shape == (ns, nparams)
+    assert manager.ymat_e.shape == (nconfs,)
+    assert manager.ymat_f.shape == (nf,)
+    assert manager.ymat_s.shape == (ns,)
+
+    # Let's try adding several atoms
+    fakeat = []
+    for _ in range(5):
+        fakeat.append(create_dum_data(at))
+        nconfs += 1
+    manager.update_matrices(fakeat)
+    assert manager.nconfs == nconfs
+
+    nf = 3 * len(at) * nconfs
+    ns = nconfs * 6
+    assert manager.amat_e.shape == (nconfs, nparams)
+    assert manager.amat_f.shape == (nf, nparams)
+    assert manager.amat_s.shape == (ns, nparams)
+    assert manager.ymat_e.shape == (nconfs,)
+    assert manager.ymat_f.shape == (nf,)
+    assert manager.ymat_s.shape == (ns,)
+
+    if desc.folder.exists():
+        shutil.rmtree(desc.folder)
+
+
+def test_update_matrices_self():
+    at = bulk("Si")
+    desc = SnapDescriptor(at, 2.3)
+    manager = SelfMlipManager(desc)
+
+    nconfs = 0
+    assert len(manager.natoms) == nconfs
+
+    # Let's try adding one atom
+    fakeat = create_dum_data(at)
+    manager.update_matrices(fakeat)
+    nconfs += 1
+    assert manager.nconfs == nconfs
+    assert len(manager.natoms) == nconfs
+    assert len(manager.configurations) == nconfs
+
+    # Let's try adding several atoms
+    fakeat = []
+    for _ in range(5):
+        fakeat.append(create_dum_data(at))
+        nconfs += 1
+    manager.update_matrices(fakeat)
+    assert manager.nconfs == nconfs
+    assert len(manager.natoms) == nconfs
+    assert len(manager.configurations) == nconfs
+
+    # Now check that the atoms are the same we added
+    manager = SelfMlipManager(desc)
+    manager.update_matrices(fakeat)
+    for refat, predat in zip(fakeat, manager.configurations):
+        assert refat == predat
