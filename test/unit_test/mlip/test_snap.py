@@ -183,7 +183,7 @@ def test_writing_descriptor():
 
     for i in range(4, 12):
         ref = allref[i].split()
-        pred = allref[i].split()
+        pred = allpred[i].split()
 
         assert ref[0] == pred[0]
         assert np.isclose(float(ref[1]), float(pred[1]), atol=1e-8)
