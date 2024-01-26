@@ -7,7 +7,7 @@ import numpy as np
 from ase.atoms import Atoms
 from ase.units import GPa
 
-from ..utilities import compute_correlation, subfolder
+from ..utilities import compute_correlation
 
 
 # ========================================================================== #
@@ -25,8 +25,10 @@ class MlipManager:
                  mbar=None,
                  folder=Path("MLIP"),
                  no_zstress=False):
-        if isinstance(folder,str):
-            self.folder = Path(folder)
+        if isinstance(folder, str):
+            folder = Path(folder)
+        self.folder = folder
+
         self.descriptor = descriptor
         self.mbar = mbar
 
@@ -64,7 +66,7 @@ class MlipManager:
     @property
     def pair_coeff(self):
         return self.descriptor.get_pair_coeff()
-        
+
 # ========================================================================== #
     def update_matrices(self, atoms, mlip_subfolder=""):
         """
@@ -77,12 +79,13 @@ class MlipManager:
         for at in atoms:
             # if none, it means no mlip was used to generate this config
             if mlip_subfolder is not None:
+                mm = self.descriptor.mlip_model
                 mlip_subfolder = self.folder / mlip_subfolder
                 if 'parent_mlip' not in at.info:
-                    at.info['parent_mlip'] = str(self.descriptor.mlip_model / mlip_subfolder)
+                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
             else:
                 mlip_subfolder = self.folder
-        
+
         amat_all = self.descriptor.calculate(atoms, subfolder=self.folder)
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
@@ -243,9 +246,10 @@ class SelfMlipManager(MlipManager):
         for at in atoms:
             # if none, it means no mlip was used to generate this config
             if mlip_subfolder is not None:
+                mm = self.descriptor.mlip_model
                 mlip_subfolder = self.folder / mlip_subfolder
                 if 'parent_mlip' not in at.info:
-                    at.info['parent_mlip'] = str(self.descriptor.mlip_model / mlip_subfolder)
+                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
 
         self.configurations.extend(atoms)
         self.natoms = np.append(self.natoms, nat)

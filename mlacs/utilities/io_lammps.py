@@ -488,7 +488,7 @@ def get_interaction_input(pair_style,
 
 
 # ========================================================================== #
-def get_last_dump_input(workdir, elem, nsteps, nbeads=1, with_delay=True):
+def get_last_dump_input(elem, nsteps, nbeads=1, with_delay=True):
     """
     Function to write the dump of the last configuration of the mlmd
     """

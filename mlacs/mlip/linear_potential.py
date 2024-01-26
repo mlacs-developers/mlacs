@@ -52,7 +52,7 @@ class LinearPotential(MlipManager):
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
-                 mbar=None, 
+                 mbar=None,
                  folder=Path("MLIP")):
         MlipManager.__init__(self,
                              descriptor,
@@ -80,6 +80,8 @@ class LinearPotential(MlipManager):
     def train_mlip(self, mlip_subfolder):
         """
         """
+        mlip_subfolder = self.folder / mlip_subfolder
+
         msg = ''
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
@@ -130,12 +132,13 @@ class LinearPotential(MlipManager):
             else:
                 msg += self.compute_tests(amat_e, amat_f, amat_s,
                                           ymat_e, ymat_f, ymat_s)
-            msg += self.mbar.run_weight(amat_e, self.coefficients, subfolder=mlip_subfolder)
+            msg += self.mbar.run_weight(amat_e,
+                                        self.coefficients,
+                                        subfolder=mlip_subfolder)
         else:
             msg += self.compute_tests(amat_e, amat_f, amat_s,
                                       ymat_e, ymat_f, ymat_s)
 
-        mlip_subfolder = self.folder / mlip_subfolder
         self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
         return msg
 
@@ -194,7 +197,6 @@ class LinearPotential(MlipManager):
         """
         assert self.coefficients is not None, 'The model has not been trained'
 
-        parent_mlip = atoms.info['parent_mlip']  # Location of the last MLIP
         res = self.descriptor.calculate(atoms, subfolder=self.folder)[0]
 
         # We use the latest value coefficients to get the properties

@@ -267,7 +267,6 @@ class OtfMlacs:
             nmax = self.nbeads
         else:
             nmax = self.nstate
-
         self.log.logger_log.info("")
         eq = []
         for istate in range(self.nstate):
@@ -281,7 +280,6 @@ class OtfMlacs:
             msg += f"configuration {trajstep} for this state"
             self.log.logger_log.info(msg)
         self.log.logger_log.info("\n")
-
         # Training MLIP
         msg = "Training new MLIP\n"
         if self.mlip.mbar is not None:
@@ -339,7 +337,8 @@ class OtfMlacs:
                     self.log.logger_log.info(msg)
                 for istate, exe in enumerate(futures):
                     atoms_mlip[istate] = exe.result()
-                    atoms_mlip[istate].info['parent_mlip'] = str(self.mlip.descriptor.mlip_model)
+                    mm = self.mlip.descriptor.mlip_model
+                    atoms_mlip[istate].info['parent_mlip'] = str(mm)
 
         for i, at in enumerate(atoms_mlip):
             at.calc = self.mlip.get_calculator()
@@ -349,7 +348,6 @@ class OtfMlacs:
                                 forces=at.get_forces(),
                                 stress=at.get_stress()))
             at.calc = sp_calc_mlip[i]
-
         # Computing energy with true potential
         msg = "Computing energy with the True potential\n"
         self.log.logger_log.info(msg)
@@ -406,6 +404,7 @@ class OtfMlacs:
             ekin = atoms_centroid.get_kinetic_energy()
             epot_mlip = atoms_centroid_mlip.get_potential_energy()
             ekin_mlip = atoms_centroid_mlip.get_kinetic_energy()
+
             with open(self.prefix_centroid + "_potential.dat", "a") as f:
                 f.write(f"{epot:20.15f}   " +
                         f"{ekin:20.15f}   " +
@@ -440,7 +439,6 @@ class OtfMlacs:
                 msg = "All property calculations are converged, " + \
                       "stopping MLACS ...\n"
                 self.log.logger_log.info(msg)
-
         return True
 
 # ========================================================================== #

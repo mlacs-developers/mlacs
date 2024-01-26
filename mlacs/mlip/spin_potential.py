@@ -10,7 +10,9 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from ase.units import GPa
 
 from .delta_learning import DeltaLearningPotential
-from ..utilities import get_elements_Z_and_masses, compute_correlation
+from ..utilities import (get_elements_Z_and_masses,
+                         compute_correlation,
+                         subfolder)
 from ..utilities.io_lammps import (write_atoms_lammps_spin_style,
                                    get_interaction_input,
                                    get_last_dump_input,
@@ -41,9 +43,7 @@ class SpinLatticePotential(DeltaLearningPotential):
                  model,
                  pair_style,
                  pair_coeff,
-                 model_post=None,
-                 folder=Path().absolute() / "Spin"
-                 ):
+                 model_post=None):
 
         # We need to add a zero pair_style for cases with non-magnetic atoms
         if isinstance(pair_style, str):
@@ -58,9 +58,6 @@ class SpinLatticePotential(DeltaLearningPotential):
         DeltaLearningPotential.__init__(self, model, pair_style,
                                         pair_coeff, model_post)
 
-        self.folder = folder
-        self.folder.mkdir(exist_ok=True, parents=True)
-
         envvar = "ASE_LAMMPSRUN_COMMAND"
         cmd = os.environ.get(envvar)
         if cmd is None:
@@ -68,13 +65,24 @@ class SpinLatticePotential(DeltaLearningPotential):
         self.cmd = cmd
 
 # ========================================================================== #
-    def update_matrices(self, atoms):
+    def update_matrices(self, atoms, mlip_subfolder=""):
         """
         """
-        # First compute reference energy/forces/stress
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
+        # Add a new property to Atoms : The mlip which generated it
+        # None means no mlip was used to generate it (Initial or Training)
+        for at in atoms:
+            mm = self.descriptor.mlip_model
+            if mlip_subfolder is not None and mm is not None:
+                mlip_subfolder = self.folder / mlip_subfolder
+                if 'parent_mlip' not in at.info:
+                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
+            else:
+                mlip_subfolder = self.folder
+
+        # Compute reference energy/forces/stress
         dummy_at = []
         for at in atoms:
             at0 = at.copy()
@@ -99,14 +107,14 @@ class SpinLatticePotential(DeltaLearningPotential):
             dummy_at.append(dumdum)
 
         # Now get descriptor features
-        self.model.update_matrices(dummy_at)
+        self.model.update_matrices(dummy_at, mlip_subfolder=mlip_subfolder)
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #
-    def train_mlip(self):
+    def train_mlip(self, mlip_subfolder):
         """
         """
-        msg = self.model.train_mlip()
+        msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
         return msg
 
 # ========================================================================== #
@@ -120,7 +128,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         return calc
 
 # ========================================================================== #
-    def test_mlip(self, testset):
+    def test_mlip(self, testset, mlip_subfolder=""):
         """
         """
         # TODO this is way too copypasta from mlip_manager.py
@@ -139,7 +147,9 @@ class SpinLatticePotential(DeltaLearningPotential):
             at0sp = at.copy()
             spin = at.get_array("spins")
 
-            at0sp = self._compute_spin_properties(at0sp, spin)
+            at0sp = self._compute_spin_properties(at0sp,
+                                                  spin,
+                                                  subfolder=mlip_subfolder)
             spe = at0sp.get_potential_energy()
             spf = at0sp.get_forces()
             sps = at0sp.get_stress()
@@ -209,15 +219,16 @@ class SpinLatticePotential(DeltaLearningPotential):
         return msg
 
 # ========================================================================== #
+    @subfolder
     def _compute_spin_properties(self, atoms, spin):
         # First we delete old stuff to be sure everything is right
         filenames = ["atoms.in", "logfile.out", "configurations.out",
                      "lmp.out"]
         for fname in filenames:
-            if (self.folder / fname).exists():
-                (self.folder / fname).unlink()
+            if Path(fname).exists():
+                Path(fname).unlink()
 
-        with open(self.folder / "atoms.in", "w") as fd:
+        with open("atoms.in", "w") as fd:
             write_atoms_lammps_spin_style(fd, atoms, spin)
         elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
         self._write_lammps_input(elem, masses, atoms.get_pbc())
@@ -230,9 +241,9 @@ class SpinLatticePotential(DeltaLearningPotential):
 
 # ========================================================================== #
     def _read_out_log(self):
-        at = read(self.folder / "configurations.out")
+        at = read("configurations.out")
         forces = at.get_forces()
-        data = np.loadtxt(self.folder / "logfile.out")
+        data = np.loadtxt("logfile.out")
         energy = data[3]
         xx, yy, zz, xy, xz, yz = data[-6:]
         stress = [xx, yy, xy, yz, xz, xy]
@@ -264,7 +275,7 @@ class SpinLatticePotential(DeltaLearningPotential):
 
         input_string += get_log_input(1, "logfile.out")
 
-        input_string += get_last_dump_input(self.folder, elem, 1,
+        input_string += get_last_dump_input(elem, 1,
                                             with_delay=False)
 
         input_string += "thermo         1\n"
@@ -273,7 +284,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         # input_string += "neigh_modify   once no every 1 delay 0 check yes\n"
         input_string += "run            0\n"
 
-        with open(self.folder / "lammps_input.in", "w") as fd:
+        with open("lammps_input.in", "w") as fd:
             fd.write(input_string)
 
 # ========================================================================== #
@@ -281,8 +292,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         lammps_cmd = self.cmd + ' -in lammps_input.in -log none -sc lmp.out'
         lammps_cmd = lammps_cmd.split()
         lmp_handle = run(lammps_cmd,
-                         stderr=PIPE,
-                         cwd=self.folder)
+                         stderr=PIPE)
 
         if lmp_handle.returncode != 0:
             msg = "LAMMPS stopped with the exit code \n" + \

@@ -52,12 +52,10 @@ class SnapDescriptor(Descriptor):
         Default 1.0
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
-                 model="linear", alpha=1.0, alpha_quad=1.0, folder="Snap"):
+                 model="linear", alpha=1.0, alpha_quad=1.0):
         self.chemflag = parameters.pop("chemflag", 0)
         Descriptor.__init__(self, atoms, rcut, alpha)
         self.alpha_quad = alpha_quad
-        self.get_pair_style_coeff()
-
         self.model = model
 
         # Initialize the parameters for the descriptors
@@ -224,7 +222,7 @@ class SnapDescriptor(Descriptor):
 
 # ========================================================================== #
     @subfolder
-    def write_mlip(self, coefficients, folder=None, comments=""):
+    def write_mlip(self, coefficients, comments=""):
         """
         """
         self.mlip_model = Path.cwd()

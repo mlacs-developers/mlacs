@@ -326,11 +326,12 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
     _norm = func(sy, sx) * fx * fy
     return y * norm / _norm
 
+
 # ========================================================================== #
 def subfolder(func):
-    """ 
+    """
     Decorator that executes a function from a subfolder
-    Usage : self.func(subfolder=x, *args) 
+    Usage : self.func(subfolder=x, *args)
     """
     def wrapper(self, *args, subfolder=None, **kwargs):
         if subfolder is not None:
@@ -343,4 +344,3 @@ def subfolder(func):
             os.chdir(initial_folder)
         return result
     return wrapper
-
