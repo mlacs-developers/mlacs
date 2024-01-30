@@ -80,6 +80,11 @@ class OtfMlacs:
         Variance (in angs^2) of the displacement when creating
         initial configurations. Default ``0.05`` angs^2
 
+    keep_tmp_mlip: :class:`bool`(optional)
+        Keep every generated MLIP. If True and using MBAR, a restart will
+        recalculate every previous MLIP.weight using the old coefficients. 
+        Default ``False``.
+
     ntrymax: :class:`int`(optional)
         The maximum number of tentative to retry a step if
         the reference potential raises an error or didn't converge.
@@ -96,10 +101,12 @@ class OtfMlacs:
                  prefix_output="Trajectory",
                  confs_init=None,
                  std_init=0.05,
+                 keep_tmp_mlip=False,
                  ntrymax=0):
         ##############
         # Check inputs
         ##############
+        self.keep_tmp_mlip = keep_tmp_mlip
         self._initialize_state(state, atoms, neq, prefix_output, nbeads)
 
         # Create calculator object
@@ -286,7 +293,11 @@ class OtfMlacs:
             if self.mlip.mbar._nstart <= min(self.nconfs):
                 msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
-        msg = self.mlip.train_mlip(mlip_subfolder=f"Step{max(self.nconfs)}")
+        
+        mlip_subfolder = None
+        if self.keep_tmp_mlip:
+            mlip_subfolder = f"Step{max(self.nconfs)}" 
+        msg = self.mlip.train_mlip(mlip_subfolder=mlip_subfolder)
         self.log.logger_log.info(msg)
 
         # Create MLIP atoms object

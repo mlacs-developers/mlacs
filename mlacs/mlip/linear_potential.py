@@ -80,7 +80,10 @@ class LinearPotential(MlipManager):
     def train_mlip(self, mlip_subfolder):
         """
         """
-        mlip_subfolder = self.folder / mlip_subfolder
+        if mlip_subfolder is None:
+            mlip_subfolder = self.folder
+        else:
+            mlip_subfolder = self.folder / mlip_subfolder
 
         msg = ''
         idx_e, idx_f, idx_s = self._get_idx_fit()
