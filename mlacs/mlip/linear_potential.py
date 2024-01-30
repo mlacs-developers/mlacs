@@ -134,7 +134,7 @@ class LinearPotential(MlipManager):
                                           ymat_e, ymat_f, ymat_s)
             msg += self.mbar.run_weight(amat_e,
                                         self.coefficients,
-                                        subfolder=mlip_subfolder)
+                                        subfolder=self.folder)
         else:
             msg += self.compute_tests(amat_e, amat_f, amat_s,
                                       ymat_e, ymat_f, ymat_s)

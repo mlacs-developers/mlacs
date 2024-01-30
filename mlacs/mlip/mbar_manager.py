@@ -94,17 +94,17 @@ class MbarManager:
             self.matsize = [len(a) for a in database]
         self.Nk = []
         self.W = None
-        self.folder = Path(folder).absolute()
+        folder = Path(folder).absolute()
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
-                weight = np.loadtxt(self.folder / "MLIP.weight")
+                weight = np.loadtxt(weight)
             self.weight.append(weight)
-        elif os.path.isfile("MLIP.weight"):
+        elif Path("MLIP.weight").exists():
             weight = np.loadtxt("MLIP.weight")
             self.weight.append(weight)
-        elif os.path.isfile(self.folder / "MLIP.weight"):
-            weight = np.loadtxt(self.folder / "MLIP.weight")
+        elif (folder / "MLIP.weight").exists():
+            weight = np.loadtxt(folder / "MLIP.weight")
             self.weight.append(weight)
         else:
             self.weight = []
@@ -157,7 +157,7 @@ class MbarManager:
             neff = self.get_effective_conf()
 
             header += f"Effective number of configurations: {neff:10.5f}\n"
-            np.savetxt(self.folder / "MLIP.weight", self.weight[-1],
+            np.savetxt("MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
         return header
 
