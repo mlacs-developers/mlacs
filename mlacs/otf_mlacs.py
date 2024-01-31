@@ -82,7 +82,7 @@ class OtfMlacs:
 
     keep_tmp_mlip: :class:`bool`(optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
-        recalculate every previous MLIP.weight using the old coefficients. 
+        recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
     ntrymax: :class:`int`(optional)
@@ -293,10 +293,10 @@ class OtfMlacs:
             if self.mlip.mbar._nstart <= min(self.nconfs):
                 msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
-        
+
         mlip_subfolder = None
         if self.keep_tmp_mlip:
-            mlip_subfolder = f"Step{max(self.nconfs)}" 
+            mlip_subfolder = f"Step{max(self.nconfs)}"
         msg = self.mlip.train_mlip(mlip_subfolder=mlip_subfolder)
         self.log.logger_log.info(msg)
 
@@ -351,14 +351,6 @@ class OtfMlacs:
                     mm = self.mlip.descriptor.mlip_model
                     atoms_mlip[istate].info['parent_mlip'] = str(mm)
 
-        for i, at in enumerate(atoms_mlip):
-            at.calc = self.mlip.get_calculator()
-            sp_calc_mlip.append(SinglePointCalculator(
-                                at,
-                                energy=at.get_potential_energy(),
-                                forces=at.get_forces(),
-                                stress=at.get_stress()))
-            at.calc = sp_calc_mlip[i]
         # Computing energy with true potential
         msg = "Computing energy with the True potential\n"
         self.log.logger_log.info(msg)
@@ -372,6 +364,16 @@ class OtfMlacs:
         atoms_true = self.calc.compute_true_potential(atoms_mlip,
                                                       self.prefix_output,
                                                       nconfs)
+
+        for i, at in enumerate(atoms_mlip):
+            at.calc = self.mlip.get_calculator()
+            sp_calc_mlip.append(SinglePointCalculator(
+                                at,
+                                energy=at.get_potential_energy(),
+                                forces=at.get_forces(),
+                                stress=at.get_stress()))
+            at.calc = sp_calc_mlip[i]
+
         for i, at in enumerate(atoms_true):
             if at is None:
                 if self.pimd:

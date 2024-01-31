@@ -4,8 +4,6 @@
 """
 from pathlib import Path
 import logging
-
-import os
 import numpy as np
 from ..utilities import subfolder
 
