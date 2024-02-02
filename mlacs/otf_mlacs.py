@@ -147,10 +147,8 @@ class OtfMlacs:
 
         if self.pimd:
             nmax = self.nbeads
-            val = "bead"
         else:
             nmax = self.nstate
-            val = "state"
 
         # Check if trajectory files already exists
         self.launched = self._check_if_launched(nmax)
@@ -185,54 +183,7 @@ class OtfMlacs:
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
         else:
-            msg = "Adding previous configurations to the training data"
-            self.log.logger_log.info(msg)
-            if os.path.isfile("Training_configurations.traj"):
-                train_traj = Trajectory("Training_configurations.traj",
-                                        mode="r")
-                msg = "{0} training configurations".format(len(train_traj))
-                self.log.logger_log.info(msg)
-                for i, conf in enumerate(train_traj):
-                    msg = f"Configuration {i+1} / {len(train_traj)}"
-                    self.log.logger_log.info(msg)
-                    self.mlip.update_matrices(conf)
-                del train_traj
-                self.log.logger_log.info("\n")
-
-            prev_traj = []
-            lgth = []
-            for i in range(nmax):
-                prev_traj.append(Trajectory(self.prefix_output[i] + ".traj",
-                                            mode="r"))
-                lgth.append(len(prev_traj[i]))
-            if self.pimd:
-                self.nconfs = [lgth[0]]
-                if not np.all([a == lgth[0] for a in lgth]):
-                    msg = "Not all trajectories have the same number " + \
-                          "of configurations"
-                    raise ValueError(msg)
-            else:
-                self.nconfs = lgth
-            msg = f"{np.sum(lgth)} configuration from trajectories\n"
-            msg += "Adding configuration to training database"
-            self.log.logger_log.info(msg)
-            for istate in range(self.nstate):
-                for iconf in range(lgth[istate]):
-                    self.mlip.update_matrices(prev_traj[istate][iconf])
-                    msg = f"Configuration {iconf} of {val} " + \
-                          f"{istate+1}/{nmax}"
-                    self.log.logger_log.info(msg)
-
-            self.traj = []
-            self.atoms = []
-            for i in range(nmax):
-                self.traj.append(Trajectory(self.prefix_output[i]+".traj",
-                                            mode="a"))
-                self.atoms.append(prev_traj[i][-1])
-            if self.pimd:
-                self.traj_centroid = Trajectory(self.prefix_centroid + ".traj",
-                                                mode="a")
-            del prev_traj
+            self.restart_from_traj(nmax)
 
         self.step = 0
         self.ntrymax = ntrymax
@@ -744,6 +695,94 @@ class OtfMlacs:
             return True
         else:
             return False
+
+# ========================================================================== #
+    def restart_from_traj(self, nmax):
+        """
+        Restart a calculation from previous trajectory files
+        """
+        train_traj, prev_traj = self.read_traj(nmax)
+
+        # Add the Configuration without a MLIP generating them
+        for i, conf in enumerate(train_traj):
+            msg = f"Configuration {i+1} / {len(train_traj)}"
+            self.log.logger_log.info(msg)
+            self.mlip.update_matrices(conf)
+        self.mlip.update_matrices(prev_traj[0][0])  # We also add initial
+
+        # Add all the configuration of trajectories traj
+        if self.mlip.mbar is not None and self.keep_tmp_mlip:
+            msg = "Adding previous configuration iteratively"
+            self.log.logger_log.info(msg)
+            parent_list, mlip_coef = self.mlip.read_parent_mlip(prev_traj)
+
+            atoms_by_mlip = []
+            for i, parent in enumerate(parent_list):
+                new_atoms = []
+                for istate in range(self.nstate):
+                    for iconf in range(len(prev_traj[istate])):
+                        if "parent_mlip" in prev_traj[istate][iconf].info:
+                            pm = prev_traj[istate][iconf].info['parent_mlip']
+                            if pm == parent:
+                                new_atoms.append(prev_traj[istate][iconf])
+                atoms_by_mlip.append(new_atoms)
+
+            for i, at_list in enumerate(atoms_by_mlip):
+                self.mlip.next_coefs(mlip_coef[i])
+                for at in at_list:
+                    self.mlip.update_matrices(at)
+
+        else:
+            msg = "Adding all previous configuration as one state"
+            self.log.logger_log.info(msg)
+            for istate in range(self.nstate):
+                for iconf in range(len(prev_traj[istate])):
+                    self.mlip.update_matrices(prev_traj[istate][iconf])
+
+        # Update this simulation traj
+        self.traj = []
+        self.atoms = []
+
+        for i in range(nmax):
+            self.traj.append(Trajectory(self.prefix_output[i]+".traj",
+                                        mode="a"))
+            self.atoms.append(prev_traj[i][-1])
+
+        if self.pimd:
+            self.traj_centroid = Trajectory(self.prefix_centroid + ".traj",
+                                            mode="a")
+        del prev_traj
+
+# ========================================================================== #
+    def read_traj(self, nmax):
+        """
+        Read Trajectory files from previous simulations
+        """
+        msg = "Adding previous configurations to the training data"
+        self.log.logger_log.info(msg)
+        if os.path.isfile("Training_configurations.traj"):
+            train_traj = Trajectory("Training_configurations.traj",
+                                    mode="r")
+            msg = "{0} training configurations\n".format(len(train_traj))
+            self.log.logger_log.info(msg)
+
+        prev_traj = []
+        lgth = []
+        for i in range(nmax):
+            prev_traj.append(Trajectory(self.prefix_output[i] + ".traj",
+                                        mode="r"))
+            lgth.append(len(prev_traj[i]))
+        if self.pimd:
+            self.nconfs = [lgth[0]]
+            if not np.all([a == lgth[0] for a in lgth]):
+                msg = "Not all trajectories have the same number " + \
+                      "of configurations"
+                raise ValueError(msg)
+        else:
+            self.nconfs = lgth
+        msg = f"{np.sum(lgth)} configuration from trajectories\n"
+        self.log.logger_log.info(msg)
+        return train_traj, prev_traj
 
 
 class TruePotentialError(Exception):

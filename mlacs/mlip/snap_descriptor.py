@@ -91,7 +91,7 @@ class SnapDescriptor(Descriptor):
         self.cmd = cmd
 
 # ========================================================================== #
-    def _compute_descriptor(self, atoms, forces=True, stress=True):
+    def compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
         nat = len(atoms)
@@ -202,39 +202,42 @@ class SnapDescriptor(Descriptor):
         """
         self.mlip_desc = Path.cwd()
         with open("MLIP.descriptor", "w") as f:
-            f.write("# ")
-            # Adding a commment line to know what elements are fitted here
-            for elements in self.elements:
-                f.write("{:} ".format(elements))
-            f.write("MLIP parameters\n")
-            f.write("# Descriptor:  SNAP\n")
-            f.write(f"# Model:       {self.model}\n")
-            f.write("\n")
-            f.write(f"rcutfac         {self.rcut}\n")
-            for key in self.params.keys():
-                f.write(f"{key:12}    {self.params[key]}\n")
-            if self.chemflag:
-                f.write("\n\n")
-                f.write("chemflag     1\n")
-                f.write("bnormflag    1\n")
-            if self.model == "quadratic":
-                f.write("quadraticflag  1")
+            f.write(self.get_mlip_params())
+
+# ========================================================================== #
+    def get_mlip_params(self):
+        s = ("# ")
+        # Adding a commment line to know what elements are fitted here
+        for elements in self.elements:
+            s += ("{:} ".format(elements))
+        s += ("MLIP parameters\n")
+        s += ("# Descriptor:  SNAP\n")
+        s += (f"# Model:       {self.model}\n")
+        s += ("\n")
+        s += (f"rcutfac         {self.rcut}\n")
+        for key in self.params.keys():
+            s += (f"{key:12}    {self.params[key]}\n")
+        if self.chemflag:
+            s += ("\n\n")
+            s += ("chemflag     1\n")
+            s += ("bnormflag    1\n")
+        if self.model == "quadratic":
+            s += ("quadraticflag  1")
+        return s
 
 # ========================================================================== #
     @subfolder
-    def write_mlip(self, coefficients, comments=""):
+    def write_mlip(self, coefficients):
         """
         """
         self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
-
         with open("MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
             fd.write("# Descriptor   SNAP\n")
-            fd.write(comments)
             fd.write("\n")
             fd.write(f"{self.nel} {self.ndesc+1}\n")
 
@@ -247,6 +250,41 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
+
+# ========================================================================== #
+    @subfolder
+    def read_mlip(self):
+        """
+        Read MLIP parameters from a file.
+        """
+        fn = Path("MLIP.model")
+        if not fn.is_file():
+            raise FileNotFoundError(f"The file {fn.absolute} does not exist.")
+
+        with open(fn, "r") as fd:
+            lines = fd.readlines()
+
+        coefs = []
+        coefficients = []
+        intercepts = []
+        for line in lines:
+            line = line.strip()
+            if line.startswith('#') or len(line) == 0:
+                continue
+            line = line.split()
+            if len(line) == 2:  # Consistency check: nel, ndesc+1
+                assert int(line[0]) == self.nel, "The descriptor changed"
+                assert int(line[1]) == self.ndesc+1, "The descriptor changed"
+                continue
+
+            if len(line) == 3:  # el, radelems, welems
+                continue
+            if (len(coefs)+len(intercepts)) % (self.ndesc+1) == 0:
+                intercepts.append(float(line[0]))
+            else:
+                coefs.append(float(line[0]))
+        coefficients = np.r_[intercepts, coefs]
+        return coefficients
 
 # ========================================================================== #
     def _regularization_matrix(self):

@@ -77,6 +77,23 @@ class LinearPotential(MlipManager):
             self.parameters["hyperparameters"] = hyperparam
 
 # ========================================================================== #
+    def next_coefs(self, mlip_coef):
+        """
+        Update MBAR just like train_mlip, but without actually computing
+        the coefficients
+        """
+        self.coefficients = mlip_coef
+        idx_e, idx_f, idx_s = self._get_idx_fit()
+        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
+        if self.mbar.train_mlip:
+            self.mbar.reweight_mlip()
+
+        self.mbar.run_weight(amat_e,
+                             mlip_coef,
+                             self.get_mlip_energy,
+                             subfolder=self.folder)
+
+# ========================================================================== #
     def train_mlip(self, mlip_subfolder):
         """
         """
@@ -107,7 +124,9 @@ class LinearPotential(MlipManager):
 
         if self.mbar is not None:
             if self.mbar.train_mlip:
-                amat, ymat = self.mbar.reweight_mlip(amat, ymat)
+                W = self.mbar.reweight_mlip()
+                amat = amat * W[:, np.newaxis]
+                ymat = ymat * W
 
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
@@ -137,6 +156,7 @@ class LinearPotential(MlipManager):
                                           ymat_e, ymat_f, ymat_s)
             msg += self.mbar.run_weight(amat_e,
                                         self.coefficients,
+                                        self.get_mlip_energy,
                                         subfolder=self.folder)
         else:
             msg += self.compute_tests(amat_e, amat_f, amat_s,
@@ -210,6 +230,12 @@ class LinearPotential(MlipManager):
         forces = forces.reshape(len(atoms), 3)
 
         return energy, forces, stress
+
+# ========================================================================== #
+    def get_mlip_energy(self, coef, desc):
+        """
+        """
+        return np.einsum('ij,j->i', desc, coef)
 
 # ========================================================================== #
     def set_coefficients(self, coefficients):

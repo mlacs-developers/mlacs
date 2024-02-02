@@ -125,6 +125,94 @@ class MlipManager:
         raise NotImplementedError
 
 # ========================================================================== #
+    def get_mlip_energy(coef, desc):
+        """
+        Function that gives the mlip_energy
+        """
+        raise NotImplementedError
+
+# ========================================================================== #
+    def read_parent_mlip(self, traj):
+        """
+        Get a list of all the mlip that have generated a conf in traj
+        and get the coefficients of all these mlip
+        """
+        parent_mlip = []
+        mlip_coef = []
+
+        # Check that this simulation and the previous one use the same mlip
+        fn_descriptor = self.folder / "MLIP.descriptor"
+        with open(fn_descriptor, "r") as f:
+            lines = f.read()
+
+        if not lines == self.descriptor.get_mlip_params():
+            err = "The MLIP.descriptor from {fn_descriptor} seems different "
+            err += "to the one you have in this simulation. If you want a "
+            err += "new mlip: Rerun MLACS with DatabaseCalculator and "
+            err += "OtfMlacs.keep_tmp_files=True on your traj"
+            raise ValueError(err)
+
+        # Make the MBAR variable Nk and mlip_coef
+        for state in traj:
+            for conf in state:
+                if "parent_mlip" not in conf.info:  # Initial or training
+                    continue
+                else:  # A traj
+                    model = conf.info['parent_mlip']
+                    if not Path(model).exists:
+                        err = "Some parent MLIP are missing. "
+                        err += "Rerun MLACS with DatabaseCalculator and "
+                        err += "OtfMlacs.keep_tmp_files=True on your traj"
+                        raise FileNotFoundError(err)
+                    if model not in parent_mlip:  # New state
+                        parent_mlip.append(model)
+                        coef = self.descriptor.read_mlip(subfolder=model)
+                        mlip_coef.append(coef)
+        return parent_mlip, np.array(mlip_coef)
+
+# ========================================================================== #
+    def get_Nk_coeff(self, prev_traj):
+        """
+        Read a previous traj and return Nk and coef has would have been
+        obtained during a normal MLACS loop
+        """
+        parents_mlip = [""]
+        mlip_coef = []
+        Nk = [0]
+
+        # Check that this simulation and the previous one use the same mlip
+        fn_descriptor = self.folder / "MLIP.descriptor"
+        with open(fn_descriptor, "r") as f:
+            lines = f.read()
+
+        if not lines == self.descriptor.get_mlip_params():
+            err = "The MLIP.descriptor from {fn_descriptor} seems different "
+            err += "to the one you have in this simulation. If you want a "
+            err += "new mlip: Rerun MLACS with DatabaseCalculator and "
+            err += "OtfMlacs.keep_tmp_files=True on your traj"
+            raise ValueError(err)
+
+        # Make the MBAR variable Nk and mlip_coef
+        for state in prev_traj:
+            for conf in state:
+                if "parent_mlip" not in conf.info:  # Initial or training
+                    Nk[0] += 1
+                else:  # A traj
+                    model = conf.info['parent_mlip']
+                    if not Path(model).exists:
+                        err = "Some parent MLIP are missing. "
+                        err += "Rerun MLACS with DatabaseCalculator and "
+                        err += "OtfMlacs.keep_tmp_files=True on your traj"
+                        raise FileNotFoundError(err)
+                    if model not in parents_mlip:  # New state
+                        Nk.append(0)
+                        parents_mlip.append(model)
+                        coef = self.descriptor.read_mlip(subfolder=model)
+                        mlip_coef.append(coef)
+                    Nk[parents_mlip.index(model)] += 1
+        return Nk, mlip_coef
+
+# ========================================================================== #
     def test_mlip(self, testset):
         """
         """

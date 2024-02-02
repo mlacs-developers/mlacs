@@ -113,7 +113,7 @@ class MliapDescriptor(Descriptor):
         self.cmd = cmd
 
 # ========================================================================== #
-    def _compute_descriptor(self, atoms, forces=True, stress=True):
+    def compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
         nat = len(atoms)
@@ -229,40 +229,45 @@ class MliapDescriptor(Descriptor):
         """
         self.mlip_desc = Path.cwd()
         with open("MLIP.descriptor", "w") as f:
-            f.write("# ")
-            # Adding a commment line to know what elements are fitted here
-            for elements in self.elements:
-                f.write("{:} ".format(elements))
-            f.write("MLIP parameters\n")
-            f.write(f"# Descriptor:  {self.style}\n")
-            f.write(f"# Model:       {self.model}\n")
-            f.write("\n")
-            f.write(f"rcutfac         {self.rcut}\n")
-            for key in self.params.keys():
-                f.write(f"{key:12}    {self.params[key]}\n")
-            f.write("\n\n\n")
-            f.write(f"nelems      {self.nel}\n")
-            f.write("elems       ")
-            for n in range(len(self.elements)):
-                f.write(self.elements[n] + " ")
-            f.write("\n")
-            f.write("radelems   ")
-            for n in range(len(self.elements)):
-                f.write(f" {self.radelems[n]}")
-            f.write("\n")
-            f.write("welems    ")
-            for n in range(len(self.elements)):
-                f.write(f"  {self.welems[n]}")
-            f.write("\n")
+            f.write(self.get_mlip_params())
 
-            if self.style == "snap" and self.chemflag:
-                f.write("\n\n")
-                f.write("chemflag     1\n")
-                f.write("bnormflag    1\n")
+# ========================================================================== #
+    def get_mlip_params(self):
+        s = ("# ")
+        # Adding a commment line to know what elements are fitted here
+        for elements in self.elements:
+            s += ("{:} ".format(elements))
+        s += ("MLIP parameters\n")
+        s += (f"# Descriptor:  {self.style}\n")
+        s += (f"# Model:       {self.model}\n")
+        s += ("\n")
+        s += (f"rcutfac         {self.rcut}\n")
+        for key in self.params.keys():
+            s += (f"{key:12}    {self.params[key]}\n")
+        s += ("\n\n\n")
+        s += (f"nelems      {self.nel}\n")
+        s += ("elems       ")
+        for n in range(len(self.elements)):
+            s += (self.elements[n] + " ")
+        s += ("\n")
+        s += ("radelems   ")
+        for n in range(len(self.elements)):
+            s += (f" {self.radelems[n]}")
+        s += ("\n")
+        s += ("welems    ")
+        for n in range(len(self.elements)):
+            s += (f"  {self.welems[n]}")
+        s += ("\n")
+
+        if self.style == "snap" and self.chemflag:
+            s += ("\n\n")
+            s += ("chemflag     1\n")
+            s += ("bnormflag    1\n")
+        return s
 
 # ========================================================================== #
     @subfolder
-    def write_mlip(self, coefficients, comments=""):
+    def write_mlip(self, coefficients):
         """
         """
         self.mlip_model = Path.cwd()
@@ -271,12 +276,54 @@ class MliapDescriptor(Descriptor):
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
             fd.write(f"# Descriptor   {self.style}\n")
-            fd.write(comments)
             fd.write("\n")
 
             fd.write("# nelems   ncoefs\n")
             fd.write(f"{self.nel} {self.ndesc + 1}\n")
             np.savetxt(fd, coefficients, fmt="%35.30f")
+
+# ========================================================================== #
+    @subfolder
+    def read_mlip(self):
+        """
+        Read the MLIP.model
+        Returns the coefficients
+        """
+        fn = Path("MLIP.model")
+        if not fn.is_file():
+            raise FileNotFoundError(f"{fn.absolute} does not exist.")
+
+        with open(fn, "r") as fd:
+            for _ in range(4):
+                fd.readline()
+            nelems, ncoefs = map(int, fd.readline().split())
+            coefficients = np.loadtxt(fd)
+        return coefficients
+
+    @subfolder
+    def read_mlip(self):
+        """
+        Read MLIP parameters from a file.
+        """
+        fn = Path("MLIP.model")
+        if not fn.is_file():
+            raise FileNotFoundError(f"The file {fn.absolute} does not exist.")
+
+        with open(fn, "r") as fd:
+            lines = fd.readlines()
+
+        coefs = []
+        for line in lines:
+            line = line.strip()
+            if line.startswith('#') or len(line) == 0:
+                continue
+            line = line.split()
+            if len(line) == 2:  # Consistency check: nel, ndesc+1
+                assert int(line[0]) == self.nel, "The descriptor changed"
+                assert int(line[1]) == self.ndesc+1, "The descriptor changed"
+                continue
+            coefs.append(float(line[0]))
+        return coefs
 
 # ========================================================================== #
     def _regularization_matrix(self):

@@ -33,6 +33,19 @@ class Descriptor:
         self.mlip_desc = Path.cwd()
 
 # ========================================================================== #
+    def compute_descriptors(self, atoms, forces=True, stress=True):
+        desc = []
+        for at in atoms:
+            desc.append(self.compute_descriptor(atoms=at,
+                                                forces=forces,
+                                                stress=stress))
+        return desc
+
+# ========================================================================== #
+    def compute_descriptor(self, atoms, forces=True, stress=True):
+        raise NotImplementedError
+
+# ========================================================================== #
     def _compute_rij(self, atoms):
         """
         """
@@ -56,9 +69,9 @@ class Descriptor:
         for at in atoms:
             if self.need_neigh:
                 iat, jat, vdist, iel = self._compute_rij(at)
-                res_iat = self._compute_descriptor(at, iat, jat, vdist, iel)
+                res_iat = self.compute_descriptor(at, iat, jat, vdist, iel)
             else:
-                res_iat = self._compute_descriptor(at, forces, stress)
+                res_iat = self.compute_descriptor(at, forces, stress)
             res.append(res_iat)
         return res
 
@@ -110,10 +123,10 @@ class SumDescriptor(Descriptor):
             desc_s = np.empty((6, 0))
             for desc in self.desc:
                 if desc.need_neigh:
-                    res_iat_d = desc._compute_descriptor(at, iat, jat,
-                                                         vdist, iel)
+                    res_iat_d = desc.compute_descriptor(at, iat, jat,
+                                                        vdist, iel)
                 else:
-                    res_iat_d = desc._compute_descriptor(at, forces, stress)
+                    res_iat_d = desc.compute_descriptor(at, forces, stress)
                 desc_e = np.c_[desc_e, res_iat_d["desc_e"]]
                 desc_f = np.c_[desc_f, res_iat_d["desc_f"]]
                 desc_s = np.c_[desc_s, res_iat_d["desc_s"]]
