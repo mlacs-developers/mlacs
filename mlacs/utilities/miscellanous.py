@@ -326,7 +326,6 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
     _norm = func(sy, sx) * fx * fy
     return y * norm / _norm
 
-
 # ========================================================================== #
 def subfolder(func):
     """
@@ -344,3 +343,34 @@ def subfolder(func):
             os.chdir(initial_folder)
         return result
     return wrapper
+
+# ========================================================================== #
+def read_distribution_files(filename):
+    """
+    Function to the distribution files of LAMMPS
+    Return the averaged values and the extrem values.
+    """
+    yaxis, buf = None, None
+    with open(filename, 'r') as r:
+        for line in r:
+            if line[0] == '#':
+                continue
+            rowdat = line.split()
+            if len(rowdat) == 2:
+                if yaxis is None and buf is None:
+                    yaxis = None
+                elif yaxis is None and buf is not None:
+                    yaxis = buf
+                else:
+                    yaxis = np.c_[yaxis, buf]
+                buf = np.zeros(int(rowdat[1]))
+                xaxis = np.zeros(int(rowdat[1]))
+                i = 0
+                continue
+            xaxis[i] = float(rowdat[1])
+            buf[i] = float(rowdat[2])
+            i += 1
+    _gav = np.average(np.c_[yaxis, buf].T, axis=0)
+    _gmin = np.min(np.c_[yaxis, buf].T, axis=0)
+    _gmax = np.max(np.c_[yaxis, buf].T, axis=0)
+    return xaxis, _gav, _gmin, _gmax

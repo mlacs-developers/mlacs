@@ -126,8 +126,8 @@ class OtfMlacs:
         else:
             self.mlip = mlip
 
-        if self.mlip.mbar is None:
-            self.mlip.nthrow = max(self.neq)
+        # if self.mlip.mbar is None:
+            # self.mlip.nthrow = max(self.neq)
 
         # Create property object
         if prop is None:
@@ -618,12 +618,12 @@ class OtfMlacs:
                     self.atoms.append(atoms.copy())
             elif isinstance(atoms, list):
                 assert len(atoms) == self.nstate
-                self.atoms = atoms
+                self.atoms = [at.copy() for at in atoms]
             else:
                 msg = "atoms should be a ASE Atoms object or " + \
                       "a list of ASE atoms objects"
                 raise TypeError(msg)
-            self.atoms_start = self.atoms
+            self.atoms_start = [at.copy() for at in self.atoms]
 
             # Create list of neq -> number of equilibration
             # mlmd runs for each state
