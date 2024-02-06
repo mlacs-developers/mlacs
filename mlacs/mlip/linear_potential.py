@@ -77,23 +77,6 @@ class LinearPotential(MlipManager):
             self.parameters["hyperparameters"] = hyperparam
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef):
-        """
-        Update MBAR just like train_mlip, but without actually computing
-        the coefficients
-        """
-        self.coefficients = mlip_coef
-        idx_e, idx_f, idx_s = self._get_idx_fit()
-        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
-        if self.mbar.train_mlip:
-            self.mbar.reweight_mlip()
-
-        self.mbar.run_weight(amat_e,
-                             mlip_coef,
-                             self.get_mlip_energy,
-                             subfolder=self.folder)
-
-# ========================================================================== #
     def train_mlip(self, mlip_subfolder):
         """
         """

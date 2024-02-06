@@ -138,7 +138,7 @@ class DeltaLearningPotential(MlipManager):
         return full_pair_coeff
 
 # ========================================================================== #
-    def update_matrices(self, atoms, mlip_subfolder=""):
+    def update_matrices(self, atoms):
         """
         """
         # First compute reference energy/forces/stress
@@ -148,19 +148,9 @@ class DeltaLearningPotential(MlipManager):
         calc = LAMMPS(pair_style=self.get_ref_pair_style(lmp=True),
                       pair_coeff=self.ref_pair_coeff,
                       atom_style=self.ref_atom_style)
+
         if self.model_post is not None:
             calc.set(model_post=self.ref_model_post)
-
-        # Add a new property to Atoms : The mlip which generated it
-        # None means no mlip was used to generate it (Initial or Training)
-        for at in atoms:
-            mm = self.descriptor.mlip_model
-            if mlip_subfolder is not None and mm is not None:
-                mlip_subfolder = self.folder / mlip_subfolder
-                if 'parent_mlip' not in at.info:
-                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
-            else:
-                mlip_subfolder = self.folder
 
         dummy_at = []
         for at in atoms:
@@ -171,6 +161,7 @@ class DeltaLearningPotential(MlipManager):
             refs = at0.get_stress()
 
             dumdum = at.copy()
+
             e = at.get_potential_energy() - refe
             f = at.get_forces() - reff
             s = at.get_stress() - refs
@@ -182,8 +173,15 @@ class DeltaLearningPotential(MlipManager):
             dummy_at.append(dumdum)
 
         # Now get descriptor features
-        self.model.update_matrices(dummy_at, mlip_subfolder=mlip_subfolder)
+        self.model.update_matrices(dummy_at)
         self.nconfs = self.model.nconfs
+
+# ========================================================================== #
+    def next_coefs(self, mlip_coef, mlip_subfolder):
+        """
+        """
+        msg = self.model.next_coefs(mlip_coef, mlip_subfolder)
+        return msg
 
 # ========================================================================== #
     def train_mlip(self, mlip_subfolder):
@@ -207,9 +205,11 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
     def __str__(self):
-        txt = " ".join(self.elements)
-        txt += "Delta Learning potential,"
+        txt = "Delta Learning potential\n"
+        txt += f"Reference pair_style: {self.ref_pair_style}\n"
+        txt += f"Reference pair_coeff: {self.ref_pair_coeff}\n"
         txt += str(self.model)
+        return txt 
 
 # ========================================================================== #
     def __repr__(self):

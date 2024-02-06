@@ -68,7 +68,7 @@ class MlipManager:
         return self.descriptor.get_pair_coeff()
 
 # ========================================================================== #
-    def update_matrices(self, atoms, mlip_subfolder=""):
+    def update_matrices(self, atoms):
         """
         """
         if isinstance(atoms, Atoms):
@@ -76,17 +76,8 @@ class MlipManager:
         if self.mbar is not None:
             self.mbar.update_database(atoms)
 
-        for at in atoms:
-            # if none, it means no mlip was used to generate this config
-            if mlip_subfolder is not None:
-                mm = self.descriptor.mlip_model
-                mlip_subfolder = self.folder / mlip_subfolder
-                if 'parent_mlip' not in at.info:
-                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
-            else:
-                mlip_subfolder = self.folder
-
         amat_all = self.descriptor.calculate(atoms, subfolder=self.folder)
+
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
         for at in atoms:
@@ -100,7 +91,6 @@ class MlipManager:
                 self.amat_e = amat["desc_e"]
                 self.amat_f = amat["desc_f"]
                 self.amat_s = amat["desc_s"]
-
             else:
                 self.amat_e = np.r_[self.amat_e, amat["desc_e"]]
                 self.amat_f = np.r_[self.amat_f, amat["desc_f"]]
@@ -141,6 +131,8 @@ class MlipManager:
         mlip_coef = []
 
         # Check that this simulation and the previous one use the same mlip
+        if 'parent_mlip' in traj[0][0].info:
+            fn = Path(traj[0][0].info['parent_mlip']) / "MLIP.descriptor"
         fn_descriptor = self.folder / "MLIP.descriptor"
         with open(fn_descriptor, "r") as f:
             lines = f.read()
@@ -171,46 +163,25 @@ class MlipManager:
         return parent_mlip, np.array(mlip_coef)
 
 # ========================================================================== #
-    def get_Nk_coeff(self, prev_traj):
+    def next_coefs(self, mlip_coef, mlip_subfolder):
         """
-        Read a previous traj and return Nk and coef has would have been
-        obtained during a normal MLACS loop
+        Update MLACS just like train_mlip, but without actually computing
+        the coefficients
         """
-        parents_mlip = [""]
-        mlip_coef = []
-        Nk = [0]
+        self.coefficients = mlip_coef
+        idx_e, idx_f, idx_s = self._get_idx_fit()
+        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
+        
+        self.descriptor.write_mlip(mlip_coef, subfolder=self.folder/mlip_subfolder)
 
-        # Check that this simulation and the previous one use the same mlip
-        fn_descriptor = self.folder / "MLIP.descriptor"
-        with open(fn_descriptor, "r") as f:
-            lines = f.read()
+        if self.mbar is not None:
+            if self.mbar.train_mlip:
+                self.mbar.reweight_mlip()
 
-        if not lines == self.descriptor.get_mlip_params():
-            err = "The MLIP.descriptor from {fn_descriptor} seems different "
-            err += "to the one you have in this simulation. If you want a "
-            err += "new mlip: Rerun MLACS with DatabaseCalculator and "
-            err += "OtfMlacs.keep_tmp_files=True on your traj"
-            raise ValueError(err)
-
-        # Make the MBAR variable Nk and mlip_coef
-        for state in prev_traj:
-            for conf in state:
-                if "parent_mlip" not in conf.info:  # Initial or training
-                    Nk[0] += 1
-                else:  # A traj
-                    model = conf.info['parent_mlip']
-                    if not Path(model).exists:
-                        err = "Some parent MLIP are missing. "
-                        err += "Rerun MLACS with DatabaseCalculator and "
-                        err += "OtfMlacs.keep_tmp_files=True on your traj"
-                        raise FileNotFoundError(err)
-                    if model not in parents_mlip:  # New state
-                        Nk.append(0)
-                        parents_mlip.append(model)
-                        coef = self.descriptor.read_mlip(subfolder=model)
-                        mlip_coef.append(coef)
-                    Nk[parents_mlip.index(model)] += 1
-        return Nk, mlip_coef
+            self.mbar.run_weight(amat_e,
+                                 mlip_coef,
+                                 self.get_mlip_energy,
+                                 subfolder=self.folder)
 
 # ========================================================================== #
     def test_mlip(self, testset):
@@ -324,20 +295,12 @@ class SelfMlipManager(MlipManager):
         self.natoms = []
 
 # ========================================================================== #
-    def update_matrices(self, atoms, mlip_subfolder=""):
+    def update_matrices(self, atoms):
         """
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         nat = np.array([len(at) for at in atoms], dtype=int)
-
-        for at in atoms:
-            # if none, it means no mlip was used to generate this config
-            if mlip_subfolder is not None:
-                mm = self.descriptor.mlip_model
-                mlip_subfolder = self.folder / mlip_subfolder
-                if 'parent_mlip' not in at.info:
-                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
 
         self.configurations.extend(atoms)
         self.natoms = np.append(self.natoms, nat)

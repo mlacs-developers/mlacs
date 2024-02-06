@@ -65,7 +65,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         self.cmd = cmd
 
 # ========================================================================== #
-    def update_matrices(self, atoms, mlip_subfolder=""):
+    def update_matrices(self, atoms):
         """
         """
         if isinstance(atoms, Atoms):
@@ -107,7 +107,7 @@ class SpinLatticePotential(DeltaLearningPotential):
             dummy_at.append(dumdum)
 
         # Now get descriptor features
-        self.model.update_matrices(dummy_at, mlip_subfolder=mlip_subfolder)
+        self.model.update_matrices(dummy_at)
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #

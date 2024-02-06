@@ -286,23 +286,6 @@ class MliapDescriptor(Descriptor):
     @subfolder
     def read_mlip(self):
         """
-        Read the MLIP.model
-        Returns the coefficients
-        """
-        fn = Path("MLIP.model")
-        if not fn.is_file():
-            raise FileNotFoundError(f"{fn.absolute} does not exist.")
-
-        with open(fn, "r") as fd:
-            for _ in range(4):
-                fd.readline()
-            nelems, ncoefs = map(int, fd.readline().split())
-            coefficients = np.loadtxt(fd)
-        return coefficients
-
-    @subfolder
-    def read_mlip(self):
-        """
         Read MLIP parameters from a file.
         """
         fn = Path("MLIP.model")

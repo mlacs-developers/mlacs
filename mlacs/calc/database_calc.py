@@ -48,7 +48,7 @@ class DatabaseCalc(CalcManager):
         """
         1. Create a copy of the next atoms in traj as true_atoms
         2. Modify mlip_atoms positions to match what we have in the traj
-        Note that training is not in the trajfile, but we must train on it
+        3. Change the Parent MLIP that generated true_confs
         """
         assert len(mlip_confs) + self.current_conf <= len(self.traj), \
             "You cannot do more step than there is in the Trajectory file" +\
@@ -62,5 +62,8 @@ class DatabaseCalc(CalcManager):
 
             true_confs.append(self.traj[self.current_conf])
             mlip_conf.set_positions(true_confs[-1].get_positions())
+
+            if 'parent_mlip' in mlip_conf.info:
+                true_confs[-1].info['parent_mlip'] = mlip_conf.info['parent_mlip']
             self.current_conf += 1
         return true_confs

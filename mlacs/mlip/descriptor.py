@@ -29,6 +29,11 @@ class Descriptor:
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
+        self.mlip_model = None  # We need to set it them to Path.cwd()
+        self.mlip_desc = None  # but only when we call OtfMlacs.run
+
+# ========================================================================== #
+    def set_folders(self):
         self.mlip_model = Path.cwd()
         self.mlip_desc = Path.cwd()
 
