@@ -223,6 +223,7 @@ class MliapDescriptor(Descriptor):
         Path("atoms.lmp").unlink()
 
 # ========================================================================== #
+    @subfolder
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP

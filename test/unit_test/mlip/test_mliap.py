@@ -163,7 +163,7 @@ def test_writing_model():
     if mliapfold.exists():
         shutil.rmtree(mliapfold)
     mliapfold.mkdir()
-    mliap.write_mlip(coeff)
+    mliap.write_mlip(coeff, subfolder=mliapfold)
 
     mliapfile = mliapfold / "MLIP.model"
     assert mliapfile.exists()
@@ -215,14 +215,14 @@ def test_writing_descriptor():
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    mliap = MliapDescriptor(at, rcut, parameters=parameters)
     mliapfile = mliapfold / "MLIP.descriptor"
+    mliap = MliapDescriptor(at, rcut, parameters=parameters)
 
     if mliapfold.exists():
         shutil.rmtree(mliapfold)
     mliapfold.mkdir()
 
-    mliap._write_mlip_params()
+    mliap._write_mlip_params(subfolder=mliapfold)
 
     allref = desc_ref.split("\n")
     allref = [line.rstrip() for line in allref]
@@ -276,7 +276,7 @@ def test_writing_descriptor_so3():
         shutil.rmtree(mliapfold)
     mliapfold.mkdir()
 
-    mliap._write_mlip_params()
+    mliap._write_mlip_params(subfolder=mliapfold)
 
     allref = desc_ref_so3.split("\n")
     allref = [line.rstrip() for line in allref]
@@ -314,11 +314,14 @@ def test_get_pair_style_coeff():
     rcut = 3.5
     parameters = dict(twojmax=5)
     mliap = MliapDescriptor(at, rcut, parameters=parameters)
+    mliap.mlip_model = (root / "Mliap")
+    mliap.mlip_desc = (root / "Mliap")
 
     pred_st, pred_co = mliap.get_pair_style_coeff()
 
     model_file = (root / "Mliap/MLIP.model").as_posix()
     desc_file = (root / "Mliap/MLIP.descriptor").as_posix()
+
     ref_st = f"mliap model linear {model_file} descriptor sna {desc_file}"
     assert pred_st == ref_st
     ref_co = ["* * Si"]
@@ -326,6 +329,8 @@ def test_get_pair_style_coeff():
 
     # Now with so3
     mliap = MliapDescriptor(at, rcut, parameters=parameters, style="so3")
+    mliap.mlip_model = (root / "Mliap")
+    mliap.mlip_desc = (root / "Mliap")
 
     pred_st, pred_co = mliap.get_pair_style_coeff()
 

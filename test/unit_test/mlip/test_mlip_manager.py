@@ -61,8 +61,8 @@ def test_update_matrices():
     assert manager.ymat_f.shape == (nf,)
     assert manager.ymat_s.shape == (ns,)
 
-    if desc.folder.exists():
-        shutil.rmtree(desc.folder)
+    if manager.folder.exists():
+        shutil.rmtree(manager.folder)
 
 
 def test_update_matrices_self():

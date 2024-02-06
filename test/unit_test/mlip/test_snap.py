@@ -112,7 +112,7 @@ def test_writing_model():
     snap = SnapDescriptor(at, rcut, parameters=parameters)
     coeff = np.arange(0, 21)
 
-    snap.write_mlip(coeff)
+    snap.write_mlip(coeff, subfolder=snapfold)
 
     snapfile = snapfold / "MLIP.model"
     assert snapfile.exists()
@@ -169,7 +169,7 @@ def test_writing_descriptor():
         shutil.rmtree(snapfold)
     snapfold.mkdir()
 
-    snap._write_mlip_params()
+    snap._write_mlip_params(subfolder=snapfold)
 
     allref = desc_ref.split("\n")
     allref = [line.rstrip() for line in allref]
@@ -197,6 +197,8 @@ def test_get_pair_style_coeff():
     rcut = 3.5
     parameters = dict(twojmax=5)
     snap = SnapDescriptor(at, rcut, parameters=parameters)
+    snap.mlip_model = (root / "Snap")
+    snap.mlip_desc = (root / "Snap")
 
     pred_st, pred_co = snap.get_pair_style_coeff()
 
