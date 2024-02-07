@@ -284,12 +284,13 @@ class SelfMlipManager(MlipManager):
     def __init__(self,
                  descriptor,
                  nthrow=10,
+                 folder=Path("MLIP").absolute(),
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0):
         MlipManager.__init__(self, descriptor, nthrow,
                              energy_coefficient, forces_coefficient,
-                             stress_coefficient)
+                             stress_coefficient, folder=folder)
         self.configurations = []
         self.natoms = []
 
@@ -305,3 +306,13 @@ class SelfMlipManager(MlipManager):
         self.natoms = np.append(self.natoms, nat)
         self.natoms = np.array(self.natoms, dtype=int)
         self.nconfs += len(atoms)
+
+# ========================================================================== #
+    @property
+    def pair_style(self):
+        return self.get_pair_style()
+
+# ========================================================================== #
+    @property
+    def pair_coeff(self):
+        return self.get_pair_coeff()

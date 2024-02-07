@@ -326,6 +326,7 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
     _norm = func(sy, sx) * fx * fy
     return y * norm / _norm
 
+
 # ========================================================================== #
 def subfolder(func):
     """
@@ -343,6 +344,7 @@ def subfolder(func):
             os.chdir(initial_folder)
         return result
     return wrapper
+
 
 # ========================================================================== #
 def read_distribution_files(filename):
