@@ -209,7 +209,7 @@ class DeltaLearningPotential(MlipManager):
         txt += f"Reference pair_style: {self.ref_pair_style}\n"
         txt += f"Reference pair_coeff: {self.ref_pair_coeff}\n"
         txt += str(self.model)
-        return txt 
+        return txt
 
 # ========================================================================== #
     def __repr__(self):

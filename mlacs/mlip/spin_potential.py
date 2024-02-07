@@ -71,17 +71,6 @@ class SpinLatticePotential(DeltaLearningPotential):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
-        # Add a new property to Atoms : The mlip which generated it
-        # None means no mlip was used to generate it (Initial or Training)
-        for at in atoms:
-            mm = self.descriptor.mlip_model
-            if mlip_subfolder is not None and mm is not None:
-                mlip_subfolder = self.folder / mlip_subfolder
-                if 'parent_mlip' not in at.info:
-                    at.info['parent_mlip'] = str(mm / mlip_subfolder)
-            else:
-                mlip_subfolder = self.folder
-
         # Compute reference energy/forces/stress
         dummy_at = []
         for at in atoms:

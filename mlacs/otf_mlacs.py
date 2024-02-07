@@ -128,9 +128,6 @@ class OtfMlacs:
             self.mlip = mlip
         self.mlip.folder = Path.cwd().absolute() / self.mlip.folder
 
-        # if self.mlip.mbar is None:
-            # self.mlip.nthrow = max(self.neq)
-
         # Create property object
         if prop is None:
             self.prop = PropertyManager(None)
@@ -727,9 +724,8 @@ class OtfMlacs:
             # Directly adding initial conf to have it once even if multistate
             atoms_by_mlip = [[] for _ in range(len(parent_list))]
             no_parent_atoms = [prev_traj[0][0]]
-            
-            for istate in range(self.nstate):
 
+            for istate in range(self.nstate):
                 for iconf in range(1, len(prev_traj[istate])):
                     if "parent_mlip" in prev_traj[istate][iconf].info:
                         pm = prev_traj[istate][iconf].info['parent_mlip']
@@ -747,11 +743,12 @@ class OtfMlacs:
 
             curr_step = 0
             for i in range(len(atoms_by_mlip)):
-                curr_step+= 1
-                self.mlip.next_coefs(mlip_coef[i], mlip_subfolder=f"Coef{curr_step}")
+                curr_step += 1
+                self.mlip.next_coefs(mlip_coef[i],
+                                     mlip_subfolder=f"Coef{curr_step}")
                 for at in atoms_by_mlip[i]:
                     self.mlip.update_matrices(at)
-            
+
         # Update this simulation traj
         self.traj = []
         self.atoms = []

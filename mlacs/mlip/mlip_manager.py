@@ -131,8 +131,6 @@ class MlipManager:
         mlip_coef = []
 
         # Check that this simulation and the previous one use the same mlip
-        if 'parent_mlip' in traj[0][0].info:
-            fn = Path(traj[0][0].info['parent_mlip']) / "MLIP.descriptor"
         fn_descriptor = self.folder / "MLIP.descriptor"
         with open(fn_descriptor, "r") as f:
             lines = f.read()
@@ -171,8 +169,9 @@ class MlipManager:
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
-        
-        self.descriptor.write_mlip(mlip_coef, subfolder=self.folder/mlip_subfolder)
+
+        self.descriptor.write_mlip(mlip_coef,
+                                   subfolder=self.folder/mlip_subfolder)
 
         if self.mbar is not None:
             if self.mbar.train_mlip:
