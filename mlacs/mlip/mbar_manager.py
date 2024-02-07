@@ -4,10 +4,8 @@
 """
 from pathlib import Path
 import logging
-
-import os
 import numpy as np
-
+from ..utilities import subfolder
 
 try:
     # With the annoying mandatory warning from mbar, we have to initialize
@@ -94,23 +92,23 @@ class MbarManager:
             self.matsize = [len(a) for a in database]
         self.Nk = []
         self.W = None
-        self.folder = Path(folder).absolute()
+        folder = Path(folder).absolute()
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
-                weight = np.loadtxt(self.folder / "MLIP.weight")
+                weight = np.loadtxt(weight)
             self.weight.append(weight)
-        elif os.path.isfile("MLIP.weight"):
+        elif Path("MLIP.weight").exists():
             weight = np.loadtxt("MLIP.weight")
             self.weight.append(weight)
-        elif os.path.isfile(self.folder / "MLIP.weight"):
-            weight = np.loadtxt(self.folder / "MLIP.weight")
+        elif (folder / "MLIP.weight").exists():
+            weight = np.loadtxt(folder / "MLIP.weight")
             self.weight.append(weight)
         else:
             self.weight = []
         self.train_mlip = False
-        self.mlip_amat = []
         self.mlip_coef = []
+        self.mlip_desc = []
 
         self._newddb = []
         self._nstart = self.parameters['start']
@@ -120,15 +118,16 @@ class MbarManager:
             raise ValueError(msg)
 
 # ========================================================================== #
-    def run_weight(self, a, c):
+    @subfolder
+    def run_weight(self, desc, coef, f_mlipE):
         """
-        Get A matrices and linear coefficients.
-        Compute the matrice Ukn of partition fonctions.
+        Save the descriptor and the MLIP coefficients.
+        Compute the matrice Ukn of partition fonctions of shape [ndesc, nconf]
+        according to the given f_mlipE(coef,desc)
         """
-
-        if c is not None:
-            self.mlip_amat.append(a)
-            self.mlip_coef.append(c)
+        if coef is not None:
+            self.mlip_coef.append(coef)
+            self.mlip_desc.append(desc)
 
         if self.parameters['mode'] == 'train':
             self.train_mlip = True
@@ -146,29 +145,31 @@ class MbarManager:
 
         header = ''
         if self._nstart <= len(self.mlip_coef):
-            shape = (len(self.mlip_coef), len(self.mlip_amat[-1]))
+
+            shape = (len(self.mlip_coef), len(self.mlip_desc[-1]))
             ukn = np.zeros(shape)
             for istep, coeff in enumerate(self.mlip_coef):
-                ukn[istep] = self._get_ukn(self.mlip_amat[-1], coeff)
+                mlip_E = f_mlipE(coeff, self.mlip_desc[-1])
+                ukn[istep] = self._get_ukn(mlip_E)
 
             weight = self._compute_weight(ukn)
             self.weight.append(weight)
             neff = self.get_effective_conf()
 
             header += f"Effective number of configurations: {neff:10.5f}\n"
-            np.savetxt(self.folder / "MLIP.weight", self.weight[-1],
+            np.savetxt("MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
         return header
 
 # ========================================================================== #
-    def reweight_mlip(self, a, y):
+    def reweight_mlip(self):
         """
-        Return weigthted A and Y matrices.
+        Return weighting matrices
         """
         w = self._init_weight()
         we, wf, ws = self._build_W_efs(w)
         self.W = np.r_[we, wf, ws]
-        return a * self.W[:, np.newaxis], y * self.W
+        return self.W
 
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
@@ -222,13 +223,6 @@ class MbarManager:
         return msg
 
 # ========================================================================== #
-    def get_mlip_energy(self, amat_e, coefficient):
-        """
-        Return Uo from A.D.
-        """
-        return np.einsum('ij,j->i', amat_e, coefficient)
-
-# ========================================================================== #
     def get_effective_conf(self):
         """
         Compute the number of effective configurations.
@@ -262,7 +256,7 @@ class MbarManager:
         return weight / np.sum(weight)
 
 # ========================================================================== #
-    def _get_ukn(self, a, c):
+    def _get_ukn(self, ekn):
         """
         Compute Ukn matrices.
         """
@@ -272,7 +266,6 @@ class MbarManager:
         V = np.array([_.get_volume() for _ in ddb])
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
-        ekn = self.get_mlip_energy(a, c)
         assert len(ekn) == self.nconfs
         ukn = (ekn + P * V) / (kB * T)
         return ukn

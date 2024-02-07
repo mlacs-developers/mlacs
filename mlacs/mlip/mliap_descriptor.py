@@ -5,7 +5,7 @@ from subprocess import run, PIPE
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, subfolder
 from .descriptor import Descriptor, combine_reg
 from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
@@ -67,10 +67,9 @@ class MliapDescriptor(Descriptor):
         Default 1.0
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
-                 model="linear", style="snap", alpha=1.0, folder="Mliap"):
+                 model="linear", style="snap", alpha=1.0):
         self.chemflag = parameters.pop("chemflag", False)
         Descriptor.__init__(self, atoms, rcut, alpha)
-        self.folder = Path(folder).absolute()
 
         self.model = model
         self.style = style
@@ -114,15 +113,13 @@ class MliapDescriptor(Descriptor):
         self.cmd = cmd
 
 # ========================================================================== #
-    def _compute_descriptor(self, atoms, forces=True, stress=True):
+    def compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
-        self.folder.mkdir(parents=True, exist_ok=True)
-
         nat = len(atoms)
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        lmp_atfname = self.folder / "atoms.lmp"
+        lmp_atfname = "atoms.lmp"
         self._write_lammps_input(masses, atoms.get_pbc())
         self._write_mlip_params()
 
@@ -135,7 +132,7 @@ class MliapDescriptor(Descriptor):
                           specorder=self.elements.tolist())
         self._run_lammps(lmp_atfname)
 
-        bispectrum = np.loadtxt(self.folder / "descriptor.out",
+        bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
         bispectrum[-6:, 1:-1] /= -atoms.get_volume()
 
@@ -192,7 +189,7 @@ class MliapDescriptor(Descriptor):
         block("run", "run 0")
         lmp_in("compute", block)
 
-        with open(self.folder / "lammps_input.in", "w") as fd:
+        with open("lammps_input.in", "w") as fd:
             fd.write(str(lmp_in))
 
 # ========================================================================== #
@@ -203,8 +200,7 @@ class MliapDescriptor(Descriptor):
         lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
         lmp_handle = run(lmp_cmd,
                          shell=True,
-                         stderr=PIPE,
-                         cwd=self.folder)
+                         stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
@@ -221,63 +217,97 @@ class MliapDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        (self.folder / "lmp.out").unlink()
-        (self.folder / "descriptor.out").unlink()
-        (self.folder / "lammps_input.in").unlink()
-        (self.folder / "atoms.lmp").unlink()
+        Path("lmp.out").unlink()
+        Path("descriptor.out").unlink()
+        Path("lammps_input.in").unlink()
+        Path("atoms.lmp").unlink()
 
 # ========================================================================== #
+    @subfolder
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        with open(self.folder / "MLIP.descriptor", "w") as f:
-            f.write("# ")
-            # Adding a commment line to know what elements are fitted here
-            for elements in self.elements:
-                f.write("{:} ".format(elements))
-            f.write("MLIP parameters\n")
-            f.write(f"# Descriptor:  {self.style}\n")
-            f.write(f"# Model:       {self.model}\n")
-            f.write("\n")
-            f.write(f"rcutfac         {self.rcut}\n")
-            for key in self.params.keys():
-                f.write(f"{key:12}    {self.params[key]}\n")
-            f.write("\n\n\n")
-            f.write(f"nelems      {self.nel}\n")
-            f.write("elems       ")
-            for n in range(len(self.elements)):
-                f.write(self.elements[n] + " ")
-            f.write("\n")
-            f.write("radelems   ")
-            for n in range(len(self.elements)):
-                f.write(f" {self.radelems[n]}")
-            f.write("\n")
-            f.write("welems    ")
-            for n in range(len(self.elements)):
-                f.write(f"  {self.welems[n]}")
-            f.write("\n")
-
-            if self.style == "snap" and self.chemflag:
-                f.write("\n\n")
-                f.write("chemflag     1\n")
-                f.write("bnormflag    1\n")
+        self.mlip_desc = Path.cwd()
+        with open("MLIP.descriptor", "w") as f:
+            f.write(self.get_mlip_params())
 
 # ========================================================================== #
-    def write_mlip(self, coefficients, comments=""):
+    def get_mlip_params(self):
+        s = ("# ")
+        # Adding a commment line to know what elements are fitted here
+        for elements in self.elements:
+            s += ("{:} ".format(elements))
+        s += ("MLIP parameters\n")
+        s += (f"# Descriptor:  {self.style}\n")
+        s += (f"# Model:       {self.model}\n")
+        s += ("\n")
+        s += (f"rcutfac         {self.rcut}\n")
+        for key in self.params.keys():
+            s += (f"{key:12}    {self.params[key]}\n")
+        s += ("\n\n\n")
+        s += (f"nelems      {self.nel}\n")
+        s += ("elems       ")
+        for n in range(len(self.elements)):
+            s += (self.elements[n] + " ")
+        s += ("\n")
+        s += ("radelems   ")
+        for n in range(len(self.elements)):
+            s += (f" {self.radelems[n]}")
+        s += ("\n")
+        s += ("welems    ")
+        for n in range(len(self.elements)):
+            s += (f"  {self.welems[n]}")
+        s += ("\n")
+
+        if self.style == "snap" and self.chemflag:
+            s += ("\n\n")
+            s += ("chemflag     1\n")
+            s += ("bnormflag    1\n")
+        return s
+
+# ========================================================================== #
+    @subfolder
+    def write_mlip(self, coefficients):
         """
         """
-        with open(self.folder / "MLIP.model", "w") as fd:
+        self.mlip_model = Path.cwd()
+        with open("MLIP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
             fd.write(f"# Descriptor   {self.style}\n")
-            fd.write(comments)
             fd.write("\n")
 
             fd.write("# nelems   ncoefs\n")
             fd.write(f"{self.nel} {self.ndesc + 1}\n")
             np.savetxt(fd, coefficients, fmt="%35.30f")
+
+# ========================================================================== #
+    @subfolder
+    def read_mlip(self):
+        """
+        Read MLIP parameters from a file.
+        """
+        fn = Path("MLIP.model")
+        if not fn.is_file():
+            raise FileNotFoundError(f"The file {fn.absolute} does not exist.")
+
+        with open(fn, "r") as fd:
+            lines = fd.readlines()
+
+        coefs = []
+        for line in lines:
+            line = line.strip()
+            if line.startswith('#') or len(line) == 0:
+                continue
+            line = line.split()
+            if len(line) == 2:  # Consistency check: nel, ndesc+1
+                assert int(line[0]) == self.nel, "The descriptor changed"
+                assert int(line[1]) == self.ndesc+1, "The descriptor changed"
+                continue
+            coefs.append(float(line[0]))
+        return coefs
 
 # ========================================================================== #
     def _regularization_matrix(self):
@@ -287,19 +317,24 @@ class MliapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        """
-        """
+    def get_pair_style(self):
         if self.style == "snap":
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = self.folder / "MLIP.model"
-        descfile = self.folder / "MLIP.descriptor"
+        modelfile = self.mlip_model / "MLIP.model"
+        descfile = self.mlip_desc / "MLIP.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
-        pair_coeff = [f"* * {' '.join(self.elements)}"]
-        return pair_style, pair_coeff
+        return pair_style
+
+# ========================================================================== #
+    def get_pair_coeff(self):
+        return [f"* * {' '.join(self.elements)}"]
+
+# ========================================================================== #
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def __str__(self):

@@ -1,8 +1,9 @@
+from pathlib import Path
 import numpy as np
 from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, subfolder
 
 
 # ========================================================================== #
@@ -28,6 +29,26 @@ class Descriptor:
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
+        self.mlip_model = None  # We need to set it them to Path.cwd()
+        self.mlip_desc = None  # but only when we call OtfMlacs.run
+
+# ========================================================================== #
+    def set_folders(self):
+        self.mlip_model = Path.cwd()
+        self.mlip_desc = Path.cwd()
+
+# ========================================================================== #
+    def compute_descriptors(self, atoms, forces=True, stress=True):
+        desc = []
+        for at in atoms:
+            desc.append(self.compute_descriptor(atoms=at,
+                                                forces=forces,
+                                                stress=stress))
+        return desc
+
+# ========================================================================== #
+    def compute_descriptor(self, atoms, forces=True, stress=True):
+        raise NotImplementedError
 
 # ========================================================================== #
     def _compute_rij(self, atoms):
@@ -40,6 +61,7 @@ class Descriptor:
         return iat, jat, vdist, iel
 
 # ========================================================================== #
+    @subfolder
     def calculate(self, atoms, forces=True, stress=True):
         """
         """
@@ -52,9 +74,9 @@ class Descriptor:
         for at in atoms:
             if self.need_neigh:
                 iat, jat, vdist, iel = self._compute_rij(at)
-                res_iat = self._compute_descriptor(at, iat, jat, vdist, iel)
+                res_iat = self.compute_descriptor(at, iat, jat, vdist, iel)
             else:
-                res_iat = self._compute_descriptor(at, forces, stress)
+                res_iat = self.compute_descriptor(at, forces, stress)
             res.append(res_iat)
         return res
 
@@ -78,7 +100,9 @@ class SumDescriptor(Descriptor):
         self.ncolumns = np.sum([d.ncolumns for d in self.desc])
 
 # ========================================================================== #
+    @subfolder
     def write_mlip(self, coefficients):
+        self.mlip_model = Path.cwd()
         icol = 0
         for d in self.desc:
             fcol = icol + d.ncolumns
@@ -86,6 +110,7 @@ class SumDescriptor(Descriptor):
             icol = fcol
 
 # ========================================================================== #
+    @subfolder
     def calculate(self, atoms, forces=True, stress=True):
         """
         """
@@ -103,10 +128,10 @@ class SumDescriptor(Descriptor):
             desc_s = np.empty((6, 0))
             for desc in self.desc:
                 if desc.need_neigh:
-                    res_iat_d = desc._compute_descriptor(at, iat, jat,
-                                                         vdist, iel)
+                    res_iat_d = desc.compute_descriptor(at, iat, jat,
+                                                        vdist, iel)
                 else:
-                    res_iat_d = desc._compute_descriptor(at, forces, stress)
+                    res_iat_d = desc.compute_descriptor(at, forces, stress)
                 desc_e = np.c_[desc_e, res_iat_d["desc_e"]]
                 desc_f = np.c_[desc_f, res_iat_d["desc_f"]]
                 desc_s = np.c_[desc_s, res_iat_d["desc_s"]]
@@ -126,18 +151,28 @@ class SumDescriptor(Descriptor):
         return reg
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
+    def get_pair_style(self):
         pair_style = "hybrid/overlay "
+        for d in self.desc:
+            pair_style_d = d.get_pair_style()
+            pair_style += f"{pair_style_d} "
+        return pair_style
+
+# ========================================================================== #
+    def get_pair_coeff(self):
         pair_coeff = []
         for d in self.desc:
             pair_style_d, pair_coeff_d = d.get_pair_style_coeff()
-            pair_style += f"{pair_style_d} "
             for coeff in pair_coeff_d:
                 style = pair_style_d.split()[0]
                 co = coeff.split()
                 co.insert(2, style)
                 pair_coeff.append(" ".join(co))
-        return pair_style, pair_coeff
+        return pair_coeff
+
+# ========================================================================== #
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def to_dict(self):

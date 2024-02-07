@@ -124,16 +124,20 @@ class AbinitManager(CalcManager):
             prefix.append(stateprefix)
             self._write_input(at, stateprefix)
 
-        # Define the function to be called by every process.
         def submit_abinit_calc(cmd, logfile, errfile, cdir):
             with open(logfile, 'w') as lfile, \
                  open(errfile, 'w') as efile:
-                process = Popen(cmd,
-                                cwd=cdir,
-                                stderr=efile,
-                                stdout=lfile,
-                                shell=False)
-                process.wait()
+                try:
+                    process = Popen(cmd,
+                                    cwd=cdir,
+                                    stderr=efile,
+                                    stdout=lfile,
+                                    shell=False)
+                    process.wait()
+                except Exception as e:
+                    msg = f"This command {' '.join(cmd)}\n"
+                    msg += f"raised this exception {e}"
+                    efile.write(msg)
 
         # Calculate the number of processor assigned to each task
         # Divide them equally between each calculation.

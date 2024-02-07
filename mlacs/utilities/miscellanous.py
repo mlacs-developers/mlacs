@@ -2,6 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
+from pathlib import Path
 import numpy as np
 
 from scipy import interpolate
@@ -324,6 +326,23 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
     _norm = func(sy, sx) * fx * fy
     return y * norm / _norm
 
+# ========================================================================== #
+def subfolder(func):
+    """
+    Decorator that executes a function from a subfolder
+    Usage : self.func(subfolder=x, *args)
+    """
+    def wrapper(self, *args, subfolder=None, **kwargs):
+        if subfolder is not None:
+            if not Path(subfolder).exists():
+                os.makedirs(subfolder)
+            initial_folder = os.getcwd()
+            os.chdir(subfolder)
+        result = func(self, *args, **kwargs)
+        if subfolder is not None:
+            os.chdir(initial_folder)
+        return result
+    return wrapper
 
 # ========================================================================== #
 def read_distribution_files(filename):

@@ -41,23 +41,23 @@ def test_linear_potential():
     desc = SnapDescriptor(at, 3.0, params)
 
     # First we test if OLS functions
-    mlip = LinearPotential(desc)
+    mlip = LinearPotential(desc, folder=snapfold)
 
     fakeat = []
     for _ in range(5):
         fakeat.append(create_dum_data(at))
 
     mlip.update_matrices(fakeat)
-    mlip.train_mlip()
+    mlip.train_mlip(mlip_subfolder=snapfold)
 
     shutil.rmtree(snapfold)
 
     # And with ridge regression
     mlip_params = dict(method="ridge")
-    mlip = LinearPotential(desc, parameters=mlip_params)
+    mlip = LinearPotential(desc, parameters=mlip_params, folder=snapfold)
 
     mlip.update_matrices(fakeat)
-    mlip.train_mlip()
+    mlip.train_mlip(mlip_subfolder=snapfold)
 
     # Let's check that what we compute with the matrix is also what
     # we get with LAMMPS
