@@ -102,7 +102,7 @@ class OtfMlacs:
                  prefix_output="Trajectory",
                  confs_init=None,
                  std_init=0.05,
-                 keep_tmp_mlip=False,
+                 keep_tmp_mlip=True,
                  ntrymax=0):
         ##############
         # Check inputs
