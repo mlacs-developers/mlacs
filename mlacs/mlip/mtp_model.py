@@ -3,6 +3,7 @@
 from pathlib import Path
 from subprocess import run, PIPE
 from os import symlink
+import shutil
 
 import numpy as np
 from ase.calculators.lammpsrun import LAMMPS
@@ -130,15 +131,21 @@ class MomentTensorPotential(SelfMlipManager):
 
         subfolder.mkdir(parents=True, exist_ok=True)
 
+        mtpfile = self.folder / "pot.mtp"
+
+        # Move old potential in new folder, to start BFGS from
+        # previously trained MTP
+        if mtpfile.exists():
+            shutil.move(mtpfile,
+                        subfolder / "pot.mtp")
+
         self._clean_folder(subfolder=subfolder)
         self._write_configurations(subfolder=subfolder)
         self._write_input(subfolder=subfolder)
         self._write_mtpfile(subfolder=subfolder)
         self._run_mlp(subfolder=subfolder)
 
-        mtpfile = self.folder / "pot.mtp"
-        if mtpfile.exists():
-            mtpfile.unlink()
+        # Symlink new MTP in the main folder
         if mlip_subfolder is not None:
             src = subfolder / "pot.mtp"
             symlink(src, mtpfile)
