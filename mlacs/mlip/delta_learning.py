@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from ase.atoms import Atoms
 from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -33,7 +35,8 @@ class DeltaLearningPotential(MlipManager):
                  pair_style,
                  pair_coeff,
                  model_post=None,
-                 atom_style="atomic"):
+                 atom_style="atomic",
+                 folder=Path("MLIP")):
         self.model = model
 
         mbar = self.model.mbar
@@ -42,8 +45,11 @@ class DeltaLearningPotential(MlipManager):
         scoef = self.model.scoef
         nthrow = self.model.nthrow
 
-        MlipManager.__init__(self, self.model.descriptor,
-                             nthrow, ecoef, fcoef, scoef, mbar)
+        MlipManager.__init__(self, self.model.descriptor, nthrow,
+                             ecoef, fcoef, scoef, mbar, folder)
+
+        if not isinstance(pair_style, list):
+            pair_style = [pair_style]
 
         self.ref_pair_style = pair_style
         self.ref_pair_coeff = pair_coeff
@@ -56,23 +62,51 @@ class DeltaLearningPotential(MlipManager):
         self._ref_f = None
         self._ref_s = None
 
-        # For the rest of the
-        self._create_pair_styles_coeff(pair_style, pair_coeff)
+# ========================================================================== #
+    def get_ref_pair_style(self, lmp=False):
+        """
+        Return self.ref_pair_style which is an array.
+        If lmp=True, it returns it formatted as a lammps input.
+        """
+        if not lmp:
+            return self.ref_pair_style
+
+        if len(self.ref_pair_style) == 1:
+            return self.ref_pair_style[0]
+        else:  # Here the tricky part. I need to create hybrid overlay ...
+            full_pair_style = "hybrid/overlay "
+            for ps in self.ref_pair_style:
+                full_pair_style += f"{ps} "
+            return full_pair_style
 
 # ========================================================================== #
-    def _create_pair_styles_coeff(self, pair_style, pair_coeff):
+    @property
+    def pair_style(self):
         # We need to create the hybrid/overlay format of LAMMPS
-        if not isinstance(pair_style, list):
-            pair_style = [pair_style]
+        if not isinstance(self.ref_pair_style, list):
+            self.ref_pair_style = [self.ref_pair_style]
+
+        if len(self.ref_pair_style) == 1:
+            full_pair_style = f"hybrid/overlay {self.ref_pair_style[0]} " + \
+                              f"{self.model.pair_style}"
+        else:
+            full_pair_style = "hybrid/overlay "
+            for ps in self.ref_pair_style:
+                full_pair_style += f"{ps} "
+            full_pair_style += f"{self.model.pair_style}"
+
+        return full_pair_style
+
+# ========================================================================== #
+    @property
+    def pair_coeff(self):
+        if not isinstance(self.ref_pair_style, list):
+            self.ref_pair_style = [self.ref_pair_style]
 
         # First let's take care of only one reference potential
-        if len(pair_style) == 1:
-            self.ref_pair_style = pair_style[0]
-            self.pair_style = f"hybrid/overlay {pair_style[0]} " + \
-                              f"{self.model.pair_style}"
-            self.ref_pair_coeff = pair_coeff
-            refpcsplit = pair_coeff[0].split()
-            refpssplit = pair_style[0].split()
+        if len(self.ref_pair_style) == 1:
+            refpcsplit = self.ref_pair_coeff[0].split()
+            refpssplit = self.ref_pair_style[0].split()
             refpc = " ".join([*refpcsplit[:2],
                               refpssplit[0],
                               *refpcsplit[2:]])
@@ -81,33 +115,27 @@ class DeltaLearningPotential(MlipManager):
             mlpc = " ".join([*mlpcsplit[:2],
                              mlpssplit[0],
                              *mlpcsplit[2:]])
-            self.pair_coeff = [refpc, mlpc]
+            full_pair_coeff = [refpc, mlpc]
 
         # And now with an overlay reference potential
         else:
-            self.ref_pair_style = "hybrid/overlay "
-            self.pair_style = "hybrid/overlay "
-            self.pair_coeff = []
-            self.ref_pair_coeff = []
-            for ps, pc in zip(pair_style, pair_coeff):
-                self.pair_style += f"{ps} "
-                self.ref_pair_style += f"{ps} "
-
+            full_pair_coeff = []
+            for ps, pc in zip(self.ref_pair_style, self.ref_pair_coeff):
                 refpssplit = ps.split()
                 for ppc in pc:
                     refpcsplit = ppc.split()
                     refpc = " ".join([*refpcsplit[:2],
                                       refpssplit[0],
                                       *refpcsplit[2:]])
-                    self.pair_coeff.append(refpc)
-                    self.ref_pair_coeff.append(refpc)
+                    full_pair_coeff.append(refpc)
             mlpcsplit = self.model.pair_coeff[0].split()
             mlpssplit = self.model.pair_style.split()
             mlpc = " ".join([*mlpcsplit[:2],
                              mlpssplit[0],
                              *mlpcsplit[2:]])
-            self.pair_style += f"{self.model.pair_style}"
-            self.pair_coeff.append(mlpc)
+            full_pair_coeff.append(mlpc)
+
+        return full_pair_coeff
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -117,9 +145,10 @@ class DeltaLearningPotential(MlipManager):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
-        calc = LAMMPS(pair_style=self.ref_pair_style,
+        calc = LAMMPS(pair_style=self.get_ref_pair_style(lmp=True),
                       pair_coeff=self.ref_pair_coeff,
                       atom_style=self.ref_atom_style)
+
         if self.model_post is not None:
             calc.set(model_post=self.ref_model_post)
 
@@ -132,6 +161,7 @@ class DeltaLearningPotential(MlipManager):
             refs = at0.get_stress()
 
             dumdum = at.copy()
+
             e = at.get_potential_energy() - refe
             f = at.get_forces() - reff
             s = at.get_stress() - refs
@@ -147,10 +177,17 @@ class DeltaLearningPotential(MlipManager):
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #
-    def train_mlip(self):
+    def next_coefs(self, mlip_coef, mlip_subfolder):
         """
         """
-        msg = self.model.train_mlip()
+        msg = self.model.next_coefs(mlip_coef, mlip_subfolder)
+        return msg
+
+# ========================================================================== #
+    def train_mlip(self, mlip_subfolder):
+        """
+        """
+        msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
         return msg
 
 # ========================================================================== #
@@ -168,9 +205,11 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
     def __str__(self):
-        txt = " ".join(self.elements)
-        txt += "Delta Learning potential,"
+        txt = "Delta Learning potential\n"
+        txt += f"Reference pair_style: {self.ref_pair_style}\n"
+        txt += f"Reference pair_coeff: {self.ref_pair_coeff}\n"
         txt += str(self.model)
+        return txt
 
 # ========================================================================== #
     def __repr__(self):

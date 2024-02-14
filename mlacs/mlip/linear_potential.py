@@ -1,5 +1,6 @@
 '''
 '''
+from pathlib import Path
 import numpy as np
 from ase.units import GPa
 
@@ -51,21 +52,19 @@ class LinearPotential(MlipManager):
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
-                 mbar=None):
+                 mbar=None,
+                 folder=Path("MLIP")):
         MlipManager.__init__(self,
                              descriptor,
                              nthrow,
                              energy_coefficient,
                              forces_coefficient,
                              stress_coefficient,
-                             mbar)
+                             mbar,
+                             folder)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)
-
-        pair_style, pair_coeff = self.descriptor.get_pair_style_coeff()
-        self.pair_style = pair_style
-        self.pair_coeff = pair_coeff
 
         self.coefficients = None
 
@@ -78,9 +77,14 @@ class LinearPotential(MlipManager):
             self.parameters["hyperparameters"] = hyperparam
 
 # ========================================================================== #
-    def train_mlip(self):
+    def train_mlip(self, mlip_subfolder):
         """
         """
+        if mlip_subfolder is None:
+            mlip_subfolder = self.folder
+        else:
+            mlip_subfolder = self.folder / mlip_subfolder
+
         msg = ''
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
@@ -103,7 +107,9 @@ class LinearPotential(MlipManager):
 
         if self.mbar is not None:
             if self.mbar.train_mlip:
-                amat, ymat = self.mbar.reweight_mlip(amat, ymat)
+                W = self.mbar.reweight_mlip()
+                amat = amat * W[:, np.newaxis]
+                ymat = ymat * W
 
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
@@ -131,12 +137,15 @@ class LinearPotential(MlipManager):
             else:
                 msg += self.compute_tests(amat_e, amat_f, amat_s,
                                           ymat_e, ymat_f, ymat_s)
-            msg += self.mbar.run_weight(amat_e, self.coefficients)
+            msg += self.mbar.run_weight(amat_e,
+                                        self.coefficients,
+                                        self.get_mlip_energy,
+                                        subfolder=self.folder)
         else:
             msg += self.compute_tests(amat_e, amat_f, amat_s,
                                       ymat_e, ymat_f, ymat_s)
 
-        self.descriptor.write_mlip(self.coefficients)
+        self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
         return msg
 
 # ========================================================================== #
@@ -194,7 +203,9 @@ class LinearPotential(MlipManager):
         """
         assert self.coefficients is not None, 'The model has not been trained'
 
-        res = self.descriptor.calculate(atoms)[0]
+        res = self.descriptor.calculate(atoms, subfolder=self.folder)[0]
+
+        # We use the latest value coefficients to get the properties
         energy = np.einsum('ij,j->', res['desc_e'], self.coefficients)
         forces = np.einsum('ij,j->i', res['desc_f'], self.coefficients)
         stress = np.einsum('ij,j->i', res['desc_s'], self.coefficients)
@@ -202,6 +213,12 @@ class LinearPotential(MlipManager):
         forces = forces.reshape(len(atoms), 3)
 
         return energy, forces, stress
+
+# ========================================================================== #
+    def get_mlip_energy(self, coef, desc):
+        """
+        """
+        return np.einsum('ij,j->i', desc, coef)
 
 # ========================================================================== #
     def set_coefficients(self, coefficients):

@@ -318,8 +318,7 @@ class RdfLammpsState(StateManager):
         input_string += self.get_thermostat_input(temp, press)
         input_string += get_rdf_input(self.rdffile, nsteps)
 
-        input_string += get_last_dump_input(self.workdir,
-                                            elem,
+        input_string += get_last_dump_input(elem,
                                             nsteps)
         input_string += f"run  {nsteps}"
 

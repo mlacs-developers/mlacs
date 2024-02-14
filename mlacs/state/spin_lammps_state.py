@@ -2,18 +2,15 @@
 // (c) 2023 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
-
-from ase.io import read
-
 from .lammps_state import LammpsState
 from ..utilities import get_elements_Z_and_masses
-from ..utilities.io_lammps import LammpsBlockInput
+from ..utilities.io_lammps import (LammpsBlockInput,
+                                   write_atoms_lammps_spin_style)
 
 
 # ========================================================================== #
 # ========================================================================== #
-class PimdLammpsState(LammpsState):
+class SpinLammpsState(LammpsState):
     """
     Class to manage PIMD simulations with LAMMPS
 
@@ -59,33 +56,6 @@ class PimdLammpsState(LammpsState):
 
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
-
-    nbeads : :class:`int` (optional)
-        Number of beads used in the PIMD quantum polymer. Default ``1``,
-        which revert to classical sampling.
-
-    nprocs : :class:`int` (optional)
-        Total number of process used to run LAMMPS.
-        Have to be a multiple of the number of beads.
-        If nprocs > than nbeads, each replica will be parallelized using the
-        partition scheme of LAMMPS.
-        Per default it assumes that nprocs = nbeads
-
-    integrator : :class:`str` (optional)
-        Type of integrator to use. Can be baoab or obabo. Default ``'baoab'``
-
-    fmmode : :class:`str` (optional)
-        Type of fictitious mass preconditioning. Default ``'physical'``
-
-    fmass: :class:`float` or None (optional)
-        Scaling factor for the fictitious masses of the beads. Default ``None``
-        which set it to the number of beads.
-
-    scale: :class:`int` (optional)
-        scaling factor for the damping for non-centroid modes. Default 1.0
-
-    barostat: :class:`int` (optional)
-        Type of barostat used. Default ``'BZP'``
 
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
@@ -135,13 +105,6 @@ class PimdLammpsState(LammpsState):
                  dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
-                 nbeads=1,
-                 nprocs=None,
-                 integrator="baoab",
-                 fmmode="physical",
-                 fmass=None,
-                 scale=1.0,
-                 barostat="BZP",
                  fixcm=True,
                  logfile=None,
                  trajfile=None,
@@ -156,6 +119,7 @@ class PimdLammpsState(LammpsState):
                              pressure=pressure,
                              t_stop=t_stop,
                              p_stop=p_stop,
+                             langevin=True,
                              damp=damp,
                              pdamp=pdamp,
                              ptype=ptype,
@@ -170,25 +134,13 @@ class PimdLammpsState(LammpsState):
                              init_momenta=init_momenta,
                              workdir=workdir)
 
-        self.integrator = integrator
-        self.fmmode = fmmode
-        self.scale = scale
-        self.barostat = barostat
-        self.nprocs = nprocs
-        self.nbeads = nbeads
-        if fmass is None:
-            self.fmass = nbeads
-        else:
-            self.fmass = fmass
-        self.ispimd = True
+        if self.pressure is not None:
+            msg = "NPT simulations are not available with spin-lattice"
+            raise NotImplementedError(msg)
+
+        self.ispimd = False
         if self.trajfile is not None and self.nbeads > 1:
             self.trajfile += "_${ibead}"
-
-        if self.nprocs is not None:
-            if self.nprocs % self.nbeads != 0:
-                msg = "The number of processor needs to be a multiple " + \
-                    "of the number of beads"
-                raise ValueError(msg)
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -200,12 +152,11 @@ class PimdLammpsState(LammpsState):
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
-        block("map", "atom_modify map yes")
+        block("map", "atom_modify map array")
         block("units", "units metal")
         block("boundary", f"boundary {pbc}")
-        block("atom_style", f"atom_style {atom_style}")
+        block("atom_style", "atom_style spin")
         block("read_data", "read_data atoms.in")
-        block("variable", f"variable ibead uloop {self.nbeads} pad")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
         return block
@@ -222,67 +173,83 @@ class PimdLammpsState(LammpsState):
                 temp = self.t_stop
             else:
                 temp = self.rng.uniform(self.temperature, self.t_stop)
-        if self.p_stop is None:
-            press = self.pressure
-        else:
-            press = self.rng.uniform(self.pressure, self.p_stop)
-        seed = self.rng.integers(1, 999999)
+        langevinseed = self.rng.integers(1, 9999999)
+        spinseed = self.rng.integers(1, 9999999)
 
         block = LammpsBlockInput("thermostat", "Thermostat")
-        fix = "fix f1 all pimd/langevin "
-        # The temperature
-        fix += f"temp {temp} "
-        # The integrator
-        fix += f"integrator {self.integrator} "
-        # Then the thermostat
-        fix += f"thermostat PILE_L {seed} "
-        # The damping parameter
-        fix += f"tau  {self.damp} "
-        # Scaling factor of non-centroid mode
-        fix += f"scale {self.scale} "
-        # the fmmode
-        fix += f"fmmode {self.fmmode} "
-        # Scaling factor of the mass
-        fix += f"fmass {self.fmass} "
+        block("timestep", f"timestep {self.dt / 1000}")
+        block("rmv_langevin", "fix ff all store/force")
+
+        txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+              f"{langevinseed} gjf {self.gjf} zero yes"
+        block("langevin", txt)
+        txt = f"fix fspin all langevin/spin {temp} {self.damp} {spinseed}"
+        block("nvt_spin", txt)
+        block("nve_spin", "fix fspin2 all nve/spin lattice moving")
         if self.fixcm:
-            fix += "fixcom yes "
-        if self.pressure is not None:
-            # Tell that it's NPT
-            fix += "ensemble npt "
-            # value of pressure
-            if self.ptype == "iso":
-                fix += f"iso {press} "
-            elif self.ptype == "aniso":
-                fix += f"aniso {press} "
-            fix += f"barostat {self.barostat} "
-            fix += f"taup {self.pdamp} "
-        else:
-            fix += "ensemble nvt "
-        block("fix", fix)
+            block("cm", "fix fcm all recenter INIT INIT INIT")
         return block
 
 # ========================================================================== #
-    def _get_atoms_results(self, initial_charges):
-        """
-
-        """
-        fname = "configurations.out"
-        ndigit = len(str(self.nbeads))
-        fname = f"{fname}_{1:0{ndigit}d}"
-        atoms = read(self.workdir / fname)
-        if initial_charges is not None:
-            atoms.set_initial_charges(initial_charges)
-        return atoms
-
-# ========================================================================== #
-    def _get_block_lastdump(self, atoms, eq):
+    def _get_block_traj(self, atoms):
         """
 
         """
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        block = LammpsBlockInput("traj", "Dumping trajectory")
+        txt = "compute spin all property/atom sp spx spy spz fmx fmy fmz"
+        block("compute", txt)
+        txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
+              "id type xu yu zu vx vy vz fx fy fz " + \
+              "f_ff[1] f_ff[2] f_ff[3] c_spin[1] " + \
+              "c_spin[2] c_spin[3] c_spin[4] c_spin[5] c_spin[6] c_spin[7]" + \
+              " element"
+        block("dump", txt)
+        block("dump_modify1", "dump_modify dum1 append yes")
+        txt = "dump_modify dum1 element " + " ".join([p for p in el])
+        block("dump_modify2", txt)
+        return block
+
+# ========================================================================== #
+    def _get_block_log(self):
+        """
+
+        """
+        block = LammpsBlockInput("log", "Logging")
+        # First we compute the magnetic quantities
+        block("compute", "compute out_mag all spin")
+        block("magx", "variable magx equal c_out_mag[1]")
+        block("magy", "variable magy equal c_out_mag[2]")
+        block("magz", "variable magz equal c_out_mag[3]")
+        block("magn", "variable magn equal c_out_mag[4]")
+        block("mage", "variable mage equal c_out_mag[5]")
+        block("magt", "variable magt equal c_out_mag[6]")
+
+        variables = ["t equal step", "mytemp equal temp",
+                     "mype equal pe", "myke equal ke", "myetot equal etotal",
+                     "mypress equal press/10000", "vol equal (lx*ly*lz)"]
+        for i, var in enumerate(variables):
+            block(f"variable{i}", f"variable {var}")
+        txt = f"fix mylog all print {self.loginterval} \""
+        variables = ["$t", "${mytemp}", "$(v_magt)", "${vol}", "${myetot}",
+                     "${myke}", "$(v_mage)", "${mypress}",
+                     "$(v_magx)", "$(v_magy)", "$(v_magz)", "$(v_magn)"]
+        txt += " ".join(variables) + "\" "
+        txt += f"append {self.logfile} title "
+        titles = ["Step", "T_at", "T_spin", "Vol", "Etot", "Epot", "Ekin",
+                  "Espin", "Press", "Magn_x", "Magn_y", "Magn_z", "Magn_norm"]
+        txt += "\"# " + " ".join(titles) + "\""
+        block("fix", txt)
+        return block
+
+# ========================================================================== #
+    def _get_block_lastdump(self, atoms, eq):
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
         block = LammpsBlockInput("lastdump", "Dump last configuration")
-        txt = "dump last all custom 1 configurations.out_${ibead} " + \
-              "id type xu yu zu vx vy vz fx fy fz element"
+        txt = "dump last all custom 1 configurations.out " + \
+              "id type xu yu zu vx vy vz fx fy fz c_spin[1] " + \
+              "c_spin[2] c_spin[3] c_spin[4] c_spin[5] c_spin[6] c_spin[7]" + \
+              " element"
         block("dump", txt)
         txt = "dump_modify last element " + " ".join([p for p in el])
         block("dump_modify1", txt)
@@ -290,17 +257,10 @@ class PimdLammpsState(LammpsState):
         return block
 
 # ========================================================================== #
-    def _get_lammps_command(self):
-        '''
-        Function to load the batch command to run LAMMPS
-        '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_serial"
-        n1 = self.nbeads
-        if self.nprocs is not None:
-            n2 = self.nprocs // self.nbeads
-        else:
-            n2 = 1
-        return f"{cmd} -partition {n1}x{n2} -in {self.lammpsfname} -sc out.lmp"
+    def _write_lammps_atoms(self, atoms, atom_style):
+        """
+
+        """
+        spins = atoms.get_array("spins")
+        with open(self.workdir / "atoms.in", "w") as fd:
+            write_atoms_lammps_spin_style(fd, atoms, spins)

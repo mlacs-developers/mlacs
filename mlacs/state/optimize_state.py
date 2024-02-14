@@ -10,7 +10,7 @@ default_parameters = {}
 class OptimizerState:
     """
     Class to manage Structure optimization with ASE Optimizers.
-    (in devellopment)
+    (not in production)
 
     Parameters
     ----------

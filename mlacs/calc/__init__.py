@@ -5,8 +5,10 @@
 from .calc_manager import CalcManager
 from .abinit_manager import AbinitManager
 from .dlm_calc import DlmCalcManager
+from .database_calc import DatabaseCalc
 
 __all__ = ["CalcManager",
            "DlmCalcManager",
            "AbinitManager",
+           "DatabaseCalc",
            ]

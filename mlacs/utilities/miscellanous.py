@@ -2,6 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
+from pathlib import Path
 import numpy as np
 
 from scipy import interpolate
@@ -10,7 +12,7 @@ from scipy.optimize import minimize
 
 from ase.atoms import Atoms
 from ase.calculators.singlepoint import SinglePointCalculator as SPC
-from ase.io import read
+
 
 # ========================================================================== #
 def get_elements_Z_and_masses(supercell):
@@ -155,22 +157,24 @@ def compute_averaged(traj):
                                energy=energy)
     return atoms.copy()
 
+
 # ========================================================================== #
 def compute_volume(confs, weights):
     nconfs = len(confs)
-    natoms = len(confs[0])        
-    vol = []                              
+    natoms = len(confs[0])
+    vol = []
     cell = []
     if weights is None:
-         weights = np.ones(nconfs) / nconfs
-    for i in range(len(confs)):
-        cell.append(confs[i].get_cell() * weights[i])
-        vol.append(confs[i].get_volume() * weights[i] / natoms)
+        weights = np.ones(nconfs) / nconfs
+    for i, at in enumerate(confs):
+        cell.append(at.get_cell() * weights[i])
+        vol.append(at.get_volume() * weights[i] / natoms)
 
     cell = np.sum(cell, axis=0)
     vol = np.sum(vol)
 
     return cell, vol
+
 
 # ========================================================================== #
 def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
@@ -321,3 +325,54 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
         sx, sy = x / fx, y / fy
     _norm = func(sy, sx) * fx * fy
     return y * norm / _norm
+
+
+# ========================================================================== #
+def subfolder(func):
+    """
+    Decorator that executes a function from a subfolder
+    Usage : self.func(subfolder=x, *args)
+    """
+    def wrapper(self, *args, subfolder=None, **kwargs):
+        if subfolder is not None:
+            if not Path(subfolder).exists():
+                os.makedirs(subfolder)
+            initial_folder = os.getcwd()
+            os.chdir(subfolder)
+        result = func(self, *args, **kwargs)
+        if subfolder is not None:
+            os.chdir(initial_folder)
+        return result
+    return wrapper
+
+
+# ========================================================================== #
+def read_distribution_files(filename):
+    """
+    Function to the distribution files of LAMMPS
+    Return the averaged values and the extrem values.
+    """
+    yaxis, buf = None, None
+    with open(filename, 'r') as r:
+        for line in r:
+            if line[0] == '#':
+                continue
+            rowdat = line.split()
+            if len(rowdat) == 2:
+                if yaxis is None and buf is None:
+                    yaxis = None
+                elif yaxis is None and buf is not None:
+                    yaxis = buf
+                else:
+                    yaxis = np.c_[yaxis, buf]
+                buf = np.zeros(int(rowdat[1]))
+                xaxis = np.zeros(int(rowdat[1]))
+                i = 0
+                continue
+            xaxis[i] = float(rowdat[1])
+            buf[i] = float(rowdat[2])
+            i += 1
+    _gav = np.average(np.c_[yaxis, buf].T, axis=0)
+    _gmin = np.min(np.c_[yaxis, buf].T, axis=0)
+    _gmax = np.max(np.c_[yaxis, buf].T, axis=0)
+    return xaxis, _gav, _gmin, _gmax
