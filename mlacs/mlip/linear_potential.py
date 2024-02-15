@@ -41,8 +41,8 @@ class LinearPotential(MlipManager):
         Weight of the stress in the fit
         Default 1.0
 
-    mbar: :class:`MbarManager`
-        Weigth with the multistate Bennett acceptance ratio (MBAR) method.
+    weight: :class:`WeightingPolicy`
+        Weight used for the fitting and calculation of properties.
         Default :class:`None`
     """
     def __init__(self,
@@ -52,7 +52,7 @@ class LinearPotential(MlipManager):
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
-                 mbar=None,
+                 weight=None,
                  folder=Path("MLIP")):
         MlipManager.__init__(self,
                              descriptor,
@@ -60,7 +60,7 @@ class LinearPotential(MlipManager):
                              energy_coefficient,
                              forces_coefficient,
                              stress_coefficient,
-                             mbar,
+                             weight,
                              folder)
 
         self.parameters = default_parameters
@@ -105,11 +105,10 @@ class LinearPotential(MlipManager):
                      ymat_f * fcoef,
                      ymat_s * scoef]
 
-        if self.mbar is not None:
-            if self.mbar.train_mlip:
-                W = self.mbar.reweight_mlip()
-                amat = amat * W[:, np.newaxis]
-                ymat = ymat * W
+        if self.weight.train_mlip:
+            W = self.weight.get_weights()
+            amat = amat * W[:, np.newaxis]
+            ymat = ymat * W
 
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
@@ -127,23 +126,15 @@ class LinearPotential(MlipManager):
         msg += "\nNumber of configurations for training: " + \
                f"{len(self.natoms[idx_e:]):}\n"
         msg += "Number of atomic environments for training: " + \
-               f"{self.natoms[idx_e:].sum():}\n"
+               f"{self.natoms[idx_e:].sum():}\n\n"
 
-        if self.mbar is not None:
-            if self.mbar.train_mlip:
-                msg += self.mbar.compute_tests(amat_e, amat_f, amat_s,
-                                               ymat_e, ymat_f, ymat_s,
-                                               self.coefficients)
-            else:
-                msg += self.compute_tests(amat_e, amat_f, amat_s,
-                                          ymat_e, ymat_f, ymat_s)
-            msg += self.mbar.run_weight(amat_e,
-                                        self.coefficients,
-                                        self.get_mlip_energy,
-                                        subfolder=self.folder)
-        else:
-            msg += self.compute_tests(amat_e, amat_f, amat_s,
-                                      ymat_e, ymat_f, ymat_s)
+        msg += self.weight.compute_weight(amat_e,
+                                          self.coefficients,
+                                          self.get_mlip_energy,
+                                          subfolder=self.folder)
+
+        msg += self.compute_tests(amat_e, amat_f, amat_s,
+                                  ymat_e, ymat_f, ymat_s)
 
         self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
         return msg
@@ -151,37 +142,48 @@ class LinearPotential(MlipManager):
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
                       ymat_e, ymat_f, ymat_s):
+        """
+        Computed the weighted RMSE and MAE.
+        """
         e_mlip = np.einsum('ij,j->i', amat_e, self.coefficients)
         f_mlip = np.einsum('ij,j->i', amat_f, self.coefficients)
         s_mlip = np.einsum('ij,j->i', amat_s, self.coefficients)
 
-        rmse_e, mae_e, rsq_e = compute_correlation(np.c_[ymat_e, e_mlip])
-        rmse_f, mae_f, rsq_f = compute_correlation(np.c_[ymat_f, f_mlip])
-        rmse_s, mae_s, rsq_s = compute_correlation(np.c_[ymat_s, s_mlip] / GPa)
+        w = self.weight.init_weight()
+        we, wf, ws = self.weight.build_W_efs(w)
+
+        rmse_e = np.sqrt(np.mean(we * (ymat_e - e_mlip)**2))
+        mae_e = np.mean(we * np.abs(ymat_e - e_mlip))
+
+        rmse_f = np.sqrt(np.mean(wf * (ymat_f - f_mlip)**2))
+        mae_f = np.mean(wf * np.abs(ymat_f - f_mlip))
+
+        rmse_s = np.sqrt(np.mean(ws * ((ymat_s - s_mlip) / GPa)**2))
+        mae_s = np.mean(ws * np.abs((ymat_s - s_mlip) / GPa))
 
         # Prepare message to the log
-        msg = f"RMSE Energy    {rmse_e:.4f} eV/at\n"
-        msg += f"MAE Energy     {mae_e:.4f} eV/at\n"
-        msg += f"RMSE Forces    {rmse_f:.4f} eV/angs\n"
-        msg += f"MAE Forces     {mae_f:.4f} eV/angs\n"
-        msg += f"RMSE Stress    {rmse_s:.4f} GPa\n"
-        msg += f"MAE Stress     {mae_s:.4f} GPa\n"
+        msg = f"Weighted RMSE Energy    {rmse_e:.4f} eV/at\n"
+        msg += f"Weighted MAE Energy     {mae_e:.4f} eV/at\n"
+        msg += f"Weighted RMSE Forces    {rmse_f:.4f} eV/angs\n"
+        msg += f"Weighted MAE Forces     {mae_f:.4f} eV/angs\n"
+        msg += f"Weighted RMSE Stress    {rmse_s:.4f} GPa\n"
+        msg += f"Weighted MAE Stress     {mae_s:.4f} GPa\n"
         msg += "\n"
 
-        header = f"rmse: {rmse_e:.5f} eV/at,    " + \
-                 f"mae: {mae_e:.5f} eV/at\n" + \
+        header = f"Weighted rmse: {rmse_e:.5f} eV/at,    " + \
+                 f"Weighted mae: {mae_e:.5f} eV/at\n" + \
                  " True Energy           Predicted Energy"
         np.savetxt("MLIP-Energy_comparison.dat",
                    np.c_[ymat_e, e_mlip],
                    header=header, fmt="%25.20f  %25.20f")
-        header = f"rmse: {rmse_f:.5f} eV/angs   " + \
-                 f"mae: {mae_f:.5f} eV/angs\n" + \
+        header = f"Weighted rmse: {rmse_f:.5f} eV/angs   " + \
+                 f"Weighted mae: {mae_f:.5f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
         np.savetxt("MLIP-Forces_comparison.dat",
                    np.c_[ymat_f, f_mlip],
                    header=header, fmt="%25.20f  %25.20f")
-        header = f"rmse: {rmse_s:.5f} GPa       " + \
-                 f"mae: {mae_s:.5f} GPa\n" + \
+        header = f"Weighted rmse: {rmse_s:.5f} GPa       " + \
+                 f"Weighted mae: {mae_s:.5f} GPa\n" + \
                  " True Stress           Predicted Stress"
         np.savetxt("MLIP-Stress_comparison.dat",
                    np.c_[ymat_s, s_mlip] / GPa,

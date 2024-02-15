@@ -239,9 +239,6 @@ class OtfMlacs:
         self.log.logger_log.info("\n")
         # Training MLIP
         msg = "Training new MLIP\n"
-        if self.mlip.mbar is not None:
-            if self.mlip.mbar._nstart <= min(self.nconfs):
-                msg += "Computing weights with MBAR\n"
         self.log.logger_log.info(msg)
 
         mlip_subfolder = None
@@ -359,11 +356,6 @@ class OtfMlacs:
                 if not self.pimd:
                     self.nconfs[i] += 1
 
-                if self.mlip.mbar is not None:
-                    msg = "Number of configuration using each MLIP:"
-                    msg += f"{self.mlip.mbar.Nk}"
-                    self.log.logger_log.info(msg)
-
         if self.pimd:
             atoms_centroid = compute_centroid_atoms(atoms_true,
                                                     self.temperature)
@@ -388,9 +380,8 @@ class OtfMlacs:
                 msg = 'Computing the average volume\n'
                 confs = read(self.prefix_output[istate] + '.traj', index=':')
                 weights = None
-                if self.mlip.mbar is not None:
-                    if (self.mlip.folder / 'MLIP.weight').exists():
-                        weights = np.loadtxt(self.mlip.folder / 'MLIP.weight')
+                if (self.mlip.folder / 'MLIP.weight').exists():
+                    weights = np.loadtxt(self.mlip.folder / 'MLIP.weight')
                 cell, volume = compute_volume(confs, weights)
                 msg += "Average structure:\n"
                 msg += f"- cell: {cell[0][0]:20.15f} angs\n"
@@ -716,38 +707,37 @@ class OtfMlacs:
                 self.mlip.update_matrices(conf)  # We add training conf
 
         # Add all the configuration of trajectories traj
-        if self.mlip.mbar is not None:
-            msg = "Adding previous configuration iteratively"
+        msg = "Adding previous configuration iteratively"
+        self.log.logger_log.info(msg)
+        parent_list, mlip_coef = self.mlip.read_parent_mlip(prev_traj)
+
+        # Directly adding initial conf to have it once even if multistate
+        atoms_by_mlip = [[] for _ in range(len(parent_list))]
+        no_parent_atoms = [prev_traj[0][0]]
+
+        for istate in range(self.nstate):
+            for iconf in range(1, len(prev_traj[istate])):
+                if "parent_mlip" in prev_traj[istate][iconf].info:
+                    pm = prev_traj[istate][iconf].info['parent_mlip']
+                    idx = parent_list.index(pm)
+                    atoms_by_mlip[idx].append(prev_traj[istate][iconf])
+                else:
+                    no_parent_atoms.append(prev_traj[istate][iconf])
+        for conf in no_parent_atoms:
+            self.mlip.update_matrices(conf)
+
+        if len(no_parent_atoms) > 1:
+            msg = "Some configuration in Trajectory have no parent_mlip\n"
+            msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)
-            parent_list, mlip_coef = self.mlip.read_parent_mlip(prev_traj)
 
-            # Directly adding initial conf to have it once even if multistate
-            atoms_by_mlip = [[] for _ in range(len(parent_list))]
-            no_parent_atoms = [prev_traj[0][0]]
-
-            for istate in range(self.nstate):
-                for iconf in range(1, len(prev_traj[istate])):
-                    if "parent_mlip" in prev_traj[istate][iconf].info:
-                        pm = prev_traj[istate][iconf].info['parent_mlip']
-                        idx = parent_list.index(pm)
-                        atoms_by_mlip[idx].append(prev_traj[istate][iconf])
-                    else:
-                        no_parent_atoms.append(prev_traj[istate][iconf])
-            for conf in no_parent_atoms:
-                self.mlip.update_matrices(conf)
-
-            if len(no_parent_atoms) > 1:
-                msg = "Some configuration in Trajectory have no parent_mlip\n"
-                msg += "You should rerun this simulation with DatabaseCalc\n"
-                self.log.logger_log.info(msg)
-
-            curr_step = 0
-            for i in range(len(atoms_by_mlip)):
-                curr_step += 1
-                self.mlip.next_coefs(mlip_coef[i],
-                                     mlip_subfolder=f"Coef{curr_step}")
-                for at in atoms_by_mlip[i]:
-                    self.mlip.update_matrices(at)
+        curr_step = 0
+        for i in range(len(atoms_by_mlip)):
+            curr_step += 1
+            self.mlip.next_coefs(mlip_coef[i],
+                                 mlip_subfolder=f"Coef{curr_step}")
+            for at in atoms_by_mlip[i]:
+                self.mlip.update_matrices(at)
 
         # Update this simulation traj
         self.traj = []

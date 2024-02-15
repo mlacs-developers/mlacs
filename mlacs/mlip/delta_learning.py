@@ -39,14 +39,14 @@ class DeltaLearningPotential(MlipManager):
                  folder=Path("MLIP")):
         self.model = model
 
-        mbar = self.model.mbar
+        weight = self.model.weight
         ecoef = self.model.ecoef
         fcoef = self.model.fcoef
         scoef = self.model.scoef
         nthrow = self.model.nthrow
 
         MlipManager.__init__(self, self.model.descriptor, nthrow,
-                             ecoef, fcoef, scoef, mbar, folder)
+                             ecoef, fcoef, scoef, weight, folder)
 
         if not isinstance(pair_style, list):
             pair_style = [pair_style]

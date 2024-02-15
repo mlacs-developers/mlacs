@@ -8,7 +8,7 @@ from ase.atoms import Atoms
 from ase.units import GPa
 
 from ..utilities import compute_correlation
-
+from .weighting_policy import UniformWeight
 
 # ========================================================================== #
 # ========================================================================== #
@@ -22,7 +22,7 @@ class MlipManager:
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
-                 mbar=None,
+                 weight=None,
                  folder=Path("MLIP"),
                  no_zstress=False):
         if isinstance(folder, str):
@@ -30,8 +30,6 @@ class MlipManager:
         self.folder = folder
 
         self.descriptor = descriptor
-        self.mbar = mbar
-
         self.ecoef = energy_coefficient
         self.fcoef = forces_coefficient
         self.scoef = stress_coefficient
@@ -47,7 +45,10 @@ class MlipManager:
         self.no_zstress = no_zstress
 
         self.nthrow = nthrow
-        if self.mbar is not None:
+        self.weight = weight
+        if self.weight is None:
+            self.weight = UniformWeight(nthrow)
+        else:
             self.nthrow = 0
         self.nconfs = 0
 
@@ -73,8 +74,7 @@ class MlipManager:
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
-        if self.mbar is not None:
-            self.mbar.update_database(atoms)
+        self.weight.update_database(atoms)
 
         amat_all = self.descriptor.calculate(atoms, subfolder=self.folder)
 
@@ -173,14 +173,13 @@ class MlipManager:
         self.descriptor.write_mlip(mlip_coef,
                                    subfolder=self.folder/mlip_subfolder)
 
-        if self.mbar is not None:
-            if self.mbar.train_mlip:
-                self.mbar.reweight_mlip()
+        if self.weight.train_mlip:
+            self.weight.get_weights()
 
-            self.mbar.run_weight(amat_e,
-                                 mlip_coef,
-                                 self.get_mlip_energy,
-                                 subfolder=self.folder)
+        self.weight.compute_weight(amat_e,
+                                   mlip_coef,
+                                   self.get_mlip_energy,
+                                   subfolder=self.folder)
 
 # ========================================================================== #
     def test_mlip(self, testset):
