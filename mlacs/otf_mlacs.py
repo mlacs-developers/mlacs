@@ -670,8 +670,8 @@ class OtfMlacs:
 
         prefworkdir = os.getcwd() + "/MolecularDynamics/"
         for istate in range(self.nstate):
-            self.state[istate].set_workdir(prefworkdir +
-                                           self.prefix_output[istate]+"/")
+            self.state[istate].workdir = prefworkdir + \
+                                         self.prefix_output[istate]
 
 # ========================================================================== #
     def _check_if_launched(self, nmax):

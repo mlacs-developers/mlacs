@@ -7,7 +7,7 @@ from scipy.spatial import distance
 from ase.io import write
 from ase.io.lammpsdata import write_lammps_data
 
-from .lammps_state import LammpsState
+from .lammps_state import BaseLammpsState
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput)
 
@@ -21,7 +21,7 @@ from ..utilities import interpolate_points as intpts
 
 # ========================================================================== #
 # ========================================================================== #
-class NebLammpsState(LammpsState):
+class NebLammpsState(BaseLammpsState):
     """
     Class to manage NEB with LAMMPS
 
@@ -96,33 +96,14 @@ class NebLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
-    def __init__(self,
-                 configurations,
-                 xi_coordinate=None,
-                 min_style='quickmin',
-                 Kspring=1.0,
-                 etol=0.0,
-                 ftol=1.0e-3,
-                 dt=1.5,
-                 nimages=None,
-                 nprocs=None,
-                 mode='rdm_memory',
-                 linear=False,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 prt=True,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=0.0,
-                             pressure=None,
-                             dt=dt,
-                             nsteps=1000,
-                             nsteps_eq=100,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             workdir=workdir)
+    def __init__(self, configurations, xi_coordinate=None,
+                 min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
+                 dt=1.5, nimages=None, nprocs=None, mode="rdm_memory",
+                 linear=False, prt=True,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
 
         self.xi = xi_coordinate
         self.style = min_style

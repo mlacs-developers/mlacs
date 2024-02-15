@@ -5,7 +5,7 @@ import numpy as np
 
 from ase.units import kB, J, kg, m
 
-from .lammps_state import LammpsState
+from .lammps_state import BaseLammpsState
 
 from ..utilities import get_elements_Z_and_masses
 from ..utilities import integrate_points as intgpts
@@ -14,7 +14,7 @@ from ..utilities.io_lammps import LammpsBlockInput
 
 # ========================================================================== #
 # ========================================================================== #
-class PafiLammpsState(LammpsState):
+class PafiLammpsState(BaseLammpsState):
     """
     Class to manage constrained MD along a NEB reaction coordinate using
     the fix Pafi with LAMMPS.
@@ -73,35 +73,11 @@ class PafiLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
-    def __init__(self,
-                 temperature,
-                 path=None,
-                 maxjump=0.4,
-                 dt=1.5,
-                 damp=None,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 langevin=True,
-                 fixcm=True,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 rng=None,
-                 prt=True,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature,
-                             pressure=None,
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             fixcm=fixcm,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             rng=rng,
-                             init_momenta=None,
-                             workdir=workdir)
+    def __init__(self, temperature, path=None, maxjump=0.4, dt=1.5, damp=None,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
 
         self.temperature = temperature
         self.path = path
