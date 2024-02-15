@@ -359,11 +359,6 @@ class OtfMlacs:
                 if not self.pimd:
                     self.nconfs[i] += 1
 
-                if self.mlip.mbar is not None:
-                    msg = "Number of configuration using each MLIP:"
-                    msg += f"{self.mlip.mbar.Nk}"
-                    self.log.logger_log.info(msg)
-
         if self.pimd:
             atoms_centroid = compute_centroid_atoms(atoms_true,
                                                     self.temperature)

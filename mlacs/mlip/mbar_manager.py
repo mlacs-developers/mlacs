@@ -157,6 +157,8 @@ class MbarManager:
             neff = self.get_effective_conf()
 
             header += f"Effective number of configurations: {neff:10.5f}\n"
+            header += "Number of uncorrelated snapshots for each k state:\n"
+            header += np.array2string(np.array(self.Nk, 'int')) + "\n"
             np.savetxt("MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
         return header
@@ -250,8 +252,8 @@ class MbarManager:
         """
         n_tot = len(self.matsize)
         weight = np.ones(n_tot) / n_tot
-        weight = self.parameters['scale'] * weight
         if self._nstart < len(self.weight):
+            weight = self.parameters['scale'] * weight
             weight[:len(self.weight[-1])] = self.weight[-1]
         return weight / np.sum(weight)
 
