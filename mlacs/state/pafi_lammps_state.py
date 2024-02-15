@@ -5,7 +5,7 @@ import numpy as np
 
 from ase.units import kB, J, kg, m
 
-from .lammps_state import BaseLammpsState
+from .lammps_state import LammpsState
 
 from ..utilities import get_elements_Z_and_masses
 from ..utilities import integrate_points as intgpts
@@ -14,7 +14,7 @@ from ..utilities.io_lammps import LammpsBlockInput
 
 # ========================================================================== #
 # ========================================================================== #
-class PafiLammpsState(BaseLammpsState):
+class PafiLammpsState(LammpsState):
     """
     Class to manage constrained MD along a NEB reaction coordinate using
     the fix Pafi with LAMMPS.
@@ -74,10 +74,14 @@ class PafiLammpsState(BaseLammpsState):
         If ``None``, a LammpsMLMD directory is created
     """
     def __init__(self, temperature, path=None, maxjump=0.4, dt=1.5, damp=None,
+                 prt=True, langevin=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, workdir=None, blocks=None):
-        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir, blocks)
+        super().__init__(temperature=temperature, dt=dt, damp=damp,
+                         langevin=langevin,
+                         nsteps=nsteps, nsteps_eq=nsteps_eq, logfile=logfile,
+                         trajfile=trajfile, loginterval=loginterval,
+                         workdir=workdir, blocks=blocks)
 
         self.temperature = temperature
         self.path = path
@@ -91,10 +95,6 @@ class PafiLammpsState(BaseLammpsState):
         self.path.workdir = self.workdir / 'TransPath'
         self.print = prt
         self.maxjump = maxjump
-        self.damp = damp
-        if self.damp is None:
-            self.damp = "$(10*dt)"
-        self.langevin = langevin
 
         self.replica = None
 
