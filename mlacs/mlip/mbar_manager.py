@@ -139,12 +139,12 @@ class MbarManager(WeightingPolicy):
                 ukn[istep] = self._get_ukn(mlip_E)
 
             weight = self._compute_weight(ukn)
-            self.weight.append(weight)
+            self.weight = weight
             neff = self.get_effective_conf()
 
             header += "Using MBAR weighting\n"
             header += f"Effective number of configurations: {neff:10.5f}\n"
-            np.savetxt("MLIP.weight", self.weight[-1],
+            np.savetxt("MLIP.weight", self.weight,
                        header=header, fmt="%25.20f")
         header = "Number of configuration using each MLIP:"
         header += f"{self.Nk}\n"
@@ -159,8 +159,8 @@ class MbarManager(WeightingPolicy):
         n_tot = len(self.matsize)
         weight = np.ones(n_tot) / n_tot
         weight = self.parameters['scale'] * weight
-        if self._nstart < len(self.weight):
-            weight[:len(self.weight[-1])] = self.weight[-1]
+        if self._nstart < len(self.database):
+            weight[:len(self.weight)] = self.weight
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -169,7 +169,7 @@ class MbarManager(WeightingPolicy):
         Compute the number of effective configurations.
         Gives an idea on MLACS convergence.
         """
-        neff = np.sum(self.weight[-1])**2 / np.sum(self.weight[-1]**2)
+        neff = np.sum(self.weight)**2 / np.sum(self.weight**2)
         return neff
 
 # ========================================================================== #
@@ -192,6 +192,9 @@ class MbarManager(WeightingPolicy):
         ddb = self.database
         P = np.zeros(self.nconfs)
         T = np.array([_.get_temperature() for _ in ddb])
+        #print(T)
+        #T=np.ones(np.shape(ddb)[0])
+        #T*=300
         V = np.array([_.get_volume() for _ in ddb])
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
