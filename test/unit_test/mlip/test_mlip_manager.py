@@ -1,4 +1,5 @@
 import shutil
+from unittest.mock import patch
 
 import numpy as np
 from ase.build import bulk
@@ -20,6 +21,7 @@ def create_dum_data(atoms):
     return at
 
 
+@patch.multiple(MlipManager, __abstractmethods__=set())
 def test_update_matrices():
     at = bulk("Si")
     desc = SnapDescriptor(at, 2.4)
@@ -65,6 +67,7 @@ def test_update_matrices():
         shutil.rmtree(manager.folder)
 
 
+@patch.multiple(SelfMlipManager, __abstractmethods__=set())
 def test_update_matrices_self():
     at = bulk("Si")
     desc = SnapDescriptor(at, 2.3)

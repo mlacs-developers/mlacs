@@ -4,6 +4,8 @@
 """
 from pathlib import Path
 import numpy as np
+from abc import ABC, abstractmethod
+
 from ase.atoms import Atoms
 from ase.units import GPa
 
@@ -12,7 +14,7 @@ from ..utilities import compute_correlation
 
 # ========================================================================== #
 # ========================================================================== #
-class MlipManager:
+class MlipManager(ABC):
     """
     Parent Class for the management of Machine-Learning Interatomic Potential
     """
@@ -109,12 +111,14 @@ class MlipManager:
         self.nconfs += len(atoms)
 
 # ========================================================================== #
+    @abstractmethod
     def train_mlip(self):
         """
         """
         raise NotImplementedError
 
 # ========================================================================== #
+    @abstractmethod
     def get_mlip_energy(coef, desc):
         """
         Function that gives the mlip_energy
@@ -316,3 +320,18 @@ class SelfMlipManager(MlipManager):
     @property
     def pair_coeff(self):
         return self.get_pair_coeff()
+
+# ========================================================================== #
+    @abstractmethod
+    def train_mlip(self):
+        """
+        """
+        pass
+
+# ========================================================================== #
+    @abstractmethod
+    def get_mlip_energy(coef, desc):
+        """
+        Function that gives the mlip_energy
+        """
+        pass
