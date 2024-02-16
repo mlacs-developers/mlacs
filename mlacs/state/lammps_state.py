@@ -211,6 +211,7 @@ class LammpsState(StateManager):
         Function to run the dynamics
         """
         atoms = supercell.copy()
+
         initial_charges = atoms.get_initial_charges()
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
@@ -237,8 +238,14 @@ class LammpsState(StateManager):
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-
         atoms = self._get_atoms_results(initial_charges)
+
+        # Set the simulation T and P for weighting purpose
+        if self.t_stop is None and self.temperature is not None:
+            atoms.info['simulation_temperature'] = self.temperature
+        if self.p_stop is None and self.pressure is not None:
+            atoms.info['simulation_pressure'] = self.pressure
+
         return atoms.copy()
 
 # ========================================================================== #
@@ -464,6 +471,13 @@ class LammpsState(StateManager):
                                          rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
+
+        # Set the simulation T and P for weighting purpose
+        if self.t_stop is None and self.temperature is not None:
+            atoms.info['simulation_temperature'] = self.temperature
+        if self.p_stop is None and self.pressure is not None:
+            atoms.info['simulation_pressure'] = self.pressure
+
 
 # ========================================================================== #
     def _get_lammps_command(self):

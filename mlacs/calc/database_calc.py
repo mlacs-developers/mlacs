@@ -63,8 +63,7 @@ class DatabaseCalc(CalcManager):
             true_confs.append(self.traj[self.current_conf])
             mlip_conf.set_positions(true_confs[-1].get_positions())
 
-            if 'parent_mlip' in mlip_conf.info:
-                true_confs[-1].info['parent_mlip'] = \
-                        mlip_conf.info['parent_mlip']
+            true_confs[-1].info = mlip_conf.info
+
             self.current_conf += 1
         return true_confs

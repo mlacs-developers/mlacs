@@ -146,8 +146,8 @@ class MbarManager(WeightingPolicy):
             header += f"Effective number of configurations: {neff:10.5f}\n"
             np.savetxt("MLIP.weight", self.weight,
                        header=header, fmt="%25.20f")
-        header = "Number of configuration using each MLIP:"
-        header += f"{self.Nk}\n"
+            header += "Number of uncorrelated snapshots for each k state:\n"
+            header += np.array2string(np.array(self.Nk, 'int')) + "\n"
 
         return header
 
@@ -158,8 +158,8 @@ class MbarManager(WeightingPolicy):
         """
         n_tot = len(self.matsize)
         weight = np.ones(n_tot) / n_tot
-        weight = self.parameters['scale'] * weight
         if self._nstart < len(self.database):
+            weight = self.parameters['scale'] * weight
             weight[:len(self.weight)] = self.weight
         return weight / np.sum(weight)
 
@@ -192,13 +192,16 @@ class MbarManager(WeightingPolicy):
         ddb = self.database
         P = np.zeros(self.nconfs)
         T = np.array([_.get_temperature() for _ in ddb])
-        #print(T)
-        #T=np.ones(np.shape(ddb)[0])
-        #T*=300
         V = np.array([_.get_volume() for _ in ddb])
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         assert len(ekn) == self.nconfs
+
+        for i, at in enumerate(ddb):
+            if 'simulation_temperature' in at.info:
+                T[i] = at.info['simulation_temperature']
+            if 'simulation_pressure' in at.info:
+                P[i] = at.info['simulation_pressure']
         ukn = (ekn + P * V) / (kB * T)
         return ukn
 

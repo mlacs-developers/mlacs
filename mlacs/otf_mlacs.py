@@ -312,7 +312,6 @@ class OtfMlacs:
         atoms_true = self.calc.compute_true_potential(atoms_mlip,
                                                       self.prefix_output,
                                                       nconfs)
-
         for i, at in enumerate(atoms_mlip):
             at.calc = self.mlip.get_calculator()
             sp_calc_mlip.append(SinglePointCalculator(
