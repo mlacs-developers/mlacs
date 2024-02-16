@@ -159,10 +159,6 @@ class LinearPotential(MlipManager):
         rmse_f, mae_f, rsq_f = compute_correlation(np.c_[ymat_f, f_mlip])
         rmse_s, mae_s, rsq_s = compute_correlation(np.c_[ymat_s, s_mlip] / GPa)
 
-        self.results_tests = {'energy': [rmse_e, mae_e, rsq_e],
-                              'forces': [rmse_f, mae_f, rsq_f],
-                              'stress': [rmse_s, mae_s, rsq_s]}
-
         # Prepare message to the log
         msg = f"RMSE Energy    {rmse_e:.4f} eV/at\n"
         msg += f"MAE Energy     {mae_e:.4f} eV/at\n"
