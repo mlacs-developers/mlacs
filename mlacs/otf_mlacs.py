@@ -748,6 +748,10 @@ class OtfMlacs:
                                      mlip_subfolder=f"Coef{curr_step}")
                 for at in atoms_by_mlip[i]:
                     self.mlip.update_matrices(at)
+        else:
+            for istate in range(self.nstate):
+                for at in prev_traj[istate]:
+                    self.mlip.update_matrices(at)
 
         # Update this simulation traj
         self.traj = []
