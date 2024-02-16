@@ -282,6 +282,13 @@ class IpiState(LammpsState):
             msg = "i-pi stopped prematurely"
             raise RuntimeError(msg)
         atoms = self.create_ase_atom(pbc, nbeads)
+
+        # Set the simulation T and P for weighting purpose
+        if self.temperature is not None:
+            atoms.info['simulation_temperature'] = self.temperature
+        if self.pressure is not None:
+            atoms.info['simulation_pressure'] = self.pressure
+
         return atoms
 
 # ========================================================================== #

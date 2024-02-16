@@ -132,6 +132,11 @@ class LangevinState(StateManager):
             dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True),
                        interval=self.loginterval)
         dyn.run(nsteps)
+
+        # Set the simulation T for weighting purpose
+        if self.t_stop is None and self.temperature is not None:
+            dyn.atoms.info['simulation_temperature'] = self.temperature
+
         return dyn.atoms
 
 # ========================================================================== #
