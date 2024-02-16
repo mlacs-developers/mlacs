@@ -65,6 +65,10 @@ class StateManager(ABC):
         return ""
 
 # ========================================================================== #
+    def __repr__(self):
+        return self.log_recap_state()
+
+# ========================================================================== #
     @property
     def workdir(self):
         return self._workdir

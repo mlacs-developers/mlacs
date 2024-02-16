@@ -156,7 +156,7 @@ class OtfMlacs:
         msg = ""
         for i in range(self.nstate):
             msg += f"State {i+1}/{self.nstate} :\n"
-            msg += self.state[i].log_recap_state()
+            msg += repr(self.state[i])
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
