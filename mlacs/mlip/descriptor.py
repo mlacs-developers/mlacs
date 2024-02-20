@@ -93,6 +93,10 @@ class SumDescriptor(Descriptor):
     """
     """
     def __init__(self, *args):
+        # write_mlip just write the same file over and over
+        # Delta Learning Potential is the new SumDescriptor
+        # Although nested DlPot needs to be thoroughly tested
+        raise NotImplementedError("SumDescriptor are not functional")
         self.desc = args
         self.elements = self.desc[0].elements.copy()
         self.rcut = np.max([d.rcut for d in self.desc])
@@ -151,15 +155,15 @@ class SumDescriptor(Descriptor):
         return reg
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def get_pair_style(self, folder=Path("")):
         pair_style = "hybrid/overlay "
         for d in self.desc:
-            pair_style_d = d.get_pair_style()
+            pair_style_d = d.get_pair_style(folder)
             pair_style += f"{pair_style_d} "
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self):
+    def get_pair_coeff(self, folder=Path("")):
         pair_coeff = []
         for d in self.desc:
             pair_style_d, pair_coeff_d = d.get_pair_style_coeff()
@@ -171,8 +175,8 @@ class SumDescriptor(Descriptor):
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        return self.get_pair_style(), self.get_pair_coeff()
+    def get_pair_style_coeff(self, folder=Path("")):
+        return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #
     def to_dict(self):

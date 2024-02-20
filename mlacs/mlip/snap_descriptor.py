@@ -251,6 +251,7 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
+        return "MLIP.model"
 
 # ========================================================================== #
     @subfolder
@@ -300,20 +301,20 @@ class SnapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def get_pair_style(self, folder=None):
         return "snap"
 
 # ========================================================================== #
-    def get_pair_coeff(self):
-        modelfile = self.mlip_model / "MLIP.model"
-        descfile = self.mlip_desc / "MLIP.descriptor"
+    def get_pair_coeff(self, folder=Path("")):
+        modelfile = folder / "MLIP.model"
+        descfile = folder / "MLIP.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        return self.get_pair_style(), self.get_pair_coeff()
+    def get_pair_style_coeff(self, folder):
+        return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #
     def _snap_opt_str(self):

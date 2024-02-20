@@ -149,7 +149,7 @@ class MbarManager(WeightingPolicy):
             header += "Number of uncorrelated snapshots for each k state:\n"
             header += np.array2string(np.array(self.Nk, 'int')) + "\n"
 
-        return header
+        return header, "MLIP.weight"
 
 # ========================================================================== #
     def init_weight(self):

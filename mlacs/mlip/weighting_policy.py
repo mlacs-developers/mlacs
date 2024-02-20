@@ -129,7 +129,7 @@ class UniformWeight(WeightingPolicy):
         header = "Using Uniform weighting\n"
         np.savetxt("MLIP.weight", self.weight,
                        header=header, fmt="%25.20f")
-        return header
+        return header, "MLIP.weight"
 
 # ========================================================================== #
     def update_database(self, atoms):

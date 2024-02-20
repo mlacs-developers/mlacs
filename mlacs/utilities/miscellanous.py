@@ -345,6 +345,15 @@ def subfolder(func):
         return result
     return wrapper
 
+# ========================================================================== #
+def create_link(fn, lk):
+    """
+    Creates a symbolic link lk pointing to fn
+    If lk already exists, replace it
+    """
+    if os.path.islink(lk):
+        os.remove(lk)
+    os.symlink(fn, lk)
 
 # ========================================================================== #
 def read_distribution_files(filename):

@@ -109,15 +109,15 @@ class MomentTensorPotential(SelfMlipManager):
         self.fit_parameters.update(fit_parameters)
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def get_pair_style(self, folder=None):
         return f"mlip {self.folder / 'mlip.ini'}"
 
 # ========================================================================== #
-    def get_pair_coeff(self):
+    def get_pair_coeff(self, folder=None):
         return ["* *"]
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
+    def get_pair_style_coeff(self, folder=None):
         return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #

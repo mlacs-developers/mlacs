@@ -27,7 +27,7 @@ class MlipManager:
                  no_zstress=False):
         if isinstance(folder, str):
             folder = Path(folder)
-        self.folder = folder
+        self.folder = folder.absolute()
 
         self.descriptor = descriptor
         self.ecoef = energy_coefficient
@@ -55,18 +55,8 @@ class MlipManager:
         # Some initialization for sampling interface
         self.model_post = None
         self.atom_style = "atomic"
-        self._pair_style = None  # property
-        self._pair_coeff = None  # property
-
-# ========================================================================== #
-    @property
-    def pair_style(self):
-        return self.descriptor.get_pair_style()
-
-# ========================================================================== #
-    @property
-    def pair_coeff(self):
-        return self.descriptor.get_pair_coeff()
+        self.pair_style = self.descriptor.get_pair_style(self.folder)
+        self.pair_coeff = self.descriptor.get_pair_coeff(self.folder)
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -170,16 +160,20 @@ class MlipManager:
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
 
-        self.descriptor.write_mlip(mlip_coef,
+        mlip_fn = self.descriptor.write_mlip(mlip_coef,
                                    subfolder=self.folder/mlip_subfolder)
 
         if self.weight.train_mlip:
             self.weight.get_weights()
 
-        self.weight.compute_weight(amat_e,
-                                   mlip_coef,
-                                   self.get_mlip_energy,
-                                   subfolder=self.folder)
+        _, weight_fn =self.weight.compute_weight(amat_e,
+                                                 mlip_coef,
+                                                 self.get_mlip_energy,
+                                                 subfolder=self.folder)
+
+        create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
+        create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
+
 
 # ========================================================================== #
     def test_mlip(self, testset):
@@ -306,12 +300,3 @@ class SelfMlipManager(MlipManager):
         self.natoms = np.array(self.natoms, dtype=int)
         self.nconfs += len(atoms)
 
-# ========================================================================== #
-    @property
-    def pair_style(self):
-        return self.get_pair_style()
-
-# ========================================================================== #
-    @property
-    def pair_coeff(self):
-        return self.get_pair_coeff()

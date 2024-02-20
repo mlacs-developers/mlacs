@@ -5,8 +5,7 @@ import numpy as np
 from ase.units import GPa
 
 from . import MlipManager
-from ..utilities import compute_correlation
-
+from ..utilities import compute_correlation, create_link
 
 default_parameters = {"method": "ols",
                       "lambda_ridge": 1e-8,
@@ -128,15 +127,19 @@ class LinearPotential(MlipManager):
         msg += "Number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n\n"
 
-        msg += self.weight.compute_weight(amat_e,
-                                          self.coefficients,
-                                          self.get_mlip_energy,
-                                          subfolder=self.folder)
+        tmp_msg, weight_fn = self.weight.compute_weight(amat_e,
+                                                        self.coefficients,
+                                                        self.get_mlip_energy,
+                                                        subfolder=mlip_subfolder)
 
+        msg += tmp_msg
         msg += self.compute_tests(amat_e, amat_f, amat_s,
                                   ymat_e, ymat_f, ymat_s)
 
-        self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
+        mlip_fn = self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
+
+        create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
+        create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
         return msg
 
 # ========================================================================== #

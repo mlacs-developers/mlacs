@@ -282,6 +282,7 @@ class MliapDescriptor(Descriptor):
             fd.write("# nelems   ncoefs\n")
             fd.write(f"{self.nel} {self.ndesc + 1}\n")
             np.savetxt(fd, coefficients, fmt="%35.30f")
+        return "MLIP.model"
 
 # ========================================================================== #
     @subfolder
@@ -317,24 +318,24 @@ class MliapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def get_pair_style(self, folder=Path("")):
         if self.style == "snap":
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = self.mlip_model / "MLIP.model"
-        descfile = self.mlip_desc / "MLIP.descriptor"
+        modelfile = folder / "MLIP.model"
+        descfile = folder / "MLIP.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self):
+    def get_pair_coeff(self, folder=None):
         return [f"* * {' '.join(self.elements)}"]
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        return self.get_pair_style(), self.get_pair_coeff()
+    def get_pair_style_coeff(self, folder):
+        return self.get_pair_style(folder), self.get_pair_coeff()
 
 # ========================================================================== #
     def __str__(self):
