@@ -105,6 +105,8 @@ class NebLammpsState(BaseLammpsState):
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
                          workdir, blocks)
 
+        self.dt = dt
+        self.pressure = None
         self.xi = xi_coordinate
         self.style = min_style
         self.criterions = (etol, ftol)
