@@ -75,7 +75,6 @@ class MbarManager(WeightingPolicy):
     folder: :class:`str`
         Define a folder to put the weight file (MLIP.weight).
         A good idea is to put it in the same file as the MLIP.
-
     """
 
     def __init__(self, parameters=dict(), database=None,

@@ -93,9 +93,8 @@ class SumDescriptor(Descriptor):
     """
     """
     def __init__(self, *args):
-        # write_mlip just write the same file over and over
-        # Delta Learning Potential is the new SumDescriptor
-        # Although nested DlPot needs to be thoroughly tested
+        # This is wrong for write_mlip. I don't know if there is still
+        # a use case for this now that we have DeltaLearningPotential
         raise NotImplementedError("SumDescriptor are not functional")
         self.desc = args
         self.elements = self.desc[0].elements.copy()

@@ -80,8 +80,7 @@ class DeltaLearningPotential(MlipManager):
             return full_pair_style
 
 # ========================================================================== #
-    @property
-    def pair_style(self):
+    def get_pair_style(self):
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
@@ -98,8 +97,7 @@ class DeltaLearningPotential(MlipManager):
         return full_pair_style
 
 # ========================================================================== #
-    @property
-    def pair_coeff(self):
+    def get_pair_coeff(self):
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
 

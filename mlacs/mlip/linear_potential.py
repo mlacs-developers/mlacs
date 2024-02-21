@@ -65,6 +65,7 @@ class LinearPotential(MlipManager):
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
+        self.fit_res = None
         self.coefficients = None
 
         if self.parameters["method"] != "ols":
@@ -152,45 +153,45 @@ class LinearPotential(MlipManager):
         f_mlip = np.einsum('ij,j->i', amat_f, self.coefficients)
         s_mlip = np.einsum('ij,j->i', amat_s, self.coefficients)
 
-        w = self.weight.init_weight()
-        we, wf, ws = self.weight.build_W_efs(w)
+        w = None
+        if np.shape(w) == np.shape(ymat_e):
+            w = self.weight.weight
+        res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
+        res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)
+        res_S = compute_correlation(np.c_[ymat_s, s_mlip]/GPa, weight=w)
+        r = np.c_[res_E, res_F, res_S]
+        self.fit_res = r
 
-        rmse_e = np.sqrt(np.mean(we * (ymat_e - e_mlip)**2))
-        mae_e = np.mean(we * np.abs(ymat_e - e_mlip))
-
-        rmse_f = np.sqrt(np.mean(wf * (ymat_f - f_mlip)**2))
-        mae_f = np.mean(wf * np.abs(ymat_f - f_mlip))
-
-        rmse_s = np.sqrt(np.mean(ws * ((ymat_s - s_mlip) / GPa)**2))
-        mae_s = np.mean(ws * np.abs((ymat_s - s_mlip) / GPa))
-
-        # Prepare message to the log
-        msg = f"Weighted RMSE Energy    {rmse_e:.4f} eV/at\n"
-        msg += f"Weighted MAE Energy     {mae_e:.4f} eV/at\n"
-        msg += f"Weighted RMSE Forces    {rmse_f:.4f} eV/angs\n"
-        msg += f"Weighted MAE Forces     {mae_f:.4f} eV/angs\n"
-        msg += f"Weighted RMSE Stress    {rmse_s:.4f} GPa\n"
-        msg += f"Weighted MAE Stress     {mae_s:.4f} GPa\n"
-        msg += "\n"
-
-        header = f"Weighted rmse: {rmse_e:.5f} eV/at,    " + \
-                 f"Weighted mae: {mae_e:.5f} eV/at\n" + \
+        # Information to MLIP-Energy_comparison.dat
+        header = f"Weighted rmse: {self.fit_res[0,0]:.6f} eV/at,    " + \
+                 f"Weighted mae: {self.fit_res[0,1]:.6f} eV/at\n" + \
                  " True Energy           Predicted Energy"
         np.savetxt("MLIP-Energy_comparison.dat",
                    np.c_[ymat_e, e_mlip],
                    header=header, fmt="%25.20f  %25.20f")
-        header = f"Weighted rmse: {rmse_f:.5f} eV/angs   " + \
-                 f"Weighted mae: {mae_f:.5f} eV/angs\n" + \
+        header = f"Weighted rmse: {self.fit_res[1,0]:.6f} eV/angs   " + \
+                 f"Weighted mae: {self.fit_res[1,1]:.6f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
         np.savetxt("MLIP-Forces_comparison.dat",
                    np.c_[ymat_f, f_mlip],
                    header=header, fmt="%25.20f  %25.20f")
-        header = f"Weighted rmse: {rmse_s:.5f} GPa       " + \
-                 f"Weighted mae: {mae_s:.5f} GPa\n" + \
+        header = f"Weighted rmse: {self.fit_res[2,0]:.6f} GPa       " + \
+                 f"Weighted mae: {self.fit_res[2,1]:.6f} GPa\n" + \
                  " True Stress           Predicted Stress"
         np.savetxt("MLIP-Stress_comparison.dat",
                    np.c_[ymat_s, s_mlip] / GPa,
                    header=header, fmt="%25.20f  %25.20f")
+
+        # Message to Mlacs.log
+        msg = f"Weighted RMSE Energy    {self.fit_res[0,0]:.4f} eV/at\n"
+        msg += f"Weighted MAE Energy     {self.fit_res[0,1]:.4f} eV/at\n"
+        #msg += f"Weighted Rsquared Energy    {self.fit_res[0,2]:.4f}\n"
+        msg += f"Weighted RMSE Forces    {self.fit_res[1,0]:.4f} eV/angs\n"
+        msg += f"Weighted MAE Forces     {self.fit_res[1,1]:.4f} eV/angs\n"
+        #msg += f"Weighted Rsquared Forces    {self.fit_res[1,2]:.4f}\n"
+        msg += f"Weighted RMSE Stress    {self.fit_res[2,0]:.4f} GPa\n"
+        msg += f"Weighted MAE Stress     {self.fit_res[2,1]:.4f} GPa\n"
+        #msg += f"Weighted Rsquared Stres    {self.fit_res[2,2]:.4f}\n"
         return msg
 
 # ========================================================================== #

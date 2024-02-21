@@ -6,6 +6,16 @@ Machine-Learning Interatomic Potential Manager
 .. index::
    single: Class reference; MlipManager
 
+WeightingPolicy
+***************
+
+.. autoclass:: mlacs.mlip.mbar_manager.WeightingPolicy
+
+UniformWeight
+*************
+
+.. autoclass:: mlacs.mlip.weighting_policy.UniformWeight
+
 MbarManager
 ***********
 

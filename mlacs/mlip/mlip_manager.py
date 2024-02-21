@@ -7,7 +7,7 @@ import numpy as np
 from ase.atoms import Atoms
 from ase.units import GPa
 
-from ..utilities import compute_correlation
+from ..utilities import compute_correlation, create_link
 from .weighting_policy import UniformWeight
 
 # ========================================================================== #
@@ -170,7 +170,6 @@ class MlipManager:
                                                  mlip_coef,
                                                  self.get_mlip_energy,
                                                  subfolder=self.folder)
-
         create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
         create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
 

@@ -734,7 +734,7 @@ class OtfMlacs:
         for i in range(len(atoms_by_mlip)):
             curr_step += 1
             self.mlip.next_coefs(mlip_coef[i],
-                                 mlip_subfolder=f"Coef{curr_step}")
+                                 mlip_subfolder=Path(f"Coef{curr_step}"))
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
 

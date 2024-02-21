@@ -89,29 +89,33 @@ def create_random_structures(atoms, std, nconfs):
 
 
 # ========================================================================== #
-def compute_correlation(data):
+def compute_correlation(data, weight=None):
     """
-    Function to compute the RMSE and MAE
+    Function to compute the RMSE, MAE and Rsquared
 
     Parameters
     ----------
 
     data: :class:`numpy.ndarray` of shape (ndata, 2)
         The data for which to compute the correlation.
-        The first column should be the gound truth and the second column
+        The first column should be the ground truth and the second column
         should be the prediction of the model
     datatype: :class:`str`
         The type of data to which the correlation are to be computed.
         Can be either energy, forces or stress
     """
+    if weight is None: # Uniform weighting
+        nconf = np.shape(data)[0]
+        weight=np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
-    rmse = np.sqrt(np.mean((datatrue - datatest)**2))
-    mae = np.mean(np.abs(datatrue - datatest))
-    sse = ((datatrue - datatest)**2).sum()
-    sst = ((datatrue - datatrue.mean())**2).sum()
+    mae = np.average(np.abs(datatrue - datatest), weights=weight)
+    rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
+    mae = np.average(np.abs(datatrue - datatest), weights=weight)
+    sse = np.average(((datatrue - datatest)**2), weights=weight)
+    sst = np.average((datatrue - np.sum(datatrue*weight))**2, weights=weight)
     rsquared = 1 - sse / sst
-    return rmse, mae, rsquared
+    return np.array([rmse, mae, rsquared])
 
 
 # ========================================================================== #
@@ -351,7 +355,11 @@ def create_link(fn, lk):
     Creates a symbolic link lk pointing to fn
     If lk already exists, replace it
     """
-    if os.path.islink(lk):
+    if os.path.exists(lk): # A real file already exists
+        return
+    if not os.path.exists(fn):
+        return 
+    if os.path.islink(lk): # A link to a file exists
         os.remove(lk)
     os.symlink(fn, lk)
 
