@@ -125,7 +125,7 @@ def _create_ASE_object(Z, positions, cell, energy):
                   pbc=True)
     calc = SPC(atoms=atoms,
                energy=energy)
-    atoms.set_calculator(calc)
+    atoms.calc = calc
     return atoms
 
 

@@ -37,7 +37,6 @@ def test_mlacs_multistate():
         if (root/f).exists():
             (root / f).unlink()
 
-
     atoms = bulk("Cu", cubic=True).repeat(2)
     natoms = len(atoms)
     nstep = 4

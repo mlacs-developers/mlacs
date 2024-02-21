@@ -33,7 +33,6 @@ def test_mlacs_vanilla():
         if (root/f).exists():
             (root / f).unlink()
 
-
     atoms = bulk("Cu", cubic=True).repeat(2)
     natoms = len(atoms)
     nstep = 5
@@ -78,6 +77,7 @@ def test_mlacs_vanilla():
 
     for file in expected_files:
         (root / file).unlink()
+
 
 def test_mlacs_several_training():
     root = Path()
