@@ -7,27 +7,25 @@ from ase.io import read
 from ase.calculators.emt import EMT
 
 from ... import context  # noqa
-from mlacs.mlip import SnapDescriptor, LinearPotential
-from mlacs.state import LammpsState
 from mlacs import OtfMlacs
+from mlacs.mlip import MliapDescriptor, LinearPotential
+from mlacs.state import NebLammpsState
+# from mlacs.properties import CalcNeb
 
 
-def test_mlacs_multistate():
+def test_mlacs_nebstate_vanilla():
     root = Path()
     expected_folder = ["MolecularDynamics",
-                       "Snap"]
+                       "Mliap"]
+#                       "Properties",
 
     expected_files = ["MLACS.log",
                       "Training_configurations.traj",
                       "MLIP-Energy_comparison.dat",
                       "MLIP-Forces_comparison.dat",
                       "MLIP-Stress_comparison.dat",
-                      "Trajectory_1.traj",
-                      "Trajectory_2.traj",
-                      "Trajectory_3.traj",
-                      "Trajectory_1_potential.dat",
-                      "Trajectory_2_potential.dat",
-                      "Trajectory_3_potential.dat"]
+                      "Trajectory.traj",
+                      "Trajectory_potential.dat"]
 
     for folder in expected_folder:
         if (root/folder).exists():
@@ -37,29 +35,32 @@ def test_mlacs_multistate():
         if (root/f).exists():
             (root / f).unlink()
 
-
-    atoms = bulk("Cu", cubic=True).repeat(2)
-    natoms = len(atoms)
-    nstep = 4
-    nconfs = 3
-    nconfs_init = 1
+    atoms = bulk("Ag", cubic=True).repeat(3)
+    nebat = [atoms.copy(), atoms.copy()]
+    nebat[0].pop(0)
+    nebat[1].pop(1)
+    # Check that the first atom is the one we started with
+    assert len(nebat[0]) == len(nebat[1])
+    natoms = len(nebat[-1])
+    nstep = 2
     calc = EMT()
 
-    mlip_params = dict(twojmax=4)
-    desc = SnapDescriptor(atoms, 4.2, mlip_params)
-    mlip = LinearPotential(desc, folder="Snap")
+    mlip_params = dict(nmax=4, lmax=4)
+    desc = MliapDescriptor(atoms, 4.2, mlip_params,
+                           model="quadratic", style="so3")
+    mlip = LinearPotential(desc, folder="Mliap")
 
-    atoms = []
-    state = []
-    acell = [3.300, 3.200, 3.100]
-    temp = [100, 200, 300]
-    press = [-1, 0, 1]
-    for t, p, a in zip(temp, press, acell):
-        state.append(LammpsState(t, p, nsteps_eq=2, nsteps=100))
-        atoms.append(bulk("Cu", cubic=True, a=a).repeat(2))
-    nstate = len(state)
+    mode = "rdm_memory"
+    nimages = 6
+    state = NebLammpsState(nebat, nimages=nimages, mode=mode)
+    state.print = False
 
-    sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)
+# RB I will add this later.
+#    pair_mlip = dict(pair_style=mlip.pair_style, pair_coeff=mlip.pair_coeff)
+#    func = CalcNeb(state=state, args=pair_mlip)
+
+#    sampling = OtfMlacs(nebat[0], state, calc, mlip, func, neq=5)
+    sampling = OtfMlacs(nebat[0], state, calc, mlip, neq=5)
     sampling.run(nstep)
 
     for folder in expected_folder:
@@ -68,23 +69,24 @@ def test_mlacs_multistate():
     for file in expected_files:
         assert (root / file).exists()
 
-    for i in range(1, 4):
-        traj = read(root / f"Trajectory_{i}.traj", ":")
-        assert len(traj) == nstep
-        # Check that the first atom is the one we started with
-        assert traj[0] == atoms[i-1]
-        # Check that the system didn't change in the process
-        for at in traj:
-            assert len(at) == natoms
+    traj = read(root / "Trajectory.traj", ":")
+    # Check that the same Atoms are used
+    assert nebat == state.atoms
+    # Check that the system didn't change in the process
+    for at in traj:
+        assert len(at) == natoms
+    # Check the size of splined objects
+    assert len(state.true_energies) == nimages
+    assert isinstance(state.spline_energies, float)
 
-    ml_energy = np.loadtxt(root / "MLIP-Energy_comparison.dat")
-    ml_forces = np.loadtxt(root / "MLIP-Forces_comparison.dat")
-    ml_stress = np.loadtxt(root / "MLIP-Stress_comparison.dat")
+    xi = np.linspace(0, 1, 1001)
+    state.compute_spline(xi)
 
-    nconfs = nstate * (nconfs + nconfs_init)
-    assert ml_energy.shape == (nconfs, 2)
-    assert ml_forces.shape == (nconfs * natoms * 3, 2)
-    assert ml_stress.shape == (nconfs * 6, 2)
+    assert len(state.spline_energies) == len(xi)
+    # Check the effective masses for vacancies only one atom should move
+    w_m = state._compute_weight_masses()
+    assert len(w_m) == natoms
+    assert np.sum(w_m) >= 1 and np.sum(w_m) < natoms
 
     for folder in expected_folder:
         shutil.rmtree(root / folder)

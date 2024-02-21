@@ -37,13 +37,10 @@ def test_mlacs_optimize():
         if (root/f).exists():
             (root / f).unlink()
 
-
     atoms = bulk("Cu", cubic=True).repeat(2)
     atoms.pop(0)
     natoms = len(atoms)
-    nstep = 4
-    nconfs = 3
-    nconfs_init = 1
+    nstep = 10
     calc = EMT()
 
     mlip_params = dict(twojmax=4)
@@ -52,7 +49,7 @@ def test_mlacs_optimize():
     ps, cs = 'zbl 1.0 2.0', ['* * 29 29']
     dmlip = DeltaLearningPotential(mlip, pair_style=ps, pair_coeff=cs)
 
-    ftol = 0.005
+    ftol = 0.01
     func = CalcExecFunction('get_forces', criterion=ftol, frequence=1)
 
     prefix = []
@@ -61,8 +58,8 @@ def test_mlacs_optimize():
     algo = ['cg', 'fire', 'cg', 'cg', 'cg']
     for t, p, a in zip(ptype, press, algo):
         prefix.append(f'{a}_{p}_{t}')
-        state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t) 
-        sampling = OtfMlacs(atoms, state, calc, mlip, func, neq=5,
+        state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t)
+        sampling = OtfMlacs(atoms, state, calc, dmlip, func, neq=5,
                             prefix_output=prefix[-1])
         expected_files.extend([f'{prefix[-1]}.traj',
                                f'{prefix[-1]}_potential.dat'])
