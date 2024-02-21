@@ -104,9 +104,9 @@ def compute_correlation(data, weight=None):
         The type of data to which the correlation are to be computed.
         Can be either energy, forces or stress
     """
-    if weight is None: # Uniform weighting
+    if weight is None:  # Uniform weighting
         nconf = np.shape(data)[0]
-        weight=np.ones(nconf) / nconf
+        weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
@@ -349,19 +349,21 @@ def subfolder(func):
         return result
     return wrapper
 
+
 # ========================================================================== #
 def create_link(fn, lk):
     """
     Creates a symbolic link lk pointing to fn
     If lk already exists, replace it
     """
-    if os.path.exists(lk): # A real file already exists
+    if os.path.exists(lk):  # A real file already exists
         return
     if not os.path.exists(fn):
-        return 
-    if os.path.islink(lk): # A link to a file exists
+        return
+    if os.path.islink(lk):  # A link to a file exists
         os.remove(lk)
     os.symlink(fn, lk)
+
 
 # ========================================================================== #
 def read_distribution_files(filename):

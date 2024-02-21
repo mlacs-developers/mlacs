@@ -2,7 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from pathlib import Path
 import logging
 import numpy as np
 from ..utilities import subfolder
@@ -22,7 +21,7 @@ except ModuleNotFoundError:
     ispymbar = False
 
 from ase.atoms import Atoms
-from ase.units import kB, GPa
+from ase.units import kB
 from .weighting_policy import WeightingPolicy
 
 

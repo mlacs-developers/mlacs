@@ -128,16 +128,18 @@ class LinearPotential(MlipManager):
         msg += "Number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n\n"
 
-        tmp_msg, weight_fn = self.weight.compute_weight(amat_e,
-                                                        self.coefficients,
-                                                        self.get_mlip_energy,
-                                                        subfolder=mlip_subfolder)
+        tmp_msg, weight_fn = self.weight.compute_weight(
+            amat_e,
+            self.coefficients,
+            self.get_mlip_energy,
+            subfolder=mlip_subfolder)
 
         msg += tmp_msg
         msg += self.compute_tests(amat_e, amat_f, amat_s,
                                   ymat_e, ymat_f, ymat_s)
 
-        mlip_fn = self.descriptor.write_mlip(self.coefficients, subfolder=mlip_subfolder)
+        mlip_fn = self.descriptor.write_mlip(self.coefficients,
+                                             subfolder=mlip_subfolder)
 
         create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
         create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
@@ -185,13 +187,13 @@ class LinearPotential(MlipManager):
         # Message to Mlacs.log
         msg = f"Weighted RMSE Energy    {self.fit_res[0,0]:.4f} eV/at\n"
         msg += f"Weighted MAE Energy     {self.fit_res[0,1]:.4f} eV/at\n"
-        #msg += f"Weighted Rsquared Energy    {self.fit_res[0,2]:.4f}\n"
+        # msg += f"Weighted Rsquared Energy    {self.fit_res[0,2]:.4f}\n"
         msg += f"Weighted RMSE Forces    {self.fit_res[1,0]:.4f} eV/angs\n"
         msg += f"Weighted MAE Forces     {self.fit_res[1,1]:.4f} eV/angs\n"
-        #msg += f"Weighted Rsquared Forces    {self.fit_res[1,2]:.4f}\n"
+        # msg += f"Weighted Rsquared Forces    {self.fit_res[1,2]:.4f}\n"
         msg += f"Weighted RMSE Stress    {self.fit_res[2,0]:.4f} GPa\n"
         msg += f"Weighted MAE Stress     {self.fit_res[2,1]:.4f} GPa\n"
-        #msg += f"Weighted Rsquared Stres    {self.fit_res[2,2]:.4f}\n"
+        # msg += f"Weighted Rsquared Stres    {self.fit_res[2,2]:.4f}\n"
         return msg
 
 # ========================================================================== #

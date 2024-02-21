@@ -10,6 +10,7 @@ from ase.units import GPa
 from ..utilities import compute_correlation, create_link
 from .weighting_policy import UniformWeight
 
+
 # ========================================================================== #
 # ========================================================================== #
 class MlipManager:
@@ -160,19 +161,19 @@ class MlipManager:
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
 
-        mlip_fn = self.descriptor.write_mlip(mlip_coef,
-                                   subfolder=self.folder/mlip_subfolder)
+        mlip_fn = self.descriptor.write_mlip(
+            mlip_coef,
+            subfolder=self.folder/mlip_subfolder)
 
         if self.weight.train_mlip:
             self.weight.get_weights()
 
-        _, weight_fn =self.weight.compute_weight(amat_e,
-                                                 mlip_coef,
-                                                 self.get_mlip_energy,
-                                                 subfolder=self.folder)
+        _, weight_fn = self.weight.compute_weight(amat_e,
+                                                  mlip_coef,
+                                                  self.get_mlip_energy,
+                                                  subfolder=self.folder)
         create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
         create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
-
 
 # ========================================================================== #
     def test_mlip(self, testset):
@@ -298,4 +299,3 @@ class SelfMlipManager(MlipManager):
         self.natoms = np.append(self.natoms, nat)
         self.natoms = np.array(self.natoms, dtype=int)
         self.nconfs += len(atoms)
-

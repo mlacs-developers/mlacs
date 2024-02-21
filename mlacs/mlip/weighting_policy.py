@@ -3,12 +3,9 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from pathlib import Path
-import logging
 import numpy as np
 from ..utilities import subfolder
-
 from ase.atoms import Atoms
-from ase.units import kB, GPa
 
 
 # ========================================================================== #
@@ -123,12 +120,11 @@ class UniformWeight(WeightingPolicy):
     @subfolder
     def compute_weight(self, desc, coef, f_mlipE):
         nconf = len(self.matsize)
-        w = np.ones(nconf) / nconf 
+        w = np.ones(nconf) / nconf
         self.weight = w
 
         header = "Using Uniform weighting\n"
-        np.savetxt("MLIP.weight", self.weight,
-                       header=header, fmt="%25.20f")
+        np.savetxt("MLIP.weight", self.weight, header=header, fmt="%25.20f")
         return header, "MLIP.weight"
 
 # ========================================================================== #
