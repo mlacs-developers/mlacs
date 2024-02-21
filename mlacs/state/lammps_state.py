@@ -329,7 +329,8 @@ class LammpsState(StateManager):
             if eq:
                 temp = self.t_stop
             else:
-                temp = self.rng.uniform(self.temperature, self.t_stop)
+                tmp_temp = np.sort([self.temperature, self.t_stop])
+                temp = self.rng.uniform(*tmp_temp)
         if self.p_stop is None:
             press = self.pressure
         else:
