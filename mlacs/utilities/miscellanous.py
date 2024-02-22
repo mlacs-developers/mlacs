@@ -356,12 +356,13 @@ def create_link(fn, lk):
     Creates a symbolic link lk pointing to fn
     If lk already exists, replace it
     """
-    if os.path.exists(lk):  # A real file already exists
-        return
+    if os.path.isfile(lk):
+        if os.path.islink(lk):  # lk is already a link
+            os.remove(lk)
+        else:  # lk is already a file
+            return
     if not os.path.exists(fn):
         return
-    if os.path.islink(lk):  # A link to a file exists
-        os.remove(lk)
     os.symlink(fn, lk)
 
 

@@ -19,7 +19,6 @@ class MlipManager:
     """
     def __init__(self,
                  descriptor,
-                 nthrow=0,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0,
@@ -44,13 +43,11 @@ class MlipManager:
         self.ymat_s = None
 
         self.no_zstress = no_zstress
+        self.fit_res = None
 
-        self.nthrow = nthrow
         self.weight = weight
         if self.weight is None:
-            self.weight = UniformWeight(nthrow)
-        else:
-            self.nthrow = 0
+            self.weight = UniformWeight()
         self.nconfs = 0
 
         # Some initialization for sampling interface
@@ -157,13 +154,12 @@ class MlipManager:
         Update MLACS just like train_mlip, but without actually computing
         the coefficients
         """
+        sf = self.folder/mlip_subfolder
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
 
-        mlip_fn = self.descriptor.write_mlip(
-            mlip_coef,
-            subfolder=self.folder/mlip_subfolder)
+        mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
 
         if self.weight.train_mlip:
             self.weight.get_weights()
@@ -171,9 +167,10 @@ class MlipManager:
         _, weight_fn = self.weight.compute_weight(amat_e,
                                                   mlip_coef,
                                                   self.get_mlip_energy,
-                                                  subfolder=self.folder)
-        create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
-        create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
+                                                  subfolder=sf)
+
+        create_link(sf/weight_fn, self.folder/"MLIP.weight")
+        create_link(sf/mlip_fn, self.folder/"MLIP.model")
 
 # ========================================================================== #
     def test_mlip(self, testset):
@@ -256,12 +253,7 @@ class MlipManager:
     def _get_idx_fit(self):
         """
         """
-        if self.nconfs < self.nthrow:
-            idx_e = idx_f = idx_s = 0
-        elif self.nconfs >= self.nthrow and self.nconfs < 2 * self.nthrow:
-            idx_e = self.nconfs - self.nthrow
-        else:
-            idx_e = self.nthrow
+        idx_e = 0
         idx_f = 3 * self.natoms[:idx_e].sum()
         idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
@@ -276,12 +268,11 @@ class SelfMlipManager(MlipManager):
     """
     def __init__(self,
                  descriptor,
-                 nthrow=10,
                  folder=Path("MLIP").absolute(),
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=0.0):
-        MlipManager.__init__(self, descriptor, nthrow,
+        MlipManager.__init__(self, descriptor,
                              energy_coefficient, forces_coefficient,
                              stress_coefficient, folder=folder)
         self.configurations = []

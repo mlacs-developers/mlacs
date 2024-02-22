@@ -43,9 +43,8 @@ class DeltaLearningPotential(MlipManager):
         ecoef = self.model.ecoef
         fcoef = self.model.fcoef
         scoef = self.model.scoef
-        nthrow = self.model.nthrow
 
-        MlipManager.__init__(self, self.model.descriptor, nthrow,
+        MlipManager.__init__(self, self.model.descriptor,
                              ecoef, fcoef, scoef, weight, folder)
 
         if not isinstance(pair_style, list):

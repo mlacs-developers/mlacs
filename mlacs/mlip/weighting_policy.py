@@ -107,10 +107,19 @@ class WeightingPolicy:
 class UniformWeight(WeightingPolicy):
     """
     Class that gives uniform weight in MLACS.
+
+    nthrow: :class: int
+        Number of configurations to ignore when doing the fit.
+        Three cases :
+         1. If nconf > 2*nthrow, remove the nthrow first configuration
+         2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
+         3. If nconf < nthrow, keep all conf
+
     """
 
-    def __init__(self, database=None, weight=None, folder=""):
+    def __init__(self, nthrow=0, database=None, weight=None, folder=""):
         self.train_mlip = False
+        self.nthrow = nthrow
         WeightingPolicy.__init__(self,
                                  database=None,
                                  weight=None,
@@ -119,8 +128,18 @@ class UniformWeight(WeightingPolicy):
 # ========================================================================== #
     @subfolder
     def compute_weight(self, desc, coef, f_mlipE):
+        """
+        Compute Uniform Weight taking into account nthrow :
+        """
         nconf = len(self.matsize)
-        w = np.ones(nconf) / nconf
+        to_remove = 0
+        if nconf > 2*self.nthrow:
+            to_remove = self.nthrow
+        elif nconf > self.nthrow:
+            to_remove = nconf-self.nthrow
+
+        w = np.ones(nconf-to_remove) / (nconf-to_remove)
+        w = np.r_[np.zeros(to_remove), w]
         self.weight = w
 
         header = "Using Uniform weighting\n"

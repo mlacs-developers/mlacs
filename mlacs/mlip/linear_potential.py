@@ -25,9 +25,6 @@ class LinearPotential(MlipManager):
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
 
-    nthrow: :class: int
-        Number of first configurations to ignore when doing the fit
-
     energy_coefficient: :class:`float`
         Weight of the energy in the fit
         Default 1.0
@@ -46,7 +43,6 @@ class LinearPotential(MlipManager):
     """
     def __init__(self,
                  descriptor,
-                 nthrow=0,
                  parameters={},
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
@@ -55,7 +51,6 @@ class LinearPotential(MlipManager):
                  folder=Path("MLIP")):
         MlipManager.__init__(self,
                              descriptor,
-                             nthrow,
                              energy_coefficient,
                              forces_coefficient,
                              stress_coefficient,
@@ -65,7 +60,6 @@ class LinearPotential(MlipManager):
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
-        self.fit_res = None
         self.coefficients = None
 
         if self.parameters["method"] != "ols":

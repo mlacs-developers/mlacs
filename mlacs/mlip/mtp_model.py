@@ -66,8 +66,6 @@ class MomentTensorPotential(SelfMlipManager):
             - init_params='random'
             - update_mindist=False
 
-    nthrow: :class:`int`
-
     energy_coefficient: :class:`float`
 
     forces_coefficient: :class:`float`
@@ -80,13 +78,11 @@ class MomentTensorPotential(SelfMlipManager):
                  folder=Path("MTP").absolute(),
                  mtp_parameters={},
                  fit_parameters={},
-                 nthrow=0,
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
                  stress_coefficient=1.0):
         SelfMlipManager.__init__(self,
                                  BlankDescriptor(atoms),
-                                 nthrow,
                                  folder,
                                  energy_coefficient,
                                  forces_coefficient,
