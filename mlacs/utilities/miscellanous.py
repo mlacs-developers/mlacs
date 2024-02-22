@@ -163,7 +163,7 @@ def compute_averaged(traj):
 
 
 # ========================================================================== #
-def compute_volume(confs, weights):
+def compute_volume(confs, weights=None):
     nconfs = len(confs)
     natoms = len(confs[0])
     vol = []

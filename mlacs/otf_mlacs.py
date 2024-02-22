@@ -344,7 +344,7 @@ class OtfMlacs:
 
         # And now we can write the configurations in the trajectory files
         for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
-            if at is not None:
+            if attrue is not None:
                 self.mlip.update_matrices(attrue)
                 self.traj[i].write(attrue)
                 self.atoms[i] = attrue
