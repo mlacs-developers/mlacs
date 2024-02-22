@@ -1,5 +1,4 @@
-from pathlib import Path
-import shutil
+import pytest
 
 import numpy as np
 from ase.build import bulk
@@ -13,27 +12,20 @@ from mlacs.state import NebLammpsState
 # from mlacs.properties import CalcNeb
 
 
-def test_mlacs_nebstate_vanilla():
-    root = Path()
-    expected_folder = ["MolecularDynamics",
-                       "Mliap"]
-#                       "Properties",
+@pytest.fixture
+def expected_folder(expected_folder_base):
+    folder = expected_folder_base
+    folder.append("Mliap")
+    folder.pop(folder.index("Snap"))
+    return expected_folder_base
 
-    expected_files = ["MLACS.log",
-                      "Training_configurations.traj",
-                      "MLIP-Energy_comparison.dat",
-                      "MLIP-Forces_comparison.dat",
-                      "MLIP-Stress_comparison.dat",
-                      "Trajectory.traj",
-                      "Trajectory_potential.dat"]
 
-    for folder in expected_folder:
-        if (root/folder).exists():
-            shutil.rmtree(root / folder)
+@pytest.fixture
+def expected_files(expected_files_base):
+    return expected_files_base
 
-    for f in expected_files:
-        if (root/f).exists():
-            (root / f).unlink()
+
+def test_mlacs_nebstate_vanilla(root, treelink):
 
     atoms = bulk("Ag", cubic=True).repeat(3)
     nebat = [atoms.copy(), atoms.copy()]
@@ -63,10 +55,10 @@ def test_mlacs_nebstate_vanilla():
     sampling = OtfMlacs(nebat[0], state, calc, mlip, neq=5)
     sampling.run(nstep)
 
-    for folder in expected_folder:
+    for folder in treelink["folder"]:
         assert (root / folder).exists()
 
-    for file in expected_files:
+    for file in treelink["files"]:
         assert (root / file).exists()
 
     traj = read(root / "Trajectory.traj", ":")
@@ -87,9 +79,3 @@ def test_mlacs_nebstate_vanilla():
     w_m = state._compute_weight_masses()
     assert len(w_m) == natoms
     assert np.sum(w_m) >= 1 and np.sum(w_m) < natoms
-
-    for folder in expected_folder:
-        shutil.rmtree(root / folder)
-
-    for f in expected_files:
-        (root / f).unlink()

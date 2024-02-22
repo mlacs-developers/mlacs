@@ -1,5 +1,4 @@
-from pathlib import Path
-import shutil
+import pytest
 
 import numpy as np
 from ase.build import bulk
@@ -12,26 +11,17 @@ from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
 
-def test_mlacs_vanilla():
-    root = Path()
-    expected_folder = ["MolecularDynamics",
-                       "Snap"]
+@pytest.fixture
+def expected_folder(expected_folder_base):
+    return expected_folder_base
 
-    expected_files = ["MLACS.log",
-                      "Training_configurations.traj",
-                      "MLIP-Energy_comparison.dat",
-                      "MLIP-Forces_comparison.dat",
-                      "MLIP-Stress_comparison.dat",
-                      "Trajectory.traj",
-                      "Trajectory_potential.dat"]
 
-    for folder in expected_folder:
-        if (root/folder).exists():
-            shutil.rmtree(root / folder)
+@pytest.fixture
+def expected_files(expected_files_base):
+    return expected_files_base
 
-    for f in expected_files:
-        if (root/f).exists():
-            (root / f).unlink()
+
+def test_mlacs_vanilla(root, treelink):
 
     atoms = bulk("Cu", cubic=True).repeat(2)
     natoms = len(atoms)
@@ -49,10 +39,10 @@ def test_mlacs_vanilla():
     sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)
     sampling.run(nstep)
 
-    for folder in expected_folder:
+    for folder in treelink["folder"]:
         assert (root / folder).exists()
 
-    for file in expected_files:
+    for file in treelink["files"]:
         assert (root / file).exists()
 
     traj = read(root / "Trajectory.traj", ":")
@@ -72,34 +62,8 @@ def test_mlacs_vanilla():
     assert ml_forces.shape == ((nconfs + nconfs_init) * natoms * 3, 2)
     assert ml_stress.shape == ((nconfs + nconfs_init) * 6, 2)
 
-    for folder in expected_folder:
-        shutil.rmtree(root / folder)
 
-    for file in expected_files:
-        (root / file).unlink()
-
-
-def test_mlacs_several_training():
-    root = Path()
-
-    expected_folder = ["MolecularDynamics",
-                       "Snap"]
-
-    expected_files = ["MLACS.log",
-                      "Training_configurations.traj",
-                      "MLIP-Energy_comparison.dat",
-                      "MLIP-Forces_comparison.dat",
-                      "MLIP-Stress_comparison.dat",
-                      "Trajectory.traj",
-                      "Trajectory_potential.dat"]
-
-    for folder in expected_folder:
-        if (root/folder).exists():
-            shutil.rmtree(root / folder)
-
-    for f in expected_files:
-        if (root/f).exists():
-            (root / f).unlink()
+def test_mlacs_several_training(root, treelink):
 
     atoms = bulk("Cu", cubic=True).repeat(2)
     natoms = len(atoms)
@@ -118,10 +82,10 @@ def test_mlacs_several_training():
                         confs_init=nconfs_init)
     sampling.run(nsteps)
 
-    for folder in expected_folder:
+    for folder in treelink["folder"]:
         assert (root / folder).exists()
 
-    for file in expected_files:
+    for file in treelink["files"]:
         assert (root / file).exists()
 
     traj = read(root / "Trajectory.traj", ":")
@@ -142,9 +106,3 @@ def test_mlacs_several_training():
     assert ml_energy.shape == (nconfs + nconfs_init, 2)
     assert ml_forces.shape == ((nconfs + nconfs_init) * natoms * 3, 2)
     assert ml_stress.shape == ((nconfs + nconfs_init) * 6, 2)
-
-    for folder in expected_folder:
-        shutil.rmtree(root / folder)
-
-    for file in expected_files:
-        (root / file).unlink()

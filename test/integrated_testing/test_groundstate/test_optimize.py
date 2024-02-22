@@ -1,5 +1,4 @@
-from pathlib import Path
-import shutil
+import pytest
 
 import numpy as np
 from ase.build import bulk
@@ -13,29 +12,35 @@ from mlacs.mlip import SnapDescriptor, LinearPotential, DeltaLearningPotential
 from mlacs import OtfMlacs
 
 
-def test_mlacs_optimize():
-    root = Path()
-    expected_folder = ["MolecularDynamics",
-                       "Properties",
-                       "Snap"]
+@pytest.fixture
+def files_with_prefix():
+    files = []
+    ptype = ['iso', 'iso', 'iso', 'aniso', 'aniso']
+    press = [None, None, 0.0, 0.0, 5.0]
+    algo = ['cg', 'fire', 'cg', 'cg', 'cg']
+    for t, p, a in zip(ptype, press, algo):
+        files.append(f'{a}_{p}_{t}.traj')
+        files.append(f'{a}_{p}_{t}_potential.dat')
+    return files
 
-    expected_files = ["MLACS.log",
-                      "MLACS.log0001",
-                      "MLACS.log0002",
-                      "MLACS.log0003",
-                      "MLACS.log0004",
-                      "Training_configurations.traj",
-                      "MLIP-Energy_comparison.dat",
-                      "MLIP-Forces_comparison.dat",
-                      "MLIP-Stress_comparison.dat"]
 
-    for folder in expected_folder:
-        if (root/folder).exists():
-            shutil.rmtree(root / folder)
+@pytest.fixture
+def expected_folder():
+    folder = ["MolecularDynamics", "Properties", "Snap"]
+    return folder
 
-    for f in expected_files:
-        if (root/f).exists():
-            (root / f).unlink()
+
+@pytest.fixture
+def expected_files(files_with_prefix):
+    files = ["MLACS.log", "MLACS.log0001", "MLACS.log0002", "MLACS.log0003",
+             "MLACS.log0004", "Training_configurations.traj",
+             "MLIP-Energy_comparison.dat", "MLIP-Forces_comparison.dat",
+             "MLIP-Stress_comparison.dat"]
+    files.extend(files_with_prefix)
+    return files
+
+
+def test_mlacs_optimize(root, treelink):
 
     atoms = bulk("Cu", cubic=True).repeat(2)
     atoms.pop(0)
@@ -54,21 +59,19 @@ def test_mlacs_optimize():
 
     prefix = []
     ptype = ['iso', 'iso', 'iso', 'aniso', 'aniso']
-    press = [None, None, 0.0, 0.0, 10.0]
+    press = [None, None, 0.0, 0.0, 5.0]
     algo = ['cg', 'fire', 'cg', 'cg', 'cg']
     for t, p, a in zip(ptype, press, algo):
         prefix.append(f'{a}_{p}_{t}')
         state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t)
         sampling = OtfMlacs(atoms, state, calc, dmlip, func, neq=5,
                             prefix_output=prefix[-1])
-        expected_files.extend([f'{prefix[-1]}.traj',
-                               f'{prefix[-1]}_potential.dat'])
         sampling.run(nstep)
 
-    for folder in expected_folder:
+    for folder in treelink["folder"]:
         assert (root / folder).exists()
 
-    for file in expected_files:
+    for file in treelink["files"]:
         assert (root / file).exists()
 
     for p in prefix:
@@ -83,9 +86,3 @@ def test_mlacs_optimize():
         # Check that volume is constant
         if 'None' in p:
             assert traj[-1].get_volume() == atoms.get_volume()
-
-    for folder in expected_folder:
-        shutil.rmtree(root / folder)
-
-    for f in expected_files:
-        (root / f).unlink()
