@@ -259,7 +259,6 @@ class MlipManager:
         idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
 
-
 # ========================================================================== #
     def _get_pair_style(self):
         return self.descriptor.get_pair_style(self.folder)

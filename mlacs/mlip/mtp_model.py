@@ -114,7 +114,8 @@ class MomentTensorPotential(SelfMlipManager):
 
 # ========================================================================== #
     def get_pair_style_coeff(self, folder):
-        return self.get_pair_style(folder=folder), self.get_pair_coeff(folder=folder)
+        return self.get_pair_style(folder=folder), \
+               self.get_pair_coeff(folder=folder)
 
 # ========================================================================== #
     def train_mlip(self, mlip_subfolder=None):

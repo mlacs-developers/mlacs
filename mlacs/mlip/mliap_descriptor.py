@@ -294,7 +294,7 @@ class MliapDescriptor(Descriptor):
         """
         fn = Path("MLIP.model")
         if not fn.is_file():
-            raise FileNotFoundError(f"The file {fn.absolute()} does not exist.")
+            raise FileNotFoundError(f"File {fn.absolute()} does not exist.")
 
         with open(fn, "r") as fd:
             lines = fd.readlines()
