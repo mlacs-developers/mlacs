@@ -154,7 +154,7 @@ class SumDescriptor(Descriptor):
         return reg
 
 # ========================================================================== #
-    def get_pair_style(self, folder=Path("")):
+    def get_pair_style(self, folder=None):
         pair_style = "hybrid/overlay "
         for d in self.desc:
             pair_style_d = d.get_pair_style(folder)
@@ -162,10 +162,10 @@ class SumDescriptor(Descriptor):
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self, folder=Path("")):
+    def get_pair_coeff(self, folder=None):
         pair_coeff = []
         for d in self.desc:
-            pair_style_d, pair_coeff_d = d.get_pair_style_coeff()
+            pair_style_d, pair_coeff_d = d.get_pair_style_coeff(folder)
             for coeff in pair_coeff_d:
                 style = pair_style_d.split()[0]
                 co = coeff.split()
@@ -174,7 +174,7 @@ class SumDescriptor(Descriptor):
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self, folder=Path("")):
+    def get_pair_style_coeff(self, folder):
         return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #

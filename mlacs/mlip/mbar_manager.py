@@ -2,6 +2,7 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+from pathlib import Path
 import logging
 import numpy as np
 from ..utilities import subfolder
@@ -142,6 +143,9 @@ class MbarManager(WeightingPolicy):
 
             header += "Using MBAR weighting\n"
             header += f"Effective number of configurations: {neff:10.5f}\n"
+
+            if Path("MLIP.weight").exists():
+                Path("MLIP.weight").unlink()
             np.savetxt("MLIP.weight", self.weight,
                        header=header, fmt="%25.20f")
             header += "Number of uncorrelated snapshots for each k state:\n"

@@ -44,18 +44,19 @@ class DeltaLearningPotential(MlipManager):
         fcoef = self.model.fcoef
         scoef = self.model.scoef
 
-        MlipManager.__init__(self, self.model.descriptor,
-                             ecoef, fcoef, scoef, weight, folder)
-
         if not isinstance(pair_style, list):
             pair_style = [pair_style]
 
         self.ref_pair_style = pair_style
         self.ref_pair_coeff = pair_coeff
+
         self.ref_model_post = model_post
         self.model_post = model_post
         self.ref_atom_style = atom_style
         self.atom_style = atom_style
+
+        MlipManager.__init__(self, self.model.descriptor,
+                             ecoef, fcoef, scoef, weight, folder)
 
         self._ref_e = None
         self._ref_f = None
@@ -79,7 +80,7 @@ class DeltaLearningPotential(MlipManager):
             return full_pair_style
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def _get_pair_style(self):
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
@@ -96,7 +97,7 @@ class DeltaLearningPotential(MlipManager):
         return full_pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self):
+    def _get_pair_coeff(self):
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
 

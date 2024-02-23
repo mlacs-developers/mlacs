@@ -53,8 +53,9 @@ class MlipManager:
         # Some initialization for sampling interface
         self.model_post = None
         self.atom_style = "atomic"
-        self.pair_style = self.descriptor.get_pair_style(self.folder)
-        self.pair_coeff = self.descriptor.get_pair_coeff(self.folder)
+
+        self.pair_style = self._get_pair_style()
+        self.pair_coeff = self._get_pair_coeff()
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -155,6 +156,7 @@ class MlipManager:
         the coefficients
         """
         sf = self.folder/mlip_subfolder
+        print("next_coefs")
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
@@ -257,6 +259,15 @@ class MlipManager:
         idx_f = 3 * self.natoms[:idx_e].sum()
         idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
+
+
+# ========================================================================== #
+    def _get_pair_style(self):
+        return self.descriptor.get_pair_style(self.folder)
+
+# ========================================================================== #
+    def _get_pair_coeff(self):
+        return self.descriptor.get_pair_coeff(self.folder)
 
 
 # ========================================================================== #

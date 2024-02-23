@@ -271,6 +271,8 @@ class MliapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
+        if Path("MLIP.model").is_file():
+            Path("MLIP.model").unlink()
         self.mlip_model = Path.cwd()
         with open("MLIP.model", "w") as fd:
             fd.write("# ")
@@ -292,7 +294,7 @@ class MliapDescriptor(Descriptor):
         """
         fn = Path("MLIP.model")
         if not fn.is_file():
-            raise FileNotFoundError(f"The file {fn.absolute} does not exist.")
+            raise FileNotFoundError(f"The file {fn.absolute()} does not exist.")
 
         with open(fn, "r") as fd:
             lines = fd.readlines()
@@ -318,7 +320,7 @@ class MliapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style(self, folder=Path("")):
+    def get_pair_style(self, folder):
         if self.style == "snap":
             style = "sna"
         elif self.style == "so3":
@@ -335,7 +337,7 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     def get_pair_style_coeff(self, folder):
-        return self.get_pair_style(folder), self.get_pair_coeff()
+        return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #
     def __str__(self):

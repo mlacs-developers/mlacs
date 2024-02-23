@@ -131,6 +131,9 @@ class UniformWeight(WeightingPolicy):
         """
         Compute Uniform Weight taking into account nthrow :
         """
+        if Path("MLIP.weight").exists():
+            Path("MLIP.weight").unlink()
+
         nconf = len(self.matsize)
         to_remove = 0
         if nconf > 2*self.nthrow:

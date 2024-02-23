@@ -730,6 +730,22 @@ class OtfMlacs:
             msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)
 
+            # If the last simulation was with keep_tmp_mlip=False, 
+            # we put the old MLIP.model and weight in a Coef folder
+            fm = self.mlip.folder / "MLIP.model"
+            fw = self.mlip.folder / "MLIP.weight"
+            last_coef = max(self.nconfs)-1
+            coef_folder = self.mlip.folder / f"Coef{last_coef}"
+
+            if os.path.isfile(fm):
+                if not os.path.exists(coef_folder):
+                    os.mkdir(coef_folder)
+                    os.rename(fm, coef_folder / "MLIP.model")
+            if os.path.isfile(fw):
+                if not os.path.exists(coef_folder):
+                    os.mkdir(coef_folder)
+                    os.rename(fw, coef_folder / "MLIP.weight")
+
         curr_step = 0
         for i in range(len(atoms_by_mlip)):
             curr_step += 1

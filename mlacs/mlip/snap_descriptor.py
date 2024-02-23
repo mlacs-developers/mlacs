@@ -231,6 +231,9 @@ class SnapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
+        if Path("MLIP.model").exists():
+            Path("MLIP.model").unlink()
+
         self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
