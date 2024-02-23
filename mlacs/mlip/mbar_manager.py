@@ -71,22 +71,16 @@ class MbarManager(WeightingPolicy):
         If you use an initial database, it needs weight.
         Can a list or an np.array of values or a file.
         Default :class:`None`
-
-    folder: :class:`str`
-        Define a folder to put the weight file (MLIP.weight).
-        A good idea is to put it in the same file as the MLIP.
     """
 
-    def __init__(self, parameters=dict(), database=None,
-                 weight=None, folder=""):
+    def __init__(self, parameters=dict(), database=None, weight=None):
         if not ispymbar:
             msg = "You need pymbar installed to use the MBAR manager"
             raise ModuleNotFoundError(msg)
 
         WeightingPolicy.__init__(self,
                                  database=None,
-                                 weight=None,
-                                 folder="")
+                                 weight=None)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)

@@ -25,21 +25,15 @@ class WeightingPolicy:
         If you use an initial database, it needs weight.
         Can a list or an np.array of values or a file.
         Default :class:`None`
-
-    folder: :class:`str`
-        Define a folder to put the weight file (MLIP.weight).
-        A good idea is to put it in the same file as the MLIP.
     """
 
-    def __init__(self, database=None,
-                 weight=None, folder=""):
+    def __init__(self, database=None, weight=None):
         self.database = database
         self.matsize = None
         self.matsize = []
         if database is not None:
             self.matsize = [len(a) for a in database]
 
-        self.folder = Path(folder).absolute()
         self.weight = []
         if weight is not None:
             if isinstance(weight, str):
@@ -47,9 +41,6 @@ class WeightingPolicy:
             self.weight = weight
         elif Path("MLIP.weight").exists():
             weight = np.loadtxt("MLIP.weight")
-            self.weight = weight
-        elif (self.folder / "MLIP.weight").exists():
-            weight = np.loadtxt(self.folder / "MLIP.weight")
             self.weight = weight
         else:
             self.weight = []
@@ -117,13 +108,10 @@ class UniformWeight(WeightingPolicy):
 
     """
 
-    def __init__(self, nthrow=0, database=None, weight=None, folder=""):
+    def __init__(self, nthrow=0, database=None, weight=None):
         self.train_mlip = False
         self.nthrow = nthrow
-        WeightingPolicy.__init__(self,
-                                 database=None,
-                                 weight=None,
-                                 folder="")
+        WeightingPolicy.__init__(self, database=None, weight=None)
 
 # ========================================================================== #
     @subfolder
