@@ -108,9 +108,14 @@ def compute_correlation(data):
     datatest = data[:, 1]
     rmse = np.sqrt(np.mean((datatrue - datatest)**2))
     mae = np.mean(np.abs(datatrue - datatest))
-    sse = ((datatrue - datatest)**2).sum()
-    sst = ((datatrue - datatrue.mean())**2).sum()
-    rsquared = 1 - sse / sst
+    # If only one data, it makes no sense and we have the annoying
+    # dividing by zero error (can happen for energy at the start)
+    if len(data) > 1:
+        sse = ((datatrue - datatest)**2).sum()
+        sst = ((datatrue - datatrue.mean())**2).sum()
+        rsquared = 1 - sse / sst
+    else:
+        rsquared = 1
     return rmse, mae, rsquared
 
 

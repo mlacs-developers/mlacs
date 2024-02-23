@@ -156,7 +156,7 @@ class OtfMlacs:
         msg = ""
         for i in range(self.nstate):
             msg += f"State {i+1}/{self.nstate} :\n"
-            msg += self.state[i].log_recap_state()
+            msg += repr(self.state[i])
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
@@ -665,8 +665,8 @@ class OtfMlacs:
 
         prefworkdir = os.getcwd() + "/MolecularDynamics/"
         for istate in range(self.nstate):
-            self.state[istate].set_workdir(prefworkdir +
-                                           self.prefix_output[istate]+"/")
+            self.state[istate].workdir = prefworkdir + \
+                                         self.prefix_output[istate]
 
 # ========================================================================== #
     def _check_if_launched(self, nmax):
@@ -742,6 +742,10 @@ class OtfMlacs:
                 self.mlip.next_coefs(mlip_coef[i],
                                      mlip_subfolder=f"Coef{curr_step}")
                 for at in atoms_by_mlip[i]:
+                    self.mlip.update_matrices(at)
+        else:
+            for istate in range(self.nstate):
+                for at in prev_traj[istate]:
                     self.mlip.update_matrices(at)
 
         # Update this simulation traj

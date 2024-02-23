@@ -1,5 +1,7 @@
 from pathlib import Path
 import numpy as np
+from abc import ABC, abstractmethod
+
 from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
@@ -8,7 +10,7 @@ from ..utilities import get_elements_Z_and_masses, subfolder
 
 # ========================================================================== #
 # ========================================================================== #
-class Descriptor:
+class Descriptor(ABC):
     """
     Base class for descriptors
 
@@ -47,8 +49,9 @@ class Descriptor:
         return desc
 
 # ========================================================================== #
+    @abstractmethod
     def compute_descriptor(self, atoms, forces=True, stress=True):
-        raise NotImplementedError
+        pass
 
 # ========================================================================== #
     def _compute_rij(self, atoms):
@@ -139,6 +142,10 @@ class SumDescriptor(Descriptor):
                             desc_f=desc_f,
                             desc_s=desc_s))
         return res
+
+# ========================================================================== #
+    def compute_descriptor(self, atoms, forces=True, stress=True):
+        pass
 
 # ========================================================================== #
     def _regularization_matrix(self):

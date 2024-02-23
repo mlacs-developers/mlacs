@@ -1,16 +1,19 @@
 import numpy as np
 from ase.build import bulk
+from unittest.mock import patch
 
 from ... import context  # noqa
 from mlacs.mlip.descriptor import Descriptor
 
 
+@patch.multiple(Descriptor, __abstractmethods__=set())
 def create_obj():
     at = bulk("Si")
     desc = Descriptor(at)
     return at, desc
 
 
+@patch.multiple(Descriptor, __abstractmethods__=set())
 def test_elem():
     """
     Here we test that the descriptor has the right elements,
