@@ -2,15 +2,24 @@
 // (c) 2023 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from .lammps_state import LammpsState
+import numpy as np
+
+from .lammps_state import BaseLammpsState
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    write_atoms_lammps_spin_style)
 
 
+_default_params = dict(temperature=300,
+                       t_stop=None,
+                       damp=None,
+                       dt=1.5,
+                       fixcm=True)
+
+
 # ========================================================================== #
 # ========================================================================== #
-class SpinLammpsState(LammpsState):
+class SpinLammpsState(BaseLammpsState):
     """
     Class to manage PIMD simulations with LAMMPS
 
@@ -94,53 +103,22 @@ class SpinLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
-    def __init__(self,
-                 temperature,
-                 pressure=None,
-                 t_stop=None,
-                 p_stop=None,
-                 damp=None,
-                 pdamp=None,
-                 ptype="iso",
-                 dt=1.5,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 fixcm=True,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 msdfile=None,
-                 rdffile=None,
-                 rng=None,
-                 init_momenta=None,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=temperature,
-                             pressure=pressure,
-                             t_stop=t_stop,
-                             p_stop=p_stop,
-                             langevin=True,
-                             damp=damp,
-                             pdamp=pdamp,
-                             ptype=ptype,
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             fixcm=fixcm,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             rng=rng,
-                             init_momenta=init_momenta,
-                             workdir=workdir)
+    def __init__(self, temperature, t_stop=None, damp=None, dt=1.5, fixcm=True,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
 
-        if self.pressure is not None:
-            msg = "NPT simulations are not available with spin-lattice"
-            raise NotImplementedError(msg)
+        self.temperature = temperature
+        self.t_stop = t_stop
+        self.damp = damp
+        self.dt = dt
+        self.fixcm = fixcm
 
-        self.ispimd = False
-        if self.trajfile is not None and self.nbeads > 1:
-            self.trajfile += "_${ibead}"
+        if self.rng is None:
+            self.rng = np.random.default_rng()
+        if self.damp is None:
+            self.damp = "$(100*dt)"
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -169,10 +147,11 @@ class SpinLammpsState(LammpsState):
         if self.t_stop is None:
             temp = self.temperature
         else:
+            tmp_temp = np.sort([self.temperature, self.t_stop])
             if eq:
-                temp = self.t_stop
+                temp = np.max(tmp_temp)
             else:
-                temp = self.rng.uniform(self.temperature, self.t_stop)
+                temp = self.rng.uniform(*tmp_temp)
         langevinseed = self.rng.integers(1, 9999999)
         spinseed = self.rng.integers(1, 9999999)
 

@@ -4,16 +4,17 @@
 """
 import os
 
+import numpy as np
 from ase.io import read
 
-from .lammps_state import LammpsState
+from .lammps_state import BaseLammpsState
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import LammpsBlockInput
 
 
 # ========================================================================== #
 # ========================================================================== #
-class PimdLammpsState(LammpsState):
+class PimdLammpsState(BaseLammpsState):
     """
     Class to manage PIMD simulations with LAMMPS
 
@@ -124,66 +125,50 @@ class PimdLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
-    def __init__(self,
-                 temperature,
-                 pressure=None,
-                 t_stop=None,
-                 p_stop=None,
-                 damp=None,
-                 pdamp=None,
-                 ptype="iso",
-                 dt=1.5,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 nbeads=1,
-                 nprocs=None,
-                 integrator="baoab",
-                 fmmode="physical",
-                 fmass=None,
-                 scale=1.0,
-                 barostat="BZP",
-                 fixcm=True,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 msdfile=None,
-                 rdffile=None,
-                 rng=None,
-                 init_momenta=None,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=temperature,
-                             pressure=pressure,
-                             t_stop=t_stop,
-                             p_stop=p_stop,
-                             damp=damp,
-                             pdamp=pdamp,
-                             ptype=ptype,
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             fixcm=fixcm,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             rng=rng,
-                             init_momenta=init_momenta,
-                             workdir=workdir)
+    def __init__(self, temperature, pressure=None, t_stop=None, p_stop=None,
+                 damp=None, pdamp=None, ptype="iso", dt=1.0, fixcm=True,
+                 rng=None, init_momenta=None, integrator="baoab",
+                 fmmode="physical", fmass=None, scale=1.0, barostat="BZP",
+                 nprocs=None, nbeads=1,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
 
+        self.temperature = temperature
+        self.pressure = pressure
+        self.t_stop = t_stop
+        self.p_stop = p_stop
+        self.damp = damp
+        self.pdamp = pdamp
+        self.ptype = ptype
+        self.dt = dt
+        self.fixcm = fixcm
+        self.rng = rng
+        self.init_momenta = init_momenta
         self.integrator = integrator
         self.fmmode = fmmode
+        self.fmass = fmass
         self.scale = scale
         self.barostat = barostat
         self.nprocs = nprocs
         self.nbeads = nbeads
-        if fmass is None:
-            self.fmass = nbeads
-        else:
-            self.fmass = fmass
         self.ispimd = True
-        if self.trajfile is not None and self.nbeads > 1:
-            self.trajfile += "_${ibead}"
 
+        if self.rng is None:
+            self.rng = np.random.default_rng()
+        if self.trajfile is not None and self.nbeads > 1:
+            self.trajfile += f"{self.trajfile}" + "_${ibead}"
+        if self.fmass is None:
+            self.fmass = self.nbeads
+        if self.damp is None:
+            self.damp = "$(100*dt)"
+        if self.pdamp is None:
+            self.pdamp = "$(1000*dt)"
+        if self.p_stop is not None:
+            if self.pressure is None:
+                msg = "You need to put a pressure with p_stop"
+                raise ValueError(msg)
         if self.nprocs is not None:
             if self.nprocs % self.nbeads != 0:
                 msg = "The number of processor needs to be a multiple " + \
@@ -304,3 +289,32 @@ class PimdLammpsState(LammpsState):
         else:
             n2 = 1
         return f"{cmd} -partition {n1}x{n2} -in {self.lammpsfname} -sc out.lmp"
+
+# ========================================================================== #
+    def log_recap_state(self):
+        """
+
+        """
+        damp = self.damp
+        if damp is None:
+            damp = 100 * self.dt
+        pdamp = self.pdamp
+        if pdamp is None:
+            pdamp = 1000 * self.dt
+
+        if self.pressure is None:
+            msg = "NVT Path-Integral dynamics as implemented in LAMMPS\n"
+        else:
+            msg = "NPT Path-Integral dynamics as implemented in LAMMPS\n"
+        msg += f"Temperature (in Kelvin)                 {self.temperature}\n"
+        if self.pressure is not None:
+            msg += f"Pressure (GPa)                          {self.pressure}\n"
+        msg += f"Number of MLMD equilibration steps :    {self.nsteps_eq}\n"
+        msg += f"Number of MLMD production steps :       {self.nsteps}\n"
+        msg += f"Timestep (in fs) :                      {self.dt}\n"
+        if self.temperature is not None:
+            msg += f"Themostat damping parameter (in fs) :   {damp}\n"
+            if self.pressure is not None:
+                msg += f"Barostat damping parameter (in fs) :    {pdamp}\n"
+        msg += "\n"
+        return msg
