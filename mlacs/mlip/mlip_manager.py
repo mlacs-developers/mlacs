@@ -156,7 +156,6 @@ class MlipManager:
         the coefficients
         """
         sf = self.folder/mlip_subfolder
-        print("next_coefs")
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]

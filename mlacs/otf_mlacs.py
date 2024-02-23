@@ -722,16 +722,18 @@ class OtfMlacs:
                     atoms_by_mlip[idx].append(prev_traj[istate][iconf])
                 else:
                     no_parent_atoms.append(prev_traj[istate][iconf])
+
+
         for conf in no_parent_atoms:
             self.mlip.update_matrices(conf)
 
-        if len(no_parent_atoms) > 1:
+        # If the last simulation was with keep_tmp_mlip=False, 
+        # we put the old MLIP.model and weight in a Coef folder
+        if len(no_parent_atoms) > 1 and self.keep_tmp_mlip:
             msg = "Some configuration in Trajectory have no parent_mlip\n"
             msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)
 
-            # If the last simulation was with keep_tmp_mlip=False, 
-            # we put the old MLIP.model and weight in a Coef folder
             fm = self.mlip.folder / "MLIP.model"
             fw = self.mlip.folder / "MLIP.weight"
             last_coef = max(self.nconfs)-1
@@ -741,19 +743,15 @@ class OtfMlacs:
                 if not os.path.exists(coef_folder):
                     os.mkdir(coef_folder)
                     os.rename(fm, coef_folder / "MLIP.model")
-            if os.path.isfile(fw):
-                if not os.path.exists(coef_folder):
-                    os.mkdir(coef_folder)
                     os.rename(fw, coef_folder / "MLIP.weight")
 
         curr_step = 0
         for i in range(len(atoms_by_mlip)):
             curr_step += 1
             self.mlip.next_coefs(mlip_coef[i],
-                                 mlip_subfolder=Path(f"Coef{curr_step}"))
+                                 mlip_subfolder=Path(atoms_by_mlip[i][0].info['parent_mlip']))
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
-
         # Update this simulation traj
         self.traj = []
         self.atoms = []

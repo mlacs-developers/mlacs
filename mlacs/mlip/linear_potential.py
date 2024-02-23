@@ -136,6 +136,7 @@ class LinearPotential(MlipManager):
                                              subfolder=mlip_subfolder)
         create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
         create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
+
         return msg
 
 # ========================================================================== #

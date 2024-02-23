@@ -5,7 +5,7 @@ import numpy as np
 from ase.build import bulk
 
 from ... import context  # noqa
-from mlacs.mlip import SnapDescriptor
+from mlacs.mlip import SnapDescriptor, LinearPotential
 
 
 def test_parameters():
@@ -196,11 +196,12 @@ def test_get_pair_style_coeff():
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    snap = SnapDescriptor(at, rcut, parameters=parameters)
-    snap.mlip_model = (root / "Snap")
-    snap.mlip_desc = (root / "Snap")
+    f = "Snap"
 
-    pred_st, pred_co = snap.get_pair_style_coeff()
+    snap = SnapDescriptor(at, rcut, parameters=parameters)
+    mlip = LinearPotential(descriptor=snap, folder=f)
+
+    pred_st, pred_co = mlip.pair_style, mlip.pair_coeff
 
     model_file = (root / "Snap/MLIP.model").as_posix()
     desc_file = (root / "Snap/MLIP.descriptor").as_posix()
