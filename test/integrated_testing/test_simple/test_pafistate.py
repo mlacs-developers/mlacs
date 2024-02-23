@@ -69,6 +69,9 @@ def test_mlacs_pafi_vanilla(root, treelink):
     assert ml_forces.shape == (nconfs * natoms * 3, 2)
     assert ml_stress.shape == (nconfs * 6, 2)
 
+    # Check that spline is working well
+    assert state.path.spline_coordinates[0].shape == (natoms, 15)
+
 
 def test_mlacs_pafi_linear(root, treelink):
 
@@ -117,3 +120,7 @@ def test_mlacs_pafi_linear(root, treelink):
     assert ml_energy.shape == (nconfs, 2)
     assert ml_forces.shape == (nconfs * natoms * 3, 2)
     assert ml_stress.shape == (nconfs * 6, 2)
+
+    # Check that spline is working well
+    assert state.path.spline_coordinates[0].shape == (natoms, 15)
+    assert not np.any(state.path.spline_coordinates[0,:,-3:])
