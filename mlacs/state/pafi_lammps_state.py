@@ -87,7 +87,7 @@ class PafiLammpsState(LammpsState):
                  trajfile=None,
                  loginterval=50,
                  rng=None,
-                 prt=True,
+                 prt=False,
                  workdir=None):
         LammpsState.__init__(self,
                              temperature,

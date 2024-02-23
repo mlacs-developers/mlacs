@@ -45,7 +45,6 @@ def test_mlacs_nebstate_vanilla(root, treelink):
     mode = "rdm_memory"
     nimages = 6
     state = NebLammpsState(nebat, nimages=nimages, mode=mode)
-    state.print = False
 
 # RB I will add this later.
 #    pair_mlip = dict(pair_style=mlip.pair_style, pair_coeff=mlip.pair_coeff)

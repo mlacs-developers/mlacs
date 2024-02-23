@@ -8,10 +8,12 @@ from pathlib import Path
 def root():
     return Path()
 
+
 @pytest.fixture(autouse=True)
 def expected_folder_base():
     folder = ["MolecularDynamics", "Snap"]
     return folder
+
 
 @pytest.fixture(autouse=True)
 def expected_files_base():
@@ -19,6 +21,7 @@ def expected_files_base():
              "MLIP-Energy_comparison.dat", "MLIP-Forces_comparison.dat",
              "MLIP-Stress_comparison.dat", "Trajectory_potential.dat"]
     return files
+
 
 @pytest.fixture(autouse=True)
 def treelink(root, expected_folder, expected_files):

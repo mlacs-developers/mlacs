@@ -111,7 +111,7 @@ class NebLammpsState(LammpsState):
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 prt=True,
+                 prt=False,
                  workdir=None):
         LammpsState.__init__(self,
                              temperature=0.0,
