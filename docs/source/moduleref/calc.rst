@@ -20,3 +20,8 @@ DlmCalcManager
 **************
 
 .. autoclass:: DlmCalcManager
+
+DatabaseCalc
+************
+
+.. autoclass:: DatabaseCalc

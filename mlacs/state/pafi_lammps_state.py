@@ -73,8 +73,9 @@ class PafiLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
+
     def __init__(self, temperature, path=None, maxjump=0.4, dt=1.5, damp=None,
-                 prt=True, langevin=True,
+                 prt=False, langevin=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, workdir=None, blocks=None):
         super().__init__(temperature=temperature, dt=dt, damp=damp,
@@ -82,6 +83,7 @@ class PafiLammpsState(LammpsState):
                          nsteps=nsteps, nsteps_eq=nsteps_eq, logfile=logfile,
                          trajfile=trajfile, loginterval=loginterval,
                          workdir=workdir, blocks=blocks)
+
 
         self.temperature = temperature
         self.path = path

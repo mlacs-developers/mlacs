@@ -96,10 +96,11 @@ class NebLammpsState(BaseLammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
+
     def __init__(self, configurations, xi_coordinate=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
                  dt=1.5, nimages=None, nprocs=None, mode="rdm_memory",
-                 linear=False, prt=True,
+                 linear=False, prt=False,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, workdir=None, blocks=None):
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
@@ -107,6 +108,7 @@ class NebLammpsState(BaseLammpsState):
 
         self.dt = dt
         self.pressure = None
+
         self.xi = xi_coordinate
         self.style = min_style
         self.criterions = (etol, ftol)
