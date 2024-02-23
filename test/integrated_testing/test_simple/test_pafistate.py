@@ -123,4 +123,4 @@ def test_mlacs_pafi_linear(root, treelink):
 
     # Check that spline is working well
     assert state.path.spline_coordinates[0].shape == (natoms, 15)
-    assert not np.any(state.path.spline_coordinates[0,:,-3:])
+    assert not np.any(state.path.spline_coordinates[0, :, -3:])

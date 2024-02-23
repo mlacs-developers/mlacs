@@ -1,9 +1,7 @@
 import pytest
-import os
 
 from pathlib import Path
 
-import numpy as np
 from ase.io.abinit import read_abinit_out
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 from mlacs.utilities import AbinitNC, set_aseAtoms
@@ -24,7 +22,7 @@ def build_ncobj():
 def test_atoms_from_ncfiles(root, build_ncobj):
     """
     """
-    f = root / 'reference_files' 
+    f = root / 'reference_files'
     with open(f / 'abinit.abo', 'r') as fd:
         results = read_abinit_out(fd)
 
@@ -48,7 +46,7 @@ def test_atoms_from_ncfiles(root, build_ncobj):
 def test_dict_from_ncfile(root, build_ncobj):
     """
     """
-    
+
     fulldict = dict()
     _nc = AbinitNC()
     for f in root.rglob('*nc'):
