@@ -25,44 +25,37 @@ class TensorpotPotential(MlipManager):
     ----------
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
-    nthrow: :class: int
-        Number of first configurations to ignore when doing the fit
     energy_coefficient: :class:`float`
         Weight of the energy in the fit
         Default 1.0
     forces_coefficient: :class:`float`
         Weight of the forces in the fit
         Default 1.0
-    mbar: :class:`MbarManager`
-        Weight with the multistate Bennett acceptance ratio (MBAR) method.
+    weight: :class:`WeightingPolicy`
+        Weight used for the fitting and calculation of properties.
         Default :class:`None`
     """
     def __init__(self,
                  descriptor,
-                 nthrow=0,
                  parameters={},
                  energy_coefficient=1.0,
                  forces_coefficient=1.0,
-                 folder="tensorpot",
-                 mbar=None):
+                 folder="Tensorpot",
+                 weight=None):
         MlipManager.__init__(self,
                              descriptor,
-                             nthrow,
                              energy_coefficient,
                              forces_coefficient,
-                             mbar=mbar)
+                             folder=folder,
+                             weight=weight)
         self.natomenv = 0 
-        self.folder = Path(folder).absolute()
-        self.folder.mkdir(parents=True, exist_ok=True)        
-        self.descriptor.set_folder(self.folder)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)
 
-        pair_style, pair_coeff = self.descriptor.get_pair_style_coeff()
+        pair_style, pair_coeff = self.descriptor.get_pair_style_coeff(self.folder)
         self.pair_style = pair_style
         self.pair_coeff = pair_coeff
-        self.mbar=mbar
 
         if self.parameters["method"] != "ols":
             if self.parameters["hyperparameters"] is None:
@@ -81,14 +74,24 @@ class TensorpotPotential(MlipManager):
         # Even during a restart, we pass through here everytime
         if isinstance(atoms, Atoms):
             atoms = [atoms]
-        if self.mbar is not None:
-            raise NotImplementedError("Mbar not implemented for ACE")
-            self.mbar.update_database(atoms)
+        if self.weight is not None:
+            self.weight.update_database(atoms)
 
         #### This should probably be a descriptor function ####
+        ## TO SAVE computation time, I should only do this at train_mlip
+        print(self.descriptor.df_fn)
         if not Path.exists(self.descriptor.df_fn):
             df = create_dataframe()
-        df = update_dataframe(atoms, descriptor=self.descriptor, add_result=True, mbar=self.mbar, df=df)
+
+        W = self.weight.get_weights()
+        print(np.shape(W))
+        print(W)
+        exit()
+        print(len(we))
+        print(len(wf)) 
+        df = update_dataframe(atoms, descriptor=self.descriptor, 
+                              add_result=True, we=we, wf=wf, df=df)
+
         df.to_pickle(self.descriptor.df_fn, compression="gzip")
 
         if self.descriptor.acefit is None:
@@ -103,26 +106,20 @@ class TensorpotPotential(MlipManager):
         # We start the fitting from previous coefficients.
         self.descriptor.initialize_x0()
         self.descriptor.do_fit()
-        if self.mbar is not None:
-            raise NotImplementedError("Another thing to implement when using mbar")
-            if self.mbar.train_mlip:
-                amat, ymat = self.mbar.reweight_mlip(amat, ymat)
+        if self.mbar.train_mlip:
+            W = self.weight.get_weights()
 
         msg = "Number of configurations for training: " + \
                f"{self.nconfs}\n"
         msg += "Number of atomic environments for training: " + \
                f'{self.natomenv}\n'
 
-        if self.mbar is not None:
-            raise NotImplementedError("Another thing to implement when using mbar")
-            #if self.mbar.train_mlip:
-                #msg += self.mbar.compute_tests(amat_e, amat_f, amat_s,
-                #                               ymat_e, ymat_f, ymat_s,
-                #                               self.coefficients)
-            #else:
-            #    msg += self.compute_tests(amat_e, amat_f, amat_s,
-            #                              ymat_e, ymat_f, ymat_s)
-            #msg += self.mbar.run_weight(amat_e, self.coefficients)
+        #raise NotImplementedError("Another thing to implement when using mbar")
+        tmp_msg, weight_fn = self.weight.compute_weight(
+            amat_e,
+            self.coefficients,
+            self.get_mlip_energy,
+            subfolder=mlip_subfolder)
 
         return msg
 
@@ -167,7 +164,7 @@ class TensorpotPotential(MlipManager):
         txt += "-----------\n"
         txt += f"energy coefficient :    {self.ecoef}\n"
         txt += f"forces coefficient :    {self.fcoef}\n"
-        txt += f"Using MBAR : {'True' if self.mbar else 'False'}"
+        txt += f"Weight : {self.weight}"
         txt += "\n"
         txt += "Descriptor used in the potential:\n"
         txt += repr(self.descriptor)

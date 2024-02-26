@@ -64,7 +64,7 @@ except ImportError:
 #        9. Make sure scipy has the time to write the coefficients before 
 #           the StopIteration flag in Python 3.7
 #       10. Can predict deal with stress ?
-#
+#       11. Add a check for stress coeff to be 0 until I figure it out
 # ========================================================================== #
 # ========================================================================== #
 class AceDescriptor(Descriptor):
@@ -77,21 +77,23 @@ class AceDescriptor(Descriptor):
     ----------
     atoms : :class:`ase.atoms`
         Reference structure, with the elements for the descriptor
+
     free_at_e : :class:`dict`
         The energy of one atom for every element. The atom MUST be isolated in a big box (eV/at)
         e.g. : {'Cu': 12, 'O': 3}
+
     rcut: :class:`float`
         The cutoff of the descriptor, in angstrom
         Default 5.0
-    folder: :class:`str`
-        The folder in which ACE data are stored.
-        Default `ACE`
+
     tol_e: :class:`float`
         The Mean Absolute Error on energy between ACE and DFT to consider it converged (meV/at)
         Default `5`
+
     tol_f: :class:`float`
         The Mean Absolute Error on forces between ACE and DFT to consider it converged (meV/ang)
         Default `25` 
+
     bconf_dict: :class:`dict`
         A dictionnary of parameters for the BBasisConfiguration
         The default values are
@@ -107,6 +109,7 @@ class AceDescriptor(Descriptor):
                               dcut: 0.01}}
             - functions: {"ALL": {nradmax_by_orders: [15, 3, 2],
                                   lmax_by_orders: [0, 2, 2]}}
+
     loss_dict: :class:`dict`
         A dictionnary of parameters for the loss function
         The default values are
@@ -116,6 +119,7 @@ class AceDescriptor(Descriptor):
             - w0_rad: 1e-12
             - w1_rad: 1e-12
             - w2_rad: 1e-12
+
     fitting_dict: :class:`dict`
         A dictionnary of parameters for the minimization
         The default values are
@@ -126,6 +130,7 @@ class AceDescriptor(Descriptor):
             - repulsion: 'auto'
             - optimizer: 'BFGS'
             - optimizer_options: {disp: True, gtol: 0, xrtol: 0}
+
     backend_dict: :class:`dict`
         A dictionnary of parameters for the backend
         The default values are
@@ -137,7 +142,6 @@ class AceDescriptor(Descriptor):
     """
     def __init__(self, atoms, free_at_e, rcut=5.0, tol_e=5, tol_f=25, bconf_dict=None, 
                  loss_dict=None, fitting_dict=None, backend_dict=None, nworkers=None):
-
         envvar = "ASE_LAMMPSRUN_COMMAND"
         cmd = os.environ.get(envvar)
         if cmd is None:
@@ -146,7 +150,7 @@ class AceDescriptor(Descriptor):
         self._verify_dependency()
 
         Descriptor.__init__(self, atoms, rcut)
-        self.df_fn = "ACE.pckl.gzip"
+        self.df_fn = Path("ACE.pckl.gzip").absolute()
         self.folder = ""
 
         self.rcut = rcut
@@ -169,13 +173,19 @@ class AceDescriptor(Descriptor):
         self.bconf = create_multispecies_basis_config(bconf)
         self.acefit=None
 
+# ========================================================================== #
     def initialize_x0(self):
-        """ Read the coefficients obtained from previous fitting """
+        """ 
+        Read the coefficients obtained from previous fitting 
+        """
         print(self.bconf.get_all_coeffs())
         # TODO TODO TODO
         #raise NotImplementedError("This is that")
 
+# ========================================================================== #
     def do_fit(self):
+        """
+        """
         mlacs_folder = Path.cwd()
         os.chdir(self.folder)
         try: 
@@ -191,17 +201,10 @@ class AceDescriptor(Descriptor):
                               cwd=str(self.folder))
             os.chdir(mlacs_folder)
 
-
-    def set_folder(self, folder):
-        self.folder= folder
-        # Make sure the descriptor path is absolute. Since descriptor dont know the folder, it must be done here
-        self.df_fn = self.folder.joinpath(f"{self.df_fn}")
-        self.data['filename'] = str(self.df_fn)
-
-        if not 'weighting' in self.fitting: # We define the weight explicitly even if uniform
-            self.fitting['weighting'] =  pyace.preparedata.ExternalWeightingPolicy(self.df_fn)
-
+# ========================================================================== #
     def get_atomic_env(self, atoms):
+        """
+        """
         atomic_env = []
         pyacecalc = pyace.asecalc.PyACECalculator(self.bconf, fast_nl=True)
         for at in atoms:
@@ -210,7 +213,9 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     def create_acefit(self):
-        """Creates the ACEFit Object. We need at least 1 conf."""
+        """
+        Creates the ACEFit Object. We need at least 1 conf.
+        """
         warnings.filterwarnings("ignore", category=Warning, module="tensorflow")
         def check_conv(last_fit_metric_data): 
             """Function called after every fitting iteration to check convergence."""
@@ -245,31 +250,14 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     def calc_free_e(self,atoms):
-        "Calculate the energy of free atom in the structure"
+        """
+        Calculate the energy of free atom in the structure
+        """
         e = 0
         for atom in atoms:
             e_tmp = self.free_at_e[atom.symbol]
             e+= e_tmp
         return e
-
-# ========================================================================== #
-    def calc_weights(self, df, mbar, atoms):
-        traj = list(df['ase_atoms'].values) # Np doesn't work well with Atoms
-        for at in atoms:
-            traj.append(at)
-
-        if mbar is not None:
-            raise NotImplementedError("I will need to implement this eventually")
-        else:
-            we = [1/len(traj)]*len(traj)
-
-        wf = []
-        for i, atoms in enumerate(traj):
-            wf.append([we[i]/len(atoms)]*len(atoms))
-
-        # Convert wf to a list of np.array
-        wf = list(map(np.array, wf))
-        return we, wf
 
 # ========================================================================== #
     def predict(self, df):
@@ -295,6 +283,8 @@ class AceDescriptor(Descriptor):
         return e, f, s
 # ========================================================================== #
     def _verify_dependency(self):
+        """
+        """
         s = ""
         if not ispandas:
             s += "Pandas package error.\n"
@@ -412,8 +402,7 @@ class AceDescriptor(Descriptor):
         lammps_command = self.cmd + ' -in base.in -log none -sc lmp.out'
         lmp_handle = run(lammps_command,
                          shell=True,
-                         stderr=PIPE,
-                         cwd=self.folder)
+                         stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
@@ -427,10 +416,7 @@ class AceDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        (self.folder / "lmp.out").unlink()
-        (self.folder / "descriptor.out").unlink()
-        (self.folder / "base.in").unlink()
-        (self.folder / "atoms.lmp").unlink()
+        pass
 
 # ========================================================================== #
     def _write_mlip_params(self):
@@ -439,23 +425,36 @@ class AceDescriptor(Descriptor):
         raise NotImplementedError("No params for ACE... yet")
 
 # ========================================================================== #
-    def _regularization_matrix(self):
-        raise NotImplementedError("I don't think we need this")
-
-# ========================================================================== #
-    def get_pair_style_coeff(self):
+    def get_pair_style_coeff(self, folder):
         """
         """
-        acefile = self.folder / "ACE.yace"
+        acefile = folder / "ACE.yace"
         pair_style = "pace"
         pair_coeff = [f"* * {acefile} " +
                       ''.join(self.elements)]
         return pair_style, pair_coeff
 
 # ========================================================================== #
+    def get_pair_style(self, folder=None):
+        """
+        """
+        pair_style = "pace"
+        return pair_style
+
+# ========================================================================== #
+    def get_pair_coeff(self, folder):
+        """
+        """
+        acefile = folder / "ACE.yace"
+        pair_coeff = [f"* * {acefile} " +
+                      ''.join(self.elements)]
+        return pair_coeff
+
+# ========================================================================== #
     def _ace_opt_str(self):
         raise Warning("No options/params allowed for this version of ACE")
         return ""
+
 # ========================================================================== #
     def __str__(self):
         txt = " ".join(self.elements)

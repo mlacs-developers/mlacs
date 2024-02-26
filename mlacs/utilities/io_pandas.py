@@ -11,17 +11,18 @@ def create_dataframe():
     return pd.DataFrame(columns=columns)
 
 # ========================================================================== #
-def update_dataframe(atoms, descriptor, add_result, df_fn=None, df=None, mbar=None):
+def update_dataframe(atoms, descriptor, add_result, df=None, weight=None):
     """
-    Add the new configuration atoms to the dataframe. 
+    Add the new configuration atoms to the dataframe.
     add_result = True : Compute e,f,s and recalculate weights
     add_result = False : Only put the atomic position
-    It doesn't write the file  
+    It doesn't write the file
     """
-    if df is None:
-        if df_fn is None:
-            df_fn = descriptor.df_fn
-        df = pd.read_pickle(df_fn, compression="gzip")
+    if not isinstance(df,pd.DataFrame):
+        if isinstance(df, str):
+            df = pd.read_pickle(df, compression="gzip")
+        else:
+            raise ValueError("Unrecognized type for the dataframe")
 
     # The 8 columns
     name, ase_atoms, NUMBER_OF_ATOMS, = [],[],[]
@@ -38,15 +39,11 @@ def update_dataframe(atoms, descriptor, add_result, df_fn=None, df=None, mbar=No
             e_corr.append(at.get_potential_energy() - free_e)
             forces.append(at.get_forces())
     if add_result:
-        w_energy, w_forces = descriptor.calc_weights(df, mbar, atoms)
+        we, wf
         to_add = dict(name=name, ase_atoms=ase_atoms,
                       energy_corrected=e_corr, forces=forces,
                       NUMBER_OF_ATOMS=NUMBER_OF_ATOMS, atomic_env=atomic_env,
-                      w_energy=w_energy[-len(name):], w_forces=w_forces[-len(name):])
-        df['w_energy'] = w_energy[:-len(name)]
-        df['w_forces'] = w_forces[:-len(name)]
-
-
+                      w_energy=we, w_forces=wf)
     else:
         to_add = dict(name=name, ase_atoms=ase_atoms,
                       NUMBER_OF_ATOMS=NUMBER_OF_ATOMS, atomic_env=atomic_env)
