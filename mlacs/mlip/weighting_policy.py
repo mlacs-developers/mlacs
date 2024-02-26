@@ -25,6 +25,7 @@ class WeightingPolicy:
         If you use an initial database, it needs weight.
         Can a list or an np.array of values or a file.
         Default :class:`None`
+
     """
 
     def __init__(self, database=None, weight=None):

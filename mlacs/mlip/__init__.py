@@ -12,6 +12,9 @@ from .delta_learning import DeltaLearningPotential
 from .spin_potential import SpinLatticePotential
 from .mbar_manager import MbarManager
 from .weighting_policy import UniformWeight
+from .ace_descriptor import AceDescriptor
+from .tensorpotential import TensorpotPotential
+
 __all__ = ['MlipManager',
            'Descriptor',
            'SumDescriptor',
@@ -22,4 +25,6 @@ __all__ = ['MlipManager',
            'DeltaLearningPotential',
            'SpinLatticePotential',
            'MbarManager',
-           'UniformWeight',]
+           'UniformWeight',
+           'AceDescriptor',
+           'TensorpotPotential']
