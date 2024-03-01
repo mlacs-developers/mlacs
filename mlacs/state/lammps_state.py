@@ -240,11 +240,8 @@ class LammpsState(StateManager):
             raise RuntimeError(msg)
         atoms = self._get_atoms_results(initial_charges)
 
-        # Set the simulation T and P for weighting purpose
-        if self.t_stop is None and self.temperature is not None:
-            atoms.info['simulation_temperature'] = self.temperature
-        if self.p_stop is None and self.pressure is not None:
-            atoms.info['simulation_pressure'] = self.pressure
+        # Set the info of atoms
+        atoms.info['info_state'] = self.info_dynamics
 
         return atoms.copy()
 
@@ -325,10 +322,40 @@ class LammpsState(StateManager):
         return block
 
 # ========================================================================== #
+    def _make_info_dynamics(self):
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        self.ensemble = "XXX"
+
+        # N or mu
+        self.ensemble[0] = "N"
+
+        # V or P
+        self.ensemble[1] = "V"
+        pressure = None
+        if self.pressure is not None:
+            self.ensemble[1] = "P"
+            if self.p_stop is None:
+                pressure = self.pressure
+
+        # T or E
+        if self.temperature is None:  # NVE
+            raise NotImplementedError
+        self.ensemble[2] = "T"
+
+        temperature = None
+        if self.t_stop is None:
+            temperature = self.temperature
+
+        self.info_dynamics = dict(ensemble=self.ensemble,
+                                  temperature=temperature,
+                                  pressure=pressure)
+
+# ========================================================================== #
     def _get_block_thermostat(self, eq):
         """
 
         """
+        self._make_info_dynamics()
 
         if self.t_stop is None:
             temp = self.temperature
@@ -478,7 +505,6 @@ class LammpsState(StateManager):
             atoms.info['simulation_temperature'] = self.temperature
         if self.p_stop is None and self.pressure is not None:
             atoms.info['simulation_pressure'] = self.pressure
-
 
 # ========================================================================== #
     def _get_lammps_command(self):

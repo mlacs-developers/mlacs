@@ -155,12 +155,6 @@ class PafiLammpsState(LammpsState):
                                          atom_style,
                                          eq)
 
-        # Set the simulation T and P for weighting purpose
-        if self.t_stop is None and self.temperature is not None:
-            atoms.info['simulation_temperature'] = self.temperature
-        if self.p_stop is None and self.pressure is not None:
-            atoms.info['simulation_pressure'] = self.pressure
-
         return atoms.copy()
 
 # ========================================================================== #

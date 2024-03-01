@@ -73,15 +73,21 @@ class MbarManager(WeightingPolicy):
         Default :class:`None`
     """
 
-    def __init__(self, parameters=dict(), database=None, weight=None):
+    def __init__(self, parameters=dict(),  energy_coefficient=1.0,
+                 forces_coefficient=1.0, stress_coefficient=1.0,
+                 database=None, weight=None):
         if not ispymbar:
             msg = "You need pymbar installed to use the MBAR manager"
             raise ModuleNotFoundError(msg)
 
-        WeightingPolicy.__init__(self,
-                                 database=None,
-                                 weight=None)
+        WeightingPolicy.__init__(
+                self,
+                energy_coefficient=energy_coefficient,
+                forces_coefficient=forces_coefficient,
+                stress_coefficient=stress_coefficient,
+                database=database, weight=weight)
 
+        self.database = []
         self.parameters = default_parameters
         self.parameters.update(parameters)
         self.Nk = []
@@ -111,8 +117,6 @@ class MbarManager(WeightingPolicy):
         if self.parameters['mode'] == 'train':
             self.train_mlip = True
 
-        if self.database is None:
-            self.database = []
         self.database.extend(self._newddb)
         self.nconfs = len(self.database)
 

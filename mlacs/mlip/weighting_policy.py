@@ -44,7 +44,7 @@ class WeightingPolicy:
         self.database = database
         self.matsize = None
         self.matsize = []
-        
+
         self.energy_coefficient = energy_coefficient
         self.forces_coefficient = forces_coefficient
         self.stress_coefficient = stress_coefficient
@@ -129,15 +129,16 @@ class UniformWeight(WeightingPolicy):
 
     """
 
-    def __init__(self, nthrow=0, energy_coefficient=1.0, 
-                 forces_coefficient=1.0,
-           stress_coefficient=1.0, database=None, weight=None):
+    def __init__(self, nthrow=0, energy_coefficient=1.0,
+                 forces_coefficient=1.0, stress_coefficient=1.0,
+                 database=None, weight=None):
         self.train_mlip = False
         self.nthrow = nthrow
-        WeightingPolicy.__init__(self, 
+        WeightingPolicy.__init__(
+                self,
                 energy_coefficient=energy_coefficient,
                 forces_coefficient=forces_coefficient,
-                stress_coefficient=stress_coefficient, 
+                stress_coefficient=stress_coefficient,
                 database=database, weight=weight)
 
 # ========================================================================== #

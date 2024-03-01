@@ -104,6 +104,8 @@ class LangevinState(StateManager):
                      nbeads=1):
         """
         """
+        self.info_dynamics = dict(ensemble="NVT",
+                                  temperature=self.temperature)
         atoms = supercell.copy()
         calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
                       atom_style=atom_style)
@@ -132,11 +134,7 @@ class LangevinState(StateManager):
             dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True),
                        interval=self.loginterval)
         dyn.run(nsteps)
-
-        # Set the simulation T for weighting purpose
-        if self.t_stop is None and self.temperature is not None:
-            dyn.atoms.info['simulation_temperature'] = self.temperature
-
+        dyn.atoms.info['info_state'] = self.info_dynamics
         return dyn.atoms
 
 # ========================================================================== #

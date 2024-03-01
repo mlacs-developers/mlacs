@@ -70,7 +70,7 @@ class LinearPotential(MlipManager):
         ymat_f = self.ymat_f[idx_f:]
         ymat_s = self.ymat_s[idx_s:]
 
-        # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit 
+        # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit
         # 1000x more on the stress than on the energy. Careful ymat/AMAT.std
         amat = np.r_[amat_e / amat_e.std(),
                      amat_f / amat_f.std(),
@@ -79,7 +79,7 @@ class LinearPotential(MlipManager):
                      ymat_f / amat_f.std(),
                      ymat_s / amat_s.std()]
 
-        W = self.weight.get_weights() # If train_mlip
+        W = self.weight.get_weights()
         amat = amat * W[:, np.newaxis]
         ymat = ymat * W
 
