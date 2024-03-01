@@ -25,18 +25,6 @@ class LinearPotential(MlipManager):
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
 
-    energy_coefficient: :class:`float`
-        Weight of the energy in the fit
-        Default 1.0
-
-    forces_coefficient: :class:`float`
-        Weight of the forces in the fit
-        Default 1.0
-
-    stress_coefficient: :class:`float`
-        Weight of the stress in the fit
-        Default 1.0
-
     weight: :class:`WeightingPolicy`
         Weight used for the fitting and calculation of properties.
         Default :class:`None`
@@ -44,16 +32,10 @@ class LinearPotential(MlipManager):
     def __init__(self,
                  descriptor,
                  parameters={},
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=1.0,
                  weight=None,
                  folder=Path("MLIP")):
         MlipManager.__init__(self,
                              descriptor,
-                             energy_coefficient,
-                             forces_coefficient,
-                             stress_coefficient,
                              weight,
                              folder)
 
@@ -84,26 +66,25 @@ class LinearPotential(MlipManager):
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
         amat_f = self.amat_f[idx_f:]
         amat_s = self.amat_s[idx_s:]
-        ymat_e = self.ymat_e[idx_e:] / self.natoms[idx_e:]
+        ymat_e = np.copy(self.ymat_e[idx_e:]) / self.natoms[idx_e:]
         ymat_f = self.ymat_f[idx_f:]
         ymat_s = self.ymat_s[idx_s:]
 
-        ecoef = self.ecoef / amat_e.std() / len(amat_e)
-        fcoef = self.fcoef / amat_f.std() / len(amat_f)
-        scoef = self.scoef / amat_s.std() / len(amat_s)
+        # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit 
+        # 1000x more on the stress than on the energy. Careful ymat/AMAT.std
+        amat = np.r_[amat_e / amat_e.std(),
+                     amat_f / amat_f.std(),
+                     amat_s / amat_s.std()]
+        ymat = np.r_[ymat_e / amat_e.std(),
+                     ymat_f / amat_f.std(),
+                     ymat_s / amat_s.std()]
 
-        amat = np.r_[amat_e * ecoef,
-                     amat_f * fcoef,
-                     amat_s * scoef]
-        ymat = np.r_[ymat_e * ecoef,
-                     ymat_f * fcoef,
-                     ymat_s * scoef]
-
-        if self.weight.train_mlip:
-            W = self.weight.get_weights()
-            amat = amat * W[:, np.newaxis]
-            ymat = ymat * W
-
+        W = self.weight.get_weights() # If train_mlip
+        amat = amat * W[:, np.newaxis]
+        ymat = ymat * W
+        np.save('ymat.npy', ymat)
+        np.save('amat.npy', amat)
+        
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
                                                 ymat,
@@ -240,9 +221,6 @@ class LinearPotential(MlipManager):
         txt = "Linear potential\n"
         txt += "Parameters:\n"
         txt += "-----------\n"
-        txt += f"energy coefficient :    {self.ecoef}\n"
-        txt += f"forces coefficient :    {self.fcoef}\n"
-        txt += f"stress coefficient :    {self.scoef}\n"
         txt += f"Fit method :            {self.parameters['method']}\n"
         txt += "\n"
         txt += "Descriptor used in the potential:\n"

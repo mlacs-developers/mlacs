@@ -17,6 +17,18 @@ class WeightingPolicy:
 
     Parameters
     ----------
+    energy_coefficient: :class:`float`
+        Weight of the energy in the fit
+        Default 1.0
+
+    forces_coefficient: :class:`float`
+        Weight of the forces in the fit
+        Default 1.0
+
+    stress_coefficient: :class:`float`
+        Weight of the stress in the fit
+        Default 1.0
+
     database: :class:`ase.Trajectory`
         Initial database (optional)
         Default :class:`None`
@@ -27,10 +39,16 @@ class WeightingPolicy:
         Default :class:`None`
     """
 
-    def __init__(self, database=None, weight=None):
+    def __init__(self, energy_coefficient=1.0, forces_coefficient=1.0,
+                 stress_coefficient=1.0, database=None, weight=None):
         self.database = database
         self.matsize = None
         self.matsize = []
+        
+        self.energy_coefficient = energy_coefficient
+        self.forces_coefficient = forces_coefficient
+        self.stress_coefficient = stress_coefficient
+
         if database is not None:
             self.matsize = [len(a) for a in database]
 
@@ -59,6 +77,9 @@ class WeightingPolicy:
         """
         w = self.init_weight()
         we, wf, ws = self.build_W_efs(w)
+        we = we * self.energy_coefficient
+        wf = wf * self.forces_coefficient
+        ws = ws * self.stress_coefficient
         return np.r_[we, wf, ws]
 
 # ========================================================================== #
@@ -108,10 +129,16 @@ class UniformWeight(WeightingPolicy):
 
     """
 
-    def __init__(self, nthrow=0, database=None, weight=None):
+    def __init__(self, nthrow=0, energy_coefficient=1.0, 
+                 forces_coefficient=1.0,
+           stress_coefficient=1.0, database=None, weight=None):
         self.train_mlip = False
         self.nthrow = nthrow
-        WeightingPolicy.__init__(self, database=None, weight=None)
+        WeightingPolicy.__init__(self, 
+                energy_coefficient=energy_coefficient,
+                forces_coefficient=forces_coefficient,
+                stress_coefficient=stress_coefficient, 
+                database=database, weight=weight)
 
 # ========================================================================== #
     @subfolder

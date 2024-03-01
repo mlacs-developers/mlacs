@@ -40,9 +40,6 @@ class DeltaLearningPotential(MlipManager):
         self.model = model
 
         weight = self.model.weight
-        ecoef = self.model.ecoef
-        fcoef = self.model.fcoef
-        scoef = self.model.scoef
 
         if not isinstance(pair_style, list):
             pair_style = [pair_style]
@@ -55,8 +52,7 @@ class DeltaLearningPotential(MlipManager):
         self.ref_atom_style = atom_style
         self.atom_style = atom_style
 
-        MlipManager.__init__(self, self.model.descriptor,
-                             ecoef, fcoef, scoef, weight, folder)
+        MlipManager.__init__(self, self.model.descriptor, weight, folder)
 
         self._ref_e = None
         self._ref_f = None

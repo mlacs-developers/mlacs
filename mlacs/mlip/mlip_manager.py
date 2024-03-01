@@ -19,9 +19,6 @@ class MlipManager:
     """
     def __init__(self,
                  descriptor,
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=1.0,
                  weight=None,
                  folder=Path("MLIP"),
                  no_zstress=False):
@@ -30,9 +27,6 @@ class MlipManager:
         self.folder = folder.absolute()
 
         self.descriptor = descriptor
-        self.ecoef = energy_coefficient
-        self.fcoef = forces_coefficient
-        self.scoef = stress_coefficient
 
         self.amat_e = None
         self.amat_f = None
@@ -277,13 +271,9 @@ class SelfMlipManager(MlipManager):
     """
     def __init__(self,
                  descriptor,
-                 folder=Path("MLIP").absolute(),
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=0.0):
-        MlipManager.__init__(self, descriptor,
-                             energy_coefficient, forces_coefficient,
-                             stress_coefficient, folder=folder)
+                 weight=None,
+                 folder=Path("MLIP").absolute()):
+        MlipManager.__init__(self, descriptor, weight=weight, folder=folder)
         self.configurations = []
         self.natoms = []
 

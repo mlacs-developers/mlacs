@@ -65,28 +65,16 @@ class MomentTensorPotential(SelfMlipManager):
             - weighting='vibrations'
             - init_params='random'
             - update_mindist=False
-
-    energy_coefficient: :class:`float`
-
-    forces_coefficient: :class:`float`
-
-    stress_coefficient: :class:`float`
     """
     def __init__(self,
                  atoms,
                  mlpbin="mlp",
                  folder=Path("MTP").absolute(),
                  mtp_parameters={},
-                 fit_parameters={},
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=1.0):
+                 fit_parameters={}):
         SelfMlipManager.__init__(self,
                                  BlankDescriptor(atoms),
-                                 folder,
-                                 energy_coefficient,
-                                 forces_coefficient,
-                                 stress_coefficient)
+                                 folder)
 
         self.cmd = mlpbin
 
@@ -260,9 +248,9 @@ class MomentTensorPotential(SelfMlipManager):
         mlp_command += f" --bfgs-conv-tol={bfgs_conv_tol}"
         scale_by_forces = self.fit_parameters["scale_by_forces"]
         mlp_command += f" --scale-by-force={scale_by_forces}"
-        mlp_command += f" --energy-weight={self.ecoef}"
-        mlp_command += f" --force-weight={self.fcoef}"
-        mlp_command += f" --stress-weight={self.scoef}"
+        mlp_command += f" --energy-weight={self.weight.energy_coefficients}"
+        mlp_command += f" --force-weight={self.weight.forces_coefficients}"
+        mlp_command += f" --stress-weight={self.weight.stress_coefficients}"
         with open(subfolder / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
@@ -347,10 +335,6 @@ class MomentTensorPotential(SelfMlipManager):
         txt = "Moment Tensor Potential\n"
         txt += "Parameters:\n"
         txt += "-----------\n"
-        txt += f"energy coefficient :    {self.ecoef}\n"
-        txt += f"forces coefficient :    {self.fcoef}\n"
-        txt += f"stress coefficient :    {self.scoef}\n"
-        txt += "\n"
         txt += "Descriptor:\n"
         txt += "-----------\n"
         txt += f"level :                 {self.level}\n"
