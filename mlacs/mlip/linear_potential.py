@@ -44,6 +44,16 @@ class LinearPotential(MlipManager):
     mbar: :class:`MbarManager`
         Weigth with the multistate Bennett acceptance ratio (MBAR) method.
         Default :class:`None`
+
+    Examples
+    --------
+
+    >>> from ase.build import bulk
+    >>> atoms = bulk("Cu", cubic=True).repeat(2)
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(atoms, rcut=4.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
     """
     def __init__(self,
                  descriptor,

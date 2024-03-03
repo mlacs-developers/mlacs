@@ -23,12 +23,24 @@ class DeltaLearningPotential(MlipManager):
         If an overlay of pair style is used, this input as to be a
         :class:`list` of :class:`str` of the pair_style.
         For example :
-        pair_style = ['sw', 'zbl 3.0 4.0']
-        pair_coeff = [['* * Si.sw Si'],
-                      [* * 14 14]]
 
     pair_coeff: :class:`list` of :class:`str`
         The pair_coeff of the LAMMPS reference potential.
+
+    Examples
+    --------
+
+    >>> from ase.build import bulk
+    >>> atoms = bulk("Si", cubic=True).repeat(2)
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(atoms, rcut=6.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
+    >>>
+    >>> from mlacs.mlip import DeltaLearningPotential
+    >>> ps = ['sw', 'zbl 3.0 4.0']
+    >>> pc = [['* * Si.sw Si'], ['* * 14 14']]
+    >>> dmlip = DeltaLearningPotential(mlip, pair_style=ps, pair_coeff=pc)
     """
     def __init__(self,
                  model,

@@ -122,6 +122,14 @@ class LammpsState(StateManager):
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
+
+    Examples
+    --------
+
+    >>> from mlacs.state import LammpsState
+    >>>
+    >>> state = LammpsState(temperature=300, pressure=None) #NVT
+    >>> state = LammpsState(temperature=300, pressure=0)    #NPT
     """
     def __init__(self,
                  temperature,

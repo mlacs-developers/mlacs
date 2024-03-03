@@ -1,5 +1,5 @@
-State Manager
-#############
+State sampling methods
+######################
 
 .. module:: mlacs.state
 
@@ -8,43 +8,38 @@ State Manager
 
 The State Classes are object managing the state being simulated by the MLMD simulations, and hence, the state being approximated by MLACS.
 
-
 StateManager
 ************
 
 .. autoclass:: mlacs.state.state.StateManager
 
+Thermodynamic states
+********************
+
+LangevinState
+~~~~~~~~~~~~~
+
+.. autoclass:: LangevinState
+
 LammpsState
-***********
+~~~~~~~~~~~
 
 .. autoclass:: LammpsState
 
-NebLammpsState
-**************
-
-.. autoclass:: NebLammpsState
-
 PafiLammpsState
-***************
+~~~~~~~~~~~~~~~
 
 .. autoclass:: PafiLammpsState
 
-BlueMoonLammpsState
-*******************
-
-.. autoclass:: BlueMoonLammpsState
-
-CustomLammpsState
-*****************
-
-.. autoclass:: CustomLammpsState
-
-IpiState
-********
-
-.. autoclass:: IpiState
-
-LangevinState
+Ground states
 *************
 
-.. autoclass:: LangevinState
+OptimizeLammpsState
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: NebLammpsState
+
+NebLammpsState
+~~~~~~~~~~~~~~
+
+.. autoclass:: NebLammpsState

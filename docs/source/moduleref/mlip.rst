@@ -6,42 +6,56 @@ Machine-Learning Interatomic Potential Manager
 .. index::
    single: Class reference; MlipManager
 
-MbarManager
-***********
-
-.. autoclass:: mlacs.mlip.mbar_manager.MbarManager
+Compute descriptors
+*******************
 
 Descriptor
-**********
+~~~~~~~~~~
 
 .. autoclass:: Descriptor
 
 SumDescriptor
-*************
+~~~~~~~~~~~~~
 
 .. autoclass:: SumDescriptor
 
 SnapDescriptor
-**************
+~~~~~~~~~~~~~~
 
 .. autoclass:: SnapDescriptor
 
 MliapDescriptor
-***************
+~~~~~~~~~~~~~~~
 
 .. autoclass:: MliapDescriptor
 
+Add a weighting policy
+**********************
+
+MbarManager
+~~~~~~~~~~~
+
+.. autoclass:: MbarManager
+
+Fitting model
+*************
+
 MlipManager
-***********
+~~~~~~~~~~~
 
 .. autoclass:: MlipManager
 
 LinearPotential
-***************
+~~~~~~~~~~~~~~~
 
 .. autoclass:: LinearPotential
 
 MomentTensorPotential
-*********************
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: MomentTensorPotential
+
+DeltaLearningPotential
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: DeltaLearningPotential

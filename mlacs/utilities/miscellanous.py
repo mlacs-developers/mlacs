@@ -197,8 +197,6 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Activate periodic function boundary conditions
     border : :class:`bol`
         Impose a zero derivative condition at the function boundaries
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
 
     Return
     ------
@@ -254,8 +252,6 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Activate periodic function boundary conditions
     border : :class:`bol`
         Impose a zero derivative condition at the function boundaries
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
 
     Return
     ------
