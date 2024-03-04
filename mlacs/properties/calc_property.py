@@ -2,6 +2,7 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
 import copy
 import importlib
 import numpy as np
@@ -15,6 +16,7 @@ ti_args = ['atoms',
            'pair_style',
            'pair_coeff',
            'temperature',
+           'pressure',
            'nsteps',
            'nsteps_eq']
 
@@ -443,7 +445,7 @@ class CalcTi(CalcProperty):
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
                                            wdir,
-                                           logfile=wdir + "TiCheckFe.log")
+                                           logfile=os.path.join(wdir, "TiCheckFe.log"))
 
         # Run the simu ------------------------------------------------------
         self.ti.run()

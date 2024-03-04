@@ -121,6 +121,7 @@ class ReversibleScalingState(ThermoState):
                                                 k=None,
                                                 dt=dt,
                                                 damp=None,
+                                                pressure=pressure,
                                                 nsteps=10000,
                                                 nsteps_eq=5000,
                                                 nsteps_msd=25000,

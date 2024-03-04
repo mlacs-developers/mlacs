@@ -1,3 +1,6 @@
+
+# FIXME: This example is broken.
+
 import os
 
 import numpy as np
@@ -15,6 +18,7 @@ pair_coeff = "* * /home/richard/docs/test_calphy/potentials/Au.eam.alloy Au"
 
 # Parameters --------------------------------------------------------------------
 temp = 300 # K
+pressure = 0.0 
 # number of steps to go from the initial state to the final state
 nsteps = 100000
 # equilibration of the system before going through the path
@@ -34,6 +38,7 @@ state = EinsteinSolidState(atoms,
                            pair_style,
                            pair_coeff,
                            temp,
+                           pressure=pressure,
                            nsteps=nsteps,
                            nsteps_eq=nsteps_eq,
                            nsteps_msd=nsteps_msd,
@@ -44,5 +49,5 @@ ti = ThermodynamicIntegration(state,
                               ninstance = nrepeat,
                               logfile= "state.log")
 
-# Run the simu -----------------------------------------------------------------
+# Run the simulation  ----------------------------------------------------------
 ti.run()

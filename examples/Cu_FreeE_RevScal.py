@@ -41,6 +41,7 @@ state = ReversibleScalingState(atoms,
                                t_end=t_end,
                                #fe_init=None,
                                phase='solid',
+                               pressure=pressure,
                                ninstance=5,
                                nsteps=nsteps
                                )
