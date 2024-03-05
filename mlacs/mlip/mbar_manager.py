@@ -189,6 +189,21 @@ class MbarManager(WeightingPolicy):
         """
         Compute Ukn matrices.
         """
+        ###### NEW IMPLEMENTATION
+        #ddb = self.database
+
+        ## Sanity Check
+        #for at in self.database:
+        #    if 'info_state' not in at.info:
+        #        msg = "Atoms don't have 'info_state' for the thermodynamic"
+        #        raise ValueError(msg)
+        #assert len(ekn) == self.nconfs
+
+        #P,V,T = self._get_ensemble_info()
+        #ukn = (ekn + P * V) / (kB * T)
+        #print(ukn)
+        #return ukn
+        ###### OLD
         ddb = self.database
         P = np.zeros(self.nconfs)
         T = np.array([_.get_temperature() for _ in ddb])
@@ -196,14 +211,35 @@ class MbarManager(WeightingPolicy):
         if np.abs(np.diff(V)).sum() != 0.0:
             P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
         assert len(ekn) == self.nconfs
-
-        for i, at in enumerate(ddb):
-            if 'simulation_temperature' in at.info:
-                T[i] = at.info['simulation_temperature']
-            if 'simulation_pressure' in at.info:
-                P[i] = at.info['simulation_pressure']
         ukn = (ekn + P * V) / (kB * T)
         return ukn
+
+# ========================================================================== #
+    def _get_ensemble_info(self):
+        """
+        Read the ddb info state and returns arrays of P, V, T.
+
+        For now, only NVT and NPT are implemented.
+        NVT : Aimed T, Constant P, Constant V
+        NPT : Aimed T, Instantaneous P, Instantaneous V
+        -----------------------------------------------
+        NVE : Instantaneous T, No P, No V
+        uVT/uPT : NVT/NPT + Constant u, Instantaneous N
+        """
+        P, V, T = [], [], []
+        for at in self.database:
+            info = at.info['info_state']
+            ens = info['ensemble']
+            if ens == "NVT":
+                T = np.append(T, at.info['info_state']['temperature'])
+                P = np.append(P, -np.sum(at.get_stress()[:3]) / 3 )
+                V = np.append(V, at.get_volume())
+            elif ens == "NPT":
+                raise NotImplementedError
+            else:
+                msg = "Only NVT and NPT are implemented in MLACS for now"
+                raise NotImplementedError(msg)
+        return P, V, T
 
 # ========================================================================== #
     def _compute_weight(self, ukn):

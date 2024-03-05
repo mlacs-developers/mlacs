@@ -192,6 +192,7 @@ class LammpsState(StateManager):
                 msg = "You need to put a pressure with p_stop"
                 raise ValueError(msg)
 
+        self._make_info_dynamics()
         self.myblock = blocks
         if isinstance(blocks, list):
             self.myblock = blocks[0]
@@ -323,29 +324,32 @@ class LammpsState(StateManager):
 
 # ========================================================================== #
     def _make_info_dynamics(self):
+
         # NVT, NPT, no (uVT, uPT, NVE) yet
-        self.ensemble = "XXX"
+        ensemble=["X","X","X"]
 
         # N or mu
-        self.ensemble[0] = "N"
+        ensemble[0] = "N"
 
         # V or P
-        self.ensemble[1] = "V"
+        ensemble[1] = "V"
         pressure = None
         if self.pressure is not None:
-            self.ensemble[1] = "P"
+            ensemble[1] = "P"
             if self.p_stop is None:
                 pressure = self.pressure
 
         # T or E
         if self.temperature is None:  # NVE
             raise NotImplementedError
-        self.ensemble[2] = "T"
+        ensemble[2] = "T"
 
         temperature = None
         if self.t_stop is None:
             temperature = self.temperature
 
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        self.ensemble = ''.join(ensemble)
         self.info_dynamics = dict(ensemble=self.ensemble,
                                   temperature=temperature,
                                   pressure=pressure)
@@ -355,8 +359,6 @@ class LammpsState(StateManager):
         """
 
         """
-        self._make_info_dynamics()
-
         if self.t_stop is None:
             temp = self.temperature
         else:
@@ -500,11 +502,7 @@ class LammpsState(StateManager):
         else:
             atoms.set_momenta(self.init_momenta)
 
-        # Set the simulation T and P for weighting purpose
-        if self.t_stop is None and self.temperature is not None:
-            atoms.info['simulation_temperature'] = self.temperature
-        if self.p_stop is None and self.pressure is not None:
-            atoms.info['simulation_pressure'] = self.pressure
+        atoms.info['info_state'] = self.info_dynamics
 
 # ========================================================================== #
     def _get_lammps_command(self):

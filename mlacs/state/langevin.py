@@ -89,6 +89,9 @@ class LangevinState(StateManager):
         if self.rng is None:
             self.rng = np.random.default_rng()
 
+        self.info_dynamics = dict(ensemble="NVT",
+                                  temperature=self.temperature)
+
         self.ispimd = False
         self.isrestart = False
         self.isneb = False
@@ -104,8 +107,6 @@ class LangevinState(StateManager):
                      nbeads=1):
         """
         """
-        self.info_dynamics = dict(ensemble="NVT",
-                                  temperature=self.temperature)
         atoms = supercell.copy()
         calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
                       atom_style=atom_style)

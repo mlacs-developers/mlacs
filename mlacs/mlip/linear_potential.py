@@ -101,6 +101,9 @@ class LinearPotential(MlipManager):
         msg += "Number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n\n"
 
+        print("MLIP_ENERGY:", np.einsum('ij,j->i', amat_e, self.coefficients))
+        print("DFT_ENERGY:", ymat_e)
+
         tmp_msg, weight_fn = self.weight.compute_weight(
             amat_e,
             self.coefficients,
