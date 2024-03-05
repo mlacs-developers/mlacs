@@ -156,7 +156,7 @@ class OtfMlacs:
         msg = ""
         for i in range(self.nstate):
             msg += f"State {i+1}/{self.nstate} :\n"
-            msg += self.state[i].log_recap_state()
+            msg += repr(self.state[i])
         self.log.logger_log.info(msg)
         msg = self.calc.log_recap_state()
         self.log.logger_log.info(msg)
@@ -660,8 +660,8 @@ class OtfMlacs:
 
         prefworkdir = os.getcwd() + "/MolecularDynamics/"
         for istate in range(self.nstate):
-            self.state[istate].set_workdir(prefworkdir +
-                                           self.prefix_output[istate]+"/")
+            self.state[istate].workdir = prefworkdir + \
+                                         self.prefix_output[istate]
 
 # ========================================================================== #
     def _check_if_launched(self, nmax):
@@ -723,6 +723,7 @@ class OtfMlacs:
                 else:
                     no_parent_atoms.append(prev_traj[istate][iconf])
 
+<<<<<<< HEAD
         for conf in no_parent_atoms:
             self.mlip.update_matrices(conf)
 
@@ -732,6 +733,19 @@ class OtfMlacs:
             msg = "Some configuration in Trajectory have no parent_mlip\n"
             msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)
+=======
+            curr_step = 0
+            for i in range(len(atoms_by_mlip)):
+                curr_step += 1
+                self.mlip.next_coefs(mlip_coef[i],
+                                     mlip_subfolder=f"Coef{curr_step}")
+                for at in atoms_by_mlip[i]:
+                    self.mlip.update_matrices(at)
+        else:
+            for istate in range(self.nstate):
+                for at in prev_traj[istate]:
+                    self.mlip.update_matrices(at)
+>>>>>>> upstream
 
             fm = self.mlip.folder / "MLIP.model"
             fw = self.mlip.folder / "MLIP.weight"

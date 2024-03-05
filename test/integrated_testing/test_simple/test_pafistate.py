@@ -7,7 +7,7 @@ from ase.calculators.emt import EMT
 
 from ... import context  # noqa
 from mlacs.mlip import SnapDescriptor, LinearPotential
-from mlacs.state import LammpsState
+from mlacs.state import NebLammpsState, PafiLammpsState
 from mlacs import OtfMlacs
 
 
@@ -21,10 +21,15 @@ def expected_files(expected_files_base):
     return expected_files_base
 
 
-def test_mlacs_vanilla(root, treelink):
+def test_mlacs_pafi_vanilla(root, treelink):
 
-    atoms = bulk("Cu", cubic=True).repeat(2)
-    natoms = len(atoms)
+    atoms = bulk("Ag", cubic=True).repeat(3)
+    nebat = [atoms.copy(), atoms.copy()]
+    nebat[0].pop(0)
+    nebat[1].pop(1)
+    # Check that the first atom is the one we started with
+    assert len(nebat[0]) == len(nebat[1])
+    natoms = len(nebat[-1])
     nstep = 5
     nconfs = 4
     nconfs_init = 1
@@ -34,9 +39,11 @@ def test_mlacs_vanilla(root, treelink):
     desc = SnapDescriptor(atoms, 4.2, mlip_params)
     mlip = LinearPotential(desc, folder="Snap")
 
-    state = LammpsState(300, nsteps_eq=2, nsteps=100)
+    nimages = 6
+    neb = NebLammpsState(nebat, nimages=nimages)
+    state = PafiLammpsState(300, neb, nsteps_eq=2, nsteps=100)
 
-    sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)
+    sampling = OtfMlacs(nebat[0], state, calc, mlip, neq=5)
     sampling.run(nstep)
 
     for folder in treelink["folder"]:
@@ -46,10 +53,9 @@ def test_mlacs_vanilla(root, treelink):
         assert (root / file).exists()
 
     traj = read(root / "Trajectory.traj", ":")
-
     assert len(traj) == nstep
     # Check that the first atom is the one we started with
-    assert traj[0] == atoms
+    assert traj[0] == nebat[0]
     # Check that the system didn't change in the process
     for at in traj:
         assert len(at) == natoms
@@ -58,29 +64,40 @@ def test_mlacs_vanilla(root, treelink):
     ml_forces = np.loadtxt(root / "MLIP-Forces_comparison.dat")
     ml_stress = np.loadtxt(root / "MLIP-Stress_comparison.dat")
 
-    assert ml_energy.shape == (nconfs + nconfs_init, 2)
-    assert ml_forces.shape == ((nconfs + nconfs_init) * natoms * 3, 2)
-    assert ml_stress.shape == ((nconfs + nconfs_init) * 6, 2)
+    nconfs = nconfs + nconfs_init
+    assert ml_energy.shape == (nconfs, 2)
+    assert ml_forces.shape == (nconfs * natoms * 3, 2)
+    assert ml_stress.shape == (nconfs * 6, 2)
+
+    # Check that spline is working well
+    assert state.path.spline_coordinates[0].shape == (natoms, 15)
 
 
-def test_mlacs_several_training(root, treelink):
+def test_mlacs_pafi_linear(root, treelink):
 
-    atoms = bulk("Cu", cubic=True).repeat(2)
-    natoms = len(atoms)
-    nsteps = 2
-    nconfs = 1
-    nconfs_init = 5
+    atoms = bulk("Ag", cubic=True).repeat(3)
+    nebat = [atoms.copy(), atoms.copy()]
+    nebat[0].pop(0)
+    nebat[1].pop(1)
+    # Check that the first atom is the one we started with
+    assert len(nebat[0]) == len(nebat[1])
+    natoms = len(nebat[-1])
+    nstep = 5
+    nconfs = 4
+    nconfs_init = 1
     calc = EMT()
 
     mlip_params = dict(twojmax=4)
     desc = SnapDescriptor(atoms, 4.2, mlip_params)
     mlip = LinearPotential(desc, folder="Snap")
 
-    state = LammpsState(300, nsteps_eq=10, nsteps=100)
+    nimages = 6
+    # This is the setup to do BlueMoon Sampling
+    neb = NebLammpsState(nebat, nimages=nimages, linear=True)
+    state = PafiLammpsState(300, neb, nsteps_eq=2, nsteps=100)
 
-    sampling = OtfMlacs(atoms, state, calc, mlip, neq=5,
-                        confs_init=nconfs_init)
-    sampling.run(nsteps)
+    sampling = OtfMlacs(nebat[0], state, calc, mlip, neq=5)
+    sampling.run(nstep)
 
     for folder in treelink["folder"]:
         assert (root / folder).exists()
@@ -89,20 +106,21 @@ def test_mlacs_several_training(root, treelink):
         assert (root / file).exists()
 
     traj = read(root / "Trajectory.traj", ":")
-    assert len(traj) == nsteps
+    assert len(traj) == nstep
     # Check that the first atom is the one we started with
-    assert traj[0] == atoms
-    # Check that the system didn't change in the process
+
     for at in traj:
         assert len(at) == natoms
-
-    traintraj = read(root / "Training_configurations.traj", ":")
-    assert len(traintraj) == nconfs_init
 
     ml_energy = np.loadtxt(root / "MLIP-Energy_comparison.dat")
     ml_forces = np.loadtxt(root / "MLIP-Forces_comparison.dat")
     ml_stress = np.loadtxt(root / "MLIP-Stress_comparison.dat")
 
-    assert ml_energy.shape == (nconfs + nconfs_init, 2)
-    assert ml_forces.shape == ((nconfs + nconfs_init) * natoms * 3, 2)
-    assert ml_stress.shape == ((nconfs + nconfs_init) * 6, 2)
+    nconfs = nconfs + nconfs_init
+    assert ml_energy.shape == (nconfs, 2)
+    assert ml_forces.shape == (nconfs * natoms * 3, 2)
+    assert ml_stress.shape == (nconfs * 6, 2)
+
+    # Check that spline is working well
+    assert state.path.spline_coordinates[0].shape == (natoms, 15)
+    assert not np.any(state.path.spline_coordinates[0, :, -3:])

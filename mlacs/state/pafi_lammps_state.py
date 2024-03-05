@@ -73,35 +73,17 @@ class PafiLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
-    def __init__(self,
-                 temperature,
-                 path=None,
-                 maxjump=0.4,
-                 dt=1.5,
-                 damp=None,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 langevin=True,
-                 fixcm=True,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 rng=None,
-                 prt=True,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature,
-                             pressure=None,
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             fixcm=fixcm,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             rng=rng,
-                             init_momenta=None,
-                             workdir=workdir)
+
+    def __init__(self, temperature, path=None, maxjump=0.4, dt=1.5, damp=None,
+                 prt=False, langevin=True,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(temperature=temperature, dt=dt, damp=damp,
+                         langevin=langevin,
+                         nsteps=nsteps, nsteps_eq=nsteps_eq, logfile=logfile,
+                         trajfile=trajfile, loginterval=loginterval,
+                         workdir=workdir, blocks=blocks)
+
 
         self.temperature = temperature
         self.path = path
@@ -115,10 +97,6 @@ class PafiLammpsState(LammpsState):
         self.path.workdir = self.workdir / 'TransPath'
         self.print = prt
         self.maxjump = maxjump
-        self.damp = damp
-        if self.damp is None:
-            self.damp = "$(10*dt)"
-        self.langevin = langevin
 
         self.replica = None
 

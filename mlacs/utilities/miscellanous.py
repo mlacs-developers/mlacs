@@ -109,6 +109,7 @@ def compute_correlation(data, weight=None):
         weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
+
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
     rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
@@ -129,7 +130,7 @@ def _create_ASE_object(Z, positions, cell, energy):
                   pbc=True)
     calc = SPC(atoms=atoms,
                energy=energy)
-    atoms.set_calculator(calc)
+    atoms.calc = calc
     return atoms
 
 

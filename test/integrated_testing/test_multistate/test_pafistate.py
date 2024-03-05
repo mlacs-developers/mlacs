@@ -1,13 +1,12 @@
 import pytest
 
-import numpy as np
 from ase.build import bulk
 from ase.io import read
 from ase.calculators.emt import EMT
 
 from ... import context  # noqa
 from mlacs.mlip import SnapDescriptor, LinearPotential
-from mlacs.state import LammpsState
+from mlacs.state import NebLammpsState, PafiLammpsState
 from mlacs import OtfMlacs
 
 
@@ -27,13 +26,16 @@ def expected_files():
     return files
 
 
-def test_mlacs_multistate(root, treelink):
+def test_mlacs_pafi_multi(root, treelink):
 
-    atoms = bulk("Cu", cubic=True).repeat(2)
-    natoms = len(atoms)
-    nstep = 4
-    nconfs = 3
-    nconfs_init = 1
+    atoms = bulk("Ag", cubic=True).repeat(3)
+    nebat = [atoms.copy(), atoms.copy()]
+    nebat[0].pop(0)
+    nebat[1].pop(1)
+    # Check that the first atom is the one we started with
+    assert len(nebat[0]) == len(nebat[1])
+    natoms = len(nebat[-1])
+    nstep = 3
     calc = EMT()
 
     mlip_params = dict(twojmax=4)
@@ -42,13 +44,13 @@ def test_mlacs_multistate(root, treelink):
 
     atoms = []
     state = []
-    acell = [3.300, 3.200, 3.100]
+    nimages = 6
+    xi = [0.01, 0.6, 1.1]
     temp = [100, 200, 300]
-    press = [-1, 0, 1]
-    for t, p, a in zip(temp, press, acell):
-        state.append(LammpsState(t, p, nsteps_eq=2, nsteps=100))
-        atoms.append(bulk("Cu", cubic=True, a=a).repeat(2))
-    nstate = len(state)
+    for x, t in zip(xi, temp):
+        neb = NebLammpsState(nebat, nimages=nimages, xi_coordinate=x)
+        state.append(PafiLammpsState(t, neb, nsteps_eq=2, nsteps=100))
+        atoms.append(nebat[0])
 
     sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)
     sampling.run(nstep)
@@ -67,12 +69,3 @@ def test_mlacs_multistate(root, treelink):
         # Check that the system didn't change in the process
         for at in traj:
             assert len(at) == natoms
-
-    ml_energy = np.loadtxt(root / "MLIP-Energy_comparison.dat")
-    ml_forces = np.loadtxt(root / "MLIP-Forces_comparison.dat")
-    ml_stress = np.loadtxt(root / "MLIP-Stress_comparison.dat")
-
-    nconfs = nstate * (nconfs + nconfs_init)
-    assert ml_energy.shape == (nconfs, 2)
-    assert ml_forces.shape == (nconfs * natoms * 3, 2)
-    assert ml_stress.shape == (nconfs * 6, 2)

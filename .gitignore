@@ -11,8 +11,12 @@ __pycache__/
 
 # local files
 /token
+*.swp
 
 # Jupyter notebook
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
 docs/source/tutorials/*jpeg
+
+# Pytest
+.coverage

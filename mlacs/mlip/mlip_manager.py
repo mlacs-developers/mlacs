@@ -4,6 +4,8 @@
 """
 from pathlib import Path
 import numpy as np
+from abc import ABC, abstractmethod
+
 from ase.atoms import Atoms
 from ase.units import GPa
 
@@ -13,7 +15,7 @@ from .weighting_policy import UniformWeight
 
 # ========================================================================== #
 # ========================================================================== #
-class MlipManager:
+class MlipManager(ABC):
     """
     Parent Class for the management of Machine-Learning Interatomic Potential
     """
@@ -92,12 +94,14 @@ class MlipManager:
         self.nconfs += len(atoms)
 
 # ========================================================================== #
+    @abstractmethod
     def train_mlip(self):
         """
         """
         raise NotImplementedError
 
 # ========================================================================== #
+    @abstractmethod
     def get_mlip_energy(coef, desc):
         """
         Function that gives the mlip_energy

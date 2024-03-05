@@ -3,39 +3,37 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from pathlib import Path
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 
 # ========================================================================== #
 # ========================================================================== #
-class StateManager:
+class StateManager(ABC):
     """
     Parent Class managing the state being simulated
     """
     def __init__(self,
-                 dt=1.5,
                  nsteps=1000,
                  nsteps_eq=100,
-                 fixcm=True,
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
                  workdir=None):
 
-        self.dt = dt
-        self.nsteps = nsteps
-        self.nsteps_eq = nsteps_eq
-        self.fixcm = fixcm
-        self.logfile = logfile
-        self.trajfile = trajfile
-        self.loginterval = loginterval
+        self._nsteps = nsteps
+        self._nsteps_eq = nsteps_eq
+        self._logfile = logfile
+        self._trajfile = trajfile
+        self._loginterval = loginterval
 
         if workdir is None:
             workdir = "MolecularDynamics"
         self.workdir = Path(workdir).absolute()
 
 # ========================================================================== #
+    @abstractmethod
     def run_dynamics(self,
                      supercell,
                      pair_style,
@@ -47,7 +45,7 @@ class StateManager:
         Run the dynamics for the state, during nsteps
         then return the last atoms of the simulation
         """
-        raise NotImplementedError
+        pass
 
 # ========================================================================== #
     def initialize_momenta(self, atoms):
@@ -59,6 +57,7 @@ class StateManager:
             atoms.set_momenta(momenta)
 
 # ========================================================================== #
+    @abstractmethod
     def log_recap_state(self):
         """
         Function to return a string describing the state for the log
@@ -66,7 +65,65 @@ class StateManager:
         return ""
 
 # ========================================================================== #
-    def set_workdir(self, workdir):
-        """
-        """
-        self.workdir = Path(workdir).absolute()
+    def __repr__(self):
+        return self.log_recap_state()
+
+# ========================================================================== #
+    @property
+    def workdir(self):
+        return self._workdir
+
+# ========================================================================== #
+    @workdir.setter
+    def workdir(self, workdir):
+        self._workdir = Path(workdir).absolute()
+
+# ========================================================================== #
+    @property
+    def nsteps(self):
+        return self._nsteps
+
+# ========================================================================== #
+    @nsteps.setter
+    def nsteps(self, nsteps):
+        self._nsteps = nsteps
+
+# ========================================================================== #
+    @property
+    def nsteps_eq(self):
+        return self._nsteps_eq
+
+# ========================================================================== #
+    @nsteps_eq.setter
+    def nsteps_eq(self, nsteps_eq):
+        self._nsteps_eq = nsteps_eq
+
+# ========================================================================== #
+    @property
+    def logfile(self):
+        return self._logfile
+
+# ========================================================================== #
+    @logfile.setter
+    def logfile(self, logfile):
+        self._logfile = logfile
+
+# ========================================================================== #
+    @property
+    def trajfile(self):
+        return self._trajfile
+
+# ========================================================================== #
+    @trajfile.setter
+    def trajfile(self, trajfile):
+        self._trajfile = trajfile
+
+# ========================================================================== #
+    @property
+    def loginterval(self):
+        return self._loginterval
+
+# ========================================================================== #
+    @loginterval.setter
+    def loginterval(self, loginterval):
+        self._loginterval = loginterval

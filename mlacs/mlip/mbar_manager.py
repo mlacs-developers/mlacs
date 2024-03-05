@@ -141,8 +141,9 @@ class MbarManager(WeightingPolicy):
 
             if Path("MLIP.weight").exists():
                 Path("MLIP.weight").unlink()
-            np.savetxt("MLIP.weight", self.weight,
+            np.savetxt("MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
+
             header += "Number of uncorrelated snapshots for each k state:\n"
             header += np.array2string(np.array(self.Nk, 'int')) + "\n"
 
