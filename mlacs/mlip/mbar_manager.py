@@ -26,8 +26,7 @@ from ase.units import kB
 from .weighting_policy import WeightingPolicy
 
 
-default_parameters = {"mode": "compute",
-                      "solver": "L-BFGS-B",
+default_parameters = {"solver": "L-BFGS-B",
                       "scale": 1.0,
                       "start": 2,
                       }
@@ -114,9 +113,7 @@ class MbarManager(WeightingPolicy):
             self.mlip_coef.append(coef)
             self.mlip_desc.append(desc)
 
-        if self.parameters['mode'] == 'train':
-            self.train_mlip = True
-
+        self.train_mlip = True
         self.database.extend(self._newddb)
         self.nconfs = len(self.database)
 
