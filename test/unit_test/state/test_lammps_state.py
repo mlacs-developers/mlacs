@@ -45,7 +45,8 @@ nelems      1
 elems       Cu
 radelems    0.5
 welems      1.0"""
-    path = Path("MLIP")
+    root = Path()
+    path = root / "MLIP"
     path.mkdir(parents=True, exist_ok=True)
     model_path = path / 'MLIP.model'
     descriptor_path = path / 'MLIP.descriptor'
@@ -55,10 +56,11 @@ welems      1.0"""
 
 
 def cleanup():
+    root = Path()
     paths = [Path("MLIP"), Path("MolecularDynamics")]
     for path in paths:
-        if path.exists():
-            shutil.rmtree(path)
+        if (root/path).exists():
+            shutil.rmtree(root/path)
 
 
 def test_NVT():

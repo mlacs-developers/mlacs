@@ -132,6 +132,13 @@ class DeltaLearningPotential(MlipManager):
         return full_pair_coeff
 
 # ========================================================================== #
+    def get_mlip_energy(coef, desc):
+        """
+        Function that gives the mlip_energy
+        """
+        return self.model.get_mlip_energy(coef, desc)
+
+# ========================================================================== #
     def update_matrices(self, atoms):
         """
         """

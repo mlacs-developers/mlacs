@@ -271,8 +271,8 @@ class MliapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
-        if Path("MLIP.model").is_file():
-            Path("MLIP.model").unlink()
+        if Path("MLIAP.model").is_file():
+            Path("MLIAP.model").unlink()
         self.mlip_model = Path.cwd()
         with open("MLIAP.model", "w") as fd:
             fd.write("# ")
@@ -284,7 +284,7 @@ class MliapDescriptor(Descriptor):
             fd.write("# nelems   ncoefs\n")
             fd.write(f"{self.nel} {self.ndesc + 1}\n")
             np.savetxt(fd, coefficients, fmt="%35.30f")
-        return "MLIP.model"
+        return "MLIAP.model"
 
 # ========================================================================== #
     @subfolder
@@ -325,8 +325,8 @@ class MliapDescriptor(Descriptor):
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = folder / "MLIP.model"
-        descfile = folder / "MLIP.descriptor"
+        modelfile = folder / "MLIAP.model"
+        descfile = folder / "MLIAP.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
         return pair_style

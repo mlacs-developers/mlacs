@@ -231,8 +231,8 @@ class SnapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
-        if Path("MLIP.model").exists():
-            Path("MLIP.model").unlink()
+        if Path("SNAP.model").exists():
+            Path("SNAP.model").unlink()
 
         self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
@@ -254,7 +254,7 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
-        return "MLIP.model"
+        return "SNAP.model"
 
 # ========================================================================== #
     @subfolder
@@ -309,8 +309,8 @@ class SnapDescriptor(Descriptor):
 
 # ========================================================================== #
     def get_pair_coeff(self, folder=Path("")):
-        modelfile = folder / "MLIP.model"
-        descfile = folder / "MLIP.descriptor"
+        modelfile = folder / "SNAP.model"
+        descfile = folder / "SNAP.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
         return pair_coeff

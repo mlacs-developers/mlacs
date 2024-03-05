@@ -19,6 +19,7 @@ def build_ncobj():
     yield files
 
 
+@pytest.fixture
 def test_atoms_from_ncfiles(root, build_ncobj):
     """
     """

@@ -34,8 +34,6 @@ class BaseLammpsState(StateManager):
 
         self.atomsfname = "atoms.in"
         self.lammpsfname = "lammps_input.in"
-
-        self._make_info_dynamics()
         self._myblock = blocks
 
         if isinstance(blocks, list):
@@ -74,6 +72,8 @@ class BaseLammpsState(StateManager):
         self._write_lammps_atoms(atoms, atom_style)
 
         lmp_cmd = self._get_lammps_command()
+        print(lmp_cmd)
+        print("We are called from NebLammpsState inside BaseLammpsState")
         lmp_handle = run(lmp_cmd,
                          shell=True,
                          cwd=self.workdir,
@@ -165,38 +165,6 @@ class BaseLammpsState(StateManager):
             for i, model in enumerate(model_post):
                 block(f"model{i}", f"{model}")
         return block
-
-# ========================================================================== #
-    def _make_info_dynamics(self):
-
-        # NVT, NPT, no (uVT, uPT, NVE) yet
-        ensemble = ["X", "X", "X"]
-
-        # N or mu
-        ensemble[0] = "N"
-
-        # V or P
-        ensemble[1] = "V"
-        pressure = None
-        if self.pressure is not None:
-            ensemble[1] = "P"
-            if self.p_stop is None:
-                pressure = self.pressure
-
-        # T or E
-        if self.temperature is None:  # NVE
-            raise NotImplementedError
-        ensemble[2] = "T"
-
-        temperature = None
-        if self.t_stop is None:
-            temperature = self.temperature
-
-        # NVT, NPT, no (uVT, uPT, NVE) yet
-        self.ensemble = ''.join(ensemble)
-        self.info_dynamics = dict(ensemble=self.ensemble,
-                                  temperature=temperature,
-                                  pressure=pressure)
 
 # ========================================================================== #
     def _get_block_thermostat(self, eq):
@@ -437,6 +405,8 @@ class LammpsState(BaseLammpsState):
                 msg = "You need to put a pressure with p_stop"
                 raise ValueError(msg)
 
+        self._make_info_dynamics()
+
 # ========================================================================== #
     def _get_block_thermostat(self, eq):
         """
@@ -502,6 +472,38 @@ class LammpsState(BaseLammpsState):
         if self.fixcm:
             block("cm", "fix fcm all recenter INIT INIT INIT")
         return block
+
+# ========================================================================== #
+    def _make_info_dynamics(self):
+
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        ensemble = ["X", "X", "X"]
+
+        # N or mu
+        ensemble[0] = "N"
+
+        # V or P
+        ensemble[1] = "V"
+        pressure = None
+        if self.pressure is not None:
+            ensemble[1] = "P"
+            if self.p_stop is None:
+                pressure = self.pressure
+
+        # T or E
+        if self.temperature is None:  # NVE
+            raise NotImplementedError
+        ensemble[2] = "T"
+
+        temperature = None
+        if self.t_stop is None:
+            temperature = self.temperature
+
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        self.ensemble = ''.join(ensemble)
+        self.info_dynamics = dict(ensemble=self.ensemble,
+                                  temperature=temperature,
+                                  pressure=pressure)
 
 # ========================================================================== #
     def _get_block_traj(self, atoms):

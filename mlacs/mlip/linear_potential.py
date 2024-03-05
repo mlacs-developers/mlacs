@@ -113,9 +113,8 @@ class LinearPotential(MlipManager):
 
         mlip_fn = self.descriptor.write_mlip(self.coefficients,
                                              subfolder=mlip_subfolder)
-        create_link(mlip_subfolder/weight_fn, self.folder/"MLIP.weight")
-        create_link(mlip_subfolder/mlip_fn, self.folder/"MLIP.model")
-
+        create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
+        create_link(mlip_subfolder/mlip_fn, self.folder/mlip_fn)
         return msg
 
 # ========================================================================== #

@@ -5,7 +5,7 @@ import numpy as np
 from ase.build import bulk
 
 from ... import context  # noqa
-from mlacs.mlip import MliapDescriptor, MlipManager
+from mlacs.mlip import MliapDescriptor, LinearPotential
 
 
 def test_parameters_snap():
@@ -316,12 +316,12 @@ def test_get_pair_style_coeff():
     f = "Mliap"
 
     mliap = MliapDescriptor(at, rcut, parameters=parameters)
-    mlip = MlipManager(descriptor=mliap, folder=f)
+    mlip = LinearPotential(descriptor=mliap, folder=f)
 
     pred_st, pred_co = mlip.pair_style, mlip.pair_coeff
 
-    model_file = (root / "Mliap/MLIP.model").as_posix()
-    desc_file = (root / "Mliap/MLIP.descriptor").as_posix()
+    model_file = (root / "Mliap/MLIAP.model").as_posix()
+    desc_file = (root / "Mliap/MLIAP.descriptor").as_posix()
     ref_st = f"mliap model linear {model_file} descriptor sna {desc_file}"
 
     assert pred_st == ref_st
@@ -331,12 +331,12 @@ def test_get_pair_style_coeff():
     # Now with so3
     f = "Mlip_So3"
     mliap = MliapDescriptor(at, rcut, parameters=parameters, style="so3")
-    mlip = MlipManager(descriptor=mliap, folder=f)
+    mlip = LinearPotential(descriptor=mliap, folder=f)
 
     pred_st, pred_co = mlip.pair_style, mlip.pair_coeff
 
-    model_file = (root / "Mlip_So3/MLIP.model").as_posix()
-    desc_file = (root / "Mlip_So3/MLIP.descriptor").as_posix()
+    model_file = (root / "Mlip_So3/MLIAP.model").as_posix()
+    desc_file = (root / "Mlip_So3/MLIAP.descriptor").as_posix()
     ref_st = f"mliap model linear {model_file} descriptor so3 {desc_file}"
 
     assert pred_st == ref_st

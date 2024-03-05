@@ -723,7 +723,6 @@ class OtfMlacs:
                 else:
                     no_parent_atoms.append(prev_traj[istate][iconf])
 
-<<<<<<< HEAD
         for conf in no_parent_atoms:
             self.mlip.update_matrices(conf)
 
@@ -733,19 +732,6 @@ class OtfMlacs:
             msg = "Some configuration in Trajectory have no parent_mlip\n"
             msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)
-=======
-            curr_step = 0
-            for i in range(len(atoms_by_mlip)):
-                curr_step += 1
-                self.mlip.next_coefs(mlip_coef[i],
-                                     mlip_subfolder=f"Coef{curr_step}")
-                for at in atoms_by_mlip[i]:
-                    self.mlip.update_matrices(at)
-        else:
-            for istate in range(self.nstate):
-                for at in prev_traj[istate]:
-                    self.mlip.update_matrices(at)
->>>>>>> upstream
 
             fm = self.mlip.folder / "MLIP.model"
             fw = self.mlip.folder / "MLIP.weight"
