@@ -189,28 +189,14 @@ class MbarManager(WeightingPolicy):
         """
         Compute Ukn matrices.
         """
-        ###### NEW IMPLEMENTATION
-        #ddb = self.database
-
-        ## Sanity Check
-        #for at in self.database:
-        #    if 'info_state' not in at.info:
-        #        msg = "Atoms don't have 'info_state' for the thermodynamic"
-        #        raise ValueError(msg)
-        #assert len(ekn) == self.nconfs
-
-        #P,V,T = self._get_ensemble_info()
-        #ukn = (ekn + P * V) / (kB * T)
-        #print(ukn)
-        #return ukn
-        ###### OLD
-        ddb = self.database
-        P = np.zeros(self.nconfs)
-        T = np.array([_.get_temperature() for _ in ddb])
-        V = np.array([_.get_volume() for _ in ddb])
-        if np.abs(np.diff(V)).sum() != 0.0:
-            P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
+        # Sanity Check
+        for at in self.database:
+            if 'info_state' not in at.info:
+                msg = "Atoms don't have 'info_state' for the thermodynamic"
+                raise ValueError(msg)
         assert len(ekn) == self.nconfs
+
+        P, V, T = self._get_ensemble_info()
         ukn = (ekn + P * V) / (kB * T)
         return ukn
 
@@ -232,7 +218,7 @@ class MbarManager(WeightingPolicy):
             ens = info['ensemble']
             if ens == "NVT":
                 T = np.append(T, at.info['info_state']['temperature'])
-                P = np.append(P, -np.sum(at.get_stress()[:3]) / 3 )
+                P = np.append(P, -np.sum(at.get_stress()[:3])/3)
                 V = np.append(V, at.get_volume())
             elif ens == "NPT":
                 raise NotImplementedError

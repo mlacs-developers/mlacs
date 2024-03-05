@@ -326,7 +326,7 @@ class LammpsState(StateManager):
     def _make_info_dynamics(self):
 
         # NVT, NPT, no (uVT, uPT, NVE) yet
-        ensemble=["X","X","X"]
+        ensemble = ["X", "X", "X"]
 
         # N or mu
         ensemble[0] = "N"

@@ -166,9 +166,6 @@ class DeltaLearningPotential(MlipManager):
             dumdum.calc = spcalc
             dummy_at.append(dumdum)
 
-        print("DFT", at.get_potential_energy())
-        print("Last ZBL", refe)
-        print("DFT_Energy - ZBL", [_.get_potential_energy() for _ in dummy_at])
         # Now get descriptor features
         self.model.update_matrices(dummy_at)
         self.nconfs = self.model.nconfs

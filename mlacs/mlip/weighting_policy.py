@@ -132,7 +132,6 @@ class UniformWeight(WeightingPolicy):
     def __init__(self, nthrow=0, energy_coefficient=1.0,
                  forces_coefficient=1.0, stress_coefficient=1.0,
                  database=None, weight=None):
-        self.train_mlip = False
         self.nthrow = nthrow
         WeightingPolicy.__init__(
                 self,
