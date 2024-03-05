@@ -111,7 +111,6 @@ class PafiLammpsState(LammpsState):
         """
         Run state function.
         """
-        print(self._get_lammps_command())
 
         # Run NEB calculation.
         self.path.run_dynamics(self.path.atoms[0],
@@ -123,8 +122,6 @@ class PafiLammpsState(LammpsState):
         self.path.compute_spline()
         supercell = self.path.spline_atoms[0].copy()
         self.isrestart = False
-
-        print(self._get_lammps_command())
 
         # Run Pafi dynamic at xi.
         atoms = LammpsState.run_dynamics(self,

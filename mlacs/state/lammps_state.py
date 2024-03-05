@@ -36,6 +36,7 @@ class BaseLammpsState(StateManager):
         self.lammpsfname = "lammps_input.in"
         self._myblock = blocks
 
+        self.info_dynamics = dict()
         if isinstance(blocks, list):
             self._myblock = blocks[0]
             if len(blocks) != 1:
@@ -72,8 +73,6 @@ class BaseLammpsState(StateManager):
         self._write_lammps_atoms(atoms, atom_style)
 
         lmp_cmd = self._get_lammps_command()
-        print(lmp_cmd)
-        print("We are called from NebLammpsState inside BaseLammpsState")
         lmp_handle = run(lmp_cmd,
                          shell=True,
                          cwd=self.workdir,
