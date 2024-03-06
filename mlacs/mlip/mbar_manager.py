@@ -26,8 +26,7 @@ from ase.units import kB
 from .weighting_policy import WeightingPolicy
 
 
-default_parameters = {"mode": "compute",
-                      "solver": "L-BFGS-B",
+default_parameters = {"solver": "L-BFGS-B",
                       "scale": 1.0,
                       "start": 2,
                       }
@@ -73,15 +72,21 @@ class MbarManager(WeightingPolicy):
         Default :class:`None`
     """
 
-    def __init__(self, parameters=dict(), database=None, weight=None):
+    def __init__(self, parameters=dict(),  energy_coefficient=1.0,
+                 forces_coefficient=1.0, stress_coefficient=1.0,
+                 database=None, weight=None):
         if not ispymbar:
             msg = "You need pymbar installed to use the MBAR manager"
             raise ModuleNotFoundError(msg)
 
-        WeightingPolicy.__init__(self,
-                                 database=None,
-                                 weight=None)
+        WeightingPolicy.__init__(
+                self,
+                energy_coefficient=energy_coefficient,
+                forces_coefficient=forces_coefficient,
+                stress_coefficient=stress_coefficient,
+                database=database, weight=weight)
 
+        self.database = []
         self.parameters = default_parameters
         self.parameters.update(parameters)
         self.Nk = []
@@ -108,11 +113,7 @@ class MbarManager(WeightingPolicy):
             self.mlip_coef.append(coef)
             self.mlip_desc.append(desc)
 
-        if self.parameters['mode'] == 'train':
-            self.train_mlip = True
-
-        if self.database is None:
-            self.database = []
+        self.train_mlip = True
         self.database.extend(self._newddb)
         self.nconfs = len(self.database)
 
@@ -140,8 +141,9 @@ class MbarManager(WeightingPolicy):
 
             if Path("MLIP.weight").exists():
                 Path("MLIP.weight").unlink()
-            np.savetxt("MLIP.weight", self.weight,
+            np.savetxt("MLIP.weight", self.weight[-1],
                        header=header, fmt="%25.20f")
+
             header += "Number of uncorrelated snapshots for each k state:\n"
             header += np.array2string(np.array(self.Nk, 'int')) + "\n"
 
@@ -185,21 +187,43 @@ class MbarManager(WeightingPolicy):
         """
         Compute Ukn matrices.
         """
-        ddb = self.database
-        P = np.zeros(self.nconfs)
-        T = np.array([_.get_temperature() for _ in ddb])
-        V = np.array([_.get_volume() for _ in ddb])
-        if np.abs(np.diff(V)).sum() != 0.0:
-            P = np.array([-np.sum(_.get_stress()[:3]) / 3 for _ in ddb])
+        # Sanity Check
+        for at in self.database:
+            if 'info_state' not in at.info:
+                msg = "Atoms don't have 'info_state' for the thermodynamic"
+                raise ValueError(msg)
         assert len(ekn) == self.nconfs
 
-        for i, at in enumerate(ddb):
-            if 'simulation_temperature' in at.info:
-                T[i] = at.info['simulation_temperature']
-            if 'simulation_pressure' in at.info:
-                P[i] = at.info['simulation_pressure']
+        P, V, T = self._get_ensemble_info()
         ukn = (ekn + P * V) / (kB * T)
         return ukn
+
+# ========================================================================== #
+    def _get_ensemble_info(self):
+        """
+        Read the ddb info state and returns arrays of P, V, T.
+
+        For now, only NVT and NPT are implemented.
+        NVT : Aimed T, Constant P, Constant V
+        NPT : Aimed T, Instantaneous P, Instantaneous V
+        -----------------------------------------------
+        NVE : Instantaneous T, No P, No V
+        uVT/uPT : NVT/NPT + Constant u, Instantaneous N
+        """
+        P, V, T = [], [], []
+        for at in self.database:
+            info = at.info['info_state']
+            ens = info['ensemble']
+            if ens == "NVT":
+                T = np.append(T, at.info['info_state']['temperature'])
+                P = np.append(P, -np.sum(at.get_stress()[:3])/3)
+                V = np.append(V, at.get_volume())
+            elif ens == "NPT":
+                raise NotImplementedError
+            else:
+                msg = "Only NVT and NPT are implemented in MLACS for now"
+                raise NotImplementedError(msg)
+        return P, V, T
 
 # ========================================================================== #
     def _compute_weight(self, ukn):

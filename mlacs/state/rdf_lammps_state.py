@@ -267,12 +267,6 @@ class RdfLammpsState(StateManager):
         if charges is not None:
             atoms.set_initial_charges(init_charges)
 
-        # Set the simulation T and P for weighting purpose
-        if self.t_stop is None and self.temperature is not None:
-            atoms.info['simulation_temperature'] = self.temperature
-        if self.p_stop is None and self.pressure is not None:
-            atoms.info['simulation_pressure'] = self.pressure
-
         return atoms.copy()
 
 # ========================================================================== #

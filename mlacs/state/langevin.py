@@ -89,6 +89,9 @@ class LangevinState(StateManager):
         if self.rng is None:
             self.rng = np.random.default_rng()
 
+        self.info_dynamics = dict(ensemble="NVT",
+                                  temperature=self.temperature)
+
         self.ispimd = False
         self.isrestart = False
         self.isneb = False
@@ -132,11 +135,7 @@ class LangevinState(StateManager):
             dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True),
                        interval=self.loginterval)
         dyn.run(nsteps)
-
-        # Set the simulation T for weighting purpose
-        if self.t_stop is None and self.temperature is not None:
-            dyn.atoms.info['simulation_temperature'] = self.temperature
-
+        dyn.atoms.info['info_state'] = self.info_dynamics
         return dyn.atoms
 
 # ========================================================================== #

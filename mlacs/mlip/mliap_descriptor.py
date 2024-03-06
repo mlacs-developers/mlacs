@@ -181,7 +181,7 @@ class MliapDescriptor(Descriptor):
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        txt = f"compute ml all mliap descriptor {style} MLIP.descriptor " + \
+        txt = f"compute ml all mliap descriptor {style} MLIAP.descriptor " + \
               f"model {self.model}"
         block("compute", txt)
         block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
@@ -229,7 +229,7 @@ class MliapDescriptor(Descriptor):
         Function to write the mliap.descriptor parameter files of the MLIP
         """
         self.mlip_desc = Path.cwd()
-        with open("MLIP.descriptor", "w") as f:
+        with open("MLIAP.descriptor", "w") as f:
             f.write(self.get_mlip_params())
 
 # ========================================================================== #
@@ -271,10 +271,10 @@ class MliapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
-        if Path("MLIP.model").is_file():
-            Path("MLIP.model").unlink()
+        if Path("MLIAP.model").is_file():
+            Path("MLIAP.model").unlink()
         self.mlip_model = Path.cwd()
-        with open("MLIP.model", "w") as fd:
+        with open("MLIAP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -284,7 +284,7 @@ class MliapDescriptor(Descriptor):
             fd.write("# nelems   ncoefs\n")
             fd.write(f"{self.nel} {self.ndesc + 1}\n")
             np.savetxt(fd, coefficients, fmt="%35.30f")
-        return "MLIP.model"
+        return "MLIAP.model"
 
 # ========================================================================== #
     @subfolder
@@ -292,7 +292,7 @@ class MliapDescriptor(Descriptor):
         """
         Read MLIP parameters from a file.
         """
-        fn = Path("MLIP.model")
+        fn = Path("MLIAP.model")
         if not fn.is_file():
             raise FileNotFoundError(f"File {fn.absolute()} does not exist.")
 
@@ -325,8 +325,8 @@ class MliapDescriptor(Descriptor):
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = folder / "MLIP.model"
-        descfile = folder / "MLIP.descriptor"
+        modelfile = folder / "MLIAP.model"
+        descfile = folder / "MLIAP.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
         return pair_style

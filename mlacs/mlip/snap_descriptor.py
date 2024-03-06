@@ -132,7 +132,7 @@ class SnapDescriptor(Descriptor):
     def _write_lammps_input(self, masses, pbc):
         """
         """
-        txt = "LAMMPS input file for extracting MLIP descriptors"
+        txt = "LAMMPS input file for extracting SNAP descriptors"
         lmp_in = LammpsInput(txt)
 
         block = LammpsBlockInput("init", "Initialization")
@@ -202,7 +202,7 @@ class SnapDescriptor(Descriptor):
         Function to write the mliap.descriptor parameter files of the MLIP
         """
         self.mlip_desc = Path.cwd()
-        with open("MLIP.descriptor", "w") as f:
+        with open("SNAP.descriptor", "w") as f:
             f.write(self.get_mlip_params())
 
 # ========================================================================== #
@@ -231,13 +231,13 @@ class SnapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
-        if Path("MLIP.model").exists():
-            Path("MLIP.model").unlink()
+        if Path("SNAP.model").exists():
+            Path("SNAP.model").unlink()
 
         self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
-        with open("MLIP.model", "w") as fd:
+        with open("SNAP.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -254,7 +254,7 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
-        return "MLIP.model"
+        return "SNAP.model"
 
 # ========================================================================== #
     @subfolder
@@ -262,7 +262,7 @@ class SnapDescriptor(Descriptor):
         """
         Read MLIP parameters from a file.
         """
-        fn = Path("MLIP.model")
+        fn = Path("SNAP.model")
         if not fn.is_file():
             raise FileNotFoundError(f"The file {fn.absolute} does not exist.")
 
@@ -309,8 +309,8 @@ class SnapDescriptor(Descriptor):
 
 # ========================================================================== #
     def get_pair_coeff(self, folder=Path("")):
-        modelfile = folder / "MLIP.model"
-        descfile = folder / "MLIP.descriptor"
+        modelfile = folder / "SNAP.model"
+        descfile = folder / "SNAP.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
         return pair_coeff

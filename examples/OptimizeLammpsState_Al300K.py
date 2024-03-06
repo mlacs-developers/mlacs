@@ -54,11 +54,11 @@ state_cg = OptimizeLammpsState(nsteps=nsteps,
 state_fire = OptimizeLammpsState(min_style='fire', 
                                  nsteps=nsteps, 
                                  nsteps_eq=nsteps_eq)
-state_boxiso = OptimizeLammpsState(min_style='fire', 
+state_boxiso = OptimizeLammpsState(min_style='cg', 
                                    pressure=0.0, 
                                    nsteps=nsteps, 
                                    nsteps_eq=nsteps_eq)
-state_boxaniso = OptimizeLammpsState(min_style='fire', 
+state_boxaniso = OptimizeLammpsState(min_style='cg', 
                                      pressure=0.0, 
                                      ptype='aniso',
                                      nsteps=nsteps, 
