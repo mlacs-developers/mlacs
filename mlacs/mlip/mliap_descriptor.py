@@ -1,4 +1,5 @@
 import os
+import shlex
 from pathlib import Path
 from subprocess import run, PIPE
 
@@ -140,6 +141,10 @@ class MliapDescriptor(Descriptor):
         amat_f = bispectrum[1:3*nat+1, 1:-1]
         amat_s = bispectrum[3*nat+1:, 1:-1]
 
+        np.save("amat_e.npy", amat_e)
+        np.save("amat_f.npy", amat_f)
+        np.save("amat_s.npy", amat_s)
+
         self.cleanup()
         res = dict(desc_e=amat_e,
                    desc_f=amat_f,
@@ -198,8 +203,7 @@ class MliapDescriptor(Descriptor):
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
         lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
-        lmp_handle = run(lmp_cmd,
-                         shell=True,
+        lmp_handle = run(shlex.split(lmp_cmd),
                          stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end

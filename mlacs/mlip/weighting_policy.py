@@ -46,9 +46,10 @@ class WeightingPolicy:
         self.matsize = None
         self.matsize = []
 
-        self.energy_coefficient = energy_coefficient
-        self.forces_coefficient = forces_coefficient
-        self.stress_coefficient = stress_coefficient
+        sum_efs = energy_coefficient + forces_coefficient + stress_coefficient
+        self.energy_coefficient = energy_coefficient / sum_efs
+        self.forces_coefficient = forces_coefficient / sum_efs
+        self.stress_coefficient = stress_coefficient / sum_efs
 
         if database is not None:
             self.matsize = [len(a) for a in database]
@@ -143,7 +144,7 @@ class UniformWeight(WeightingPolicy):
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, desc, coef, f_mlipE):
+    def compute_weight(self, desc=None, coef=None, f_mlipE=None):
         """
         Compute Uniform Weight taking into account nthrow :
         """
