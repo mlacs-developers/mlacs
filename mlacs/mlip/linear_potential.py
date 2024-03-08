@@ -48,12 +48,14 @@ class LinearPotential(MlipManager):
     Examples
     --------
 
-    >>> from ase.build import bulk
-    >>> atoms = bulk("Cu", cubic=True).repeat(2)
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
     >>>
     >>> from mlacs.mlip import SnapDescriptor, LinearPotential
-    >>> desc = SnapDescriptor(atoms, rcut=4.2, parameters=dict(twojmax=6))
+    >>> desc = SnapDescriptor(confs[0], rcut=4.2, parameters=dict(twojmax=6))
     >>> mlip = LinearPotential(desc)
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
     def __init__(self,
                  descriptor,

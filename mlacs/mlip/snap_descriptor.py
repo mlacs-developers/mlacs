@@ -59,6 +59,7 @@ class SnapDescriptor(Descriptor):
     >>>
     >>> from mlacs.mlip import SnapDescriptor, LinearPotential
     >>> desc = SnapDescriptor(atoms, rcut=4.2, parameters=dict(twojmax=6))
+    >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
                  model="linear", alpha=1.0, alpha_quad=1.0):

@@ -24,6 +24,20 @@ ti_args = ['atoms',
 class CalcProperty:
     """
     Parent Class for on the fly property calculations.
+
+    Parameters
+    ----------
+    method: :class:`str` type of criterion.
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
+        Default ``max``
+
+    criterion: :class:`float`
+        Stopping criterion value (eV). Default ``0.001``
+
+    frequence : :class:`int`
+        Interval of Mlacs step to compute the property. Default ``1``
     """
 
     def __init__(self,
@@ -112,19 +126,7 @@ class CalcProperty:
 class CalcPafi(CalcProperty):
     """
     Class to set a minimum free energy calculation.
-    See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
+    See :func:`PafiLammpsState.run_dynamics` parameters.
     """
 
     def __init__(self,
@@ -164,20 +166,7 @@ class CalcPafi(CalcProperty):
 class CalcNeb(CalcProperty):
     """
     Class to set a NEB calculation.
-    See NebLammpsState and NebLammpsState.run_NEB parameters.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
-
+    See :func:`NebLammpsState.run_dynamics` parameters.
     """
 
     def __init__(self,
@@ -220,19 +209,6 @@ class CalcNeb(CalcProperty):
 class CalcRdf(CalcProperty):
     """
     Class to set a radial distribution function calculation.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value. Default ``0.1``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
-
     """
 
     def __init__(self,
@@ -291,19 +267,6 @@ class CalcRdf(CalcProperty):
 class CalcAdf(CalcProperty):
     """
     Class to set the angle distribution function calculation.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value. Default ``0.1``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
-
     """
 
     def __init__(self,
@@ -362,24 +325,13 @@ class CalcAdf(CalcProperty):
 class CalcTi(CalcProperty):
     """
     Class to set a nonequilibrium thermodynamic integration calculation.
-    See ThermoState and the run_dynamics function parameters of the
-    EinsteinSolidState and UFLiquidState.
+    See the :class:`ThermodynamicIntegration` classe.
 
     Parameters
     ----------
-    state: :class:`str`
-        State of the system: solild or liquid.
+    phase: :class:`str`
+        Structure of the system: solild or liquid.
         Set either the Einstein crystal as a reference system or the UF liquid.
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value. Default ``1 meV``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``10``
-
     """
     def __init__(self,
                  args,
@@ -471,15 +423,6 @@ class CalcExecFunction(CalcProperty):
         Module to load the function.
     useatoms: :class:`bool`
         True if the function is called from an ase.Atoms object.
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
-
     """
 
     def __init__(self,

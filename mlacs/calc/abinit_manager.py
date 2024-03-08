@@ -25,7 +25,9 @@ from ..utilities.io_abinit import (AbinitNC,
 # ========================================================================== #
 class AbinitManager(CalcManager):
     """
-    Class to handle abinit calculators
+    This Calc class is an extended object for Abinit calculators.
+    The AbinitManager can handdle netCDF files, MPI processes and a better
+    pseudopotentials files management.
 
     Parameters
     ----------
@@ -119,7 +121,7 @@ class AbinitManager(CalcManager):
                                state,
                                step):
         """
-        Create, execute and read the output of an Abinit calculation
+        Compute the energy of given configurations with Abinit.
         """
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]

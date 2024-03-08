@@ -59,3 +59,8 @@ DeltaLearningPotential
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: DeltaLearningPotential
+
+SpinLatticePotential
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SpinLatticePotential

@@ -75,6 +75,7 @@ class MliapDescriptor(Descriptor):
     >>> from mlacs.mlip import MliapDescriptor, LinearPotential
     >>> param = dict(nmax=4, lmax=4, alpha=1.0)
     >>> desc = MliapDescriptor(atoms, rcut=4.2, parameters=param, style='so3')
+    >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
                  model="linear", style="snap", alpha=1.0):

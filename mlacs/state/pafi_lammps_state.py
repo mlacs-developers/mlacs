@@ -16,8 +16,8 @@ from ..utilities.io_lammps import LammpsBlockInput
 # ========================================================================== #
 class PafiLammpsState(LammpsState):
     """
-    Class to manage constrained MD along a NEB reaction coordinate using
-    the fix Pafi with LAMMPS.
+    Class to manage constrained MD along a reaction path using the fix Pafi
+    with LAMMPS.
 
     Parameters
     ----------
@@ -72,6 +72,18 @@ class PafiLammpsState(LammpsState):
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> initial = read('A.traj')
+    >>> final = read('B.traj')
+    >>>
+    >>> from mlacs.state import PafiLammpsState, NebLammpsState
+    >>> neb = NebLammpsState([initial, final])
+    >>> state = PafiLammpsState(temperature=300, path=neb)
+    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
     def __init__(self,
                  temperature,

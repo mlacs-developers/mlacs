@@ -45,7 +45,7 @@ class MomentTensorPotential(SelfMlipManager):
         The path to the  `mlp` binary. If mpi is desired, the command
         should be set as 'mpirun /path/to/mlp'
 
-    mpt_parameters: :class:`dict`
+    mtp_parameters: :class:`dict`
         The dictionnary with inputs for the potential.
 
         The default values are set to
@@ -60,19 +60,37 @@ class MomentTensorPotential(SelfMlipManager):
 
         The default parameters are set to
             - scale_by_forces=0
-            - max_iter=1000
+            - max_iter=100
             - bfgs_conv_tol=1e-3
             - weighting='vibrations'
             - init_params='random'
             - update_mindist=False
 
-    nthrow: :class:`int`
+    nthrow: :class: int
+        Number of first configurations to ignore when doing the fit
 
     energy_coefficient: :class:`float`
+        Weight of the energy in the fit
+        Default 1.0
 
     forces_coefficient: :class:`float`
+        Weight of the forces in the fit
+        Default 1.0
 
     stress_coefficient: :class:`float`
+        Weight of the stress in the fit
+        Default 1.0
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import MomentTensorPotential
+    >>> mlip = MomentTensorPotential(confs[0], mtp_parameters=dict(level=6))
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
     def __init__(self,
                  atoms,

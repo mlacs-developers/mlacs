@@ -30,17 +30,19 @@ class DeltaLearningPotential(MlipManager):
     Examples
     --------
 
-    >>> from ase.build import bulk
-    >>> atoms = bulk("Si", cubic=True).repeat(2)
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
     >>>
     >>> from mlacs.mlip import SnapDescriptor, LinearPotential
-    >>> desc = SnapDescriptor(atoms, rcut=6.2, parameters=dict(twojmax=6))
+    >>> desc = SnapDescriptor(confs[0], rcut=6.2, parameters=dict(twojmax=6))
     >>> mlip = LinearPotential(desc)
     >>>
     >>> from mlacs.mlip import DeltaLearningPotential
     >>> ps = ['sw', 'zbl 3.0 4.0']
     >>> pc = [['* * Si.sw Si'], ['* * 14 14']]
     >>> dmlip = DeltaLearningPotential(mlip, pair_style=ps, pair_coeff=pc)
+    >>> dmlip.update_matrices(confs)
+    >>> dmlip.train_mlip()
     """
     def __init__(self,
                  model,

@@ -130,6 +130,7 @@ class LammpsState(StateManager):
     >>>
     >>> state = LammpsState(temperature=300, pressure=None) #NVT
     >>> state = LammpsState(temperature=300, pressure=0)    #NPT
+    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
     def __init__(self,
                  temperature,
