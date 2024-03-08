@@ -33,6 +33,7 @@ class Descriptor(ABC):
         self.need_neigh = False
         self.mlip_model = None  # We need to set it them to Path.cwd()
         self.mlip_desc = None  # but only when we call OtfMlacs.run
+        self.desc_name = "MLIP"
 
 # ========================================================================== #
     def set_folders(self):

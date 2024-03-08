@@ -116,9 +116,10 @@ class MlipManager(ABC):
         """
         parent_mlip = []
         mlip_coef = []
+        desc_name = self.descriptor.desc_name
 
         # Check that this simulation and the previous one use the same mlip
-        fn_descriptor = self.folder / "MLIP.descriptor"
+        fn_descriptor = self.folder / f"{desc_name}.descriptor"
         with open(fn_descriptor, "r") as f:
             lines = f.read()
 
@@ -159,17 +160,13 @@ class MlipManager(ABC):
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
 
         mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
-
-        if self.weight.train_mlip:
-            self.weight.get_weights()
-
         _, weight_fn = self.weight.compute_weight(amat_e,
                                                   mlip_coef,
                                                   self.get_mlip_energy,
                                                   subfolder=sf)
-
+        desc_name = self.descriptor.desc_name
         create_link(sf/weight_fn, self.folder/"MLIP.weight")
-        create_link(sf/mlip_fn, self.folder/"MLIP.model")
+        create_link(sf/mlip_fn, self.folder/f"{desc_name}.model")
 
 # ========================================================================== #
     def test_mlip(self, testset):
