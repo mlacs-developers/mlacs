@@ -141,7 +141,7 @@ class MbarManager(WeightingPolicy):
 
             if Path("MLIP.weight").exists():
                 Path("MLIP.weight").unlink()
-            np.savetxt("MLIP.weight", self.weight[-1],
+            np.savetxt("MLIP.weight", self.weight,
                        header=header, fmt="%25.20f")
 
             header += "Number of uncorrelated snapshots for each k state:\n"
@@ -195,13 +195,14 @@ class MbarManager(WeightingPolicy):
         assert len(ekn) == self.nconfs
 
         P, V, T = self._get_ensemble_info()
-        ukn = (ekn + P * V) / (kB * T)
+        PV = P*V / [len(at) for at in self.database]
+        ukn = (ekn + PV) / (kB * T)
         return ukn
 
 # ========================================================================== #
     def _get_ensemble_info(self):
         """
-        Read the ddb info state and returns arrays of P, V, T.
+        Read the ddb info state and returns arrays of P, dV, T.
 
         For now, only NVT and NPT are implemented.
         NVT : Aimed T, Constant P, Constant V
@@ -210,6 +211,9 @@ class MbarManager(WeightingPolicy):
         NVE : Instantaneous T, No P, No V
         uVT/uPT : NVT/NPT + Constant u, Instantaneous N
         """
+        J2eV = 1.6022e-19  # J per eV
+        m2ang = 1e-10  # m per Ang
+
         P, V, T = [], [], []
         for at in self.database:
             info = at.info['info_state']
@@ -219,7 +223,10 @@ class MbarManager(WeightingPolicy):
                 P = np.append(P, -np.sum(at.get_stress()[:3])/3)
                 V = np.append(V, at.get_volume())
             elif ens == "NPT":
-                raise NotImplementedError
+                T = np.append(T, at.info['info_state']['temperature'])
+                P_gpa = np.append(P, at.info['info_state']['pressure'])
+                P = P_gpa * 1e9 * (m2ang)**3 / J2eV
+                V = np.append(V, at.get_volume())
             else:
                 msg = "Only NVT and NPT are implemented in MLACS for now"
                 raise NotImplementedError(msg)
