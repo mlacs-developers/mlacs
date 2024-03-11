@@ -34,7 +34,8 @@ class TensorpotPotential(MlipManager):
                              weight=weight)
         self.natoms = []
         self.nconfs = 0
-
+        db_fn = Path(self.folder / self.descriptor.db_fn).absolute()
+        self.descriptor.db_fn = db_fn
         ps, pc = self.descriptor.get_pair_style_coeff(self.folder)
         self.pair_style = ps
         self.pair_coeff = pc
@@ -78,8 +79,6 @@ class TensorpotPotential(MlipManager):
             mlip_subfolder = self.folder / mlip_subfolder
 
         W = self.weight.get_weights()
-
-
         md_fn, coef_fn = self.descriptor.fit(
             weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
             energy=self.new_ymat_e, forces=self.new_ymat_f, 

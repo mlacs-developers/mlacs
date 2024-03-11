@@ -7,7 +7,7 @@ import shlex
 
 import numpy as np
 from ase import Atoms
-from ..utilities import update_dataframe, create_dataframe
+from ..utilities import update_dataframe
 from pyace.basis import BBasisConfiguration
 
 from ..utilities import subfolder
@@ -19,6 +19,7 @@ try:
 except ImportError:
     ispandas = False
 
+# Tensorflow Warning if not using GPU
 warnings.filterwarnings("ignore", category=Warning, module="tensorflow")
 try:
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Remove GPU warning for tf
@@ -52,7 +53,7 @@ try:
                    'optimizer': 'BFGS',
                    'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}}
 
-    def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'parallel',
+    def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'serial',
                    'batch_size': 100, 'display_step': 50}
 except ImportError:
     ispyace = False
@@ -144,7 +145,7 @@ class AceDescriptor(Descriptor):
         The default values are
             - evaluator: 'tensorpot'
             - parallel_mode: 'parallel'
-            - n_workers: None
+            - n_workers : None
             - batch_size: 100
             - display_step: 50
     """
@@ -160,8 +161,8 @@ class AceDescriptor(Descriptor):
         self._verify_dependency()
 
         Descriptor.__init__(self, atoms, rcut)
-        self.df_fn = Path("ACE.pckl.gzip").absolute()
-        self.folder = ""
+        self.db_fn = "ACE.pckl.gzip"  #  Becomes Path in TensorPotential.init
+        self.desc_name = "ACE"
 
         self.rcut = rcut
         self.tol_e = tol_e
@@ -172,7 +173,7 @@ class AceDescriptor(Descriptor):
         self.fitting = def_fitting if fitting_dict is None else fitting_dict
         self.backend = def_backend if backend_dict is None else backend_dict
         self.fitting['loss'] = self.loss
-        self.data = dict(filename=str(self.df_fn))
+        self.data = None  # Initialized during create_acefit to get the dir
 
         if 'nworkers' not in self.backend and nworkers is not None:
             self.backend['parallel_mode'] = "process"
@@ -209,12 +210,10 @@ class AceDescriptor(Descriptor):
 
         # Dataframe preparation
         df = self.get_df()
-        if not Path.exists(self.df_fn):
-            df = create_dataframe()
         df = update_dataframe(
-            df=df, name=name, atoms=atoms, atomic_env=atomic_env,
-            energy=energy, forces=forces, we=we, wf=wf)
-        df.to_pickle(self.df_fn, compression="gzip")
+             df=df, name=name, atoms=atoms, atomic_env=atomic_env,
+             energy=energy, forces=forces, we=we, wf=wf)
+        df.to_pickle(self.db_fn, compression="gzip")
 
         # Do the fitting
         if self.acefit is None:
@@ -269,7 +268,7 @@ class AceDescriptor(Descriptor):
                 raise StopIteration("My convergence reached")
 
         self.callback = lambda val: check_conv(val)
-
+        self.data = dict(filename=str(self.db_fn))
         self.acefit = GeneralACEFit(potential_config=self.bconf,
                                     fit_config=self.fitting,
                                     data_config=self.data,
@@ -446,10 +445,13 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     def get_df(self):
-        if Path.exists(self.df_fn):
-            df = pd.read_pickle(self.df_fn, compression="gzip")
+        """
+        Return the pandas.DataFrame object associated to this AceDescriptor
+        """
+        if Path.exists(self.db_fn):
+            df = pd.read_pickle(self.db_fn, compression="gzip")
         else:
-            df = create_dataframe()
+            df = None
         return df
 
 # ========================================================================== #
@@ -472,16 +474,15 @@ class AceDescriptor(Descriptor):
         desc = self.compute_descriptor(atoms)
 
         name = [f"conf{i}" for i in range(len(atoms))]
-        df = create_dataframe()
-        df = update_dataframe(df=df, name=name, atoms=atoms,
+        df = update_dataframe(df=None, name=name, atoms=atoms,
                               atomic_env=desc)
 
-        print(coef)
         scoef = str(coef)
-        print(scoef)
    
         bconf = BBasisConfiguration(scoef)
-        pyacefit = pyace.PyACEFit(bconf)
+
+        exe_args = dict(parallel_mode="process", n_workers=1)
+        pyacefit = pyace.PyACEFit(bconf, executors_kw_args=exe_args)
         pred = pyacefit.predict(df)
         e = pred['energy_pred'].values[0]
         pd_f = pred['forces_pred'].values
@@ -507,7 +508,7 @@ class AceDescriptor(Descriptor):
         txt = "ACE descriptor\n"
         txt += f"{(len(txt) - 1) * '-'}\n"
         txt += f"Free atom energy (eV/at): {self.free_at_e}\n"
-        txt += f"Dataframe : {self.df_fn}\n"
+        txt += f"Dataframe : {self.db_fn}\n"
         txt += f"Tolerance on e : {self.tol_e} (meV/at)\n"
         txt += f"Tolerance on f : {self.tol_f} (meV/ang)\n"
         txt += f"Fitting: {self.fitting}\n"

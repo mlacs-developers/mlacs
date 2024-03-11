@@ -1,14 +1,7 @@
 import pandas as pd
 import numpy as np 
 
-# ========================================================================== #
-def create_dataframe():
-    """Create a new empty dataframe"""
-    columns = ["name", "ase_atoms", "energy_corrected", "forces",
-               "atomic_env", "NUMBER_OF_ATOMS","w_energy","w_forces"]
-    return pd.DataFrame(columns=columns)
 
-# ========================================================================== #
 def update_dataframe(df, name, atoms, atomic_env, 
                      energy=None, forces=None, we=None, wf=None):
     """
@@ -41,13 +34,6 @@ def update_dataframe(df, name, atoms, atomic_env,
         The sum must be equal to 1. 
         The relative weight between e and f is given by alpha
     """
-
-    if not isinstance(df,pd.DataFrame):
-        if isinstance(df, str):
-            df = pd.read_pickle(df, compression="gzip")
-        else:
-            raise ValueError("Unrecognized type for the dataframe")
-
     add_ef = all(_ is not None for _ in (energy, forces, we, wf))
 
     nat = np.array([])
@@ -66,5 +52,14 @@ def update_dataframe(df, name, atoms, atomic_env,
                       NUMBER_OF_ATOMS=nat, atomic_env=atomic_env)
 
     new_data = pd.DataFrame(to_add)
+    if df is None:
+        return new_data
+
+    if not isinstance(df,pd.DataFrame):
+        if isinstance(df, str):
+            df = pd.read_pickle(df, compression="gzip")
+        else:
+            raise ValueError("Unrecognized type for the dataframe")
+
     return pd.concat([df, new_data], ignore_index=True)
 
