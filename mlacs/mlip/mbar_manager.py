@@ -190,7 +190,10 @@ class MbarManager(WeightingPolicy):
         # Sanity Check
         for at in self.database:
             if 'info_state' not in at.info:
-                msg = "Atoms don't have 'info_state' for the thermodynamic"
+                msg = "Atoms don't have 'info_state' for MBAR\n"
+                msg += "To use mbar, look at the new traj file with 2 confs."
+                msg += "Copy its info['info_state'] and add it to all the "
+                msg += "atoms in traj."
                 raise ValueError(msg)
         assert len(ekn) == self.nconfs
 
