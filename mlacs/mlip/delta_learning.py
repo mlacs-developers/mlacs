@@ -36,9 +36,14 @@ class DeltaLearningPotential(MlipManager):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 folder=Path("MLIP")):
-        self.model = model
+                 folder=None):
+        if folder != model.folder:
+            if folder is not None:
+                model.folder = folder
+            else:
+                folder = model.folder
 
+        self.model = model
         weight = self.model.weight
 
         if not isinstance(pair_style, list):

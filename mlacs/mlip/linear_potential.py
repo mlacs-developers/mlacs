@@ -178,17 +178,19 @@ class LinearPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, atoms):
+    def predict(self, atoms, coef=None):
         """
         """
-        assert self.coefficients is not None, 'The model has not been trained'
+        if coef is None:
+            coef=self.coefficients
+        assert coef is not None, 'The model has not been trained'
 
         res = self.descriptor.calculate(atoms, subfolder=self.folder)[0]
 
         # We use the latest value coefficients to get the properties
-        energy = np.einsum('ij,j->', res['desc_e'], self.coefficients)
-        forces = np.einsum('ij,j->i', res['desc_f'], self.coefficients)
-        stress = np.einsum('ij,j->i', res['desc_s'], self.coefficients)
+        energy = np.einsum('ij,j->', res['desc_e'],  coef)
+        forces = np.einsum('ij,j->i', res['desc_f'], coef)
+        stress = np.einsum('ij,j->i', res['desc_s'], coef)
 
         forces = forces.reshape(len(atoms), 3)
 
