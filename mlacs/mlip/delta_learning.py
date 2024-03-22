@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from ase.atoms import Atoms
 from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -137,11 +135,11 @@ class DeltaLearningPotential(MlipManager):
         return full_pair_coeff
 
 # ========================================================================== #
-    def get_mlip_energy(self, coef, desc):
+    def predict(self, atoms, coef=None):
         """
         Function that gives the mlip_energy
         """
-        return self.model.get_mlip_energy(coef, desc)
+        return self.model.predict(atoms, coef)
 
 # ========================================================================== #
     def update_matrices(self, atoms):

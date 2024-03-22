@@ -3,6 +3,7 @@
 from pathlib import Path
 import numpy as np
 from ase.units import GPa
+from ase import Atoms
 
 from . import MlipManager
 from ..utilities import compute_correlation, create_link
@@ -102,9 +103,8 @@ class LinearPotential(MlipManager):
                f"{self.natoms[idx_e:].sum():}\n\n"
 
         tmp_msg, weight_fn = self.weight.compute_weight(
-            amat_e,
             self.coefficients,
-            self.get_mlip_energy,
+            self.predict,
             subfolder=mlip_subfolder)
 
         msg += tmp_msg
@@ -178,29 +178,38 @@ class LinearPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, atoms, coef=None):
+    def predict(self, desc, coef=None):
         """
+        Predict energy (eV), forces (eV/ang) and stress (eV/ang**3) given
+        desc which can be of type ase.Atoms or list of ase.Atoms.
+        Can choose the coefficients to calculate with, or use the latest one
         """
+        if isinstance(desc, Atoms):
+            desc = [desc]
         if coef is None:
-            coef=self.coefficients
+            coef = self.coefficients
         assert coef is not None, 'The model has not been trained'
 
-        res = self.descriptor.calculate(atoms, subfolder=self.folder)[0]
+        if isinstance(desc[0], Atoms):
+            desc = self.descriptor.calculate(desc, subfolder=self.folder)
+        else:
+            raise NotImplementedError
+
+        amat_e = [d['desc_e'] for d in desc]
+        amat_f = [d['desc_f'] for d in desc]
+        amat_s = [d['desc_s'] for d in desc]
 
         # We use the latest value coefficients to get the properties
-        energy = np.einsum('ij,j->', res['desc_e'],  coef)
-        forces = np.einsum('ij,j->i', res['desc_f'], coef)
-        stress = np.einsum('ij,j->i', res['desc_s'], coef)
+        energy = np.einsum('nij,j->n',  amat_e, coef)
+        forces = np.einsum('nij,j->ni', amat_f, coef)
+        stress = np.einsum('nij,j->ni', amat_s, coef)
 
-        forces = forces.reshape(len(atoms), 3)
+        #  This line will cause problem if the number of atoms vary
+        forces = forces.reshape(len(energy), -1, 3)
 
+        if len(energy) == 1:
+            return energy[0], forces[0], stress[0]
         return energy, forces, stress
-
-# ========================================================================== #
-    def get_mlip_energy(self, coef, desc):
-        """
-        """
-        return np.einsum('ij,j->i', desc, coef)
 
 # ========================================================================== #
     def set_coefficients(self, coefficients):

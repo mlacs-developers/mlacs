@@ -6,7 +6,7 @@ from pathlib import Path
 import logging
 import numpy as np
 from ..utilities import subfolder
-
+from ase.units import GPa
 try:
     # With the annoying mandatory warning from mbar, we have to initialize
     # the log here otherwise the log doesn't work
@@ -92,7 +92,8 @@ class MbarManager(WeightingPolicy):
         self.Nk = []
         self.train_mlip = False
         self.mlip_coef = []
-        self.mlip_desc = []
+        self.mlip_ep = []
+        self.ukn = []
 
         self._newddb = []
         self._nstart = self.parameters['start']
@@ -103,36 +104,54 @@ class MbarManager(WeightingPolicy):
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, desc, coef, f_mlipE):
+    def compute_weight(self, coef, predict):
         """
-        Save the descriptor and the MLIP coefficients.
+        Save the MLIP coefficients and compute the Weight
         Compute the matrice Ukn of partition fonctions of shape [ndesc, nconf]
-        according to the given f_mlipE(coef,desc)
+        according to the given predict(desc, coef)
         """
+        # Update the variables
         if coef is not None:
             self.mlip_coef.append(coef)
-            self.mlip_desc.append(desc)
 
         self.train_mlip = True
         self.database.extend(self._newddb)
         self.nconfs = len(self.database)
-
         if 0 == len(self.mlip_coef):
             self.Nk = np.r_[self.nconfs]
         else:
             self.Nk = np.append(self.Nk, [len(self._newddb)])
         self._newddb = []
 
+        # Calculate the MLIP Energy and Pressure according to the new coef
+        mlip_E, mlip_F, mlip_S = predict(self.database, coef)
+        mlip_P = []
+        for s in mlip_S:
+            mlip_P.append(-np.sum(s[:3])/3)
+        self.mlip_ep.append([mlip_E, mlip_P])
+
+        # Calculate ukn
+        assert len(self.mlip_ep[-1][0]) == self.nconfs
+        ukn = np.zeros([len(self.mlip_ep), len(self.mlip_ep[-1][0])])
+        for idx, mlip_coef in enumerate(self.mlip_coef):
+            # Calculate the MLIP Energy and Pressure according to the new coef
+            mlip_E, mlip_F, mlip_S = predict(self.database, mlip_coef)
+            mlip_P = []
+            for s in mlip_S:
+                mlip_P.append(-np.sum(s[:3])/3)
+
+            ukn[idx] = self._get_ukn(energy=mlip_E,
+                                     pressure=mlip_P)
+        self.ukn = ukn
+        squared_ukn = np.zeros([len(self.ukn), len(self.ukn[-1])])
+        for i in range(len(self.ukn)):
+            for j in range(len(self.ukn[i])):
+                squared_ukn[i, j] = self.ukn[i][j]
+
+        # Finally, calculate weight
         header = ''
         if self._nstart <= len(self.mlip_coef):
-
-            shape = (len(self.mlip_coef), len(self.mlip_desc[-1]))
-            ukn = np.zeros(shape)
-            for istep, coeff in enumerate(self.mlip_coef):
-                mlip_E = f_mlipE(coeff, self.mlip_desc[-1])
-                ukn[istep] = self._get_ukn(mlip_E)
-
-            weight = self._compute_weight(ukn)
+            weight = self._compute_weight(squared_ukn)
             self.weight = weight
             neff = self.get_effective_conf()
 
@@ -182,53 +201,49 @@ class MbarManager(WeightingPolicy):
             self.matsize = []
         self.matsize.extend([len(a) for a in atoms])
 
-# ========================================================================== #
-    def _get_ukn(self, ekn):
-        """
-        Compute Ukn matrices.
-        """
         # Sanity Check
-        for at in self.database:
+        for at in atoms:
             if 'info_state' not in at.info:
                 msg = "Atoms don't have 'info_state' for MBAR\n"
                 msg += "To use mbar, look at the new traj file with 2 confs."
                 msg += "Copy its info['info_state'] and add it to all the "
                 msg += "atoms in traj."
                 raise ValueError(msg)
-        assert len(ekn) == self.nconfs
 
-        P, V, T = self._get_ensemble_info()
+# ========================================================================== #
+    def _get_ukn(self, energy, pressure):
+        """
+        Compute Ukn matrices. u[k,n] -> k = mlip, n=conf
+        """
+        P, V, T = self._get_ensemble_info(pressure)
         PV = P*V / [len(at) for at in self.database]
-        ukn = (ekn + PV) / (kB * T)
+        ukn = (energy + PV) / (kB * T)
         return ukn
 
 # ========================================================================== #
-    def _get_ensemble_info(self):
+    def _get_ensemble_info(self, pressure):
         """
         Read the ddb info state and returns arrays of P, dV, T.
 
         For now, only NVT and NPT are implemented.
         NVT : Aimed T, Constant P, Constant V
-        NPT : Aimed T, Instantaneous P, Instantaneous V
+        NPT : Aimed T, Instantaneous P from the MLIP, Instantaneous V
         -----------------------------------------------
         NVE : Instantaneous T, No P, No V
         uVT/uPT : NVT/NPT + Constant u, Instantaneous N
         """
-        J2eV = 1.6022e-19  # J per eV
-        m2ang = 1e-10  # m per Ang
-
         P, V, T = [], [], []
-        for at in self.database:
+        for idx, at in enumerate(self.database):
             info = at.info['info_state']
             ens = info['ensemble']
             if ens == "NVT":
                 T = np.append(T, at.info['info_state']['temperature'])
-                P = np.append(P, -np.sum(at.get_stress()[:3])/3)
+                P = np.append(P, pressure[idx])
                 V = np.append(V, at.get_volume())
             elif ens == "NPT":
                 T = np.append(T, at.info['info_state']['temperature'])
-                P_gpa = np.append(P, at.info['info_state']['pressure'])
-                P = P_gpa * 1e9 * (m2ang)**3 / J2eV
+                tmp_P = at.info['info_state']['pressure']
+                P = np.append(P, tmp_P * GPa)  # From GPa to eV/ang**3
                 V = np.append(V, at.get_volume())
             else:
                 msg = "Only NVT and NPT are implemented in MLACS for now"
@@ -236,7 +251,7 @@ class MbarManager(WeightingPolicy):
         return P, V, T
 
 # ========================================================================== #
-    def _compute_weight(self, ukn):
+    def _compute_weight(self, sq_ukn):
         """
         Uses pymbar.MAR() class.
 
@@ -244,7 +259,8 @@ class MbarManager(WeightingPolicy):
         samples from multiple equilibrium states.
         J. Chem. Phys. 129:124105, 2008.  http://dx.doi.org/10.1063/1.2978177
         """
-        mbar = MBAR(ukn, self.Nk,
+        print(sq_ukn)
+        mbar = MBAR(sq_ukn, self.Nk,
                     solver_protocol=[{'method': self.parameters['solver']}])
         weight = mbar.weights()[:, -1]
         return weight

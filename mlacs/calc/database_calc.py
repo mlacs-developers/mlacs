@@ -60,7 +60,7 @@ class DatabaseCalc(CalcManager):
             " you need to give a list of Traj file."
 
         true_confs = []
-        i=0
+        i = 0
         for mlip_conf, s in zip(mlip_confs, state):
             if s == "Training":
                 true_confs.append(self.training.pop())
@@ -70,6 +70,7 @@ class DatabaseCalc(CalcManager):
             mlip_conf.set_positions(true_confs[-1].get_positions())
             true_confs[-1].info = mlip_conf.info
             i += 1
+        if state[0] != "Training":
+            self.current_conf += 1
 
-        self.current_conf += 1
         return true_confs

@@ -79,7 +79,7 @@ class LangevinState(StateManager):
                               logfile=logfile,
                               trajfile=trajfile,
                               loginterval=loginterval)
-        self.pressure=None
+        self.pressure = None
         self.dt = dt
         self.fixcm = fixcm
         self.temperature = temperature

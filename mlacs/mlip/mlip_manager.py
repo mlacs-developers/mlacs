@@ -102,9 +102,9 @@ class MlipManager(ABC):
 
 # ========================================================================== #
     @abstractmethod
-    def get_mlip_energy(self, coef, desc):
+    def predict(self, atoms, coef=None):
         """
-        Function that gives the mlip_energy
+        Function that gives the e, f, s
         """
         raise NotImplementedError
 
@@ -160,9 +160,8 @@ class MlipManager(ABC):
         amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
 
         mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
-        _, weight_fn = self.weight.compute_weight(amat_e,
-                                                  mlip_coef,
-                                                  self.get_mlip_energy,
+        _, weight_fn = self.weight.compute_weight(mlip_coef,
+                                                  self.predict,
                                                   subfolder=sf)
         desc_name = self.descriptor.desc_name
         create_link(sf/weight_fn, self.folder/"MLIP.weight")

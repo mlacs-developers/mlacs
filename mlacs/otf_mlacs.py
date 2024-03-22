@@ -752,6 +752,7 @@ class OtfMlacs:
                                  mlip_subfolder=mlip_sf)
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
+
         # Update this simulation traj
         self.traj = []
         self.atoms = []
