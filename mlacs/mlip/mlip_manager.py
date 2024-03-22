@@ -157,7 +157,6 @@ class MlipManager(ABC):
         sf = self.folder/mlip_subfolder
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
-        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
 
         mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
         _, weight_fn = self.weight.compute_weight(mlip_coef,

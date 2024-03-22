@@ -240,6 +240,16 @@ class BlankDescriptor(Descriptor):
     def __init__(self, atoms):
         Descriptor.__init__(self, atoms)
 
+# ========================================================================== #
+    def compute_descriptor(self, atoms, forces=True, stress=True):
+        msg = "BlankDescriptor can't give access to descriptor"
+        raise NotImplementedError(msg)
+
+# ========================================================================== #
+    @subfolder
+    def write_mlip(self, mlip_coef):
+        pass
+
 
 # ========================================================================== #
 def combine_reg(matrices):

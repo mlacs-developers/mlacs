@@ -5,8 +5,8 @@ import os
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
-from mlacs.mlip import MliapDescriptor, SnapDescriptor, LinearPotential
-from mlacs.state import LangevinState, LammpsState
+from mlacs.mlip import MliapDescriptor, LinearPotential
+from mlacs.state import LangevinState
 from mlacs import OtfMlacs
 
 
@@ -24,6 +24,7 @@ def expected_folder(expected_folder_base):
 @pytest.fixture
 def expected_files(expected_files_base):
     return expected_files_base
+
 
 def test_langevin_mliap_restart(root, treelink):
     # Parameters --------------------------------------------------------------

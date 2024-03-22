@@ -5,8 +5,8 @@ import os
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
-from mlacs.mlip import MliapDescriptor, SnapDescriptor, LinearPotential
-from mlacs.state import LangevinState, LammpsState
+from mlacs.mlip import SnapDescriptor, LinearPotential
+from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
 
@@ -63,4 +63,3 @@ def test_snap_restart(root, treelink):
                         keep_tmp_mlip=False)
     sampling.run(nconfs)
     assert sum(sampling.nconfs) == 4
-

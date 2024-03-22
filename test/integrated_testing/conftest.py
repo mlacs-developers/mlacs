@@ -43,12 +43,13 @@ def treelink(root, expected_folder, expected_files):
     for f in expected_files:
         (root / f).unlink()
 
+
 @pytest.fixture
 def langevin_treelink(root, expected_folder, expected_files):
     if "MolecularDynamics" in expected_folder:
         expected_folder.remove("MolecularDynamics")
 
-    for folder in expeted:
+    for folder in expected_folder:
         if (root/folder).exists():
             shutil.rmtree(root / folder)
 
@@ -64,4 +65,3 @@ def langevin_treelink(root, expected_folder, expected_files):
 
     for f in expected_files:
         (root / f).unlink()
-

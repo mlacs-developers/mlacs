@@ -116,6 +116,7 @@ def test_NPT():
     assert ('volume' not in md_at.info)
     cleanup()
 
+
 def test_tstop():
     """
     Make sure NPT correctly add atoms.info['info_state']
@@ -123,7 +124,8 @@ def test_tstop():
     cleanup()
     mpath, dpath = create_mlip()
 
-    ls = LammpsState(3200, nsteps=100, nsteps_eq=20, dt=0.5, pressure=1, t_stop=4000)
+    ls = LammpsState(300, nsteps=100, nsteps_eq=20,
+                     dt=0.5, pressure=1, t_stop=500)
     at = bulk("Cu").repeat(2)
     ps = f"mliap model linear {mpath} descriptor sna {dpath}"
     pc = ['* * Cu']
@@ -137,10 +139,11 @@ def test_tstop():
     assert ('info_state' in md_at.info)
     info = md_at.info['info_state']
     assert (info['ensemble'] == "NPT")
-    assert (info['temperature'] == None)
+    assert (info['temperature'] is None)
     assert (info['pressure'] == 1)
     assert ('volume' not in md_at.info)
     cleanup()
+
 
 def test_pstop():
     """
@@ -149,7 +152,8 @@ def test_pstop():
     cleanup()
     mpath, dpath = create_mlip()
 
-    ls = LammpsState(3200, nsteps=100, nsteps_eq=20, dt=0.5, pressure=1, p_stop=10)
+    ls = LammpsState(3200, nsteps=100, nsteps_eq=20,
+                     dt=0.5, pressure=1, p_stop=10)
     at = bulk("Cu").repeat(2)
     ps = f"mliap model linear {mpath} descriptor sna {dpath}"
     pc = ['* * Cu']
@@ -164,7 +168,6 @@ def test_pstop():
     info = md_at.info['info_state']
     assert (info['ensemble'] == "NPT")
     assert (info['temperature'] == 3200)
-    assert (info['pressure'] == None)
+    assert (info['pressure'] is None)
     assert ('volume' not in md_at.info)
     cleanup()
-

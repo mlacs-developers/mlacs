@@ -21,6 +21,7 @@ The true potential is the EMT as implemented in ASE
 def expected_folder(expected_folder_base):
     return expected_folder_base
 
+
 @pytest.fixture
 def expected_files(expected_files_base):
     return expected_files_base
