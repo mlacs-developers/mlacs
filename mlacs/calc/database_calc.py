@@ -2,6 +2,7 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+from pathlib import Path
 import ase
 from .calc_manager import CalcManager
 
@@ -36,7 +37,7 @@ class DatabaseCalc(CalcManager):
                  trainfile,
                  magmoms=None):
         CalcManager.__init__(self, "dummy", magmoms)
-        if isinstance(trajfile, str):
+        if isinstance(trajfile, str) or isinstance(trajfile, Path):
             self.traj = [ase.io.read(trajfile, index=":")]
         else:
             self.traj = [ase.io.read(t, index=":") for t in trajfile]
