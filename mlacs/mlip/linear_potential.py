@@ -128,7 +128,7 @@ class LinearPotential(MlipManager):
         s_mlip = np.einsum('ij,j->i', amat_s, self.coefficients)
 
         w = None
-        if np.shape(w) == np.shape(ymat_e):
+        if len(self.weight.weight) > 0:
             w = self.weight.weight
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)

@@ -259,7 +259,6 @@ class MbarManager(WeightingPolicy):
         samples from multiple equilibrium states.
         J. Chem. Phys. 129:124105, 2008.  http://dx.doi.org/10.1063/1.2978177
         """
-        print(sq_ukn)
         mbar = MBAR(sq_ukn, self.Nk,
                     solver_protocol=[{'method': self.parameters['solver']}])
         weight = mbar.weights()[:, -1]
