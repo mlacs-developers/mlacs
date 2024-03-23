@@ -11,7 +11,7 @@ from ase.units import GPa
 
 from .descriptor import BlankDescriptor
 from .mlip_manager import SelfMlipManager
-from ..utilities import compute_correlation, create_link
+from ..utilities import compute_correlation
 from ..utilities.io import write_cfg, read_cfg_data
 
 
@@ -126,16 +126,6 @@ class MomentTensorPotential(SelfMlipManager):
         the coefficients
         """
         pass
-        """
-        sf = self.folder/mlip_subfolder
-        self.coefficients = mlip_coef
-        idx_e, idx_f, idx_s = self._get_idx_fit()
-
-        _, weight_fn = self.weight.compute_weight(mlip_coef,
-                                                  self.predict,
-                                                  subfolder=sf)
-        create_link(sf/weight_fn, self.folder/"MLIP.weight")
-        """
 
 # ========================================================================== #
     def get_pair_style(self, folder):
