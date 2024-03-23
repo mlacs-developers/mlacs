@@ -84,7 +84,6 @@ class PafiLammpsState(LammpsState):
                          trajfile=trajfile, loginterval=loginterval,
                          workdir=workdir, blocks=blocks)
 
-
         self.temperature = temperature
         self.path = path
         if path is None:
@@ -132,6 +131,7 @@ class PafiLammpsState(LammpsState):
                                          model_post,
                                          atom_style,
                                          eq)
+
         return atoms.copy()
 
 # ========================================================================== #

@@ -53,10 +53,10 @@ estd_ml = np.zeros(e.shape)
 for i, temp in enumerate(t):
     w = weights[:, i+n]
     emean[i] = (w * e).sum()
-    estd[i] = ((w * e**2).sum() - (w * e).sum()**2) #/ (kB * temp**2)
+    estd[i] = ((w * e**2).sum() - (w * e).sum()**2)  # / (kB * temp**2)
     w = weights[:, i]
     emean_ml[i] = (w * e).sum()
-    estd_ml[i] = ((w * e**2).sum() - (w * e).sum()**2) #/ (kB * temp**2)
+    estd_ml[i] = ((w * e**2).sum() - (w * e).sum()**2)  # / (kB * temp**2)
 
 test_temp = np.linspace(200, 1200, 250)
 u_ln = np.zeros((test_temp.shape[0], e.shape[0]))
@@ -66,7 +66,7 @@ res = mb.compute_perturbed_free_energies(u_ln)
 ddf = res["Delta_f"][0]
 
 ref = np.loadtxt("RefMD/Results.dat")
-#ref[:, 2] /= (kB * ref[:, 0]**2)
+# ref[:, 2] /= (kB * ref[:, 0]**2)
 
 # =================================================================#
 # Plot
@@ -83,8 +83,8 @@ ax3 = fig.add_subplot(gs[1, 1])
 ax0.plot(t, emean / 216)
 ax0.plot(t, emean_ml / 216, alpha=0.5)
 ax0.plot(ref[:, 0], ref[:, 1] / 216, ls="", marker="o")
-ax1.plot(t, estd  / 216)
-ax1.plot(t, estd_ml  / 216, alpha=0.5)
+ax1.plot(t, estd / 216)
+ax1.plot(t, estd_ml / 216, alpha=0.5)
 ax1.plot(ref[:, 0], ref[:, 2] / 216, ls="", marker="o")
 ax2.plot(t, delta_f[n:] / 216)
 ax3.plot(t, neff[n:])

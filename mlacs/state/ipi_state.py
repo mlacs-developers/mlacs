@@ -282,6 +282,7 @@ class IpiState(LammpsState):
             msg = "i-pi stopped prematurely"
             raise RuntimeError(msg)
         atoms = self.create_ase_atom(pbc, nbeads)
+
         return atoms
 
 # ========================================================================== #

@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from ase.atoms import Atoms
 from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -36,27 +34,28 @@ class DeltaLearningPotential(MlipManager):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 folder=Path("MLIP")):
+                 folder=None):
+        if folder != model.folder:
+            if folder is not None:
+                model.folder = folder
+            else:
+                folder = model.folder
+
         self.model = model
-
-        mbar = self.model.mbar
-        ecoef = self.model.ecoef
-        fcoef = self.model.fcoef
-        scoef = self.model.scoef
-        nthrow = self.model.nthrow
-
-        MlipManager.__init__(self, self.model.descriptor, nthrow,
-                             ecoef, fcoef, scoef, mbar, folder)
+        weight = self.model.weight
 
         if not isinstance(pair_style, list):
             pair_style = [pair_style]
 
         self.ref_pair_style = pair_style
         self.ref_pair_coeff = pair_coeff
+
         self.ref_model_post = model_post
         self.model_post = model_post
         self.ref_atom_style = atom_style
         self.atom_style = atom_style
+
+        MlipManager.__init__(self, self.model.descriptor, weight, folder)
 
         self._ref_e = None
         self._ref_f = None
@@ -80,8 +79,7 @@ class DeltaLearningPotential(MlipManager):
             return full_pair_style
 
 # ========================================================================== #
-    @property
-    def pair_style(self):
+    def _get_pair_style(self):
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
@@ -98,8 +96,7 @@ class DeltaLearningPotential(MlipManager):
         return full_pair_style
 
 # ========================================================================== #
-    @property
-    def pair_coeff(self):
+    def _get_pair_coeff(self):
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
 
@@ -136,6 +133,13 @@ class DeltaLearningPotential(MlipManager):
             full_pair_coeff.append(mlpc)
 
         return full_pair_coeff
+
+# ========================================================================== #
+    def predict(self, atoms, coef=None):
+        """
+        Function that gives the mlip_energy
+        """
+        return self.model.predict(atoms, coef)
 
 # ========================================================================== #
     def update_matrices(self, atoms):

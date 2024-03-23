@@ -11,7 +11,7 @@ from ase.units import GPa
 
 from .descriptor import BlankDescriptor
 from .mlip_manager import SelfMlipManager
-from ..utilities import compute_correlation
+from ..utilities import compute_correlation, create_link
 from ..utilities.io import write_cfg, read_cfg_data
 
 
@@ -65,32 +65,17 @@ class MomentTensorPotential(SelfMlipManager):
             - weighting='vibrations'
             - init_params='random'
             - update_mindist=False
-
-    nthrow: :class:`int`
-
-    energy_coefficient: :class:`float`
-
-    forces_coefficient: :class:`float`
-
-    stress_coefficient: :class:`float`
     """
     def __init__(self,
                  atoms,
                  mlpbin="mlp",
                  folder=Path("MTP").absolute(),
                  mtp_parameters={},
-                 fit_parameters={},
-                 nthrow=0,
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=1.0):
+                 fit_parameters={}):
         SelfMlipManager.__init__(self,
-                                 BlankDescriptor(atoms),
-                                 nthrow,
-                                 folder,
-                                 energy_coefficient,
-                                 forces_coefficient,
-                                 stress_coefficient)
+                                 descriptor=BlankDescriptor(atoms),
+                                 weight=None,
+                                 folder=folder)
 
         self.cmd = mlpbin
 
@@ -109,16 +94,61 @@ class MomentTensorPotential(SelfMlipManager):
         self.fit_parameters.update(fit_parameters)
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def read_parent_mlip(self, traj):
+        """
+        Get a list of all the mlip that have generated a conf in traj
+        and get the coefficients of all these mlip
+        """
+        parent_mlip = []
+        mlip_coef = []
+        # Make the MBAR variable Nk and mlip_coef
+        for state in traj:
+            for conf in state:
+                if "parent_mlip" not in conf.info:  # Initial or training
+                    continue
+                else:  # A traj
+                    model = conf.info['parent_mlip']
+                    if not Path(model).exists:
+                        err = "Some parent MLIP are missing. "
+                        err += "Rerun MLACS with DatabaseCalculator and "
+                        err += "OtfMlacs.keep_tmp_files=True on your traj"
+                        raise FileNotFoundError(err)
+                    if model not in parent_mlip:  # New state
+                        parent_mlip.append(model)
+                        coef = model
+                        mlip_coef.append(coef)
+        return parent_mlip, np.array(mlip_coef)
+
+# ========================================================================== #
+    def next_coefs(self, mlip_coef, mlip_subfolder):
+        """
+        Update MLACS just like train_mlip, but without actually computing
+        the coefficients
+        """
+        pass
+        """
+        sf = self.folder/mlip_subfolder
+        self.coefficients = mlip_coef
+        idx_e, idx_f, idx_s = self._get_idx_fit()
+
+        _, weight_fn = self.weight.compute_weight(mlip_coef,
+                                                  self.predict,
+                                                  subfolder=sf)
+        create_link(sf/weight_fn, self.folder/"MLIP.weight")
+        """
+
+# ========================================================================== #
+    def get_pair_style(self, folder):
         return f"mlip {self.folder / 'mlip.ini'}"
 
 # ========================================================================== #
-    def get_pair_coeff(self):
+    def get_pair_coeff(self, folder=None):
         return ["* *"]
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        return self.get_pair_style(), self.get_pair_coeff()
+    def get_pair_style_coeff(self, folder):
+        return self.get_pair_style(folder=folder), \
+               self.get_pair_coeff(folder=folder)
 
 # ========================================================================== #
     def train_mlip(self, mlip_subfolder=None):
@@ -128,6 +158,11 @@ class MomentTensorPotential(SelfMlipManager):
             subfolder = self.folder
         else:
             subfolder = self.folder / mlip_subfolder
+            # We need to remove the old subfolder. If calculation ended at
+            # some specific weird moments, it can cause access problem
+            # for the mlp binary otherwise
+            if subfolder.exists():
+                shutil.rmtree(subfolder)
 
         subfolder.mkdir(parents=True, exist_ok=True)
 
@@ -263,9 +298,9 @@ class MomentTensorPotential(SelfMlipManager):
         mlp_command += f" --bfgs-conv-tol={bfgs_conv_tol}"
         scale_by_forces = self.fit_parameters["scale_by_forces"]
         mlp_command += f" --scale-by-force={scale_by_forces}"
-        mlp_command += f" --energy-weight={self.ecoef}"
-        mlp_command += f" --force-weight={self.fcoef}"
-        mlp_command += f" --stress-weight={self.scoef}"
+        mlp_command += f" --energy-weight={self.weight.energy_coefficient}"
+        mlp_command += f" --force-weight={self.weight.forces_coefficient}"
+        mlp_command += f" --stress-weight={self.weight.stress_coefficient}"
         with open(subfolder / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
@@ -275,6 +310,20 @@ class MomentTensorPotential(SelfMlipManager):
             msg = "mlp stopped with the exit code \n" + \
                   f"{mlp_handle.stderr.decode()}"
             raise RuntimeError(msg)
+
+# ========================================================================== #
+    def _get_pair_style(self):
+        return self.get_pair_style(self.folder)
+
+# ========================================================================== #
+    def _get_pair_coeff(self):
+        return self.get_pair_coeff(self.folder)
+
+# ========================================================================== #
+    def predict(self, atoms, coef=None):
+        msg = "Getting the MLIP energy from descriptor is not accessible " + \
+              "for SelfMlipManager"
+        raise NotImplementedError(msg)
 
 # ========================================================================== #
     def _run_test(self, subfolder):
@@ -350,10 +399,6 @@ class MomentTensorPotential(SelfMlipManager):
         txt = "Moment Tensor Potential\n"
         txt += "Parameters:\n"
         txt += "-----------\n"
-        txt += f"energy coefficient :    {self.ecoef}\n"
-        txt += f"forces coefficient :    {self.fcoef}\n"
-        txt += f"stress coefficient :    {self.scoef}\n"
-        txt += "\n"
         txt += "Descriptor:\n"
         txt += "-----------\n"
         txt += f"level :                 {self.level}\n"

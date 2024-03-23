@@ -34,8 +34,9 @@ class BaseLammpsState(StateManager):
 
         self.atomsfname = "atoms.in"
         self.lammpsfname = "lammps_input.in"
-
         self._myblock = blocks
+
+        self.info_dynamics = dict()
         if isinstance(blocks, list):
             self._myblock = blocks[0]
             if len(blocks) != 1:
@@ -54,6 +55,7 @@ class BaseLammpsState(StateManager):
         Function to run the dynamics
         """
         atoms = supercell.copy()
+
         initial_charges = atoms.get_initial_charges()
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
@@ -80,8 +82,11 @@ class BaseLammpsState(StateManager):
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-
         atoms = self._get_atoms_results(initial_charges)
+
+        # Set the info of atoms
+        atoms.info['info_state'] = self.info_dynamics
+
         return atoms.copy()
 
 # ========================================================================== #
@@ -399,12 +404,13 @@ class LammpsState(BaseLammpsState):
                 msg = "You need to put a pressure with p_stop"
                 raise ValueError(msg)
 
+        self._make_info_dynamics()
+
 # ========================================================================== #
     def _get_block_thermostat(self, eq):
         """
 
         """
-
         if self.t_stop is None:
             temp = self.temperature
         else:
@@ -467,6 +473,38 @@ class LammpsState(BaseLammpsState):
         return block
 
 # ========================================================================== #
+    def _make_info_dynamics(self):
+
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        ensemble = ["X", "X", "X"]
+
+        # N or mu
+        ensemble[0] = "N"
+
+        # V or P
+        ensemble[1] = "V"
+        pressure = None
+        if self.pressure is not None:
+            ensemble[1] = "P"
+            if self.p_stop is None:
+                pressure = self.pressure
+
+        # T or E
+        if self.temperature is None:  # NVE
+            raise NotImplementedError
+        ensemble[2] = "T"
+
+        temperature = None
+        if self.t_stop is None:
+            temperature = self.temperature
+
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        self.ensemble = ''.join(ensemble)
+        self.info_dynamics = dict(ensemble=self.ensemble,
+                                  temperature=temperature,
+                                  pressure=pressure)
+
+# ========================================================================== #
     def _get_block_traj(self, atoms):
         """
 
@@ -494,6 +532,8 @@ class LammpsState(BaseLammpsState):
                                          rng=self.rng)
         else:
             atoms.set_momenta(self.init_momenta)
+
+        atoms.info['info_state'] = self.info_dynamics
 
 # ========================================================================== #
     def log_recap_state(self):

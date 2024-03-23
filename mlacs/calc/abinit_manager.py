@@ -114,6 +114,7 @@ class AbinitManager(CalcManager):
         """
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]
+
         prefix = []
         for i, at in enumerate(confs):
             at.set_initial_magnetic_moments(self.magmoms)
@@ -161,6 +162,10 @@ class AbinitManager(CalcManager):
         results_confs = []
         for (stateprefix, at) in zip(prefix, confs):
             results_confs.append(self._read_output(stateprefix, at))
+
+        for i in range(len(results_confs)):
+            results_confs[i].info = confs[i].info
+
         # Tada !
         return results_confs
 

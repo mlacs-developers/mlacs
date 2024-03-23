@@ -57,6 +57,7 @@ class SnapDescriptor(Descriptor):
         Descriptor.__init__(self, atoms, rcut, alpha)
         self.alpha_quad = alpha_quad
         self.model = model
+        self.desc_name = "SNAP"
 
         # Initialize the parameters for the descriptors
         self.radelems = parameters.pop("radelems", None)
@@ -202,7 +203,7 @@ class SnapDescriptor(Descriptor):
         Function to write the mliap.descriptor parameter files of the MLIP
         """
         self.mlip_desc = Path.cwd()
-        with open("SNAP.descriptor", "w") as f:
+        with open(f"{self.desc_name}.descriptor", "w") as f:
             f.write(self.get_mlip_params())
 
 # ========================================================================== #
@@ -231,10 +232,13 @@ class SnapDescriptor(Descriptor):
     def write_mlip(self, coefficients):
         """
         """
+        if Path(f"{self.desc_name}.model").exists():
+            Path(f"{self.desc_name}.model").unlink()
+
         self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
-        with open("SNAP.model", "w") as fd:
+        with open(f"{self.desc_name}.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -251,6 +255,7 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
+        return f"{self.desc_name}.model"
 
 # ========================================================================== #
     @subfolder
@@ -258,9 +263,9 @@ class SnapDescriptor(Descriptor):
         """
         Read MLIP parameters from a file.
         """
-        fn = Path("SNAP.model")
+        fn = Path(f"{self.desc_name}.model")
         if not fn.is_file():
-            raise FileNotFoundError(f"The file {fn.absolute} does not exist.")
+            raise FileNotFoundError(f"File {fn.absolute()} does not exist")
 
         with open(fn, "r") as fd:
             lines = fd.readlines()
@@ -300,20 +305,20 @@ class SnapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def get_pair_style(self, folder=None):
         return "snap"
 
 # ========================================================================== #
-    def get_pair_coeff(self):
-        modelfile = self.mlip_model / "SNAP.model"
-        descfile = self.mlip_desc / "SNAP.descriptor"
+    def get_pair_coeff(self, folder=Path("")):
+        modelfile = folder / f"{self.desc_name}.model"
+        descfile = folder / f"{self.desc_name}.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        return self.get_pair_style(), self.get_pair_coeff()
+    def get_pair_style_coeff(self, folder):
+        return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #
     def _snap_opt_str(self):
