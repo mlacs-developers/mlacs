@@ -13,6 +13,8 @@ def main(args, parser):
     if args.datatype not in ["energy", "forces", "stress", None]:
         raise ValueError("The type argument has to be "
                          "energy, forces or stress")
+    if args.density and args.weight is not None:
+        raise ValueError("density and weights can't be used at the same time")
     rmse = True
     if args.normse:
         rmse = False
