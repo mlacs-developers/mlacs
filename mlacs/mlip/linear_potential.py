@@ -52,6 +52,7 @@ class LinearPotential(MlipManager):
                 hyperparam = self.parameters["hyperparameters"]
             hyperparam["fit_intercept"] = False
             self.parameters["hyperparameters"] = hyperparam
+        self.can_use_weight = True
 
 # ========================================================================== #
     def train_mlip(self, mlip_subfolder):

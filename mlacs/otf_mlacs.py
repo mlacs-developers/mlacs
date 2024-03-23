@@ -728,7 +728,8 @@ class OtfMlacs:
 
         # If the last simulation was with keep_tmp_mlip=False,
         # we put the old MLIP.model and weight in a Coef folder
-        if len(no_parent_atoms) > 1 and self.keep_tmp_mlip:
+        can_use_weight = self.mlip.can_use_weight
+        if len(no_parent_atoms) > 1 and self.keep_tmp_mlip and can_use_weight:
             msg = "Some configuration in Trajectory have no parent_mlip\n"
             msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)

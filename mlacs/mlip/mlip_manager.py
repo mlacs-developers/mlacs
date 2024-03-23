@@ -53,6 +53,8 @@ class MlipManager(ABC):
         self.pair_style = self._get_pair_style()
         self.pair_coeff = self._get_pair_coeff()
 
+        self.can_use_weight = False
+
 # ========================================================================== #
     def update_matrices(self, atoms):
         """

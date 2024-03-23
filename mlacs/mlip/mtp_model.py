@@ -70,12 +70,11 @@ class MomentTensorPotential(SelfMlipManager):
                  atoms,
                  mlpbin="mlp",
                  folder=Path("MTP").absolute(),
-                 weight=None,
                  mtp_parameters={},
                  fit_parameters={}):
         SelfMlipManager.__init__(self,
                                  descriptor=BlankDescriptor(atoms),
-                                 weight=weight,
+                                 weight=None,
                                  folder=folder)
 
         self.cmd = mlpbin
@@ -116,7 +115,6 @@ class MomentTensorPotential(SelfMlipManager):
                         raise FileNotFoundError(err)
                     if model not in parent_mlip:  # New state
                         parent_mlip.append(model)
-                        print("MODEL", model)
                         coef = model
                         mlip_coef.append(coef)
         return parent_mlip, np.array(mlip_coef)
@@ -127,6 +125,8 @@ class MomentTensorPotential(SelfMlipManager):
         Update MLACS just like train_mlip, but without actually computing
         the coefficients
         """
+        pass
+        """
         sf = self.folder/mlip_subfolder
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
@@ -135,6 +135,7 @@ class MomentTensorPotential(SelfMlipManager):
                                                   self.predict,
                                                   subfolder=sf)
         create_link(sf/weight_fn, self.folder/"MLIP.weight")
+        """
 
 # ========================================================================== #
     def get_pair_style(self, folder):
@@ -157,6 +158,11 @@ class MomentTensorPotential(SelfMlipManager):
             subfolder = self.folder
         else:
             subfolder = self.folder / mlip_subfolder
+            # We need to remove the old subfolder. If calculation ended at
+            # some specific weird moments, it can cause access problem
+            # for the mlp binary otherwise
+            if subfolder.exists():
+                shutil.rmtree(subfolder)
 
         subfolder.mkdir(parents=True, exist_ok=True)
 
@@ -296,7 +302,6 @@ class MomentTensorPotential(SelfMlipManager):
         mlp_command += f" --force-weight={self.weight.forces_coefficient}"
         mlp_command += f" --stress-weight={self.weight.stress_coefficient}"
         with open(subfolder / "mlip.log", "w") as fd:
-            print(mlp_command)
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
                              stdout=fd,
