@@ -77,7 +77,7 @@ def plot_correlation(ax,
     maxdata = data.max()
     minmax = [mindata, maxdata]
 
-    rmse, mae, rsquared = compute_correlation(data)
+    rmse, mae, rsquared = compute_correlation(data, weight)
 
     if density:
         xy = np.vstack([datatrue, datatest])
