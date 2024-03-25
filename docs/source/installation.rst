@@ -92,7 +92,7 @@ MLACS will then call LAMMPS via variables. They can be set before running the si
 MLIP
 ****
 
-To have access to the Moment Tensor Potential, it is necessary to install the MLIP package available on its `gitlab page <https://gitlab.com/ashapeev/mlip-2/-/tree/master/src>`_ as well as the interface with LAMMPS available on this `gitlab page <https://gitlab.com/ashapeev/interface-lammps-mlip-2>`_
+To have access to the Moment Tensor Potential, it is necessary to install the MLIP package available on its `gitlab page <https://gitlab.com/ashapeev/mlip-2/-/tree/master/src>`_ as well as the interface with LAMMPS available on `this gitlab page <https://gitlab.com/ashapeev/interface-lammps-mlip-2>`_
 
 The package can be cloned with git
 

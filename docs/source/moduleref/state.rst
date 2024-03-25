@@ -29,16 +29,6 @@ PafiLammpsState
 
 .. autoclass:: PafiLammpsState
 
-BlueMoonLammpsState
-*******************
-
-.. autoclass:: BlueMoonLammpsState
-
-CustomLammpsState
-*****************
-
-.. autoclass:: CustomLammpsState
-
 IpiState
 ********
 

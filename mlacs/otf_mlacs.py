@@ -69,7 +69,7 @@ class OtfMlacs:
         If several states are used, this input can be a list of :class:`str`.
         Default ``\"Trajectory\"``.
 
-    confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
+    confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
         if :class:`int`: Number of configuirations used
         to train a preliminary MLIP
         The configurations are created by rattling the first structure
@@ -78,15 +78,16 @@ class OtfMlacs:
         Default ``1``.
 
     std_init: :class:`float` (optional)
-        Variance (in angs^2) of the displacement when creating
-        initial configurations. Default ``0.05`` angs^2
+        Variance (in :math:`\mathring{a}^2`) of the displacement
+        when creating initial configurations.
+        Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool`(optional)
+    keep_tmp_mlip: :class:`bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
-    ntrymax: :class:`int`(optional)
+    ntrymax: :class:`int` (optional)
         The maximum number of tentative to retry a step if
         the reference potential raises an error or didn't converge.
         Default ``0``.

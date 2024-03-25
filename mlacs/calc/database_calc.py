@@ -12,7 +12,7 @@ from .calc_manager import CalcManager
 class DatabaseCalc(CalcManager):
     """
     Calculators that sequentially reads a previously calculated traj files.
-    Normal utilisator want to set OtfMlacs.nstep to len(traj)
+    Normal utilisator want to set OtfMlacs.nstep to len(traj).
     Can be used with restart to append trajfile to the current traj.
 
     Parameters
@@ -20,10 +20,10 @@ class DatabaseCalc(CalcManager):
     calc: :class:`ase.calculator`
         A ASE calculator object
 
-    trajfile :class:`str` or :class:`pathlib.Path`
+    trajfile: :class:`str` or :class:`pathlib.Path`
         The trajectory file from which DatabaseCalc will read
 
-    trainfile :class:`str`, :class:`pathlib.Path`,
+    trainfile: :class:`str`, :class:`pathlib.Path`,
         The training.traj file, configuration used for fitting but
         not counted for thermodynamic properties
 

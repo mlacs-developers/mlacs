@@ -123,9 +123,10 @@ class UniformWeight(WeightingPolicy):
     nthrow: :class: int
         Number of configurations to ignore when doing the fit.
         Three cases :
-         1. If nconf > 2*nthrow, remove the nthrow first configuration
-         2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
-         3. If nconf < nthrow, keep all conf
+
+        1. If nconf > 2*nthrow, remove the nthrow first configuration
+        2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
+        3. If nconf < nthrow, keep all conf
 
     """
 

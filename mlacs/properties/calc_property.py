@@ -118,12 +118,16 @@ class CalcPafi(CalcProperty):
     ----------
     method: :class:`str`
         Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
+
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
         Default ``max``
+
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
+
+    frequence: :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
     """
 
@@ -170,12 +174,16 @@ class CalcNeb(CalcProperty):
     ----------
     method: :class:`str`
         Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
+
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
         Default ``max``
+
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
+
+    frequence: :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
 
     """
@@ -225,12 +233,16 @@ class CalcRdf(CalcProperty):
     ----------
     method: :class:`str`
         Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
+
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
         Default ``max``
+
     criterion: :class:`float`
         Stopping criterion value. Default ``0.1``
-    frequence : :class:`int`
+
+    frequence: :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
 
     """
@@ -296,12 +308,16 @@ class CalcAdf(CalcProperty):
     ----------
     method: :class:`str`
         Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
+
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
         Default ``max``
+
     criterion: :class:`float`
         Stopping criterion value. Default ``0.1``
-    frequence : :class:`int`
+
+    frequence: :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
 
     """
@@ -370,14 +386,19 @@ class CalcTi(CalcProperty):
     state: :class:`str`
         State of the system: solild or liquid.
         Set either the Einstein crystal as a reference system or the UF liquid.
+
     method: :class:`str`
         Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
+
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
         Default ``max``
+
     criterion: :class:`float`
         Stopping criterion value. Default ``1 meV``
-    frequence : :class:`int`
+
+    frequence: :class:`int`
         Interval of Mlacs step to compute the property. Default ``10``
 
     """
@@ -465,19 +486,27 @@ class CalcExecFunction(CalcProperty):
     function: :class:`str` or `function`
         Function to call. If the function is a `str`, you to define the
         module to load the function.
+
     args: :class:`dict`
         Arguments of the function.
+
     module: :class:`str`
         Module to load the function.
+
     useatoms: :class:`bool`
         True if the function is called from an ase.Atoms object.
+
     method: :class:`str`
         Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
+
+        - max, maximum difference between to consecutive step < criterion
+
         Default ``max``
+
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
+
+    frequence: :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
 
     """
