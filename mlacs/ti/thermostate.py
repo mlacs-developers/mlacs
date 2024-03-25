@@ -9,8 +9,8 @@ import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
 from ..utilities import get_elements_Z_and_masses
-from ..utilities import io_lammps
 from ase.io import read
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -33,7 +33,8 @@ class ThermoState:
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
     nsteps_averaging: :class:`int` (optional)
-        Number of step for equilibrate ideal structure at zero or finite pressure. 
+        Number of step for equilibrate ideal structure at zero
+        or finite pressure.
         Default ``10000``.
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
@@ -104,13 +105,13 @@ class ThermoState:
 
         write_lammps_data(atomsfname, self.atoms)
         self.write_lammps_equilibrate_input(wdir)
-        
+
         call(lammps_command, shell=True, cwd=wdir)
 
         last_dump_atoms = read(wdir + 'dump_averaging')
         equlibrated_structure = last_dump_atoms
         return equlibrated_structure
-    
+
 # ========================================================================== #
     def run_dynamics(self, wdir):
         """
@@ -145,7 +146,8 @@ class ThermoState:
 # ========================================================================== #
     def write_lammps_equilibrate_input(self, wdir):
         """
-        Write the LAMMPS input for MLMD equilibration at zero or finite pressure
+        Write the LAMMPS input for MLMD equilibration at zero
+        or finite pressure
         """
         damp = self.damp
         if damp is None:
@@ -160,10 +162,11 @@ class ThermoState:
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
         input_string += "#####################################\n"
-        input_string += f"variable      nsteps_averaging equal {self.nsteps_averaging}\n"
+        input_string += "variable      nsteps_averaging equal " + \
+                        f"{self.nsteps_averaging}\n"
         input_string += f"timestep      {self.dt/1000}\n"
         input_string += "\n\n\n"
-        
+
         input_string += self.get_interaction_input()
 
         input_string += "#####################################\n"
@@ -172,19 +175,19 @@ class ThermoState:
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
         if self.langevin:
-            input_string += f"fix           f1  all langevin {self.temperature} " + \
-                            f"{self.temperature} {damp} " + \
-                            f"{self.rng.integers(99999)} zero yes\n"
+            input_string += "fix           f1  all langevin " + \
+                    f"{self.temperature} {self.temperature} {damp} " + \
+                    f"{self.rng.integers(99999)} zero yes\n"
             input_string += "fix           f2  all nph iso " + \
-                            f"{self.pressure*10000} {self.pressure*10000} {pdamp}\n"
+                            f"{self.pressure*10000} {self.pressure*10000} " + \
+                            f"{pdamp}\n"
         else:
-            input_string += f"fix           f1  all npt temp {self.temperature} " + \
-                            f"{self.temperature} {damp} iso {self.pressure*10000} " + \
-                            f"{self.pressure*10000} {pdamp} \n"
-            
+            input_string += "fix           f1  all npt temp " + \
+                    f"{self.temperature} {self.temperature} {damp} iso " + \
+                    f"{self.pressure*10000} {self.pressure*10000} {pdamp} \n"
         input_string += self.get_traj_input("averaging")
         input_string += "run           ${nsteps_averaging}\n"
-        
+
         with open(wdir + "lmp_equilibrate_input.in", "w") as f:
             f.write(input_string)
 
