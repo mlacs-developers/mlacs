@@ -79,6 +79,25 @@ class DeltaLearningPotential(MlipManager):
             return full_pair_style
 
 # ========================================================================== #
+    def get_ref_pair_coeff(self):
+        """
+        Return the pair_coeff for the reference calculations
+        """
+        if len(self.ref_pair_style) == 1:
+            return self.ref_pair_coeff
+        else:
+            ref_pair_coeff = []
+            for ps, pc in zip(self.ref_pair_style, self.ref_pair_coeff):
+                refpssplit = ps.split()
+                for ppc in pc:
+                    refpcsplit = ppc.split()
+                    refpc = " ".join([*refpcsplit[:2],
+                                      refpssplit[0],
+                                      *refpcsplit[2:]])
+                    ref_pair_coeff.append(refpc)
+            return ref_pair_coeff
+
+# ========================================================================== #
     def _get_pair_style(self):
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(self.ref_pair_style, list):
@@ -131,6 +150,7 @@ class DeltaLearningPotential(MlipManager):
                              mlpssplit[0],
                              *mlpcsplit[2:]])
             full_pair_coeff.append(mlpc)
+            print(full_pair_coeff)
 
         return full_pair_coeff
 
@@ -150,7 +170,7 @@ class DeltaLearningPotential(MlipManager):
             atoms = [atoms]
 
         calc = LAMMPS(pair_style=self.get_ref_pair_style(lmp=True),
-                      pair_coeff=self.ref_pair_coeff,
+                      pair_coeff=self.get_ref_pair_coeff(),
                       atom_style=self.ref_atom_style)
 
         if self.model_post is not None:
