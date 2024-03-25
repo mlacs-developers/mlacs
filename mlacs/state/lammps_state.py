@@ -419,10 +419,12 @@ class LammpsState(BaseLammpsState):
                 temp = np.max(tmp_temp)
             else:
                 temp = self.rng.uniform(*tmp_temp)
+            self.info_dynamics["temperature"] = temp
         if self.p_stop is None:
             press = self.pressure
         else:
             press = self.rng.uniform(self.pressure, self.p_stop)
+            self.info_dynamics["pressure"] = press
         if self.qtb:
             qtbseed = self.rng.integers(1, 99999999)
         if self.langevin:
@@ -493,10 +495,7 @@ class LammpsState(BaseLammpsState):
         if self.temperature is None:  # NVE
             raise NotImplementedError
         ensemble[2] = "T"
-
-        temperature = None
-        if self.t_stop is None:
-            temperature = self.temperature
+        temperature = self.temperature
 
         # NVT, NPT, no (uVT, uPT, NVE) yet
         self.ensemble = ''.join(ensemble)
