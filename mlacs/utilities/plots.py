@@ -221,6 +221,20 @@ def plot_error(ax,
     return ax
 
 
+def plot_weights(ax, weights, color=blue):
+    xrange = np.arange(len(weights))
+    neff = np.sum(weights)**2 / np.sum(weights**2)
+
+    ax.bar(xrange, weights)
+    ax.text(0.01, 0.9, f"Eff. N. conf = {neff:5.4f}",
+            fontsize=30,
+            transform=ax.transAxes)
+    ax.set_ylim(0)
+    ax.set_xlabel("Configuration index")
+    ax.set_ylabel("Weight")
+    return ax
+
+
 def init_rcParams():
     """
     """
