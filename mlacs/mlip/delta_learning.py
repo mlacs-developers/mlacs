@@ -150,8 +150,6 @@ class DeltaLearningPotential(MlipManager):
                              mlpssplit[0],
                              *mlpcsplit[2:]])
             full_pair_coeff.append(mlpc)
-            print(full_pair_coeff)
-
         return full_pair_coeff
 
 # ========================================================================== #

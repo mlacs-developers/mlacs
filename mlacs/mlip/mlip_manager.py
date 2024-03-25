@@ -38,6 +38,8 @@ class MlipManager(ABC):
         self.ymat_f = None
         self.ymat_s = None
 
+        self.natoms = []
+
         self.no_zstress = no_zstress
         self.fit_res = None
 
