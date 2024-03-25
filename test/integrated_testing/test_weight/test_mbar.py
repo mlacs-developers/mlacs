@@ -27,6 +27,7 @@ def expected_folder(expected_folder_base):
 def expected_files(expected_files_base):
     return expected_files_base
 
+
 @pytest.mark.full
 def test_mbar_databasecalc(root, treelink):
     ref = root.absolute() / "reference_files"
@@ -52,8 +53,8 @@ def test_mbar_databasecalc(root, treelink):
     mbar = MbarManager(parameters=mbar_params)
 
     # Running DatabaseCalc
-    db_calc = DatabaseCalc(trajfile = ref / "Database.traj",
-                           trainfile = ref / "Training_Database.traj")
+    db_calc = DatabaseCalc(trajfile=ref / "Database.traj",
+                           trainfile=ref / "Training_Database.traj")
     state = LammpsState(temperature, dt=dt, nsteps=nsteps, nsteps_eq=nsteps_eq)
     desc = MliapDescriptor(atoms, rcut, mlip_params, style="snap")
     mlip = LinearPotential(desc, folder="Mliap", weight=mbar)
