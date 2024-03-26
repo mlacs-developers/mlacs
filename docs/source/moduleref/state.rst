@@ -19,6 +19,11 @@ LammpsState
 
 .. autoclass:: LammpsState
 
+OptimizeLammpsState
+*******************
+
+.. autoclass:: OptimizeLammpsState
+
 NebLammpsState
 **************
 
