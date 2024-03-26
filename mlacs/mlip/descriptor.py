@@ -16,10 +16,10 @@ class Descriptor(ABC):
 
     Parameters
     ----------
-    atoms : :class:`ase.atoms`
+    atoms: :class:`ase.atoms`
         Reference structure, with the elements for the descriptor
 
-    rcut : :class:`float`
+    rcut: :class:`float`
         The cutoff for the descriptor
     """
 # ========================================================================== #
@@ -95,6 +95,12 @@ class Descriptor(ABC):
 # ========================================================================== #
 class SumDescriptor(Descriptor):
     """
+    A class to mix several descriptors together.
+
+    Parameters
+    ----------
+    args: :class:`list` of :class:`Descriptor`
+        A list of all the descriptors to mix.
     """
     def __init__(self, *args):
         # This is wrong for write_mlip. I don't know if there is still

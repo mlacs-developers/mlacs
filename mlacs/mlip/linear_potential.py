@@ -26,9 +26,16 @@ class LinearPotential(MlipManager):
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
 
+    parameters: :class:`dict`
+        The parameters for the fit.
+        By default, the fit is a simple ordinary least squares.
+        Ridge regression can be use by setting a dictionnary as
+        ``dict(method=ridge, lambda_ridge=alpha)``, with alpha the ridge
+        coefficient.
+
     weight: :class:`WeightingPolicy`
         Weight used for the fitting and calculation of properties.
-        Default :class:`None`
+        Default :class:`None`, which results in the use of uniform weights.
     """
     def __init__(self,
                  descriptor,

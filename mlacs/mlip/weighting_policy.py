@@ -120,7 +120,9 @@ class UniformWeight(WeightingPolicy):
     """
     Class that gives uniform weight in MLACS.
 
-    nthrow: :class: int
+    Parameters
+    ----------
+    nthrow: :class:`int`
         Number of configurations to ignore when doing the fit.
         Three cases :
 

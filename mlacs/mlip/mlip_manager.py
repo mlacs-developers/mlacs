@@ -22,8 +22,7 @@ class MlipManager(ABC):
     def __init__(self,
                  descriptor,
                  weight=None,
-                 folder=Path("MLIP"),
-                 no_zstress=False):
+                 folder=Path("MLIP")):
         if isinstance(folder, str):
             folder = Path(folder)
         self.folder = folder.absolute()
@@ -40,7 +39,6 @@ class MlipManager(ABC):
 
         self.natoms = []
 
-        self.no_zstress = no_zstress
         self.fit_res = None
 
         self.weight = weight

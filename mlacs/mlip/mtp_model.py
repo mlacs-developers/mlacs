@@ -49,22 +49,24 @@ class MomentTensorPotential(SelfMlipManager):
         The dictionnary with inputs for the potential.
 
         The default values are set to
-            - level = 8
-            - radial_basis_type = 'RBChebyshev'
-            - min_dist=1.0,
-            - max_dist=5.0,
-            - radial_basis_size=8
+
+        - level = 8
+        - radial_basis_type = 'RBChebyshev'
+        - min_dist=1.0,
+        - max_dist=5.0,
+        - radial_basis_size=8
 
     fit_parameters: :class:`dict`
         The parameters for the fit of the potential
 
         The default parameters are set to
-            - scale_by_forces=0
-            - max_iter=1000
-            - bfgs_conv_tol=1e-3
-            - weighting='vibrations'
-            - init_params='random'
-            - update_mindist=False
+
+        - scale_by_forces=0
+        - max_iter=1000
+        - bfgs_conv_tol=1e-3
+        - weighting='vibrations'
+        - init_params='random'
+        - update_mindist=False
     """
     def __init__(self,
                  atoms,

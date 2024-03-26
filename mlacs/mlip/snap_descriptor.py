@@ -30,12 +30,13 @@ class SnapDescriptor(Descriptor):
         A dictionnary of parameters for the descriptor input
 
         The default values are
-            - twojmax = 8
-            - rfac0 = 0.99363
-            - rmin0 = 0.0
-            - switchflag = 1
-            - bzeroflag = 1
-            - wselfallflag = 0
+
+        - twojmax = 8
+        - rfac0 = 0.99363
+        - rmin0 = 0.0
+        - switchflag = 1
+        - bzeroflag = 1
+        - wselfallflag = 0
 
     model: :class:`str`
         The type of model use. Can be either 'linear' or 'quadratic'
