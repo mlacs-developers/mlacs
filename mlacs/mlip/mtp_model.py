@@ -293,6 +293,9 @@ class MomentTensorPotential(SelfMlipManager):
         mlp_command += f" --energy-weight={self.weight.energy_coefficient}"
         mlp_command += f" --force-weight={self.weight.forces_coefficient}"
         mlp_command += f" --stress-weight={self.weight.stress_coefficient}"
+        weighting = self.fit_parameters["weighting"]
+        mlp_command += f" --weighting={weighting}"
+        print(mlp_command)
         with open(subfolder / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
