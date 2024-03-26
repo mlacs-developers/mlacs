@@ -26,7 +26,7 @@ default_fit_parameters = dict(scale_by_forces=0,
                               bfgs_conv_tol=1e-3,
                               weighting="vibrations",
                               init_params="random",
-                              update_mindist=False)
+                              update_mindist=True)
 
 
 # ========================================================================== #
