@@ -105,6 +105,11 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
+        else:
+            msg = f"Fitting method {self.parameters['method']} " + \
+                  "unknown"
+            raise ValueError(msg)
+
         msg += "\nNumber of configurations for training: " + \
                f"{len(self.natoms[idx_e:]):}\n"
         msg += "Number of atomic environments for training: " + \
