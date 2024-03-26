@@ -100,9 +100,14 @@ def compute_correlation(data, weight=None):
         The data for which to compute the correlation.
         The first column should be the ground truth and the second column
         should be the prediction of the model
-    datatype: :class:`str`
-        The type of data to which the correlation are to be computed.
-        Can be either energy, forces or stress
+    weight: :class:`numpy.ndarray`
+        Weight to be applied to compute the averages.
+        Has to be a divisor of the length of the data
+
+    Returns
+    -------
+        result: :class:`numpy.ndarray`
+            An length 3 array with (in order) the rmse, mae and :class:`R^2`
     """
     if weight is None:  # Uniform weighting
         nconf = np.shape(data)[0]
