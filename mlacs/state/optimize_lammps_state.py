@@ -2,14 +2,14 @@
 // (c) 2023 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from .lammps_state import LammpsState
+from .lammps_state import BaseLammpsState
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput)
 
 
 # ========================================================================== #
 # ========================================================================== #
-class OptimizeLammpsState(LammpsState):
+class OptimizeLammpsState(BaseLammpsState):
     """
     Class to manage geometry optimizations with LAMMPS.
 
@@ -18,6 +18,15 @@ class OptimizeLammpsState(LammpsState):
     min_style: :class:`str`
         Choose a minimization algorithm to use when a minimize command is
         performed.
+        The options are the one available with the ``min_style`` command
+        of LAMMPS.
+
+        - `cg`
+        - `hftn`
+        - `sd`
+        - `quickmin`
+        - `fire`
+
         Default `cg`.
 
     etol: :class:`float`
@@ -27,6 +36,9 @@ class OptimizeLammpsState(LammpsState):
     ftol: :class:`float`
         Stopping tolerance for energy
         Default ``1.0e-6``
+
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``0.5`` fs.
 
     pressure: :class:`float` or ``None`` (optional)
         Target pressure for the optimization, in GPa.
@@ -43,9 +55,6 @@ class OptimizeLammpsState(LammpsState):
         volume of the simulation box that can occur in one iteration of
         the minimizer.
         Default ``1.0e-3``
-
-    dt : :class:`float` (optional)
-        Timestep, in fs. Default ``0.5`` fs.
 
     nsteps : :class:`int` (optional)
         Maximum number of minimizer iterations during production phase.
@@ -72,6 +81,10 @@ class OptimizeLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
 
+    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
+        Custom block input class. Can be a list of blocks.
+        If ``None``, nothing is added in the input. Default ``None``.
+
     Examples
     --------
 
@@ -82,36 +95,20 @@ class OptimizeLammpsState(LammpsState):
     >>> neb = OptimizeLammpsState(initial, pressure=0, ptype='iso')
     >>> state.run_dynamics(initial, mlip.pair_style, mlip.pair_coeff)
     """
-    def __init__(self,
-                 min_style='cg',
-                 etol=0.0,
-                 ftol=1.0e-6,
-                 dt=0.5,
-                 pressure=None,
-                 ptype="iso",
-                 vmax=1.0e-3,
-                 nsteps=10000,
-                 nsteps_eq=1000,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=0.0,
-                             pressure=pressure,
-                             ptype="iso",
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             workdir=workdir)
+    def __init__(self, min_style="cg", etol=0.0, ftol=1e-6, dt=0.5,
+                 pressure=None, ptype="iso", vmax=1e-3,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
 
-        self.style = min_style
-        self.criterions = (etol, ftol)
+        self.min_style = min_style
+        self.dt = dt
+        self.pressure = pressure
+        self.ptype = ptype
         self.vmax = vmax
-        self.langevin = False
+
+        self.criterions = (etol, ftol)
 
 # ========================================================================== #
     def _get_block_thermostat(self, eq):
@@ -132,6 +129,15 @@ class OptimizeLammpsState(LammpsState):
                   f"{self.pressure*10000} vmax {self.vmax}"
             block("press", txt)
         block("thermo", "thermo 1")
-        block("min_style", f"min_style {self.style}")
+        block("min_style", f"min_style {self.min_style}")
         block("minimize", f"minimize {etol} {ftol} {nsteps} {2*nsteps}")
         return block
+
+# ========================================================================== #
+    def log_recap_state(self):
+        """
+        Function to return a string describing the state for the log
+        """
+        msg = "Geometry optimization as implemented in LAMMPS\n"
+        msg += "\n"
+        return msg

@@ -9,7 +9,7 @@ Properties
 PropertyManager
 ***************
 
-The Property Classe in an object to manage the calculation on the fly of particular properties. 
+The PropertyManager Class in an object to manage the calculation on the fly of particular properties. 
 The training of the MLIP stops when all properties are converged according to user defined criterions.
 The Property manager takes as input a list of :class:`CalcProperty`.
 During a MLACS step, the Property manager start to initalize the :class:`CalcProperty` objects, then it runs the different objects and finaly it checks if all the objects achieve their convergence criterion. In this case, the MLACS simulation can be stopped.

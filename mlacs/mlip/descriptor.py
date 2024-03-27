@@ -1,5 +1,7 @@
 from pathlib import Path
 import numpy as np
+from abc import ABC, abstractmethod
+
 from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
@@ -8,16 +10,16 @@ from ..utilities import get_elements_Z_and_masses, subfolder
 
 # ========================================================================== #
 # ========================================================================== #
-class Descriptor:
+class Descriptor(ABC):
     """
     Base class for descriptors
 
     Parameters
     ----------
-    atoms : :class:`ase.atoms`
+    atoms: :class:`ase.atoms`
         Reference structure, with the elements for the descriptor
 
-    rcut : :class:`float`
+    rcut: :class:`float`
         The cutoff for the descriptor
     """
 # ========================================================================== #
@@ -31,6 +33,7 @@ class Descriptor:
         self.need_neigh = False
         self.mlip_model = None  # We need to set it them to Path.cwd()
         self.mlip_desc = None  # but only when we call OtfMlacs.run
+        self.desc_name = "MLIP"
 
 # ========================================================================== #
     def set_folders(self):
@@ -47,8 +50,9 @@ class Descriptor:
         return desc
 
 # ========================================================================== #
+    @abstractmethod
     def compute_descriptor(self, atoms, forces=True, stress=True):
-        raise NotImplementedError
+        pass
 
 # ========================================================================== #
     def _compute_rij(self, atoms):
@@ -91,8 +95,17 @@ class Descriptor:
 # ========================================================================== #
 class SumDescriptor(Descriptor):
     """
+    A class to mix several descriptors together.
+
+    Parameters
+    ----------
+    args: :class:`list` of :class:`Descriptor`
+        A list of all the descriptors to mix.
     """
     def __init__(self, *args):
+        # This is wrong for write_mlip. I don't know if there is still
+        # a use case for this now that we have DeltaLearningPotential
+        raise NotImplementedError("SumDescriptor are not functional")
         self.desc = args
         self.elements = self.desc[0].elements.copy()
         self.rcut = np.max([d.rcut for d in self.desc])
@@ -141,6 +154,10 @@ class SumDescriptor(Descriptor):
         return res
 
 # ========================================================================== #
+    def compute_descriptor(self, atoms, forces=True, stress=True):
+        pass
+
+# ========================================================================== #
     def _regularization_matrix(self):
         """
         """
@@ -151,18 +168,18 @@ class SumDescriptor(Descriptor):
         return reg
 
 # ========================================================================== #
-    def get_pair_style(self):
+    def get_pair_style(self, folder=None):
         pair_style = "hybrid/overlay "
         for d in self.desc:
-            pair_style_d = d.get_pair_style()
+            pair_style_d = d.get_pair_style(folder)
             pair_style += f"{pair_style_d} "
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self):
+    def get_pair_coeff(self, folder=None):
         pair_coeff = []
         for d in self.desc:
-            pair_style_d, pair_coeff_d = d.get_pair_style_coeff()
+            pair_style_d, pair_coeff_d = d.get_pair_style_coeff(folder)
             for coeff in pair_coeff_d:
                 style = pair_style_d.split()[0]
                 co = coeff.split()
@@ -171,8 +188,8 @@ class SumDescriptor(Descriptor):
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        return self.get_pair_style(), self.get_pair_coeff()
+    def get_pair_style_coeff(self, folder):
+        return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #
     def to_dict(self):
@@ -228,6 +245,16 @@ class BlankDescriptor(Descriptor):
     """
     def __init__(self, atoms):
         Descriptor.__init__(self, atoms)
+
+# ========================================================================== #
+    def compute_descriptor(self, atoms, forces=True, stress=True):
+        msg = "BlankDescriptor can't give access to descriptor"
+        raise NotImplementedError(msg)
+
+# ========================================================================== #
+    @subfolder
+    def write_mlip(self, mlip_coef):
+        pass
 
 
 # ========================================================================== #

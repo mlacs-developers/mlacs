@@ -53,7 +53,7 @@ class EinsteinSolidState(ThermoState):
         If ``None``, a short simulation is run to determine the optimal value.
         Default ``None``
     equilibrate: :class:`Bool` (optional)
-        Equilibrate the ideal strucutre at zero or finite pressure. 
+        Equilibrate the ideal strucutre at zero or finite pressure.
         Default ``True``
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1``
@@ -65,7 +65,8 @@ class EinsteinSolidState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
     nsteps_averaging: :class:`int` (optional)
-        Number of step for equilibrate ideal structure at zero or finite pressure.
+        Number of step for equilibrate ideal structure at zero
+        or finite pressure.
         Default ``10000``.
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
@@ -125,7 +126,7 @@ class EinsteinSolidState(ThermoState):
 
         if self.pressure is not None:
             self.equilibrate = True
-    
+
         ThermoState.__init__(self,
                              atoms,
                              pair_style,
@@ -173,7 +174,7 @@ class EinsteinSolidState(ThermoState):
 
         if self.equilibrate:
             self.eq_structure = self.run_averaging(wdir)
-            
+
         if self.k is None:
             # First get optimal spring constant
             self.compute_msd(wdir)
@@ -209,11 +210,11 @@ class EinsteinSolidState(ThermoState):
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
         write_lammps_data(atomsfname, self.atoms)
-                
+
         self.write_lammps_input_msd(wdir)
-                
+
         call(lammps_command, shell=True, cwd=wdir)
-    
+
         kall = []
         with open(wdir + "msd.dat", "w") as f:
             for e in self.elem:
@@ -429,7 +430,7 @@ class EinsteinSolidState(ThermoState):
         pdamp = self.pdamp
         if pdamp is None:
             pdamp = "$(1000*dt)"
-            
+
         input_string = self.get_general_input()
 
         input_string += "#####################################\n"
@@ -451,15 +452,16 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
-        input_string += f"fix           f1  all langevin {self.temperature} " + \
-                        f"{self.temperature} {damp} " + \
+        input_string += "fix           f1  all langevin " + \
+                        f"{self.temperature} {self.temperature} {damp} " + \
                         f"{self.rng.integers(99999)} zero yes\n"
-        if self.pressure is None:                                             
+        if self.pressure is None:
             input_string += "fix           f2  all nve\n"
-        else:               
+        else:
             input_string += "fix           f2  all nph iso " + \
-                            f"{self.pressure*10000} {self.pressure*10000} {pdamp}\n"
-        
+                            f"{self.pressure*10000} {self.pressure*10000} " + \
+                            f"{pdamp}\n"
+
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -479,7 +481,7 @@ class EinsteinSolidState(ThermoState):
         input_string += "run         ${nstepseq}\n"
         if self.pressure is not None:
             input_string += "unfix           f2\n"
-            input_string += "fix             f2  all nve\n" #Let us replace in NVT to compute msd
+            input_string += "fix             f2  all nve\n"
         for iel, el in enumerate(self.elem):
             input_string += f"fix         f{iel+3} {el} print 1 " + \
                             f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"

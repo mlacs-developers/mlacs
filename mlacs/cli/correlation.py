@@ -3,6 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from ..utilities.plots import plot_correlation, init_rcParams
 
 
@@ -12,6 +13,8 @@ def main(args, parser):
     if args.datatype not in ["energy", "forces", "stress", None]:
         raise ValueError("The type argument has to be "
                          "energy, forces or stress")
+    if args.density and args.weight is not None:
+        raise ValueError("density and weights can't be used at the same time")
     rmse = True
     if args.normse:
         rmse = False
@@ -33,7 +36,13 @@ def main(args, parser):
     figsize = (float(args.figsize), float(args.figsize))
     fig = plt.figure(figsize=figsize, constrained_layout=True)
     init_rcParams()
-    ax = fig.add_subplot()
+    if args.density or args.weight is not None:
+        gd = GridSpec(1, 12, fig)
+        ax = fig.add_subplot(gd[:, :11])
+        axcbar = fig.add_subplot(gd[:, 11:])
+    else:
+        ax = fig.add_subplot()
+        axcbar = None
     plot_correlation(ax,
                      data,
                      datatype=args.datatype,
@@ -44,7 +53,8 @@ def main(args, parser):
                      showrsquared=rsquared,
                      cmap=cmap,
                      size=size,
-                     marker=args.marker)
+                     marker=args.marker,
+                     axcbar=axcbar)
     ax.set_aspect("equal")
     if args.save is not None:
         plt.savefig(args.save)

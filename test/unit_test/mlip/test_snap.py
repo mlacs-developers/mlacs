@@ -5,7 +5,7 @@ import numpy as np
 from ase.build import bulk
 
 from ... import context  # noqa
-from mlacs.mlip import SnapDescriptor
+from mlacs.mlip import SnapDescriptor, LinearPotential
 
 
 def test_parameters():
@@ -114,7 +114,7 @@ def test_writing_model():
 
     snap.write_mlip(coeff, subfolder=snapfold)
 
-    snapfile = snapfold / "MLIP.model"
+    snapfile = snapfold / "SNAP.model"
     assert snapfile.exists()
 
     allref = model_ref.split("\n")
@@ -163,7 +163,7 @@ def test_writing_descriptor():
     rcut = 3.5
     parameters = dict(twojmax=5)
     snap = SnapDescriptor(at, rcut, parameters=parameters)
-    snapfile = snapfold / "MLIP.descriptor"
+    snapfile = snapfold / "SNAP.descriptor"
 
     if snapfold.exists():
         shutil.rmtree(snapfold)
@@ -196,14 +196,15 @@ def test_get_pair_style_coeff():
 
     rcut = 3.5
     parameters = dict(twojmax=5)
+    f = "Snap"
+
     snap = SnapDescriptor(at, rcut, parameters=parameters)
-    snap.mlip_model = (root / "Snap")
-    snap.mlip_desc = (root / "Snap")
+    mlip = LinearPotential(descriptor=snap, folder=f)
 
-    pred_st, pred_co = snap.get_pair_style_coeff()
+    pred_st, pred_co = mlip.pair_style, mlip.pair_coeff
 
-    model_file = (root / "Snap/MLIP.model").as_posix()
-    desc_file = (root / "Snap/MLIP.descriptor").as_posix()
+    model_file = (root / "Snap/SNAP.model").as_posix()
+    desc_file = (root / "Snap/SNAP.descriptor").as_posix()
     assert pred_st == "snap"
     ref_co = [f"* * {model_file}  {desc_file} Si"]
     assert pred_co[0] == ref_co[0]

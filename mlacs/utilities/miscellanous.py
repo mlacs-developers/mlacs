@@ -89,29 +89,42 @@ def create_random_structures(atoms, std, nconfs):
 
 
 # ========================================================================== #
-def compute_correlation(data):
+def compute_correlation(data, weight=None):
     """
-    Function to compute the RMSE and MAE
+    Function to compute the RMSE, MAE and Rsquared
 
     Parameters
     ----------
 
     data: :class:`numpy.ndarray` of shape (ndata, 2)
         The data for which to compute the correlation.
-        The first column should be the gound truth and the second column
+        The first column should be the ground truth and the second column
         should be the prediction of the model
-    datatype: :class:`str`
-        The type of data to which the correlation are to be computed.
-        Can be either energy, forces or stress
+    weight: :class:`numpy.ndarray`
+        Weight to be applied to compute the averages.
+        Has to be a divisor of the length of the data
+
+    Returns
+    -------
+        result: :class:`numpy.ndarray`
+            An length 3 array with (in order) the rmse, mae and :class:`R^2`
     """
+    if weight is None:  # Uniform weighting
+        nconf = np.shape(data)[0]
+        weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
-    rmse = np.sqrt(np.mean((datatrue - datatest)**2))
-    mae = np.mean(np.abs(datatrue - datatest))
-    sse = ((datatrue - datatest)**2).sum()
-    sst = ((datatrue - datatrue.mean())**2).sum()
+
+    assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
+    weight = np.repeat(weight, len(datatrue)//len(weight))
+
+    mae = np.average(np.abs(datatrue - datatest), weights=weight)
+    rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
+    mae = np.average(np.abs(datatrue - datatest), weights=weight)
+    sse = np.average(((datatrue - datatest)**2), weights=weight)
+    sst = np.average((datatrue - np.sum(datatrue*weight))**2, weights=weight)
     rsquared = 1 - sse / sst
-    return rmse, mae, rsquared
+    return np.array([rmse, mae, rsquared])
 
 
 # ========================================================================== #
@@ -340,6 +353,22 @@ def subfolder(func):
             os.chdir(initial_folder)
         return result
     return wrapper
+
+
+# ========================================================================== #
+def create_link(fn, lk):
+    """
+    Creates a symbolic link lk pointing to fn
+    If lk already exists, replace it
+    """
+    if os.path.isfile(lk):
+        if os.path.islink(lk):  # lk is already a link
+            os.remove(lk)
+        else:  # lk is already a file
+            return
+    if not os.path.exists(fn):
+        return
+    os.symlink(fn, lk)
 
 
 # ========================================================================== #

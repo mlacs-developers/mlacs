@@ -417,10 +417,13 @@ class CalcExecFunction(CalcProperty):
     function: :class:`str` or `function`
         Function to call. If the function is a `str`, you to define the
         module to load the function.
+
     args: :class:`dict`
         Arguments of the function.
+
     module: :class:`str`
         Module to load the function.
+
     useatoms: :class:`bool`
         True if the function is called from an ase.Atoms object.
     """

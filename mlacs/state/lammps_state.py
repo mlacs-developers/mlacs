@@ -3,8 +3,8 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
-from pathlib import Path
 from subprocess import run, PIPE
+from abc import abstractmethod
 
 import numpy as np
 
@@ -19,194 +19,29 @@ from ..utilities.io_lammps import (LammpsInput,
                                    LammpsBlockInput)
 
 
-# ========================================================================== #
-# ========================================================================== #
-class LammpsState(StateManager):
+class BaseLammpsState(StateManager):
     """
-    Class to manage States with LAMMPS
-
-    Parameters
-    ----------
-    temperature: :class:`float`
-        Temperature of the simulation, in Kelvin.
-
-    pressure: :class:`float` or ``None`` (optional)
-        Pressure of the simulation, in GPa.
-        If ``None``, no barostat is applied and
-        the simulation is in the NVT ensemble. Default ``None``
-
-    t_stop: :class:`float` or ``None`` (optional)
-        When this input is not ``None``, the temperature of
-        the molecular dynamics simulations is randomly chosen
-        in a range between `temperature` and `t_stop`.
-        Default ``None``
-
-    p_stop: :class:`float` or ``None`` (optional)
-        When this input is not ``None``, the pressure of
-        the molecular dynamics simulations is randomly chosen
-        in a range between `pressure` and `p_stop`.
-        Naturally, the `pressure` input has to be set.
-        Default ``None``
-
-    damp: :class:`float` or ``None`` (optional)
-
-    langevin: :class:`Bool` (optional)
-        If ``True``, a Langevin thermostat is used for the thermostat.
-        Default ``True``
-
-    gjf: ``no`` or ``vfull`` or ``vhalf`` (optional)
-        Whether to use the Gronbech-Jensen/Farago integrator
-        for the Langevin dynamics. Only apply if langevin is ``True``.
-        Default ``vhalf``.
-
-    qtb: :clas::`Bool` (optional)
-        Whether to use a quantum thermal bath to approximate quantum effects.
-        If True, it override the langevin and gjf inputs.
-        Default False
-
-    fd: :class:`float` (optional)
-        The frequency cutoff for the qtb thermostat. Should be around
-        2~3 times the Debye frequency. In THz.
-        Default 200 THz.
-
-    n_f: :class:`int` (optional)
-        Frequency grid size for the qtb thermostat.
-        Default 100.
-
-    pdamp: :class:`float` or ``None`` (optional)
-        Damping parameter for the barostat.
-        If ``None``, apply a damping parameter of
-        1000 times the timestep of the simulation. Default ``None``
-
-    ptype: ``iso`` or ``aniso`` (optional)
-        Handle the type of pressure applied. Default ``iso``
-
-    dt : :class:`float` (optional)
-        Timestep, in fs. Default ``1.5`` fs.
-
-    nsteps : :class:`int` (optional)
-        Number of MLMD steps for production runs. Default ``1000`` steps.
-
-    nsteps_eq : :class:`int` (optional)
-        Number of MLMD steps for equilibration runs. Default ``100`` steps.
-
-    fixcm : :class:`Bool` (optional)
-        Fix position and momentum center of mass. Default ``True``.
-
-    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
-        Custom block input class. Can be a list of blocks.
-        If ``None``, nothing is added in the input. Default ``None``.
-
-    logfile : :class:`str` (optional)
-        Name of the file for logging the MLMD trajectory.
-        If ``None``, no log file is created. Default ``None``.
-
-    trajfile : :class:`str` (optional)
-        Name of the file for saving the MLMD trajectory.
-        If ``None``, no traj file is created. Default ``None``.
-
-    loginterval : :class:`int` (optional)
-        Number of steps between MLMD logging. Default ``50``.
-
-    rng : RNG object (optional)
-        Rng object to be used with the Langevin thermostat.
-        Default correspond to :class:`numpy.random.default_rng()`
-
-    init_momenta : :class:`numpy.ndarray` (optional)
-        Gives the (Nat, 3) shaped momenta array that will be used
-        to initialize momenta when using
-        the `initialize_momenta` function.
-        If the default ``None`` is set, momenta are initialized with a
-        Maxwell Boltzmann distribution.
-
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
-
-    Examples
-    --------
-
-    >>> from mlacs.state import LammpsState
-    >>>
-    >>> state = LammpsState(temperature=300, pressure=None) #NVT
-    >>> state = LammpsState(temperature=300, pressure=0)    #NPT
-    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
+    Base class to perform simulations with LAMMPS.
     """
-    def __init__(self,
-                 temperature,
-                 pressure=None,
-                 t_stop=None,
-                 p_stop=None,
-                 damp=None,
-                 langevin=True,
-                 gjf="vhalf",
-                 qtb=False,
-                 fd=200,
-                 n_f=100,
-                 pdamp=None,
-                 ptype="iso",
-                 dt=1.5,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 fixcm=True,
-                 blocks=None,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 rng=None,
-                 init_momenta=None,
-                 workdir=None):
-        StateManager.__init__(self,
-                              dt,
-                              nsteps,
-                              nsteps_eq,
-                              fixcm,
-                              logfile,
-                              trajfile,
-                              loginterval,
-                              workdir)
-
-        self.rng = rng
-        if self.rng is None:
-            self.rng = np.random.default_rng()
-
-        self.init_momenta = init_momenta
-
-        self.atomsfname = "atoms.in"
-        self.lammpsfname = "lammps_input.in"
+    def __init__(self, nsteps, nsteps_eq, logfile, trajfile, loginterval=50,
+                 workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir)
 
         self.ispimd = False
         self.isrestart = False
-
-        self.temperature = temperature
-        self.langevin = langevin
-        self.pressure = pressure
-        self.gjf = gjf
-        self.ptype = ptype
-        self.qtb = qtb
-        self.fd = fd
-        self.n_f = n_f
         self.nbeads = 1  # Dummy nbeads to help
-        self.damp = damp
-        self.pdamp = pdamp
-        if self.damp is None:
-            self.damp = "$(100*dt)"
-        if self.pdamp is None:
-            self.pdamp = "$(1000*dt)"
 
-        self.t_stop = t_stop
-        self.p_stop = p_stop
-        if self.p_stop is not None:
-            if self.pressure is None:
-                msg = "You need to put a pressure with p_stop"
-                raise ValueError(msg)
+        self.atomsfname = "atoms.in"
+        self.lammpsfname = "lammps_input.in"
+        self._myblock = blocks
 
-        self.myblock = blocks
+        self.info_dynamics = dict()
         if isinstance(blocks, list):
-            self.myblock = blocks[0]
+            self._myblock = blocks[0]
             if len(blocks) != 1:
                 for block in blocks[1:]:
-                    self.myblock.extend(block)
+                    self._myblock.extend(block)
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -220,6 +55,7 @@ class LammpsState(StateManager):
         Function to run the dynamics
         """
         atoms = supercell.copy()
+
         initial_charges = atoms.get_initial_charges()
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
@@ -246,8 +82,11 @@ class LammpsState(StateManager):
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-
         atoms = self._get_atoms_results(initial_charges)
+
+        # Set the info of atoms
+        atoms.info['info_state'] = self.info_dynamics
+
         return atoms.copy()
 
 # ========================================================================== #
@@ -328,70 +167,7 @@ class LammpsState(StateManager):
 
 # ========================================================================== #
     def _get_block_thermostat(self, eq):
-        """
-
-        """
-
-        if self.t_stop is None:
-            temp = self.temperature
-        else:
-            if eq:
-                temp = self.t_stop
-            else:
-                tmp_temp = np.sort([self.temperature, self.t_stop])
-                temp = self.rng.uniform(*tmp_temp)
-        if self.p_stop is None:
-            press = self.pressure
-        else:
-            press = self.rng.uniform(self.pressure, self.p_stop)
-        if self.qtb:
-            qtbseed = self.rng.integers(1, 99999999)
-        if self.langevin:
-            langevinseed = self.rng.integers(1, 9999999)
-
-        block = LammpsBlockInput("thermostat", "Thermostat")
-        block("timestep", f"timestep {self.dt / 1000}")
-
-        # If we are using Langevin, we want to remove the random part
-        # of the forces
-        if self.langevin:
-            block("rmv_langevin", "fix ff all store/force")
-
-        if self.pressure is None:
-            if self.qtb:
-                block("nve", "fix f1 all nve")
-                txt = f"fix f2 all qtb temp {temp} damp {self.damp} " + \
-                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
-                block("qtb", txt)
-            elif self.langevin:
-                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
-                      f"{langevinseed} gjf {self.gjf} zero yes"
-                block("langevin", txt)
-                block("nve", "fix f2 all nve")
-            else:
-                block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
-        else:
-            if self.qtb:
-                txt = f"fix f1 all nph {self.ptype} " + \
-                      f"{press*10000} {press*10000} {self.pdamp}"
-                block("nph", txt)
-                txt = f"fix f1 all qtb temp {temp} damp {self.damp}" + \
-                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
-                block("qtb", txt)
-            elif self.langevin:
-                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
-                      f"{langevinseed} gjf {self.gjf} zero yes"
-                block("langevin", txt)
-                txt = f"fix f2 all nph {self.ptype} " + \
-                      f"{press*10000} {press*10000} {self.pdamp}"
-                block("nph", txt)
-            else:
-                txt = f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
-                      f"{self.ptype} {press*10000} {press*10000} {self.pdamp}"
-                block("npt", txt)
-        if self.fixcm:
-            block("cm", "fix fcm all recenter INIT INIT INIT")
-        return block
+        return None
 
 # ========================================================================== #
     def _get_block_log(self):
@@ -435,8 +211,6 @@ class LammpsState(StateManager):
         block = LammpsBlockInput("traj", "Dumping trajectory")
         txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
               "id type xu yu zu vx vy vz fx fy fz "
-        if self.langevin:
-            txt += "f_ff[1] f_ff[2] f_ff[3] "
         txt += "element"
         block("dump", txt)
         block("dump_modify1", "dump_modify dum1 append yes")
@@ -449,8 +223,8 @@ class LammpsState(StateManager):
         """
 
         """
-        if isinstance(self.myblock, LammpsBlockInput):
-            return self.myblock
+        if isinstance(self._myblock, LammpsBlockInput):
+            return self._myblock
         else:
             return EmptyLammpsBlockInput("empty_custom")
 
@@ -465,6 +239,314 @@ class LammpsState(StateManager):
         return atoms
 
 # ========================================================================== #
+    def _get_lammps_command(self):
+        '''
+        Function to load the batch command to run LAMMPS
+        '''
+        envvar = "ASE_LAMMPSRUN_COMMAND"
+        cmd = os.environ.get(envvar)
+        if cmd is None:
+            cmd = "lmp_serial"
+        return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
+
+# ========================================================================== #
+    def initialize_momenta(self, atoms):
+        """
+
+        """
+        pass
+
+# ========================================================================== #
+    @abstractmethod
+    def log_recap_state(self):
+        pass
+
+
+# ========================================================================== #
+# ========================================================================== #
+class LammpsState(BaseLammpsState):
+    """
+    Class to perform NVT or NPT simulations with LAMMPS.
+
+    Parameters
+    ----------
+    temperature: :class:`float`
+        Temperature of the simulation, in Kelvin.
+
+    pressure: :class:`float` or ``None`` (optional)
+        Pressure of the simulation, in GPa.
+        If ``None``, no barostat is applied and
+        the simulation is in the NVT ensemble. Default ``None``
+
+    t_stop: :class:`float` or ``None`` (optional)
+        When this input is not ``None``, the temperature of
+        the molecular dynamics simulations is randomly chosen
+        in a range between `temperature` and `t_stop`.
+        Default ``None``
+
+    p_stop: :class:`float` or ``None`` (optional)
+        When this input is not ``None``, the pressure of
+        the molecular dynamics simulations is randomly chosen
+        in a range between `pressure` and `p_stop`.
+        Naturally, the `pressure` input has to be set.
+        Default ``None``
+
+    damp: :class:`float` or ``None`` (optional)
+        The damping value for the thermostat.
+        The default gives a sensible value of a hundred times the
+        timestep.
+
+    langevin: :class:`Bool` (optional)
+        If ``True``, a Langevin thermostat is used for the thermostat.
+        Default ``True``
+
+    gjf: ``no`` or ``vfull`` or ``vhalf`` (optional)
+        Whether to use the Gronbech-Jensen/Farago integrator
+        for the Langevin dynamics. Only apply if langevin is ``True``.
+        Default ``vhalf``.
+
+    qtb: :clas::`Bool` (optional)
+        Whether to use a quantum thermal bath to approximate quantum effects.
+        If True, it override the langevin and gjf inputs.
+        Default False
+
+    fd: :class:`float` (optional)
+        The frequency cutoff for the qtb thermostat. Should be around
+        2~3 times the Debye frequency. In THz.
+        Default 200 THz.
+
+    n_f: :class:`int` (optional)
+        Frequency grid size for the qtb thermostat.
+        Default 100.
+
+    pdamp: :class:`float` or ``None`` (optional)
+        Damping parameter for the barostat.
+        If ``None``, apply a damping parameter of
+        1000 times the timestep of the simulation. Default ``None``
+
+    ptype: ``iso`` or ``aniso`` (optional)
+        Handle the type of pressure applied. Default ``iso``
+
+    twodimensional: :class:`bool` (optional)
+        If set to ``True`` and pressure is not ``None``, set the pressure
+        only on the x and y axis. Pressure along `x` and `y` axis can
+        still be coupled by setting ``ptype`` to `iso`.
+        default ``False``
+
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``1.5`` fs.
+
+    fixcm : :class:`Bool` (optional)
+        Fix position and momentum center of mass. Default ``True``.
+
+    rng : RNG object (optional)
+        Rng object to be used with the Langevin thermostat.
+        Default correspond to :class:`numpy.random.default_rng()`
+
+    init_momenta : :class:`numpy.ndarray` (optional)
+        Gives the (Nat, 3) shaped momenta array that will be used
+        to initialize momenta when using
+        the `initialize_momenta` function.
+        If the default ``None`` is set, momenta are initialized with a
+        Maxwell Boltzmann distribution.
+
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+
+    workdir : :class:`str` (optional)
+        Working directory for the LAMMPS MLMD simulations.
+        If ``None``, a LammpsMLMD directory is created
+
+    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
+        Custom block input class. Can be a list of blocks.
+        If ``None``, nothing is added in the input. Default ``None``.
+
+    Examples
+    --------
+
+    >>> from mlacs.state import LammpsState
+    >>>
+    >>> state = LammpsState(temperature=300, pressure=None) #NVT
+    >>> state = LammpsState(temperature=300, pressure=0)    #NPT
+    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
+    """
+    def __init__(self, temperature, pressure=None, t_stop=None,
+                 p_stop=None, damp=None, langevin=True, gjf="vhalf",
+                 qtb=False, fd=200, n_f=100, pdamp=None, ptype="iso",
+                 twodimensional=False, dt=1.5, fixcm=True, rng=None,
+                 init_momenta=None, nsteps=1000, nsteps_eq=100, logfile=None,
+                 trajfile=None, loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
+
+        self.temperature = temperature
+        self.pressure = pressure
+        self.t_stop = t_stop
+        self.p_stop = p_stop
+        self.damp = damp
+        self.langevin = langevin
+        self.gjf = gjf
+        self.qtb = qtb
+        self.fd = fd
+        self.n_f = n_f
+        self.pdamp = pdamp
+        self.ptype = ptype
+        self.dt = dt
+        self.fixcm = fixcm
+        self.rng = rng
+        self.init_momenta = init_momenta
+        self.twodimensional = twodimensional
+
+        if self.rng is None:
+            self.rng = np.random.default_rng()
+        if self.damp is None:
+            self.damp = "$(100*dt)"
+        if self.pdamp is None:
+            self.pdamp = "$(1000*dt)"
+
+        if self.p_stop is not None:
+            if self.pressure is None:
+                msg = "You need to put a pressure with p_stop"
+                raise ValueError(msg)
+
+        self._make_info_dynamics()
+
+# ========================================================================== #
+    def _get_block_thermostat(self, eq):
+        """
+
+        """
+        if self.t_stop is None:
+            temp = self.temperature
+        else:
+            tmp_temp = np.sort([self.temperature, self.t_stop])
+            if eq:
+                temp = np.max(tmp_temp)
+            else:
+                temp = self.rng.uniform(*tmp_temp)
+            self.info_dynamics["temperature"] = temp
+        if self.p_stop is None:
+            press = self.pressure
+        else:
+            press = self.rng.uniform(self.pressure, self.p_stop)
+            self.info_dynamics["pressure"] = press
+        if self.qtb:
+            qtbseed = self.rng.integers(1, 99999999)
+        if self.langevin:
+            langevinseed = self.rng.integers(1, 9999999)
+
+        block = LammpsBlockInput("thermostat", "Thermostat")
+        block("timestep", f"timestep {self.dt / 1000}")
+
+        # If we are using Langevin, we want to remove the random part
+        # of the forces
+        if self.langevin:
+            block("rmv_langevin", "fix ff all store/force")
+
+        if self.pressure is None:
+            if self.qtb:
+                block("nve", "fix f1 all nve")
+                txt = f"fix f2 all qtb temp {temp} damp {self.damp} " + \
+                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
+                block("qtb", txt)
+            elif self.langevin:
+                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+                      f"{langevinseed} gjf {self.gjf} zero yes"
+                block("langevin", txt)
+                block("nve", "fix f2 all nve")
+            else:
+                block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
+        else:
+            if self.qtb:
+                txt = f"fix f1 all nph {self.ptype} " + \
+                      f"{press*10000} {press*10000} {self.pdamp}"
+                block("nph", txt)
+                txt = f"fix f1 all qtb temp {temp} damp {self.damp}" + \
+                      f"f_max {self.fd} N_f {self.n_f} seed {qtbseed}"
+                block("qtb", txt)
+            elif self.langevin:
+                txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+                      f"{langevinseed} gjf {self.gjf} zero yes"
+                block("langevin", txt)
+                ptxt = f"{press*10000} {press*10000} {self.pdamp}"
+                txt = "fix f2 all nph "
+                if self.twodimensional:
+                    txt += f"x {ptxt} y {ptxt} "
+                    if self.ptype == "iso":
+                        txt += "couple xy "
+                else:
+                    txt += f"{self.ptype} {ptxt}"
+                block("nph", txt)
+            else:
+                txt = f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
+                      f"{self.ptype} {press*10000} {press*10000} {self.pdamp}"
+                block("npt", txt)
+        if self.fixcm:
+            block("cm", "fix fcm all recenter INIT INIT INIT")
+        return block
+
+# ========================================================================== #
+    def _make_info_dynamics(self):
+
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        ensemble = ["X", "X", "X"]
+
+        # N or mu
+        ensemble[0] = "N"
+
+        # V or P
+        ensemble[1] = "V"
+        pressure = None
+        if self.pressure is not None:
+            ensemble[1] = "P"
+            if self.p_stop is None:
+                pressure = self.pressure
+
+        # T or E
+        if self.temperature is None:  # NVE
+            raise NotImplementedError
+        ensemble[2] = "T"
+        temperature = self.temperature
+
+        # NVT, NPT, no (uVT, uPT, NVE) yet
+        self.ensemble = ''.join(ensemble)
+        self.info_dynamics = dict(ensemble=self.ensemble,
+                                  temperature=temperature,
+                                  pressure=pressure)
+
+# ========================================================================== #
+    def _get_block_traj(self, atoms):
+        """
+
+        """
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        block = LammpsBlockInput("traj", "Dumping trajectory")
+        txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
+              "id type xu yu zu vx vy vz fx fy fz "
+        if self.langevin:
+            txt += "f_ff[1] f_ff[2] f_ff[3] "
+        txt += "element"
+        block("dump", txt)
+        block("dump_modify1", "dump_modify dum1 append yes")
+        txt = "dump_modify dum1 element " + " ".join([p for p in el])
+        block("dump_modify2", txt)
+        return block
+
+# ========================================================================== #
     def initialize_momenta(self, atoms):
         """
         """
@@ -475,16 +557,7 @@ class LammpsState(StateManager):
         else:
             atoms.set_momenta(self.init_momenta)
 
-# ========================================================================== #
-    def _get_lammps_command(self):
-        '''
-        Function to load the batch command to run LAMMPS
-        '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_serial"
-        return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
+        atoms.info['info_state'] = self.info_dynamics
 
 # ========================================================================== #
     def log_recap_state(self):
@@ -518,9 +591,3 @@ class LammpsState(StateManager):
                 msg += f"Barostat damping parameter (in fs) :    {pdamp}\n"
         msg += "\n"
         return msg
-
-# ========================================================================== #
-    def set_workdir(self, workdir):
-        """
-        """
-        self.workdir = Path(workdir).absolute()

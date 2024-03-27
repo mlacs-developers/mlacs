@@ -7,7 +7,7 @@ from scipy.spatial import distance
 from ase.io import write
 from ase.io.lammpsdata import write_lammps_data
 
-from .lammps_state import LammpsState
+from .lammps_state import BaseLammpsState
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput)
 
@@ -21,7 +21,7 @@ from ..utilities import interpolate_points as intpts
 
 # ========================================================================== #
 # ========================================================================== #
-class NebLammpsState(LammpsState):
+class NebLammpsState(BaseLammpsState):
     """
     Class to manage Nudged Elastic Band (NEB) calculation with LAMMPS.
     This class is a part of TransPath objects, meaning that it produces
@@ -109,33 +109,18 @@ class NebLammpsState(LammpsState):
     >>> neb = NebLammpsState([initial, final])
     >>> state.run_dynamics(None, mlip.pair_style, mlip.pair_coeff)
     """
-    def __init__(self,
-                 configurations,
-                 xi_coordinate=None,
-                 min_style='quickmin',
-                 Kspring=1.0,
-                 etol=0.0,
-                 ftol=1.0e-3,
-                 dt=1.5,
-                 nimages=None,
-                 nprocs=None,
-                 mode='rdm_memory',
-                 linear=False,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 prt=False,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=0.0,
-                             pressure=None,
-                             dt=dt,
-                             nsteps=1000,
-                             nsteps_eq=100,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             workdir=workdir)
+
+    def __init__(self, configurations, xi_coordinate=None,
+                 min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
+                 dt=1.5, nimages=None, nprocs=None, mode="rdm_memory",
+                 linear=False, prt=False,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
+
+        self.dt = dt
+        self.pressure = None
 
         self.xi = xi_coordinate
         self.style = min_style
