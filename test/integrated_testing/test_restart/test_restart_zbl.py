@@ -38,9 +38,6 @@ def test_zbl_restart(root, treelink):
     rcut = 4.2
     dt = 1.5  # fs
     mlip_params = {"twojmax": 4}
-    # Link LAMMPS executable --------------------------------------------------
-    lmp_exe = 'lammps'
-    os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 
     # Supercell creation ------------------------------------------------------
     atoms = bulk('Cu', cubic=True).repeat(cell_size)

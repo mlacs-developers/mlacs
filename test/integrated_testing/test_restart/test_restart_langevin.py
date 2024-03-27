@@ -39,10 +39,6 @@ def test_langevin_mliap_restart(root, treelink):
     friction = 0.01
     mlip_params = {"twojmax": 4}
 
-    # Link LAMMPS executable --------------------------------------------------
-    lmp_exe = 'lammps'
-    os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
-
     # Supercell creation  -----------------------------------------------------
     atoms = bulk('Cu', cubic=True).repeat(cell_size)
     calc = EMT()

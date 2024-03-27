@@ -50,10 +50,6 @@ def test_mtp_restart(root, treelink):
                    init_params="random",
                    update_mindist=False)
 
-    # Link LAMMPS executable --------------------------------------------------
-    lmp_exe = 'lammps'
-    os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
-
     # Supercell creation ------------------------------------------------------
     atoms = bulk('Cu', cubic=True).repeat(cell_size)
     calc = EMT()

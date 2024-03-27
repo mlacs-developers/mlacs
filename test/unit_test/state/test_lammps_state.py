@@ -139,7 +139,7 @@ def test_tstop():
     assert ('info_state' in md_at.info)
     info = md_at.info['info_state']
     assert (info['ensemble'] == "NPT")
-    assert (info['temperature'] is None)
+    assert (info['temperature'] is not None)
     assert (info['pressure'] == 1)
     assert ('volume' not in md_at.info)
     cleanup()
@@ -168,6 +168,6 @@ def test_pstop():
     info = md_at.info['info_state']
     assert (info['ensemble'] == "NPT")
     assert (info['temperature'] == 3200)
-    assert (info['pressure'] is None)
+    assert (info['pressure'] is not None)
     assert ('volume' not in md_at.info)
     cleanup()

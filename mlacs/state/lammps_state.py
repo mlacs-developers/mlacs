@@ -327,6 +327,12 @@ class LammpsState(BaseLammpsState):
     ptype: ``iso`` or ``aniso`` (optional)
         Handle the type of pressure applied. Default ``iso``
 
+    twodimensional: :class:`bool` (optional)
+        If set to ``True`` and pressure is not ``None``, set the pressure
+        only on the x and y axis. Pressure along `x` and `y` axis can
+        still be coupled by setting ``ptype`` to `iso`.
+        default ``False``
+
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
 
@@ -372,9 +378,9 @@ class LammpsState(BaseLammpsState):
     def __init__(self, temperature, pressure=None, t_stop=None,
                  p_stop=None, damp=None, langevin=True, gjf="vhalf",
                  qtb=False, fd=200, n_f=100, pdamp=None, ptype="iso",
-                 dt=1.5, fixcm=True, rng=None, init_momenta=None,
-                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 twodimensional=False, dt=1.5, fixcm=True, rng=None,
+                 init_momenta=None, nsteps=1000, nsteps_eq=100, logfile=None,
+                 trajfile=None, loginterval=50, workdir=None, blocks=None):
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
                          workdir, blocks)
 
@@ -394,6 +400,7 @@ class LammpsState(BaseLammpsState):
         self.fixcm = fixcm
         self.rng = rng
         self.init_momenta = init_momenta
+        self.twodimensional = twodimensional
 
         if self.rng is None:
             self.rng = np.random.default_rng()
@@ -466,8 +473,14 @@ class LammpsState(BaseLammpsState):
                 txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
                       f"{langevinseed} gjf {self.gjf} zero yes"
                 block("langevin", txt)
-                txt = f"fix f2 all nph {self.ptype} " + \
-                      f"{press*10000} {press*10000} {self.pdamp}"
+                ptxt = f"{press*10000} {press*10000} {self.pdamp}"
+                txt = "fix f2 all nph "
+                if self.twodimensional:
+                    txt += f"x {ptxt} y {ptxt} "
+                    if self.ptype == "iso":
+                        txt += "couple xy "
+                else:
+                    txt += f"{self.ptype} {ptxt}"
                 block("nph", txt)
             else:
                 txt = f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
