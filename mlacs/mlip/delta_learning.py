@@ -121,17 +121,19 @@ class DeltaLearningPotential(MlipManager):
 
         # First let's take care of only one reference potential
         if len(self.ref_pair_style) == 1:
-            refpcsplit = self.ref_pair_coeff[0].split()
             refpssplit = self.ref_pair_style[0].split()
-            refpc = " ".join([*refpcsplit[:2],
-                              refpssplit[0],
-                              *refpcsplit[2:]])
+            full_pair_coeff = []
+            for refpc in self.ref_pair_coeff:
+                refpcsplit = refpc.split()
+                full_pair_coeff.append(" ".join([*refpcsplit[:2],
+                                       refpssplit[0],
+                                       *refpcsplit[2:]]))
             mlpcsplit = self.model.pair_coeff[0].split()
             mlpssplit = self.model.pair_style.split()
             mlpc = " ".join([*mlpcsplit[:2],
                              mlpssplit[0],
                              *mlpcsplit[2:]])
-            full_pair_coeff = [refpc, mlpc]
+            full_pair_coeff.append(mlpc)
 
         # And now with an overlay reference potential
         else:
