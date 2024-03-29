@@ -2,7 +2,7 @@ import os
 import sys
 import shlex
 import shutil
-from subprocess import run
+from subprocess import Popen, PIPE
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # noqa
 import mlacs  # noqa
 
@@ -13,11 +13,18 @@ def has_lammps_nompi():
     """
     envvar = "ASE_LAMMPSRUN_COMMAND"
     exe = os.environ.get(envvar)
+    error = b'ERROR: Processor partitions do not match number of allocated'
     if exe is None:
         exe = "lmp_mpi"
-    cmd = f"mpirun -n 2 {exe} -h -partition 1x2"
-    lmp_handle = run(shlex.split(cmd))
-    return lmp_handle.returncode != 0
+    cmd = f"{exe} -h"
+    lmp_info = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+    if b'REPLICA' not in lmp_info:
+        return True
+    cmd = f"mpirun -2 {exe} -partition 2x1"
+    lmp_info = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
+    if error in lmp_info:
+        return True
+    return False
 
 
 def has_mlp():
