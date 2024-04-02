@@ -80,7 +80,7 @@ At the end, we can check that the package is loaded:
 
 LAMMPS
 ------
-It is recommended to use the latest version of LAMMPS. The current version of MLACS (0.0.10) works with the latest 'release' version of LAMMPS (03Aug22), which can be downloaded from the site or via git:
+It is recommended to use the latest version of LAMMPS. The current version of MLACS works with the latest 'release' version of LAMMPS, which can be downloaded from the site or via git:
 
     $ git clone -b release https://github.com/lammps/lammps.git lammps
 
@@ -98,29 +98,28 @@ To limit the size of the executable, it is best to install only the packages you
 Several packages are necessary for the proper functioning of MLACS, here is a non-exhaustive list of recommended packages:
 
     ml-snap, ml-iap, manybody, molecule, class2, kspace, replica,
-    extra-fix, extra-pair, extra-compute, extra-dump, user-rpmd,
-    misc
+    extra-fix, extra-pair, extra-compute, extra-dump
+    
 
 **Warning!**
-    - There may be compilation problems with the `misc` package depending on the compiler used. The source of the problem often comes from the file `pair_list.cpp` in this case it is enough to edit it and delete the `_noalias` line 91 and 92.¹
-    - Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.23. For LAMMPS versions 03Aug22 and beyond, development versions of ASE must be used.
+    - Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommand to use the development versions of ASE.
 
 MLACS will then call LAMMPS through ASE, which relies on environment variables.
 They can be set before running the simulation or by modifying environment variables directly in the python script.
 
     $ export ASE_LAMMPSRUN_COMMAND='lmp_serial'                              # Serial
     $ export ASE_LAMMPSRUN_COMMAND='mpirun -n 4 lmp_mpi'                     # MPI
-    $ export ASE_LAMMPSREPLICA_COMMAND='mpirun -n 4 lmp_mpi -partition 4x1'  # MPI and replicas
 
 ABINIT
 ------
-MLACS provides intefaces with different codes through the ASE python package. But it is recommanded to use Abinit, since we design an ``AbinitManager`` to handle specific workflows with it. The Abinit package also provide severall codes like `atdep` a usefull tool to compute temperature dependent properties from MLACS trajectories.
+MLACS provides intefaces with different codes through the ASE python package. But it is recommanded to use [Abinit](https://www.abinit.org/), since we design an ``AbinitManager`` to handle specific workflows with it. The Abinit package also provide severall codes like `atdep` a usefull tool to compute temperature dependent properties from MLACS trajectories.
 
-`atdep` is based on the Temperature Dependent Effective Potential (TDEP) devellopped by O. Hellman et al. in 2011 and implemented in Abinit by J.Bouchet and F. Bottin in 2015.
+[aTDEP](https://docs.abinit.org/guide/atdep/) is based on the Temperature Dependent Effective Potential (TDEP) devellopped by O. Hellman et al. in 2011 and implemented in Abinit by J.Bouchet and F. Bottin in 2015.
 
 If is also recommended to use version 9 for an easier files management in Abinit and to benefit of the newest `atdep` devellopement. 
 
-To compile Abinit, we highly recommand you to follow the instructions provide on the website : 
+To compile Abinit, we highly recommand you to follow the instructions provide on the [website](https://docs.abinit.org/installation/).
+
 
 Python Packages
 ===============
@@ -128,31 +127,39 @@ MLACS uses very few external packages (and that is a choice), only ASE and its d
 
     $ pip download -r /path_to/otf_mlacs/requirements.txt
 
+Required Packages
+-----------------
 ASE
----
+~~~
 ASE is an atomic simulation environment, interfaced with several codes and written in order to set up, control and analyze atomic simulations. As mentioned previously, the correct version must be used for LAMMPS.
 
     $ git clone -b 3.22.1 https://gitlab.com/ase/ase.git # If LAMMPS < 03Aug22 
-    $ git clone -b 3.23.0b1 https://gitlab.com/ase/ase.git # If LAMMPS < 03Aug22
+    $ git clone -b 3.23.0b1 https://gitlab.com/ase/ase.git # If LAMMPS > 03Aug22
 
 Then in the package directory
     $ python setup.py install
 
-Optional Packages
------------------
+pymbar
+~~~~~~
+Python implementation of the multistate Bennett acceptance ratio (MBAR) method for estimating expectations and free energy differences from equilibrium samples from multiple probability densities.
 
-    - scikit-learn:
+    $ git clone https://github.com/choderalab/pymbar.git
 
+scikit-learn
+~~~~~~~~~~~~
 Advanced fitting method provided by the Scikit Learn package can be used instead of an Ordinary Least Squares method. From experience, a simple ``np.linalg.lstsq`` often suffice for fitting a simple linear MLIP. It is only recommanded to use these advanced methods when you are using a quadratic MLIP. In this case, the number of coefficients increases exponenially and a simple Least Square method could fail.
 
-    - icet:
-
-MLACS uses icet for Disorder Local Moment simulation and the Special Quasirandom Structures generator. DLM is a method to simulate an antiferromagnetic (colinear case) material by imposing periodically a random spin configuration. 
-
-    - I-Pi:
-
+Highly Recomended Packages
+--------------------------
+mlip-3
+~~~~~~
 The MLACS method can be applied to speed up Path Integral Molecular Dynamic sampling with the I-Pi python package. MLACS can run I-Pi using LAMMPS sockets to compute properties with MLIP and performed PIMD simulations.
 
+Optional Packages
+-----------------
+icet
+~~~~
+MLACS uses icet for Disorder Local Moment simulation and the Special Quasirandom Structures generator. DLM is a method to simulate an antiferromagnetic (colinear case) material by imposing periodically a random spin configuration. 
 
 Getting Started
 ===============
