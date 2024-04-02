@@ -100,9 +100,8 @@ Several packages are necessary for the proper functioning of MLACS, here is a no
     ml-snap, ml-iap, manybody, molecule, class2, kspace, replica,
     extra-fix, extra-pair, extra-compute, extra-dump
     
-
-**Warning!**
-    - Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommand to use the development versions of ASE.
+> [!WARNING]
+> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommand to use the development versions of ASE.
 
 MLACS will then call LAMMPS through ASE, which relies on environment variables.
 They can be set before running the simulation or by modifying environment variables directly in the python script.
@@ -130,6 +129,7 @@ MLACS uses very few external packages (and that is a choice), only ASE and its d
 Required Packages
 -----------------
 ASE:
+
 ASE is an atomic simulation environment, interfaced with several codes and written in order to set up, control and analyze atomic simulations. As mentioned previously, the correct version must be used for LAMMPS.
 
     $ git clone -b 3.22.1 https://gitlab.com/ase/ase.git # If LAMMPS < 03Aug22 
@@ -139,16 +139,19 @@ Then in the package directory
     $ python setup.py install
 
 pymbar:
+
 Python implementation of the multistate Bennett acceptance ratio (MBAR) method for estimating expectations and free energy differences from equilibrium samples from multiple probability densities.
 
     $ git clone https://github.com/choderalab/pymbar.git
 
 scikit-learn:
+
 Advanced fitting method provided by the Scikit Learn package can be used instead of an Ordinary Least Squares method. From experience, a simple ``np.linalg.lstsq`` often suffice for fitting a simple linear MLIP. It is only recommanded to use these advanced methods when you are using a quadratic MLIP. In this case, the number of coefficients increases exponenially and a simple Least Square method could fail. This package is also used for Gaussian Process. 
 
 Highly Recomended Packages
 --------------------------
 mlip-3:
+
 The ``mlp`` software is used by MLACS to fit Moment Tensor Potentials (MTP). It has been developed at Skoltech (Moscow) by Alexander Shapeev, Evgeny Podryabinkin, Konstantin Gubaev, and Ivan Novikov.
 
     $ git clone https://gitlab.com/ashapeev/mlip-3.git
@@ -159,11 +162,13 @@ To use it you also need to recompile LAMMPS with the specific interface:
 
 
 netCDF4:
+
 Python package to read netCDF binary format. This package can be really usefull when you are using Abinit as Calculator, since it output a lot of usefull informations in the netCDF outputs. 
 
 Optional Packages
 -----------------
 icet:
+
 MLACS uses icet for Disorder Local Moment simulation and the Special Quasirandom Structures generator. DLM is a method to simulate an antiferromagnetic (colinear case) material by imposing periodically a random spin configuration. 
 
 Getting Started
