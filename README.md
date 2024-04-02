@@ -80,7 +80,7 @@ At the end, we can check that the package is loaded:
 
 LAMMPS
 ------
-It is recommended to use the latest version of LAMMPS. The current version of MLACS works with the latest 'release' version of LAMMPS, which can be downloaded from the site or via git:
+It is recommended to use the latest version of [LAMMPS](https://docs.lammps.org/Manual.html). The current version of MLACS works with the latest 'release' version of LAMMPS, which can be downloaded from the site or via git:
 
     $ git clone -b release https://github.com/lammps/lammps.git lammps
 
