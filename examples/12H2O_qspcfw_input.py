@@ -31,10 +31,6 @@ calc = Espresso(input_data=input_data,
                 pseudopotentials=pseudopotentials,
                 kpts=None)
 
-# Lammps Exe ------------------------------------------------------------------
-lmp_exe = 'lammps'
-os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
-
 # MLACS Parameters :
 temperature = 300  # K
 pressure = None  # GPa
@@ -113,6 +109,7 @@ mlip = LammpsMlip(atom,
                   style=style)
 state = LammpsState(temperature,
                     pressure=pressure,
+                    dt=dt,
                     langevin=langevin,
                     nsteps=nsteps,
                     nsteps_eq=nsteps_eq,

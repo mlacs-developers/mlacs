@@ -83,11 +83,14 @@ class LangevinState(StateManager):
         self.dt = dt
         self.fixcm = fixcm
         self.temperature = temperature
+        self.dt = dt
+        self.fixcm = fixcm
         self.friction = friction
         self.init_momenta = init_momenta
         self.rng = rng
         if self.rng is None:
             self.rng = np.random.default_rng()
+        self.pressure = None
 
         self.info_dynamics = dict(ensemble="NVT",
                                   temperature=self.temperature)

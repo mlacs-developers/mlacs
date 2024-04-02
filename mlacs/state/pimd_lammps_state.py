@@ -158,7 +158,7 @@ class PimdLammpsState(BaseLammpsState):
         if self.rng is None:
             self.rng = np.random.default_rng()
         if self.trajfile is not None and self.nbeads > 1:
-            self.trajfile += f"{self.trajfile}" + "_${ibead}"
+            self.trajfile = f"{self.trajfile}" + "_${ibead}"
         if self.fmass is None:
             self.fmass = self.nbeads
         if self.damp is None:

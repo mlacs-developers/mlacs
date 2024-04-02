@@ -105,11 +105,12 @@ Several packages are necessary for the proper functioning of MLACS, here is a no
     - There may be compilation problems with the `misc` package depending on the compiler used. The source of the problem often comes from the file `pair_list.cpp` in this case it is enough to edit it and delete the `_noalias` line 91 and 92.¹
     - Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.23. For LAMMPS versions 03Aug22 and beyond, development versions of ASE must be used.
 
-MLACS will then call LAMMPS via variables. They can be set before running the simulation or directly in the python script (see examples).
+MLACS will then call LAMMPS through ASE, which relies on environment variables.
+They can be set before running the simulation or by modifying environment variables directly in the python script.
 
-    $ export ASE_LAMMPSRUN_COMMAND='lammps'                                 # Serial
-    $ export ASE_LAMMPSRUN_COMMAND='mpirun -n 4 lammps'                     # MPI
-    $ export ASE_LAMMPSREPLICA_COMMAND='mpirun -n 4 lammps -partition 4x1'  # MPI and replicas
+    $ export ASE_LAMMPSRUN_COMMAND='lmp_serial'                              # Serial
+    $ export ASE_LAMMPSRUN_COMMAND='mpirun -n 4 lmp_mpi'                     # MPI
+    $ export ASE_LAMMPSREPLICA_COMMAND='mpirun -n 4 lmp_mpi -partition 4x1'  # MPI and replicas
 
 ABINIT
 ------

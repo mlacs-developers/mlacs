@@ -76,6 +76,8 @@ class DeltaLearningPotential(MlipManager):
         self._ref_s = None
 
 # ========================================================================== #
+
+# ========================================================================== #
     def get_ref_pair_style(self, lmp=False):
         """
         Return self.ref_pair_style which is an array.
@@ -135,17 +137,19 @@ class DeltaLearningPotential(MlipManager):
 
         # First let's take care of only one reference potential
         if len(self.ref_pair_style) == 1:
-            refpcsplit = self.ref_pair_coeff[0].split()
             refpssplit = self.ref_pair_style[0].split()
-            refpc = " ".join([*refpcsplit[:2],
-                              refpssplit[0],
-                              *refpcsplit[2:]])
+            full_pair_coeff = []
+            for refpc in self.ref_pair_coeff:
+                refpcsplit = refpc.split()
+                full_pair_coeff.append(" ".join([*refpcsplit[:2],
+                                       refpssplit[0],
+                                       *refpcsplit[2:]]))
             mlpcsplit = self.model.pair_coeff[0].split()
             mlpssplit = self.model.pair_style.split()
             mlpc = " ".join([*mlpcsplit[:2],
                              mlpssplit[0],
                              *mlpcsplit[2:]])
-            full_pair_coeff = [refpc, mlpc]
+            full_pair_coeff.append(mlpc)
 
         # And now with an overlay reference potential
         else:
@@ -225,6 +229,14 @@ class DeltaLearningPotential(MlipManager):
         """
         msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
         return msg
+
+    # GA: Need to overwrite this abstract methods, but I'm not sure
+    #     if it is used at all.
+    def get_mlip_energy(coef, desc):
+        """
+        Function that gives the mlip_energy
+        """
+        raise NotImplementedError
 
 # ========================================================================== #
     def get_calculator(self):
