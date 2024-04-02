@@ -62,6 +62,8 @@ class DeltaLearningPotential(MlipManager):
         self._ref_s = None
 
 # ========================================================================== #
+
+# ========================================================================== #
     def get_ref_pair_style(self, lmp=False):
         """
         Return self.ref_pair_style which is an array.
@@ -213,6 +215,14 @@ class DeltaLearningPotential(MlipManager):
         """
         msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
         return msg
+
+    # GA: Need to overwrite this abstract methods, but I'm not sure
+    #     if it is used at all.
+    def get_mlip_energy(coef, desc):
+        """
+        Function that gives the mlip_energy
+        """
+        raise NotImplementedError
 
 # ========================================================================== #
     def get_calculator(self):

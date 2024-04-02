@@ -11,7 +11,7 @@ from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from .state import StateManager
+from .lammps_state import LammpsState
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (get_general_input,
                                    get_log_input,
@@ -23,7 +23,7 @@ from ..utilities.io_lammps import (get_general_input,
 
 # ========================================================================== #
 # ========================================================================== #
-class RdfLammpsState(StateManager):
+class RdfLammpsState(LammpsState):
     """
     Class to manage States with LAMMPS
 
@@ -142,21 +142,48 @@ class RdfLammpsState(StateManager):
                  trajfile=None,
                  loginterval=50,
                  msdfile=None,
-                 rdffile=None,
+                 rdffile='rdf.dat',
                  rng=None,
                  init_momenta=None,
                  workdir=None):
-        StateManager.__init__(self,
-                              dt,
-                              nsteps,
-                              nsteps_eq,
-                              fixcm,
-                              logfile,
-                              trajfile,
-                              loginterval,
-                              msdfile,
-                              rdffile,
-                              workdir)
+
+        #StateManager.__init__(self,
+        #                      dt,
+        #                      nsteps,
+        #                      nsteps_eq,
+        #                      fixcm,
+        #                      logfile,
+        #                      trajfile,
+        #                      loginterval,
+        #                      msdfile,
+        #                      rdffile,
+        #                      workdir)
+
+        super().__init__(
+            temperature=temperature,
+            pressure=pressure,
+            t_stop=t_stop,
+            p_stop=p_stop,
+            damp=damp,
+            langevin=langevin,
+            gjf=gjf,
+            qtb=qtb,
+            fd=fd,
+            pdamp=pdamp,
+            ptype=ptype,
+            dt=dt,
+            nsteps=nsteps,
+            nsteps_eq=nsteps_eq,
+            fixcm=fixcm,
+            logfile=logfile,
+            trajfile=trajfile,
+            loginterval=loginterval,
+            rng=rng,
+            init_momenta=init_momenta,
+            workdir=workdir,
+            )
+
+        self.rdffile = os.path.join(self.workdir, rdffile)
 
         self.rng = rng
         if self.rng is None:
@@ -194,8 +221,8 @@ class RdfLammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     replicate="1 1 1",
                      eq=False,
+                     replicate="1 1 1",
                      workdir=None):
         """
         Function to run the dynamics
@@ -230,7 +257,8 @@ class RdfLammpsState(StateManager):
             MaxwellBoltzmannDistribution(atoms,
                                          temperature_K=temp,
                                          rng=self.rng)
-        write_lammps_data(self.workdir + self.atomsfname,
+
+        write_lammps_data(os.path.join(self.workdir, self.atomsfname),
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
@@ -263,7 +291,7 @@ class RdfLammpsState(StateManager):
 
         if charges is not None:
             init_charges = atoms.get_initial_charges()
-        atoms = read(self.workdir + "configurations.out")
+        atoms = read(os.path.join(self.workdir, "configurations.out"))
         if charges is not None:
             atoms.set_initial_charges(init_charges)
 
@@ -322,7 +350,7 @@ class RdfLammpsState(StateManager):
                                             nsteps)
         input_string += f"run  {nsteps}"
 
-        with open(self.workdir + "lammps_input.in", "w") as f:
+        with open(os.path.join(self.workdir, "lammps_input.in"), "w") as f:
             f.write(input_string)
 
 # ========================================================================== #
