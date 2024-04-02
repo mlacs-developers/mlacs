@@ -32,6 +32,11 @@ MliapDescriptor
 Add a weighting policy
 **********************
 
+UniformWeight
+~~~~~~~~~~~~~
+
+.. autoclass:: UniformWeight
+
 MbarManager
 ~~~~~~~~~~~
 
