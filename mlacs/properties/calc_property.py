@@ -241,12 +241,12 @@ class CalcRdf(CalcProperty):
         from ..utilities.io_lammps import get_block_rdf
 
         self.state.workdir = wdir / 'Rdf_Calculation'
-        if self.state.myblock is None:
+        if self.state._myblock is None:
             block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
             block("equilibrationrun", f"run {self.step}")
             block("reset_timestep", "reset_timestep 0")
             block.extend(get_block_rdf(self.step, self.filename))
-            self.state.myblock = block
+            self.state._myblock = block
         self.state.run_dynamics(self.atoms[-1], **self.kwargs)
         self.new = read_df(self.state.workdir / self.filename)[0]
         return self.isconverged
@@ -299,12 +299,12 @@ class CalcAdf(CalcProperty):
         from ..utilities.io_lammps import get_block_adf
 
         self.state.workdir = wdir / 'Adf_Calculation'
-        if self.state.myblock is None:
+        if self.state._myblock is None:
             block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
             block("equilibrationrun", f"run {self.step}")
             block("reset_timestep", "reset_timestep 0")
             block.extend(get_block_adf(self.step, self.filename))
-            self.state.myblock = block
+            self.state._myblock = block
         self.state.run_dynamics(self.atoms[-1], **self.kwargs)
         self.new = read_df(self.state.workdir / self.filename)[0]
         return self.isconverged
