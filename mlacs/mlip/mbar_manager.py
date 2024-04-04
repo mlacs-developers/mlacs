@@ -42,21 +42,12 @@ class MbarManager(WeightingPolicy):
 
     Parameters
     ----------
-    mode: :class:`str`
-        Define how to use MBAR.
-
-        - compute: Compute weights.
-        - train: Compute weights and use it for MLIP training.
-
-        Default compute
-
     solver: :class:`str`
         Define type of solver for pymbar
         Default L-BFGS-B
 
     scale: :class:`float`
         Imposes weights for the new configurations.
-        Only relevant in the train mode.
         Default 1.0
 
     start: :class:`int`
