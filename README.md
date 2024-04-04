@@ -8,7 +8,7 @@ Table of Contents
 
 - [Capabilities](#capabilities)
 - [Background](#background)
-- [Interfraces](#interfaces)
+- [Interfaces](#interfaces)
 - [Install](#install)
 - [Getting started](#gettingstarted)
 - [License](#license)
@@ -17,7 +17,7 @@ Table of Contents
 Capabilities
 ============
 
-This packages provides a set of tools to perform various simulations bringing together machine-learning methods with quantum simulations of atomic systems.
+This package provides a set of tools to perform various simulations bringing together machine-learning methods with quantum simulations of atomic systems.
 
 Here are some features implemented in the package
 - Sampling of the canonical distribution of a system through variational inference
@@ -75,7 +75,6 @@ At the end, we can check that the package is loaded:
     $ python
     >>> from mlacs import OtfMlacs
 
-¹This modification has no impact on the operation of the code, the option only intervenes for compilation.
 ²The environment name in parentheses should appear on the terminal.
 
 LAMMPS
@@ -101,7 +100,7 @@ Several packages are necessary for the proper functioning of MLACS, here is a no
     extra-fix, extra-pair, extra-compute, extra-dump
     
 > [!WARNING]
-> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommand to use the development versions of ASE.
+> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommend to use the development versions of ASE.
 
 MLACS will then call LAMMPS through ASE, which relies on environment variables.
 They can be set before running the simulation or by modifying environment variables directly in the python script.
@@ -111,13 +110,13 @@ They can be set before running the simulation or by modifying environment variab
 
 ABINIT
 ------
-MLACS provides intefaces with different codes through the ASE python package. But it is recommanded to use [Abinit](https://www.abinit.org/), since we design an ``AbinitManager`` to handle specific workflows with it. The Abinit package also provide severall codes like `atdep` a usefull tool to compute temperature dependent properties from MLACS trajectories.
+MLACS provides interfaces with different codes through the ASE python package. But it is recommended to use [Abinit](https://www.abinit.org/), since we design an ``AbinitManager`` to handle specific workflows with it. The Abinit package also provides several codes like `atdep` a useful tool to compute temperature dependent properties from MLACS trajectories.
 
-[aTDEP](https://docs.abinit.org/guide/atdep/) is based on the Temperature Dependent Effective Potential (TDEP) devellopped by O. Hellman et al. in 2011 and implemented in Abinit by J.Bouchet and F. Bottin in 2015.
+[aTDEP](https://docs.abinit.org/guide/atdep/) is based on the Temperature Dependent Effective Potential (TDEP) developped by O. Hellman et al. in 2011 and implemented in Abinit by J.Bouchet and F. Bottin in 2015.
 
-If is also recommended to use version 9 for an easier files management in Abinit and to benefit of the newest `atdep` devellopement. 
+It is also recommended to use version 9 for an easier files management in Abinit and to benefit of the newest `atdep` developement. 
 
-To compile Abinit, we highly recommand you to follow the instructions provide on the [website](https://docs.abinit.org/installation/).
+To compile Abinit, we highly recommend you to follow the instructions provided on the [website](https://docs.abinit.org/installation/).
 
 
 Python Packages
@@ -136,6 +135,7 @@ ASE is an atomic simulation environment, interfaced with several codes and writt
     $ git clone -b 3.23.0b1 https://gitlab.com/ase/ase.git # If LAMMPS > 03Aug22
 
 Then in the package directory
+
     $ python setup.py install
 
 pymbar:
@@ -146,7 +146,7 @@ Python implementation of the multistate Bennett acceptance ratio (MBAR) method f
 
 scikit-learn:
 
-Advanced fitting method provided by the Scikit Learn package can be used instead of an Ordinary Least Squares method. From experience, a simple ``np.linalg.lstsq`` often suffice for fitting a simple linear MLIP. It is only recommanded to use these advanced methods when you are using a quadratic MLIP. In this case, the number of coefficients increases exponenially and a simple Least Square method could fail. This package is also used for Gaussian Process. 
+Advanced fitting method provided by the Scikit Learn package can be used instead of an Ordinary Least Squares method. From experience, a simple ``np.linalg.lstsq`` often suffice for fitting a simple linear MLIP. It is only recommended to use these advanced methods when you are using a quadratic MLIP. In this case, the number of coefficients increases exponentially and a simple Least Square method could fail. This package is also used for Gaussian Process. 
 
 Highly Recomended Packages
 --------------------------
