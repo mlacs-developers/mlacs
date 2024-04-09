@@ -5,13 +5,13 @@ The system is Cu is at 10 K
 The descriptor is SNAP.
 The true potential is from EMT as implemented in ASE.
 """
-# FIXME: Lammps crashes with the error: "Cannot use NEB with a single replica."
+# Warning: You to compile the MPI LAMMPS version with the REPLICA package to
+#          run the example.
 
 import os
 import numpy as np
 
 from ase.build import bulk
-from ase.io import write as asewrite
 from ase.calculators.emt import EMT
 
 from mlacs.mlip import MliapDescriptor, LinearPotential
@@ -23,35 +23,30 @@ from mlacs import OtfMlacs
 lmp_exe = 'lmp'
 os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 
-# Parameters-------------------------------------------------------------------
-temperature = 10  # K
+# MLACS Parameters ------------------------------------------------------------
 nconfs = 10
 nsteps = 1000
 nsteps_eq = 100
 neq = 30
-rcut = 4.2
+
+# MD Parameters ---------------------------------------------------------------
+temperature = 10  # K
 dt = 1  # fs
 damp = 100 * dt
-mlip_params = {"twojmax": 4}
 
+# MLIP Parameters -------------------------------------------------------------
+rcut = 4.2
+mlip_params = {"twojmax": 4}
 
 # Supercell creation ----------------------------------------------------------
 atoms = bulk("Cu", cubic=True).repeat(3)
 atoms.set_pbc([1, 1, 1])
-
-neb = [atoms.copy(),
-       atoms.copy()]
-
+neb = [atoms.copy(), atoms.copy()]
 neb[0].pop(0)
 neb[1].pop(1)
-xi = np.arange(0, 1.1, 0.1)
-path = NebLammpsState(neb, xi_coordinate=xi, nimages=4)
-
-asewrite('pos.xyz', neb, format='extxyz')
-
-calc = EMT()
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
+calc = EMT()
 
 # Creation of the MLIP Manager
 descriptor = MliapDescriptor(atoms=atoms,
@@ -65,6 +60,8 @@ mlip = LinearPotential(descriptor)
 
 
 # Creation of the State Manager
+xi = np.arange(0, 1.1, 0.1)
+path = NebLammpsState(neb, xi_coordinate=xi, nimages=4)
 state = PafiLammpsState(temperature,
                         path=path,
                         dt=dt,

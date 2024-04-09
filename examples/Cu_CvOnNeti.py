@@ -21,7 +21,7 @@ from mlacs.properties import CalcTi
 # MLACS Parameters ------------------------------------------------------------
 nconfs = 20        # Numbers of final configurations.
 neq = 5            # Numbers of mlacs equilibration iterations. 
-nsteps = 500      # Numbers of MD steps in the production phase.
+nsteps = 500       # Numbers of MD steps in the production phase.
 nsteps_eq = 100    # Numbers of MD steps in the equilibration phase.
 
 # MD Parameters ---------------------------------------------------------------

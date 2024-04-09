@@ -17,9 +17,6 @@ To run this example, you need to have :
 OpenMP thread can be used by setting the variable OMP_NUM_THREADS
 in your environment before calling this python script.
 """
-# FIXME: No longer working with mbar
-
-import os
 from ase.build import bulk
 
 from mlacs.calc import AbinitManager
@@ -73,8 +70,6 @@ calc = AbinitManager(parameters=variables,
                      errfile="abinit.err",
                      nproc=nproc)
 
-calc.ncfile = None  # Small hack to fix an error
-
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 # Creation of the MLIP Manager
 snap_descriptor = MliapDescriptor(atoms=atoms,
@@ -84,12 +79,10 @@ snap_descriptor = MliapDescriptor(atoms=atoms,
                                   style="snap",
                                   alpha="1.0")
 
-mbar_params = dict(mode="train", solver="L-BFGS-B")
-mbar_manager = MbarManager(parameters=mbar_params)
+mbar = MbarManager()
 
 mlip = LinearPotential(descriptor=snap_descriptor,
-                       parameters={},
-                       mbar=mbar_manager)
+                       weight=mbar)
 
 # Creation of the State Manager
 nsim = 5

@@ -234,7 +234,7 @@ class OtfMlacs:
             else:
                 eq.append(False)
                 msg = f"Production step for state {istate+1}, "
-            msg += f"configuration {trajstep} for this state"
+            msg += f"configurations {trajstep} for this state"
             self.log.logger_log.info(msg)
         self.log.logger_log.info("\n")
         # Training MLIP

@@ -77,6 +77,16 @@ At the end, we can check that the package is loaded:
 
 ²The environment name in parentheses should appear on the terminal.
 
+You can also run the tests to verify that the package is running properly. Tests are located in the test/ repertory. You can then simply execute the pytest commmand: 
+
+	$ pytest
+
+> [!WARNING]
+> You need to define the ASE_LAMMPSRUN_COMMAND environment variable to specify where MLACS can find LAMMPS before running the tests (see below).
+> The pymbar and netCDF4 are needed to pass the tests. 
+> Some tests are passed if lammps has not been compile with the REPLICA package and if you haven't installed the mlp executable for Moment Tensor Potential (see below).
+
+
 LAMMPS
 ------
 It is recommended to use the latest version of [LAMMPS](https://docs.lammps.org/Manual.html). The current version of MLACS works with the latest 'release' version of LAMMPS, which can be downloaded from the site or via git:
