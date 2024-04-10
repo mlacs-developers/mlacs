@@ -83,6 +83,8 @@ class DlmCalcManager(CalcManager):
                                state=None,
                                step=None):
         """
+        Compute the energy of given configurations with an ASE calculator,
+        using a random spin configuration from the SQS.
         """
         confs = [at.copy() for at in confs]
         result_confs = []

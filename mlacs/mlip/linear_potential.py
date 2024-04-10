@@ -36,6 +36,18 @@ class LinearPotential(MlipManager):
     weight: :class:`WeightingPolicy`
         Weight used for the fitting and calculation of properties.
         Default :class:`None`, which results in the use of uniform weights.
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(confs[0], rcut=4.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
     def __init__(self,
                  descriptor,

@@ -374,6 +374,15 @@ class LammpsState(BaseLammpsState):
     blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
         Custom block input class. Can be a list of blocks.
         If ``None``, nothing is added in the input. Default ``None``.
+
+    Examples
+    --------
+
+    >>> from mlacs.state import LammpsState
+    >>>
+    >>> state = LammpsState(temperature=300, pressure=None) #NVT
+    >>> state = LammpsState(temperature=300, pressure=0)    #NPT
+    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
     def __init__(self, temperature, pressure=None, t_stop=None,
                  p_stop=None, damp=None, langevin=True, gjf="vhalf",

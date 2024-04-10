@@ -23,7 +23,9 @@ from ..utilities import interpolate_points as intpts
 # ========================================================================== #
 class NebLammpsState(BaseLammpsState):
     """
-    Class to manage NEB with LAMMPS
+    Class to manage Nudged Elastic Band (NEB) calculation with LAMMPS.
+    This class is a part of TransPath objects, meaning that it produces
+    positions interpolation according to a reaction coordinate.
 
     Parameters
     ----------
@@ -95,6 +97,17 @@ class NebLammpsState(BaseLammpsState):
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> initial = read('A.traj')
+    >>> final = read('B.traj')
+    >>>
+    >>> from mlacs.state import NebLammpsState
+    >>> neb = NebLammpsState([initial, final])
+    >>> state.run_dynamics(None, mlip.pair_style, mlip.pair_coeff)
     """
 
     def __init__(self, configurations, xi_coordinate=None,

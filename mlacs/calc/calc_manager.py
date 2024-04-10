@@ -11,12 +11,15 @@ from ase.calculators.calculator import CalculatorError
 # ========================================================================== #
 class CalcManager:
     """
-    Parent Class managing the true potential being simulated
+    Parent Class managing the true potential being simulated.
+    This Calc class can support any :class:`ase.calculator` calculators from
+    the ASE python package.
+    Create, execute and read the output of any ASE supported calculators.
 
     Parameters
     ----------
     calc: :class:`ase.calculator`
-        A ASE calculator object
+        An ASE calculator object
 
     magmoms: :class:`np.ndarray` (optional)
         An array for the initial magnetic moments for each computation
@@ -35,6 +38,7 @@ class CalcManager:
                                state=None,
                                step=None):
         """
+        Compute the energy of given configurations with an ASE calculator.
         """
         confs = [at.copy() for at in confs]
         result_confs = []

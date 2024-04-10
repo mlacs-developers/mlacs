@@ -51,6 +51,16 @@ class SnapDescriptor(Descriptor):
         A multiplication factor for the regularization that apply only to
         the quadratic component of the descriptor
         Default 1.0
+
+    Examples
+    --------
+
+    >>> from ase.build import bulk
+    >>> atoms = bulk("Cu", cubic=True).repeat(2)
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(atoms, rcut=4.2, parameters=dict(twojmax=6))
+    >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
                  model="linear", alpha=1.0, alpha_quad=1.0):

@@ -42,21 +42,12 @@ class MbarManager(WeightingPolicy):
 
     Parameters
     ----------
-    mode: :class:`str`
-        Define how to use MBAR.
-
-        - compute: Compute weights.
-        - train: Compute weights and use it for MLIP training.
-
-        Default compute
-
     solver: :class:`str`
         Define type of solver for pymbar
         Default L-BFGS-B
 
     scale: :class:`float`
         Imposes weights for the new configurations.
-        Only relevant in the train mode.
         Default 1.0
 
     start: :class:`int`
@@ -175,21 +166,7 @@ class MbarManager(WeightingPolicy):
         """
         Initialize the weight matrice with W = scale * 1/N.
         """
-        n_tot = len(self.matsize)
-        weight = np.ones(n_tot) / n_tot
-        if self._nstart < len(self.database):
-            weight = self.parameters['scale'] * weight
-            weight[:len(self.weight)] = self.weight
-        return weight / np.sum(weight)
-
-# ========================================================================== #
-    def get_effective_conf(self):
-        """
-        Compute the number of effective configurations.
-        Gives an idea on MLACS convergence.
-        """
-        neff = np.sum(self.weight)**2 / np.sum(self.weight**2)
-        return neff
+        return super().init_weight(scale=self.parameters['scale'])
 
 # ========================================================================== #
     def update_database(self, atoms):
@@ -228,8 +205,8 @@ class MbarManager(WeightingPolicy):
         Read the ddb info state and returns arrays of P, dV, T.
 
         For now, only NVT and NPT are implemented.
-        NVT : Aimed T, Constant P, Constant V
-        NPT : Aimed T, Instantaneous P from the MLIP, Instantaneous V
+        NVT : Aimed T, Instantaneous P, Constant V
+        NPT : Aimed T, Constant P from the MLIP, Instantaneous V
         -----------------------------------------------
         NVE : Instantaneous T, No P, No V
         uVT/uPT : NVT/NPT + Constant u, Instantaneous N

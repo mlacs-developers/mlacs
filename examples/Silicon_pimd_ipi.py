@@ -8,7 +8,7 @@ The simulations uses a SNAP potential with 2Jmax of 6 and cutoff of 5.5 angs
 Only 2 beads are computed by the true potential, while the pimd is run
 with 4 beads
 """
-# FIXME: This example seems to get stuck at the first step.
+# Warning: You to have the i-PI python package installed to run the example.
 
 import os
 
@@ -20,21 +20,15 @@ from mlacs import OtfMlacs
 from mlacs.state import IpiState
 
 
-atoms = bulk("Si", cubic=True).repeat(3)
-calc = LAMMPS(pair_style="tersoff/mod",
-              pair_coeff=["* * ../Si.tersoff.mod Si"],
-              keep_tmp_files=False)
+# Environment -----------------------------------------------------------------
+lmp_exe = 'lmp'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
 
-# Parameters ------------------------------------------------------------------
-temperature = 20  # K
-pressure = None  # gives 0 GPa
-ensemble = "npt"
+# MLACS Parameters ------------------------------------------------------------
 nconfs = 100
 nsteps = 1000
 nsteps_eq = 10
 neq = 5
-dt = 1.0  # fs
-damp = 100 * dt
 
 # Parameters MLIP -------------------------------------------------------------
 rcut = 5.5
@@ -44,9 +38,19 @@ mlip_params = {"twojmax": 6}
 paralbeads = 4
 nbeads = 4
 nbeads_sim = 2
+temperature = 20  # K
+pressure = None  # gives 0 GPa
+ensemble = "npt"
+dt = 1.0  # fs
+damp = 100 * dt
 
+# Supercell creation ----------------------------------------------------------
+atoms = bulk("Si", cubic=True).repeat(3)
 
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
+calc = LAMMPS(pair_style="tersoff/mod",
+              pair_coeff=["* * ../Si.tersoff.mod Si"],
+              keep_tmp_files=False)
 
 # Creation of the MLIP Manager
 descriptor = MliapDescriptor(atoms=atoms,

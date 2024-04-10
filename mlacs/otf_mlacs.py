@@ -70,11 +70,10 @@ class OtfMlacs:
         Default ``\"Trajectory\"``.
 
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
-        if :class:`int`: Number of configuirations used
-        to train a preliminary MLIP
-        The configurations are created by rattling the first structure
-        if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
-        computed in order to create the initial training configurations
+        If :class:`int`, Number of configurations used to train a preliminary
+        MLIP. The configurations are created by rattling the first structure.
+        If :class:`list` of :class:`ase.Atoms`, The atoms that are to be
+        computed in order to create the initial training configurations.
         Default ``1``.
 
     std_init: :class:`float` (optional)
@@ -235,7 +234,7 @@ class OtfMlacs:
             else:
                 eq.append(False)
                 msg = f"Production step for state {istate+1}, "
-            msg += f"configuration {trajstep} for this state"
+            msg += f"configurations {trajstep} for this state"
             self.log.logger_log.info(msg)
         self.log.logger_log.info("\n")
         # Training MLIP

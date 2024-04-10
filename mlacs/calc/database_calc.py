@@ -50,10 +50,12 @@ class DatabaseCalc(CalcManager):
                                state=None,
                                step=None):
         """
-        1. Create a copy of the next atoms in traj as true_atoms
-        2. Modify mlip_atoms positions to match what we have in the traj
-        3. Change the Parent MLIP that generated true_confs
+        Return the energy of given configurations contained in the Trajectory
+        file. This is a way to replay a previously done MLACS simulations.
         """
+        # 1. Create a copy of the next atoms in traj as true_atoms
+        # 2. Modify mlip_atoms positions to match what we have in the traj
+        # 3. Change the Parent MLIP that generated true_confs
         length_trajs = sum([len(t) for t in self.traj])
         assert len(mlip_confs) + self.current_conf <= length_trajs, \
             "You cannot do more step than there is in the Trajectory file" +\

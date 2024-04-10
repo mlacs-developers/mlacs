@@ -13,7 +13,6 @@ class OptimizeLammpsState(BaseLammpsState):
     """
     Class to manage geometry optimizations with LAMMPS.
 
-
     Parameters
     ----------
     min_style: :class:`str`
@@ -43,10 +42,12 @@ class OptimizeLammpsState(BaseLammpsState):
 
     pressure: :class:`float` or ``None`` (optional)
         Target pressure for the optimization, in GPa.
+        Only available if min_style is 'cg'.
         If ``None``, no cell relaxation is applied.
         Default ``None``
 
     ptype: ``iso`` or ``aniso`` (optional)
+        Only available if min_style is 'cg'.
         Handle the type of pressure applied. Default ``iso``
 
     vmax: ``iso`` or ``aniso`` (optional)
@@ -83,6 +84,16 @@ class OptimizeLammpsState(BaseLammpsState):
     blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
         Custom block input class. Can be a list of blocks.
         If ``None``, nothing is added in the input. Default ``None``.
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> initial = read('A.traj')
+    >>>
+    >>> from mlacs.state import OptimizeLammpsState
+    >>> neb = OptimizeLammpsState(initial, pressure=0, ptype='iso')
+    >>> state.run_dynamics(initial, mlip.pair_style, mlip.pair_coeff)
     """
     def __init__(self, min_style="cg", etol=0.0, ftol=1e-6, dt=0.5,
                  pressure=None, ptype="iso", vmax=1e-3,

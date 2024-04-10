@@ -25,7 +25,9 @@ from ..utilities.io_abinit import (AbinitNC,
 # ========================================================================== #
 class AbinitManager(CalcManager):
     """
-    Class to handle abinit calculators
+    This Calc class is an extended object for Abinit calculators.
+    The AbinitManager can handdle netCDF files, MPI processes and a better
+    pseudopotentials files management.
 
     Parameters
     ----------
@@ -66,6 +68,15 @@ class AbinitManager(CalcManager):
         Distributed equally over all submitted calculations
         And start MPI abinit calculation if more than 1 processor
 
+    Examples
+    --------
+
+    >>> from mlacs.calc import AbinitManager
+    >>> variables = dict(ixc=-1012, ecut=12, tsmear=0.001, occopt=3, nband=82,
+    >>>                  ngkpt=[2, 2, 2], shiftk=[0.5, 0.5, 0.5],
+    >>>                  autoparall=1, nsym=1) # Cu, 8 atoms.
+    >>> pseudos = {'Cu': "/path/to/pseudo/Cu.LDA_PW-JTH.xml"}
+    >>> calc = AbinitManager(parameters=variables, pseudos=pseudos)
     """
     def __init__(self,
                  parameters,
@@ -110,7 +121,7 @@ class AbinitManager(CalcManager):
                                state,
                                step):
         """
-        Create, execute and read the output of an Abinit calculation
+        Compute the energy of given configurations with Abinit.
         """
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]
