@@ -100,7 +100,7 @@ To limit the size of the executable, it is best to install only the packages you
 
 Several packages are necessary for the proper functioning of MLACS, here is a non-exhaustive list of recommended packages:
 
-``ml-snap, ml-iap, manybody, molecule, class2, kspace, replica,
+``ml-snap, ml-iap, manybody, meam, molecule, class2, kspace, replica,
 extra-fix, extra-pair, extra-compute, extra-dump``
 
 .. admonition:: Warning
