@@ -2,6 +2,7 @@ import os
 import sys
 import shlex
 import shutil
+import importlib.util
 from subprocess import Popen, PIPE
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))  # noqa
 import mlacs  # noqa
@@ -32,3 +33,12 @@ def has_mlp():
     Returns True if there is no mlp executable.
     """
     return shutil.which("mlp") is None
+
+
+def has_netcdf():
+    """
+    Returns True if there is no netCDF4 package.
+    """
+    if importlib.util.find_spec('netCDF4') is None:
+        return True
+    return False

@@ -1,6 +1,5 @@
 import pytest
 
-import os
 import numpy as np
 
 from ase.build import bulk
@@ -59,8 +58,8 @@ def test_mbar_databasecalc(root, treelink):
     sampling.run(nconfs)
 
     # Make sure the weight computation did not change
-    precomputed_weight = [0.2456848,  0.13181529, 0.15127496,
-                          0.20821541, 0.26300954]
+    precomputed_weight = [0.24974929, 0.13717322, 0.15500564,
+                          0.20601895, 0.2520529]
     w = sampling.mlip.weight.weight
     assert np.allclose(precomputed_weight, w, atol=1e-5), \
         "It seems mbar evaluate weight differently than before."

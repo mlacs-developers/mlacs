@@ -83,7 +83,6 @@ You can also run the tests to verify that the package is running properly. Tests
 
 > [!WARNING]
 > You need to define the ASE_LAMMPSRUN_COMMAND environment variable to specify where MLACS can find LAMMPS before running the tests (see below).
-> The pymbar and netCDF4 are needed to pass the tests. 
 > Some tests are passed if lammps has not been compile with the REPLICA package and if you haven't installed the mlp executable for Moment Tensor Potential (see below).
 
 

@@ -20,6 +20,8 @@ def build_ncobj():
 
 
 @pytest.fixture
+@pytest.mark.skipif(context.has_netcdf(),
+                    reason="You need the netCDF4 package to run the test.")
 def test_atoms_from_ncfiles(root, build_ncobj):
     """
     """
@@ -44,6 +46,8 @@ def test_atoms_from_ncfiles(root, build_ncobj):
         assert atoms == ncatoms
 
 
+@pytest.mark.skipif(context.has_netcdf(),
+                    reason="You need the netCDF4 package to run the test.")
 def test_dict_from_ncfile(root, build_ncobj):
     """
     """
