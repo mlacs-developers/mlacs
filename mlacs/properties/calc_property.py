@@ -211,10 +211,39 @@ class CalcNeb(CalcProperty):
 class CalcRdf(CalcProperty):
     """
     Class to set a radial distribution function calculation.
+    See RdfLammpsState and RdfLammpsState.run_dynamics parameters.
+
+    Parameters
+    ----------
+    method: :class:`str`
+        Type of criterion :
+            - max, maximum difference between to consecutive step < criterion
+            - ave, average difference between to consecutive step < criterion
+        Default ``max``
+    criterion: :class:`float`
+        Stopping criterion value. Default ``0.05``
+    frequence : :class:`int`
+        Interval of Mlacs step to compute the property. Default ``20``
+
     """
 
     def __init__(self,
                  args,
+                 method='max',
+                 criterion=0.05,
+                 frequence=2):
+        CalcProperty.__init__(self, args, method, criterion, frequence)
+
+        from mlacs.state import RdfLammpsState
+        self.rdf = {}
+        self.kwargs = {}
+        for keys, values in args.items():
+            if keys in rdf_args:
+                self.rdf[keys] = values
+            else:
+                self.kwargs[keys] = values
+        self.state = RdfLammpsState(**self.rdf)
+=======
                  state=None,
                  method='max',
                  criterion=0.05,
@@ -231,13 +260,13 @@ class CalcRdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
+>>>>>>> b70f7b483face325ec978322cef5c1e80a34ef2d
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a Rdf calculation with lammps.
         """
-
         from ..utilities.io_lammps import get_block_rdf
 
         self.state.workdir = wdir / 'Rdf_Calculation'

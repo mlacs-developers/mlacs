@@ -12,7 +12,7 @@ from ase.io.lammpsdata import write_lammps_data
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                 free_energy_com_harmonic_oscillator)
 from .thermostate import ThermoState
-
+from ase.io import read
 
 eV = 1.602176634e-19  # eV
 hbar = 6.582119514e-16  # hbar
@@ -65,8 +65,8 @@ class EinsteinSolidState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
     nsteps_averaging: :class:`int` (optional)
-        Number of step for equilibrate ideal structure at zero
-        or finite pressure.
+        Number of step for equilibrate ideal structure
+        at zero or finite pressure.
         Default ``10000``.
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
@@ -126,6 +126,8 @@ class EinsteinSolidState(ThermoState):
 
         if self.pressure is not None:
             self.equilibrate = True
+        else:
+            self.equilibrate = False
 
         ThermoState.__init__(self,
                              atoms,
@@ -173,8 +175,8 @@ class EinsteinSolidState(ThermoState):
             os.makedirs(wdir)
 
         if self.equilibrate:
-            self.eq_structure = self.run_averaging(wdir)
-
+            self.run_averaging(wdir)
+            
         if self.k is None:
             # First get optimal spring constant
             self.compute_msd(wdir)
@@ -189,8 +191,10 @@ class EinsteinSolidState(ThermoState):
         """
         """
         if self.equilibrate:
+            # red last_dump_atoms
+            eq_structure = read(wdir + 'dump_averaging')
             atomsfname = wdir + "eq_atoms.in"
-            write_lammps_data(atomsfname, self.eq_structure)
+            write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
             atomsfname = wdir + "atoms.in"
@@ -205,14 +209,20 @@ class EinsteinSolidState(ThermoState):
     def compute_msd(self, wdir):
         """
         """
-        atomsfname = wdir + "atoms.in"
+
+        if self.equilibrate:
+            # red last_dump_atoms
+            eq_structure = read(wdir + 'dump_averaging')
+            atomsfname = wdir + "eq_atoms.in"
+            write_lammps_data(atomsfname, eq_structure)
+            atomsfname = "eq_atoms.in"
+        else:
+            atomsfname = wdir + "atoms.in"
+            write_lammps_data(atomsfname, self.atoms)
         lammpsfname = wdir + "lammps_msd_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-        write_lammps_data(atomsfname, self.atoms)
-
-        self.write_lammps_input_msd(wdir)
-
+        self.write_lammps_input_msd(wdir, atomsfname)
         call(lammps_command, shell=True, cwd=wdir)
 
         kall = []
@@ -232,7 +242,11 @@ class EinsteinSolidState(ThermoState):
         Compute the free energy from the simulation
         """
         # Get needed value/constants
-        vol = self.eq_structure.get_volume()
+        if self.equilibrate:
+            eq_structure = read(wdir + 'dump_averaging')
+            vol = eq_structure.get_volume()
+        else:
+            vol = self.atoms.get_volume()
         nat_tot = len(self.atoms)
 
         # Compute some oscillator frequencies and number
@@ -343,7 +357,10 @@ class EinsteinSolidState(ThermoState):
         if damp is None:
             damp = "$(100*dt)"
 
-        input_string = self.get_general_input(atomsfname)
+        if self.equilibrate:
+            input_string = self.get_general_input(atomsfname)
+        else:
+            input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -418,7 +435,7 @@ class EinsteinSolidState(ThermoState):
             f.write(input_string)
 
 # ========================================================================== #
-    def write_lammps_input_msd(self, wdir):
+    def write_lammps_input_msd(self, wdir, atomsfname):
         """
         Write the LAMMPS input for msd computation
         during the MLMD simulation
@@ -431,7 +448,10 @@ class EinsteinSolidState(ThermoState):
         if pdamp is None:
             pdamp = "$(1000*dt)"
 
-        input_string = self.get_general_input()
+        if self.equilibrate:
+            input_string = self.get_general_input(atomsfname)
+        else:
+            input_string = self.get_general_input()
 
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
@@ -441,7 +461,6 @@ class EinsteinSolidState(ThermoState):
         input_string += f"timestep      {self.dt/1000}\n"
 
         for iel, el in enumerate(self.elem):
-            # input_string += "group         {0} type {1}\n".format(el, iel+1)
             input_string += f"compute       c{10+iel} {el} msd com yes\n"
             input_string += f"variable      msd{el} equal c_c{10+iel}[4]\n"
         input_string += "#####################################\n"
@@ -452,21 +471,21 @@ class EinsteinSolidState(ThermoState):
         input_string += "#####################################\n"
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
-        input_string += "fix           f1  all langevin " + \
+        input_string += "fix           f2  all nve\n"
+        input_string += f"fix           f1  all langevin " + \
                         f"{self.temperature} {self.temperature} {damp} " + \
                         f"{self.rng.integers(99999)} zero yes\n"
-        if self.pressure is None:
-            input_string += "fix           f2  all nve\n"
-        else:
-            input_string += "fix           f2  all nph iso " + \
-                            f"{self.pressure*10000} {self.pressure*10000} " + \
-                            f"{pdamp}\n"
-
+        # if self.pressure is None
+        #     input_string += "fix           f2  all nve\n"
+        # else:
+        #     input_string += "fix           f2  all nph iso " + \
+        #                     f"{self.pressure*10000} " + \
+        #                     f"{self.pressure*10000} {pdamp}\n"
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
-        if self.pressure is not None:
-            input_string += "fix_modify    f2 temp c1\n"
+        # if self.pressure is not None:
+        #     input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
         input_string += "\n\n"
 
@@ -479,9 +498,9 @@ class EinsteinSolidState(ThermoState):
         input_string += "#           Compute MSD\n"
         input_string += "#####################################\n"
         input_string += "run         ${nstepseq}\n"
-        if self.pressure is not None:
-            input_string += "unfix           f2\n"
-            input_string += "fix             f2  all nve\n"
+        # if self.pressure is not None:
+        #     input_string += "unfix           f2\n"
+        #     input_string += "fix             f2  all nve\n"
         for iel, el in enumerate(self.elem):
             input_string += f"fix         f{iel+3} {el} print 1 " + \
                             f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"

@@ -153,8 +153,8 @@ class ThermodynamicIntegration:
             #                     f"for_back_{i+1}/" +
             #                     "free_energy.dat")
             # fe.append(tmp_fe[1]+tmp_fe[len(tmp_fe)-1])
-            _, tmp_fe = self.state[istate].postprocess(
-                    stateworkdir+f"for_back_{i+1}/")
+            _, tmp_fe = self.state[istate].postprocess(stateworkdir +
+                                                       f"for_back_{i+1}/")
             fe.append(tmp_fe)
         ferr = np.std(fe, axis=0)
         femean = np.mean(fe, axis=0)

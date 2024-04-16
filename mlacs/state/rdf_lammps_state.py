@@ -357,6 +357,9 @@ class RdfLammpsState(LammpsState):
     def get_equilibration_input(self, temp, press):
         """
         Function to equilibrate the system before computing physical qties
+        Note that equilibration is also in NVT at the volume of the
+        i-ème mlacs step corresponding structure.
+        To be modified to the avereage vol
         """
         damp = self.damp
         nsteps_eq = self.nsteps_eq
