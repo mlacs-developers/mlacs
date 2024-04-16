@@ -3,19 +3,18 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
-from subprocess import run, PIPE
 
+import numpy as np
 from ase.io import read
-from ase.io.lammpsdata import write_lammps_data
-from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
-from .lammps_state import LammpsState
+from .lammps_state import BaseLammpsState
 from ..utilities import get_elements_Z_and_masses
+from ..utilities.io_lammps import LammpsBlockInput
 
 
 # ========================================================================== #
 # ========================================================================== #
-class PimdLammpsState(LammpsState):
+class PimdLammpsState(BaseLammpsState):
     """
     Class to manage PIMD simulations with LAMMPS
 
@@ -65,6 +64,13 @@ class PimdLammpsState(LammpsState):
     nbeads : :class:`int` (optional)
         Number of beads used in the PIMD quantum polymer. Default ``1``,
         which revert to classical sampling.
+
+    nprocs : :class:`int` (optional)
+        Total number of process used to run LAMMPS.
+        Have to be a multiple of the number of beads.
+        If nprocs > than nbeads, each replica will be parallelized using the
+        partition scheme of LAMMPS.
+        Per default it assumes that nprocs = nbeads
 
     integrator : :class:`str` (optional)
         Type of integrator to use. Can be baoab or obabo. Default ``'baoab'``
@@ -119,88 +125,81 @@ class PimdLammpsState(LammpsState):
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
     """
-    def __init__(self,
-                 temperature,
-                 pressure=None,
-                 t_stop=None,
-                 p_stop=None,
-                 damp=None,
-                 pdamp=None,
-                 ptype="iso",
-                 dt=1.5,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 nbeads=1,
-                 integrator="baoab",
-                 fmmode="physical",
-                 fmass=None,
-                 scale=1.0,
-                 barostat="BZP",
-                 fixcm=True,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 msdfile=None,
-                 rdffile=None,
-                 rng=None,
-                 init_momenta=None,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=temperature,
-                             pressure=pressure,
-                             t_stop=t_stop,
-                             p_stop=p_stop,
-                             damp=damp,
-                             pdamp=pdamp,
-                             ptype=ptype,
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             fixcm=fixcm,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             rng=rng,
-                             init_momenta=init_momenta,
-                             workdir=workdir)
+    def __init__(self, temperature, pressure=None, t_stop=None, p_stop=None,
+                 damp=None, pdamp=None, ptype="iso", dt=1.0, fixcm=True,
+                 rng=None, init_momenta=None, integrator="baoab",
+                 fmmode="physical", fmass=None, scale=1.0, barostat="BZP",
+                 nprocs=None, nbeads=1,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
 
+        self.temperature = temperature
+        self.pressure = pressure
+        self.t_stop = t_stop
+        self.p_stop = p_stop
+        self.damp = damp
+        self.pdamp = pdamp
+        self.ptype = ptype
+        self.dt = dt
+        self.fixcm = fixcm
+        self.rng = rng
+        self.init_momenta = init_momenta
         self.integrator = integrator
         self.fmmode = fmmode
+        self.fmass = fmass
         self.scale = scale
         self.barostat = barostat
+        self.nprocs = nprocs
         self.nbeads = nbeads
-        if fmass is None:
-            self.fmass = nbeads
-        else:
-            self.fmass = fmass
         self.ispimd = True
+
+        if self.rng is None:
+            self.rng = np.random.default_rng()
         if self.trajfile is not None and self.nbeads > 1:
-            self.trajfile += "_${ibead}"
+            self.trajfile = f"{self.trajfile}" + "_${ibead}"
+        if self.fmass is None:
+            self.fmass = self.nbeads
+        if self.damp is None:
+            self.damp = "$(100*dt)"
+        if self.pdamp is None:
+            self.pdamp = "$(1000*dt)"
+        if self.p_stop is not None:
+            if self.pressure is None:
+                msg = "You need to put a pressure with p_stop"
+                raise ValueError(msg)
+        if self.nprocs is not None:
+            if self.nprocs % self.nbeads != 0:
+                msg = "The number of processor needs to be a multiple " + \
+                    "of the number of beads"
+                raise ValueError(msg)
 
 # ========================================================================== #
-    def run_dynamics(self,
-                     supercell,
-                     pair_style,
-                     pair_coeff,
-                     model_post=None,
-                     atom_style="atomic",
-                     eq=False,
-                     nbeads_return=1):
+    def _get_block_init(self, atoms, atom_style):
         """
-        Function to run the dynamics
+
         """
-        if nbeads_return != 1:
-            msg = "The possibility to return several beads have not been " + \
-                "implemented (yet !)"
-            raise NotImplementedError(msg)
-
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
-
-        atoms = supercell.copy()
-
+        pbc = atoms.get_pbc()
+        pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
+        block = LammpsBlockInput("init", "Initialization")
+        block("map", "atom_modify map yes")
+        block("units", "units metal")
+        block("boundary", f"boundary {pbc}")
+        block("atom_style", f"atom_style {atom_style}")
+        block("read_data", "read_data atoms.in")
+        block("variable", f"variable ibead uloop {self.nbeads} pad")
+        for i, mass in enumerate(masses):
+            block(f"mass{i}", f"mass {i+1}  {mass}")
+        return block
+
+# ========================================================================== #
+    def _get_block_thermostat(self, eq):
+        """
+        Function to write the thermostat of the mlmd run
+        """
         if self.t_stop is None:
             temp = self.temperature
         else:
@@ -208,90 +207,22 @@ class PimdLammpsState(LammpsState):
                 temp = self.t_stop
             else:
                 temp = self.rng.uniform(self.temperature, self.t_stop)
-
         if self.p_stop is None:
             press = self.pressure
         else:
-            if eq:
-                press = self.pressure
-            else:
-                press = self.rng.uniform(self.pressure, self.p_stop)
+            press = self.rng.uniform(self.pressure, self.p_stop)
+        seed = self.rng.integers(1, 999999)
 
-        if self.t_stop is not None:
-            MaxwellBoltzmannDistribution(atoms,
-                                         temperature_K=temp,
-                                         rng=self.rng)
-        write_lammps_data(self.workdir + self.atomsfname,
-                          atoms,
-                          velocities=True,
-                          atom_style=atom_style)
-
-        if eq:
-            nsteps = self.nsteps_eq
-        else:
-            nsteps = self.nsteps
-
-        self.write_lammps_input(atoms,
-                                atom_style,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                nsteps,
-                                temp,
-                                press)
-
-        lammps_command = f"{self.cmd} -partition {self.nbeads}x1 -in " + \
-            f"{self.lammpsfname} -sc out.lmp"
-        lmp_handle = run(lammps_command,
-                         shell=True,
-                         cwd=self.workdir,
-                         stderr=PIPE)
-
-        if lmp_handle.returncode != 0:
-            msg = "LAMMPS stopped with the exit code \n" + \
-                  f"{lmp_handle.stderr.decode()}"
-            raise RuntimeError(msg)
-
-        if charges is not None:
-            init_charges = atoms.get_initial_charges()
-        fname = "configurations.out"
-        if self.nbeads > 1:
-            ndigit = len(str(self.nbeads))
-            # Will be changed for the full PIMD simulations
-            fname += f"_{1:0{ndigit}d}"
-        atoms = read(f"{self.workdir}{fname}")
-        if charges is not None:
-            atoms.set_initial_charges(init_charges)
-
-        return atoms.copy()
-
-# ========================================================================== #
-    def get_thermostat_input(self, temp, press):
-        """
-        Function to write the thermostat of the mlmd run
-        """
-        damp = self.damp
-        if self.damp is None:
-            damp = "$(100*dt)"
-
-        pdamp = self.pdamp
-        if self.pdamp is None:
-            pdamp = "$(1000*dt)"
-
-        input_string = "#####################################\n"
-        input_string += "#      Thermostat/Integrator\n"
-        input_string += "#####################################\n"
-        input_string += "timestep      {0}\n".format(self.dt / 1000)
-
+        block = LammpsBlockInput("thermostat", "Thermostat")
         fix = "fix f1 all pimd/langevin "
         # The temperature
         fix += f"temp {temp} "
         # The integrator
         fix += f"integrator {self.integrator} "
         # Then the thermostat
-        fix += f"thermostat PILE_L {self.rng.integers(99999999)} "
+        fix += f"thermostat PILE_L {seed} "
         # The damping parameter
-        fix += f"tau  {damp} "
+        fix += f"tau  {self.damp} "
         # Scaling factor of non-centroid mode
         fix += f"scale {self.scale} "
         # the fmmode
@@ -309,19 +240,81 @@ class PimdLammpsState(LammpsState):
             elif self.ptype == "aniso":
                 fix += f"aniso {press} "
             fix += f"barostat {self.barostat} "
-            fix += f"taup {pdamp} "
+            fix += f"taup {self.pdamp} "
         else:
             fix += "ensemble nvt "
-
-        fix += "\n"
-        input_string += fix
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-        return input_string
+        block("fix", fix)
+        return block
 
 # ========================================================================== #
-    def get_temperature(self):
+    def _get_atoms_results(self, initial_charges):
         """
-        Return the temperature of the state
+
         """
-        return self.temperature
+        fname = "configurations.out"
+        ndigit = len(str(self.nbeads))
+        fname = f"{fname}_{1:0{ndigit}d}"
+        atoms = read(self.workdir / fname)
+        if initial_charges is not None:
+            atoms.set_initial_charges(initial_charges)
+        return atoms
+
+# ========================================================================== #
+    def _get_block_lastdump(self, atoms, eq):
+        """
+
+        """
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        block = LammpsBlockInput("lastdump", "Dump last configuration")
+        txt = "dump last all custom 1 configurations.out_${ibead} " + \
+              "id type xu yu zu vx vy vz fx fy fz element"
+        block("dump", txt)
+        txt = "dump_modify last element " + " ".join([p for p in el])
+        block("dump_modify1", txt)
+        block("run_dump", "run 0")
+        return block
+
+# ========================================================================== #
+    def _get_lammps_command(self):
+        '''
+        Function to load the batch command to run LAMMPS
+        '''
+        envvar = "ASE_LAMMPSRUN_COMMAND"
+        cmd = os.environ.get(envvar)
+        if cmd is None:
+            cmd = "lmp_serial"
+        n1 = self.nbeads
+        if self.nprocs is not None:
+            n2 = self.nprocs // self.nbeads
+        else:
+            n2 = 1
+        return f"{cmd} -partition {n1}x{n2} -in {self.lammpsfname} -sc out.lmp"
+
+# ========================================================================== #
+    def log_recap_state(self):
+        """
+
+        """
+        damp = self.damp
+        if damp is None:
+            damp = 100 * self.dt
+        pdamp = self.pdamp
+        if pdamp is None:
+            pdamp = 1000 * self.dt
+
+        if self.pressure is None:
+            msg = "NVT Path-Integral dynamics as implemented in LAMMPS\n"
+        else:
+            msg = "NPT Path-Integral dynamics as implemented in LAMMPS\n"
+        msg += f"Temperature (in Kelvin)                 {self.temperature}\n"
+        if self.pressure is not None:
+            msg += f"Pressure (GPa)                          {self.pressure}\n"
+        msg += f"Number of MLMD equilibration steps :    {self.nsteps_eq}\n"
+        msg += f"Number of MLMD production steps :       {self.nsteps}\n"
+        msg += f"Timestep (in fs) :                      {self.dt}\n"
+        if self.temperature is not None:
+            msg += f"Themostat damping parameter (in fs) :   {damp}\n"
+            if self.pressure is not None:
+                msg += f"Barostat damping parameter (in fs) :    {pdamp}\n"
+        msg += "\n"
+        return msg

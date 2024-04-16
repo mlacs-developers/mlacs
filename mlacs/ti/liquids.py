@@ -128,7 +128,7 @@ class UFLiquidState(ThermoState):
             self.equilibrate = True
         else:
             self.equilibrate = False
-
+            
         if self.p not in p_tabled:
             msg = "The p value of the UF potential has to be one for " + \
                   "which the free energy of the Uhlenbeck-Ford potential " + \

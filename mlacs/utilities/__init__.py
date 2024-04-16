@@ -3,8 +3,6 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 from .pdf import compute_pdf
-from .extract_data import (extract_data_from_files,
-                           extract_data)
 from .miscellanous import (get_elements_Z_and_masses,
                            create_random_structures,
                            _create_ASE_object,
@@ -14,6 +12,8 @@ from .miscellanous import (get_elements_Z_and_masses,
                            compute_correlation,
                            integrate_points,
                            normalized_integration,
+                           subfolder,
+                           create_link,
                            )
 
 from .io_abinit import (AbinitNC,
@@ -29,8 +29,8 @@ __all__ = ['compute_pdf',
            'compute_correlation',
            'integrate_points',
            'normalized_integration',
-           'extract_data_from_files',
-           'extract_data',
            'AbinitNC',
            'set_aseAtoms',
+           'subfolder',
+           'create_link',
            ]

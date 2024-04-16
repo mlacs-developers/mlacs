@@ -2,6 +2,8 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
+from pathlib import Path
 import numpy as np
 
 from scipy import interpolate
@@ -87,29 +89,42 @@ def create_random_structures(atoms, std, nconfs):
 
 
 # ========================================================================== #
-def compute_correlation(data):
+def compute_correlation(data, weight=None):
     """
-    Function to compute the RMSE and MAE
+    Function to compute the RMSE, MAE and Rsquared
 
     Parameters
     ----------
 
     data: :class:`numpy.ndarray` of shape (ndata, 2)
         The data for which to compute the correlation.
-        The first column should be the gound truth and the second column
+        The first column should be the ground truth and the second column
         should be the prediction of the model
-    datatype: :class:`str`
-        The type of data to which the correlation are to be computed.
-        Can be either energy, forces or stress
+    weight: :class:`numpy.ndarray`
+        Weight to be applied to compute the averages.
+        Has to be a divisor of the length of the data
+
+    Returns
+    -------
+        result: :class:`numpy.ndarray`
+            An length 3 array with (in order) the rmse, mae and :class:`R^2`
     """
+    if weight is None:  # Uniform weighting
+        nconf = np.shape(data)[0]
+        weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
-    rmse = np.sqrt(np.mean((datatrue - datatest)**2))
-    mae = np.mean(np.abs(datatrue - datatest))
-    sse = ((datatrue - datatest)**2).sum()
-    sst = ((datatrue - datatrue.mean())**2).sum()
+
+    assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
+    weight = np.repeat(weight, len(datatrue)//len(weight))
+
+    mae = np.average(np.abs(datatrue - datatest), weights=weight)
+    rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
+    mae = np.average(np.abs(datatrue - datatest), weights=weight)
+    sse = np.average(((datatrue - datatest)**2), weights=weight)
+    sst = np.average((datatrue - np.sum(datatrue*weight))**2, weights=weight)
     rsquared = 1 - sse / sst
-    return rmse, mae, rsquared
+    return np.array([rmse, mae, rsquared])
 
 
 # ========================================================================== #
@@ -123,7 +138,7 @@ def _create_ASE_object(Z, positions, cell, energy):
                   pbc=True)
     calc = SPC(atoms=atoms,
                energy=energy)
-    atoms.set_calculator(calc)
+    atoms.calc = calc
     return atoms
 
 
@@ -157,16 +172,16 @@ def compute_averaged(traj):
 
 
 # ========================================================================== #
-def compute_volume(confs, weights):
+def compute_volume(confs, weights=None):
     nconfs = len(confs)
     natoms = len(confs[0])
     vol = []
     cell = []
     if weights is None:
         weights = np.ones(nconfs) / nconfs
-    for i in range(len(confs)):
-        cell.append(confs[i].get_cell() * weights[i])
-        vol.append(confs[i].get_volume() * weights[i] / natoms)
+    for i, at in enumerate(confs):
+        cell.append(at.get_cell() * weights[i])
+        vol.append(at.get_volume() * weights[i] / natoms)
 
     cell = np.sum(cell, axis=0)
     vol = np.sum(vol)
@@ -195,8 +210,6 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Activate periodic function boundary conditions
     border : :class:`bol`
         Impose a zero derivative condition at the function boundaries
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
 
     Return
     ------
@@ -252,8 +265,6 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Activate periodic function boundary conditions
     border : :class:`bol`
         Impose a zero derivative condition at the function boundaries
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
 
     Return
     ------
@@ -323,3 +334,70 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
         sx, sy = x / fx, y / fy
     _norm = func(sy, sx) * fx * fy
     return y * norm / _norm
+
+
+# ========================================================================== #
+def subfolder(func):
+    """
+    Decorator that executes a function from a subfolder
+    Usage : self.func(subfolder=x, *args)
+    """
+    def wrapper(self, *args, subfolder=None, **kwargs):
+        if subfolder is not None:
+            if not Path(subfolder).exists():
+                os.makedirs(subfolder)
+            initial_folder = os.getcwd()
+            os.chdir(subfolder)
+        result = func(self, *args, **kwargs)
+        if subfolder is not None:
+            os.chdir(initial_folder)
+        return result
+    return wrapper
+
+
+# ========================================================================== #
+def create_link(fn, lk):
+    """
+    Creates a symbolic link lk pointing to fn
+    If lk already exists, replace it
+    """
+    if os.path.isfile(lk):
+        if os.path.islink(lk):  # lk is already a link
+            os.remove(lk)
+        else:  # lk is already a file
+            return
+    if not os.path.exists(fn):
+        return
+    os.symlink(fn, lk)
+
+
+# ========================================================================== #
+def read_distribution_files(filename):
+    """
+    Function to the distribution files of LAMMPS
+    Return the averaged values and the extrem values.
+    """
+    yaxis, buf = None, None
+    with open(filename, 'r') as r:
+        for line in r:
+            if line[0] == '#':
+                continue
+            rowdat = line.split()
+            if len(rowdat) == 2:
+                if yaxis is None and buf is None:
+                    yaxis = None
+                elif yaxis is None and buf is not None:
+                    yaxis = buf
+                else:
+                    yaxis = np.c_[yaxis, buf]
+                buf = np.zeros(int(rowdat[1]))
+                xaxis = np.zeros(int(rowdat[1]))
+                i = 0
+                continue
+            xaxis[i] = float(rowdat[1])
+            buf[i] = float(rowdat[2])
+            i += 1
+    _gav = np.average(np.c_[yaxis, buf].T, axis=0)
+    _gmin = np.min(np.c_[yaxis, buf].T, axis=0)
+    _gmax = np.max(np.c_[yaxis, buf].T, axis=0)
+    return xaxis, _gav, _gmin, _gmax

@@ -2,34 +2,31 @@
 // (c) 2023 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
-from subprocess import run, PIPE
-
-from ase.io import read
-from ase.io.lammpsdata import write_lammps_data
-
-from .lammps_state import LammpsState
-from ..utilities import get_elements_Z_and_masses
-from ..utilities.io_lammps import (get_general_input,
-                                   get_log_input,
-                                   get_minimize_input,
-                                   get_traj_input,
-                                   get_interaction_input,
-                                   get_last_dump_input)
+from .lammps_state import BaseLammpsState
+from ..utilities.io_lammps import (LammpsBlockInput,
+                                   EmptyLammpsBlockInput)
 
 
 # ========================================================================== #
 # ========================================================================== #
-class OptimizeLammpsState(LammpsState):
+class OptimizeLammpsState(BaseLammpsState):
     """
-    Class to manage geometry optimizations with LAMMPS
-
+    Class to manage geometry optimizations with LAMMPS.
 
     Parameters
     ----------
     min_style: :class:`str`
         Choose a minimization algorithm to use when a minimize command is
         performed.
+        The options are the one available with the ``min_style`` command
+        of LAMMPS.
+
+        - `cg`
+        - `hftn`
+        - `sd`
+        - `quickmin`
+        - `fire`
+
         Default `cg`.
 
     etol: :class:`float`
@@ -40,12 +37,17 @@ class OptimizeLammpsState(LammpsState):
         Stopping tolerance for energy
         Default ``1.0e-6``
 
+    dt : :class:`float` (optional)
+        Timestep, in fs. Default ``0.5`` fs.
+
     pressure: :class:`float` or ``None`` (optional)
         Target pressure for the optimization, in GPa.
+        Only available if min_style is 'cg'.
         If ``None``, no cell relaxation is applied.
         Default ``None``
 
     ptype: ``iso`` or ``aniso`` (optional)
+        Only available if min_style is 'cg'.
         Handle the type of pressure applied. Default ``iso``
 
     vmax: ``iso`` or ``aniso`` (optional)
@@ -53,9 +55,6 @@ class OptimizeLammpsState(LammpsState):
         volume of the simulation box that can occur in one iteration of
         the minimizer.
         Default ``1.0e-3``
-
-    dt : :class:`float` (optional)
-        Timestep, in fs. Default ``0.5`` fs.
 
     nsteps : :class:`int` (optional)
         Maximum number of minimizer iterations during production phase.
@@ -81,136 +80,64 @@ class OptimizeLammpsState(LammpsState):
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
-    """
-    def __init__(self,
-                 min_style='cg',
-                 etol=0.0,
-                 ftol=1.0e-6,
-                 dt=0.5,
-                 pressure=None,
-                 ptype="iso",
-                 vmax=1.0e-3,
-                 nsteps=10000,
-                 nsteps_eq=1000,
-                 logfile=None,
-                 trajfile=None,
-                 loginterval=50,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             temperature=0.0,
-                             pressure=None,
-                             ptype="iso",
-                             dt=dt,
-                             nsteps=nsteps,
-                             nsteps_eq=nsteps_eq,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             loginterval=loginterval,
-                             workdir=workdir)
 
-        self.style = min_style
-        self.criterions = (etol, ftol)
+    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
+        Custom block input class. Can be a list of blocks.
+        If ``None``, nothing is added in the input. Default ``None``.
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> initial = read('A.traj')
+    >>>
+    >>> from mlacs.state import OptimizeLammpsState
+    >>> neb = OptimizeLammpsState(initial, pressure=0, ptype='iso')
+    >>> state.run_dynamics(initial, mlip.pair_style, mlip.pair_coeff)
+    """
+    def __init__(self, min_style="cg", etol=0.0, ftol=1e-6, dt=0.5,
+                 pressure=None, ptype="iso", vmax=1e-3,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
+                         workdir, blocks)
+
+        self.min_style = min_style
+        self.dt = dt
+        self.pressure = pressure
+        self.ptype = ptype
         self.vmax = vmax
-        self.langevin = False
+
+        self.criterions = (etol, ftol)
 
 # ========================================================================== #
-    def run_dynamics(self,
-                     supercell,
-                     pair_style,
-                     pair_coeff,
-                     model_post=None,
-                     atom_style="atomic",
-                     eq=False):
-        """
-        Function to run the dynamics
-        """
+    def _get_block_thermostat(self, eq):
+        return EmptyLammpsBlockInput("empty_thermostat")
 
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
-
-        atoms = supercell.copy()
-
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
-
-        write_lammps_data(self.workdir + self.atomsfname,
-                          atoms,
-                          atom_style=atom_style)
-
+# ========================================================================== #
+    def _get_block_run(self, eq):
+        etol, ftol = self.criterions
         if eq:
             nsteps = self.nsteps_eq
         else:
             nsteps = self.nsteps
 
-        self.write_lammps_input(atoms,
-                                atom_style,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                nsteps)
+        block = LammpsBlockInput("optimization", "Geometry optimization")
 
-        lammps_command = f"{self.cmd} -partition {self.nbeads}x1 -in " + \
-            f"{self.lammpsfname} -sc out.lmp"
-        lmp_handle = run(lammps_command,
-                         shell=True,
-                         cwd=self.workdir,
-                         stderr=PIPE)
-
-        if lmp_handle.returncode != 0:
-            msg = "LAMMPS stopped with the exit code \n" + \
-                  f"{lmp_handle.stderr.decode()}"
-            raise RuntimeError(msg)
-
-        if charges is not None:
-            init_charges = atoms.get_initial_charges()
-        fname = "configurations.out"
-        atoms = read(f"{self.workdir}{fname}")
-        if charges is not None:
-            atoms.set_initial_charges(init_charges)
-
-        return atoms.copy()
+        if self.pressure is not None:
+            txt = f"fix box all box/relax {self.ptype} " + \
+                  f"{self.pressure*10000} vmax {self.vmax}"
+            block("press", txt)
+        block("thermo", "thermo 1")
+        block("min_style", f"min_style {self.min_style}")
+        block("minimize", f"minimize {etol} {ftol} {nsteps} {2*nsteps}")
+        return block
 
 # ========================================================================== #
-    def write_lammps_input(self,
-                           atoms,
-                           atom_style,
-                           pair_style,
-                           pair_coeff,
-                           model_post,
-                           nsteps):
+    def log_recap_state(self):
         """
-        Write the LAMMPS input for the MD simulation
+        Function to return a string describing the state for the log
         """
-        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        pbc = atoms.get_pbc()
-
-        input_string = ""
-        input_string += get_general_input(pbc,
-                                          masses,
-                                          charges,
-                                          atom_style,
-                                          nbeads=self.nbeads,
-                                          ispimd=self.ispimd)
-        input_string += get_interaction_input(pair_style,
-                                              pair_coeff,
-                                              model_post)
-        if self.logfile is not None:
-            input_string += get_log_input(self.loginterval, self.logfile)
-        if self.trajfile is not None:
-            input_string += get_traj_input(self.loginterval,
-                                           self.trajfile,
-                                           elem)
-
-        input_string += get_last_dump_input(self.workdir,
-                                            elem,
-                                            1,
-                                            self.nbeads)
-
-        input_string += get_minimize_input(self.style,
-                                           self.criterions,
-                                           nsteps,
-                                           self.pressure,
-                                           self.ptype,
-                                           self.vmax)
-
-        with open(self.workdir + "lammps_input.in", "w") as f:
-            f.write(input_string)
+        msg = "Geometry optimization as implemented in LAMMPS\n"
+        msg += "\n"
+        return msg

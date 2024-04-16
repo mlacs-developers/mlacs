@@ -1,12 +1,3 @@
-import os
-from ase.build import bulk
-
-from mlacs.calc import AbinitManager
-from mlacs.mlip import MliapDescriptor, LinearPotential, MbarManager
-from mlacs.state import LammpsState
-from mlacs import OtfMlacs
-
-
 """
 Example of a MLACS simulation of a 2x2x2 supercell of Cu
 The true potential is calculed using Abinit with 4 processors
@@ -26,6 +17,13 @@ To run this example, you need to have :
 OpenMP thread can be used by setting the variable OMP_NUM_THREADS
 in your environment before calling this python script.
 """
+from ase.build import bulk
+
+from mlacs.calc import AbinitManager
+from mlacs.mlip import MliapDescriptor, LinearPotential, MbarManager
+from mlacs.state import LammpsState
+from mlacs import OtfMlacs
+
 
 # The 2x2x2 supercell of Cu
 cell_size = 2
@@ -40,7 +38,7 @@ neq = 5
 cell_size = 2
 rcut = 4.2  # ang
 dt = 0.25  # fs
-friction = 0.01
+damp = 100 * dt
 mlip_params = {"twojmax": 4}
 
 # Abinit Manager  ----------------------------------------------------------
@@ -62,9 +60,6 @@ variables = dict(
     nsym=1)
 
 pseudos = {"Cu": "Cu.psp8"}
-lmp_exe = 'lmp_serial'
-os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
-
 
 # Creation of the Abinit Calc Manager
 calc = AbinitManager(parameters=variables,
@@ -75,8 +70,6 @@ calc = AbinitManager(parameters=variables,
                      errfile="abinit.err",
                      nproc=nproc)
 
-calc.ncfile = None  # Small hack to fix an error
-
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 # Creation of the MLIP Manager
 snap_descriptor = MliapDescriptor(atoms=atoms,
@@ -86,16 +79,10 @@ snap_descriptor = MliapDescriptor(atoms=atoms,
                                   style="snap",
                                   alpha="1.0")
 
-mbar_params = dict(mode="train", solver="L-BFGS-B")
-mbar_manager = MbarManager(parameters=mbar_params, folder="Mliap")
+mbar = MbarManager()
 
 mlip = LinearPotential(descriptor=snap_descriptor,
-                       nthrow=0,
-                       parameters={},
-                       energy_coefficient=1.0,
-                       forces_coefficient=1.0,
-                       stress_coefficient=1.0,
-                       mbar=mbar_manager)
+                       weight=mbar)
 
 # Creation of the State Manager
 nsim = 5
@@ -104,6 +91,8 @@ prefix = []
 for i in range(nsim):
     prefix.append("Traj{j}".format(j=len(prefix)+1))
     state.append(LammpsState(temperature=temp,
+                             dt=dt,
+                             damp=damp,
                              nsteps=nsteps,
                              nsteps_eq=nsteps_eq))
 

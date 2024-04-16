@@ -10,6 +10,8 @@ from ase.io.lammpsdata import write_lammps_data
 
 from ..utilities import get_elements_Z_and_masses
 
+from ase.io import read
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -105,6 +107,10 @@ class ThermoState:
         self.write_lammps_equilibrate_input(wdir)
 
         call(lammps_command, shell=True, cwd=wdir)
+
+        last_dump_atoms = read(wdir + 'dump_averaging')
+        equlibrated_structure = last_dump_atoms
+        return equlibrated_structure
 
 # ========================================================================== #
     def run_dynamics(self, wdir):

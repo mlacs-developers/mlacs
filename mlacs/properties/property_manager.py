@@ -3,7 +3,7 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
-import os
+from pathlib import Path
 
 
 # ========================================================================== #
@@ -13,22 +13,23 @@ class PropertyManager:
     Parent Class managing the calculation of differents properties
     """
     def __init__(self,
-                 prop):
+                 prop,
+                 workdir=None):
 
-        self.workdir = os.getcwd() + "/Properties/"
+        if workdir is None:
+            workdir = "Properties"
+        self.workdir = Path(workdir).absolute()
         if prop is None:
             self.check = [False]
             self.manager = None
         elif isinstance(prop, list):
             self.manager = prop
             self.check = [False for _ in range(len(prop))]
-            if not os.path.exists(self.workdir):
-                os.makedirs(self.workdir)
+            self.workdir.mkdir(exist_ok=True, parents=True)
         else:
             self.manager = [prop]
             self.check = [False]
-            if not os.path.exists(self.workdir):
-                os.makedirs(self.workdir)
+            self.workdir.mkdir(exist_ok=True, parents=True)
 
 # ========================================================================== #
     @property
@@ -50,8 +51,8 @@ class PropertyManager:
         for prop in self.manager:
             if step % prop.freq == 0:
                 dircheck = True
-        if not os.path.exists(wdir) and dircheck:
-            os.makedirs(wdir)
+        if dircheck:
+            wdir.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, prop in enumerate(self.manager):
             if step % prop.freq == 0:

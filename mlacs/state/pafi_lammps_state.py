@@ -1,52 +1,31 @@
-import os
-from subprocess import run, PIPE
 from concurrent.futures import ThreadPoolExecutor
 
+import copy
 import numpy as np
 
 from ase.units import kB, J, kg, m
-from ase.io import read
 
 from .lammps_state import LammpsState
-from .neb_lammps_state import NebLammpsState
 
 from ..utilities import get_elements_Z_and_masses
-
-from ..utilities.io_lammps import (get_general_input,
-                                   get_log_input,
-                                   get_traj_input,
-                                   get_interaction_input,
-                                   get_last_dump_input,
-                                   get_pafi_input,
-                                   get_pafi_log_input)
-
-from ..utilities import integrate_points as IntP
+from ..utilities import integrate_points as intgpts
+from ..utilities.io_lammps import LammpsBlockInput
 
 
 # ========================================================================== #
 # ========================================================================== #
-class PafiLammpsState(LammpsState, NebLammpsState):
+class PafiLammpsState(LammpsState):
     """
-    Class to manage constrained MD along a NEB reaction coordinate using
-    the fix Pafi with LAMMPS.
+    Class to manage constrained MD along a reaction path using the fix Pafi
+    with LAMMPS.
 
     Parameters
     ----------
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
 
-    configurations: :class:`list`
-        List of ase.Atoms object, the list contain initial and final
-        configurations of the reaction path.
-
-    reaction_coordinate: :class:`numpy.array` or `float`
-        Value of the reaction coordinate for the constrained MD.
-        if ``None``, automatic search of the saddle point.
-        Default ``None``
-
-    Kspring: :class:`float`
-        Spring constante for the NEB calculation.
-        Default ``1.0``
+    path: :class:`NebLammpsState`
+        NebLammpsState object contain all informations on the transition path.
 
     maxjump: :class:`float`
         Maximum atomic jump authorized for the free energy calculations.
@@ -68,11 +47,7 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         If ``True``, a Langevin thermostat is used.
         Else, a Brownian dynamic is used.
         Default ``True``
-    linearmode: :class:`Bool`
-        If ``True``, the reaction coordinate function is contructed using
-        a linear interpolation of the true 3N coordinates.
-        Else, the reaction coordinate function is determined using NEB.
-        Default ``False``
+
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
 
@@ -97,71 +72,44 @@ class PafiLammpsState(LammpsState, NebLammpsState):
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> initial = read('A.traj')
+    >>> final = read('B.traj')
+    >>>
+    >>> from mlacs.state import PafiLammpsState, NebLammpsState
+    >>> neb = NebLammpsState([initial, final])
+    >>> state = PafiLammpsState(temperature=300, path=neb)
+    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
-    def __init__(self,
-                 temperature,
-                 configurations,
-                 reaction_coordinate=None,
-                 Kspring=1.0,
-                 maxjump=0.4,
-                 dt=1.5,
-                 damp=None,
-                 nsteps=1000,
-                 nsteps_eq=100,
-                 langevin=True,
-                 linearmode=False,
-                 fixcm=True,
-                 logfile=None,
-                 trajfile=None,
-                 interval=49,
-                 loginterval=50,
-                 trajinterval=50,
-                 rng=None,
-                 init_momenta=None,
-                 prt=True,
-                 workdir=None):
-        LammpsState.__init__(self,
-                             dt,
-                             nsteps,
-                             nsteps_eq,
-                             fixcm,
-                             logfile,
-                             trajfile,
-                             interval,
-                             loginterval,
-                             trajinterval,
-                             rng,
-                             init_momenta,
-                             workdir)
-        NebLammpsState.__init__(self,
-                                configurations,
-                                reaction_coordinate=None,
-                                Kspring=1.0,
-                                dt=dt)
+
+    def __init__(self, temperature, path=None, maxjump=0.4, dt=1.5, damp=None,
+                 prt=False, langevin=True,
+                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
+                 loginterval=50, workdir=None, blocks=None):
+        super().__init__(temperature=temperature, dt=dt, damp=damp,
+                         langevin=langevin,
+                         nsteps=nsteps, nsteps_eq=nsteps_eq, logfile=logfile,
+                         trajfile=trajfile, loginterval=loginterval,
+                         workdir=workdir, blocks=blocks)
 
         self.temperature = temperature
-        self.nsteps = nsteps
-        self.nsteps_eq = nsteps_eq
-        self.NEBcoord = reaction_coordinate
-        self.finder = None
-        self.xilinear = linearmode
-        if self.NEBcoord is None:
-            self.splprec = 1001
-            self.finder = []
+        self.path = path
+        if path is None:
+            raise TypeError('A NebLammpsState must be given!')
+        self.path.print = prt
+        if self.path.xi is None:
+            self.path.mode = None
+        else:
+            self.path.mode = self.path.xi
+        self.path.workdir = self.workdir / 'TransPath'
         self.print = prt
-        self.Kspring = Kspring
         self.maxjump = maxjump
-        self.dt = dt
-        self.damp = damp
-        self.langevin = langevin
-        self.confNEB = configurations
-        if len(self.confNEB) != 2:
-            raise TypeError('First and last configurations are not defined')
-        self._get_lammps_command_replica()
 
-        self.ispimd = False
-        self.isrestart = False
-        self.isappend = False
+        self.replica = None
 
 # ========================================================================== #
     def run_dynamics(self,
@@ -176,202 +124,187 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         Run state function.
         """
 
-        self.run_NEB(pair_style,
-                     pair_coeff,
-                     model_post,
-                     atom_style,
-                     workdir)
-        self.extract_NEB_configurations()
-        self.compute_spline()
+        # Run NEB calculation.
+        self.path.run_dynamics(self.path.atoms[0],
+                               pair_style,
+                               pair_coeff,
+                               model_post,
+                               atom_style)
+        self.path.extract_NEB_configurations()
+        self.path.compute_spline()
+        supercell = self.path.spline_atoms[0].copy()
         self.isrestart = False
-        atoms = self.run_hpdynamics(supercell,
-                                    pair_style,
-                                    pair_coeff,
-                                    model_post,
-                                    atom_style,
-                                    eq)
-        return atoms.copy()
 
-# ========================================================================== #
-    def run_hpdynamics(self,
-                       supercell,
-                       pair_style,
-                       pair_coeff,
-                       model_post=None,
-                       atom_style="atomic",
-                       eq=False,
-                       rep=None):
-        """
-        Function to run the PAFI dynamics
-        """
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
-
-        if atom_style is None:
-            atom_style = "atomic"
-
-        atoms = supercell.copy()
-
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
-
-        if eq:
-            nsteps = self.nsteps_eq
-        else:
-            nsteps = self.nsteps
-
-        if rep is None:
-            fname = self.workdir + self.lammpsfname
-            atfname = self.workdir + self.atomsfname
-            spatoms = self.spline_atoms[0]
-            spcoord = self.spline_coordinates[0]
-        else:
-            fname = self.MFEPworkdir + self.lammpsfname + f'.{rep}'
-            atfname = self.MFEPworkdir + self.atomsfname + f'.{rep}'
-            spatoms = atoms
-            spcoord = self.spline_coordinates[rep]
-
-        self._write_PafiPath_atoms(atfname,
-                                   spatoms,
-                                   spcoord)
-        self.write_lammps_input_pafi(atoms,
-                                     atom_style,
-                                     pair_style,
-                                     pair_coeff,
-                                     model_post,
-                                     nsteps,
-                                     fname,
-                                     atfname,
-                                     rep)
-
-        lammps_command = self.cmd + " -in " + fname + \
-            " -sc out.lmp"
-        cwd = self.workdir
-        if rep is not None:
-            lammps_command += f'.{rep}'
-            cwd = self.MFEPworkdir
-        lmp_handle = run(lammps_command,
-                         shell=True,
-                         cwd=cwd,
-                         stderr=PIPE)
-
-        if lmp_handle.returncode != 0:
-            msg = "LAMMPS stopped with the exit code \n" + \
-                  f"{lmp_handle.stderr.decode()}"
-            raise RuntimeError(msg)
-
-        if charges is not None:
-            init_charges = atoms.get_initial_charges()
-        atoms = read(self.workdir + "configurations.out")
-        if charges is not None:
-            atoms.set_initial_charges(init_charges)
+        # Run Pafi dynamic at xi.
+        atoms = LammpsState.run_dynamics(self,
+                                         supercell,
+                                         pair_style,
+                                         pair_coeff,
+                                         model_post,
+                                         atom_style,
+                                         eq)
 
         return atoms.copy()
 
 # ========================================================================== #
-    def run_MFEP(self,
-                 pair_style,
-                 pair_coeff,
-                 model_post=None,
-                 atom_style="atomic",
-                 workdir=None,
-                 ncpus=1,
-                 restart=0,
-                 xi=None,
-                 nsteps=10000,
-                 interval=10,
-                 nthrow=2000):
+    def run_pafipath_dynamics(self,
+                              supercell,
+                              pair_style,
+                              pair_coeff,
+                              model_post=None,
+                              atom_style="atomic",
+                              workdir=None,
+                              ncpus=1,
+                              restart=0,
+                              xi=None,
+                              nsteps=10000,
+                              nthrow=2000):
         """
-        Run a MFEP calculation with lammps. Use replicas.
+        Run full Pafi path.
         """
-        self.nsteps = nsteps
-        if workdir is not None:
-            self.workdir = workdir
-        self.MFEPworkdir = self.workdir + "MFEP/"
-        if not os.path.exists(self.MFEPworkdir):
-            os.makedirs(self.MFEPworkdir)
+
+        if workdir is None:
+            workdir = self.workdir
         if xi is None:
             xi = np.arange(0, 1.01, 0.01)
-        self.run_NEB(pair_style,
-                     pair_coeff,
-                     model_post,
-                     atom_style,
-                     workdir)
-        self.extract_NEB_configurations()
-        self.compute_spline(xi)
-        nrep = len(self.spline_atoms)
+        nrep = len(xi)
+
+        afname = self.atomsfname
+        lfname = self.lammpsfname
+
+        # Run NEB calculation.
+        self.path.run_dynamics(self.path.atoms[0],
+                               pair_style,
+                               pair_coeff,
+                               model_post,
+                               atom_style)
+        self.path.extract_NEB_configurations()
+        self.path.compute_spline(xi)
+        self.isrestart = False
+
+        # Run Pafi dynamics.
         with ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
-                atoms = self.spline_atoms[rep].copy()
+                worker = copy.deepcopy(self)
+                worker.replica = rep
+                worker.atomsfname = afname + f'.{rep}'
+                worker.lammpsfname = lfname + f'.{rep}'
+                worker.workdir = workdir / f'PafiPath_{rep}'
+                atoms = self.path.spline_atoms[rep].copy()
                 atoms.set_pbc([1, 1, 1])
-                executor.submit(self.run_hpdynamics,
-                                *(atoms,
-                                  pair_style,
-                                  pair_coeff,
-                                  model_post,
-                                  atom_style,
-                                  False,
-                                  rep))
-        F = self.log_free_energy(xi,
-                                 self.MFEPworkdir,
-                                 nthrow)
-        return F
+                executor.submit(LammpsState.run_dynamics,
+                                *(worker, atoms, pair_style, pair_coeff,
+                                  model_post, atom_style, False))
+
+        # Reset some attributes.
+        self.replica = None
+        self.workdir = workdir
+        self.atomsfname = afname
+        self.lammpsfname = lfname
+        return self.log_free_energy(xi, workdir, nthrow)
 
 # ========================================================================== #
-    def write_lammps_input_pafi(self,
-                                atoms,
-                                atom_style,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                nsteps,
-                                fname,
-                                atfname,
-                                rep=None):
+    def _write_lammps_atoms(self, atoms, atom_style):
         """
-        Write the LAMMPS input for the constrained MD simulation
-        """
-        elem, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        pbc = atoms.get_pbc()
 
-        custom = "atom_modify  map array sort 0 0.0\n"
-        custom += "neigh_modify every 2 delay 10" + \
-                  " check yes page 1000000 one 100000\n\n"
-        custom += "fix 1 all property/atom d_nx d_ny d_nz" + \
-                  " d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-        filename = atfname + " fix 1 NULL PafiPath"
-        input_string = ""
-        input_string += get_general_input(pbc,
-                                          masses,
-                                          charges,
-                                          atom_style,
-                                          None,
-                                          filename,
-                                          custom)
-        input_string += get_interaction_input(pair_style,
-                                              pair_coeff,
-                                              model_post)
-        input_string += get_pafi_input(self.dt / 1000,
-                                       self.temperature,
-                                       self.rng.integers(99999),
-                                       self.damp,
-                                       self.langevin)
-        if self.logfile is not None:
-            input_string += get_log_input(self.loginterval, self.logfile)
-        if self.trajfile is not None:
-            input_string += get_traj_input(self.loginterval,
-                                           self.trajfile,
-                                           elem)
+        """
+        rep = self.replica
+        afnames = self.workdir / self.atomsfname
+
         if rep is None:
-            rep = 0
-        input_string += get_pafi_log_input(rep,
-                                           self.isappend)
-        input_string += get_last_dump_input(self.workdir,
-                                            elem,
-                                            nsteps)
-        input_string += f"run  {nsteps}"
+            splatoms = self.path.spline_atoms[0]
+            splcoord = self.path.spline_coordinates[0]
+        else:
+            splatoms = self.path.spline_atoms[rep]
+            splcoord = self.path.spline_coordinates[rep]
 
-        with open(fname, "w") as f:
-            f.write(input_string)
+        self._write_PafiPath_atoms(afnames, splatoms, splcoord)
+
+# ========================================================================== #
+    def _get_block_init(self, atoms, atom_style):
+        """
+
+        """
+        pbc = atoms.get_pbc()
+        pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+
+        block = LammpsBlockInput("init", "Initialization")
+        block("units", "units metal")
+        block("boundary", f"boundary {pbc}")
+        block("atom_style", f"atom_style {atom_style}")
+        block("atom_modify", "atom_modify  map array sort 0 0.0")
+        txt = "neigh_modify every 2 delay 10" + \
+              " check yes page 1000000 one 100000"
+        block("neigh_modify", txt)
+        txt = "fix pat all property/atom d_nx d_ny d_nz" + \
+              " d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz"
+        block("property_atoms", txt)
+        txt = f"read_data {self.atomsfname} fix pat NULL PafiPath"
+        block("read_data", txt)
+        for i, mass in enumerate(masses):
+            block(f"mass{i}", f"mass {i+1}  {mass}")
+        return block
+
+# ========================================================================== #
+    def _get_block_thermostat(self, eq):
+        """
+
+        """
+        temp = self.temperature
+        seed = self.rng.integers(1, 9999999)
+
+        block = LammpsBlockInput("pafi", "Pafi dynamic")
+
+        block("timestep", f"timestep {self.dt / 1000}")
+        block("thermo", "thermo 1")
+        block("min_style", "min_style fire")  # RB test if we can modify
+        txt = "compute cpat all property/atom d_nx d_ny d_nz " + \
+              "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz"
+        block("c_pat", txt)
+        block("run_compute", "run 0")
+
+        # RB
+        # If we are using Langevin, we want to remove the random part
+        # of the forces. RB don't know if i have to do it.
+        # if self.langevin:
+        #     block("rmv_langevin", "fix ff all store/force")
+
+        if self.langevin:
+            txt = f"fix pafi all pafi cpat {temp} {self.damp} {seed} " + \
+                  "overdamped no com yes"
+            block("langevin", txt)
+        else:
+            txt = f"fix pafi all pafi cpat {temp} {self.damp} {seed} " + \
+                  "overdamped yes com yes"
+            block("brownian", txt)
+        block("run_fix", "run 0")
+        block("minimize", "minimize 0 0 250 250")
+        block("reset_timestep", "reset_timestep 0")
+        return block
+
+# ========================================================================== #
+    def _get_block_custom(self):
+        """
+
+        """
+        _rep = self.replica
+        if self.replica is None:
+            _rep = 0
+
+        block = LammpsBlockInput("pafilog", "Pafi log files")
+        block("v_dU", "variable dU equal f_pafi[1]")
+        block("v_dUe", "variable dUerr equal f_pafi[2]")
+        block("v_psi", "variable psi equal f_pafi[3]")
+        block("v_err", "variable err equal f_pafi[4]")
+        block("c_disp", "compute disp all displace/atom")
+        block("c_maxdisp", "compute maxdisp all reduce max c_disp[4]")
+        block("v_maxjump", "variable maxjump equal sqrt(c_maxdisp)")
+        txt = 'fix pafilog all print 1 ' + \
+              '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" file ' + \
+              f'pafi.log.{_rep} title "# dU/dxi (dU/dxi)^2 psi err maxjump"'
+        block("pafilog", txt)
+        return block
 
 # ========================================================================== #
     def _write_PafiPath_atoms(self, filename, atoms, spline):
@@ -416,10 +349,14 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         Extract the MFEP gradient from log files.
         Integrate the MFEP and compute the Free energy barier.
         """
+        if workdir is None:
+            workdir = self.workdir
+        temp = self.temperature
+        meff = self.path.eff_masses
 
         self.pafi = []
         for rep in range(len(xi)):
-            logfile = workdir + f'pafi.log.{rep}'
+            logfile = workdir / f'PafiPath_{rep}' / f'pafi.log.{rep}'
             data = np.loadtxt(logfile).T[:, nthrow:].tolist()
             self.pafi.append(data)
         self.pafi = np.array(self.pafi)
@@ -448,35 +385,26 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         cor = np.array(cor)
         psi = np.array(psi)
         maxjump = np.array(maxjump)
-        F = -np.array(IntP(xi, dF, xi))
+        F = -np.array(intgpts(xi, dF, xi))
         int_xi = np.linspace(xi[0], xi[F.argmax()], len(xi)//2)
-        v = np.array(IntP(xi, np.exp(- F / kB * self.temperature), int_xi))
-        vo = np.sqrt((kB * self.temperature * J) /
-                     (2 * np.pi * self.eff_masses * kg)) / (v[-1] * m)
-        Fcor = -np.array(IntP(xi, dF + kB * self.temperature * cor, xi))
-        dFM = max(F) - min(F)
-        # Ipsi = np.array(IntP(xi, psi, xi))
-        if self.print:
-            with open(self.workdir + 'free_energy.dat', 'w') as w:
-                w.write(f'##  Free energy barier: {dFM} eV | ' +
-                        f'frequency: {vo} s-1 | ' +
-                        f'effective mass: {self.eff_masses} uma\n' +
-                        '##  xi  <dF/dxi>  <F(xi)>  <psi>  ' +
-                        'cor  Fcor(xi) v(xi) NUsedConf ##\n')
-                strformat = ('{:18.10f} ' * 6) + ' {} {}\n'
-                for i in range(len(xi)):
-                    _v = v[-1]
-                    if i < len(v):
-                        _v = v[i]
-                    w.write(strformat.format(xi[i],
-                                             dF[i],
-                                             F[i],
-                                             psi[i],
-                                             kB * self.temperature * cor[i],
-                                             Fcor[i],
-                                             _v,
-                                             ntot - len(maxjump[i])))
-        return dFM, vo, self.eff_masses
+        v = np.array(intgpts(xi, np.exp(- F / kB * temp), int_xi))
+        vo = np.sqrt((kB * temp * J) / (2 * np.pi * meff * kg)) / (v[-1] * m)
+        Fcor = -np.array(intgpts(xi, dF + kB * temp * cor, xi))
+        # Ipsi = np.array(intgpts(xi, psi, xi))
+        txt = f'##  Max free energy: {max(F)} eV | frequency: {vo} s-1 | ' + \
+              f'effective mass: {meff} uma\n' + \
+              '##  xi <dF/dxi> <F(xi)> <psi> cor Fcor(xi) v(xi) NConf ##\n'
+        with open(self.workdir / 'free_energy.dat', 'w') as w:
+            w.write(txt)
+            strformat = ('{:18.10f} ' * 6) + ' {} {}\n'
+            for i in range(len(xi)):
+                _v = v[-1]
+                if i < len(v):
+                    _v = v[i]
+                w.write(strformat.format(xi[i], dF[i], F[i], psi[i],
+                                         kB * temp * cor[i], Fcor[i], _v,
+                                         ntot - len(maxjump[i])))
+        return np.r_[[F, Fcor, _v]]
 
 # ========================================================================== #
     def log_recap_state(self):
@@ -485,27 +413,24 @@ class PafiLammpsState(LammpsState, NebLammpsState):
         """
         damp = self.damp
         if damp is None:
-            damp = 100 * self.dt
-        coord = self.NEBcoord
+            damp = 10 * self.dt
+        xi = self.path.xi
 
-        msg = "NEB calculation as implemented in LAMMPS\n"
-        msg += f"Number of replicas :                     {self.nreplica}\n"
-        msg += f"String constant :                        {self.Kspring}\n"
-        msg += "\n"
-        msg += "Constrain dynamics as implemented in LAMMPS with fix PAFI\n"
+        msg = self.path.log_recap_state()
+        msg += "Constrained dynamics as implemented in LAMMPS with fix PAFI\n"
         msg += f"Temperature (in Kelvin) :                {self.temperature}\n"
         msg += f"Number of MLMD equilibration steps :     {self.nsteps_eq}\n"
         msg += f"Number of MLMD production steps :        {self.nsteps}\n"
         msg += f"Timestep (in fs) :                       {self.dt}\n"
         msg += f"Themostat damping parameter (in fs) :    {damp}\n"
-        if isinstance(coord, float):
-            msg += f"Reaction coordinate :                    {coord}\n"
-        elif coord is None:
-            msg += "Reaction coordinate :                    Automatic\n"
+        if isinstance(xi, float):
+            msg += f"Path coordinate :                        {xi}\n"
+        elif xi is None:
+            msg += "Path coordinate :                        Automatic\n"
         else:
-            step = coord[1]-coord[0]
-            i, f = (coord[0], coord[-1])
-            msg += f"Reaction interval :                      [{i} : {f}]\n"
-            msg += f"Reaction step interval :                 {step}\n"
+            step = xi[1]-xi[0]
+            i, f = (xi[0], xi[-1])
+            msg += f"Path interval :                          [{i} : {f}]\n"
+            msg += f"Path step interval :                     {step}\n"
         msg += "\n"
         return msg

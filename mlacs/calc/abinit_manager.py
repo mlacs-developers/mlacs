@@ -25,7 +25,9 @@ from ..utilities.io_abinit import (AbinitNC,
 # ========================================================================== #
 class AbinitManager(CalcManager):
     """
-    Class to handle abinit calculators
+    This Calc class is an extended object for Abinit calculators.
+    The AbinitManager can handdle netCDF files, MPI processes and a better
+    pseudopotentials files management.
 
     Parameters
     ----------
@@ -66,6 +68,15 @@ class AbinitManager(CalcManager):
         Distributed equally over all submitted calculations
         And start MPI abinit calculation if more than 1 processor
 
+    Examples
+    --------
+
+    >>> from mlacs.calc import AbinitManager
+    >>> variables = dict(ixc=-1012, ecut=12, tsmear=0.001, occopt=3, nband=82,
+    >>>                  ngkpt=[2, 2, 2], shiftk=[0.5, 0.5, 0.5],
+    >>>                  autoparall=1, nsym=1) # Cu, 8 atoms.
+    >>> pseudos = {'Cu': "/path/to/pseudo/Cu.LDA_PW-JTH.xml"}
+    >>> calc = AbinitManager(parameters=variables, pseudos=pseudos)
     """
     def __init__(self,
                  parameters,
@@ -110,10 +121,11 @@ class AbinitManager(CalcManager):
                                state,
                                step):
         """
-        Create, execute and read the output of an Abinit calculation
+        Compute the energy of given configurations with Abinit.
         """
         # First we need to prepare every calculation
         confs = [at.copy() for at in confs]
+
         prefix = []
         for i, at in enumerate(confs):
             at.set_initial_magnetic_moments(self.magmoms)
@@ -124,16 +136,20 @@ class AbinitManager(CalcManager):
             prefix.append(stateprefix)
             self._write_input(at, stateprefix)
 
-        # Define the function to be called by every process.
         def submit_abinit_calc(cmd, logfile, errfile, cdir):
             with open(logfile, 'w') as lfile, \
                  open(errfile, 'w') as efile:
-                process = Popen(cmd,
-                                cwd=cdir,
-                                stderr=efile,
-                                stdout=lfile,
-                                shell=False)
-                process.wait()
+                try:
+                    process = Popen(cmd,
+                                    cwd=cdir,
+                                    stderr=efile,
+                                    stdout=lfile,
+                                    shell=False)
+                    process.wait()
+                except Exception as e:
+                    msg = f"This command {' '.join(cmd)}\n"
+                    msg += f"raised this exception {e}"
+                    efile.write(msg)
 
         # Calculate the number of processor assigned to each task
         # Divide them equally between each calculation.
@@ -157,6 +173,10 @@ class AbinitManager(CalcManager):
         results_confs = []
         for (stateprefix, at) in zip(prefix, confs):
             results_confs.append(self._read_output(stateprefix, at))
+
+        for i in range(len(results_confs)):
+            results_confs[i].info = confs[i].info
+
         # Tada !
         return results_confs
 

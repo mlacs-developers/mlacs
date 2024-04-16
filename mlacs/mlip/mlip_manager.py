@@ -2,34 +2,32 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+from pathlib import Path
 import numpy as np
+from abc import ABC, abstractmethod
+
 from ase.atoms import Atoms
 from ase.units import GPa
 
-from ..utilities import compute_correlation
+from ..utilities import compute_correlation, create_link
+from .weighting_policy import UniformWeight
 
 
 # ========================================================================== #
 # ========================================================================== #
-class MlipManager:
+class MlipManager(ABC):
     """
     Parent Class for the management of Machine-Learning Interatomic Potential
     """
     def __init__(self,
                  descriptor,
-                 nthrow=0,
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=1.0,
-                 mbar=None,
-                 no_zstress=False):
+                 weight=None,
+                 folder=Path("MLIP")):
+        if isinstance(folder, str):
+            folder = Path(folder)
+        self.folder = folder.absolute()
 
         self.descriptor = descriptor
-        self.mbar = mbar
-
-        self.ecoef = energy_coefficient
-        self.fcoef = forces_coefficient
-        self.scoef = stress_coefficient
 
         self.amat_e = None
         self.amat_f = None
@@ -39,18 +37,23 @@ class MlipManager:
         self.ymat_f = None
         self.ymat_s = None
 
-        self.no_zstress = no_zstress
+        self.natoms = []
 
-        self.nthrow = nthrow
-        if self.mbar is not None:
-            self.nthrow = 0
+        self.fit_res = None
+
+        self.weight = weight
+        if self.weight is None:
+            self.weight = UniformWeight()
         self.nconfs = 0
 
         # Some initialization for sampling interface
-        self.pair_style = None
-        self.pair_coeff = None
         self.model_post = None
         self.atom_style = "atomic"
+
+        self.pair_style = self._get_pair_style()
+        self.pair_coeff = self._get_pair_coeff()
+
+        self.can_use_weight = False
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -58,9 +61,10 @@ class MlipManager:
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
-        if self.mbar is not None:
-            self.mbar.update_database(atoms)
-        amat_all = self.descriptor.calculate(atoms)
+        self.weight.update_database(atoms)
+
+        amat_all = self.descriptor.calculate(atoms, subfolder=self.folder)
+
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
         for at in atoms:
@@ -74,7 +78,6 @@ class MlipManager:
                 self.amat_e = amat["desc_e"]
                 self.amat_f = amat["desc_f"]
                 self.amat_s = amat["desc_s"]
-
             else:
                 self.amat_e = np.r_[self.amat_e, amat["desc_e"]]
                 self.amat_f = np.r_[self.amat_f, amat["desc_f"]]
@@ -93,10 +96,77 @@ class MlipManager:
         self.nconfs += len(atoms)
 
 # ========================================================================== #
+    @abstractmethod
     def train_mlip(self):
         """
         """
         raise NotImplementedError
+
+# ========================================================================== #
+    @abstractmethod
+    def predict(self, atoms, coef=None):
+        """
+        Function that gives the e, f, s
+        """
+        raise NotImplementedError
+
+# ========================================================================== #
+    def read_parent_mlip(self, traj):
+        """
+        Get a list of all the mlip that have generated a conf in traj
+        and get the coefficients of all these mlip
+        """
+        parent_mlip = []
+        mlip_coef = []
+        desc_name = self.descriptor.desc_name
+
+        # Check that this simulation and the previous one use the same mlip
+        fn_descriptor = self.folder / f"{desc_name}.descriptor"
+        with open(fn_descriptor, "r") as f:
+            lines = f.read()
+
+        if not lines == self.descriptor.get_mlip_params():
+            err = "The MLIP.descriptor from {fn_descriptor} seems different "
+            err += "to the one you have in this simulation. If you want a "
+            err += "new mlip: Rerun MLACS with DatabaseCalculator and "
+            err += "OtfMlacs.keep_tmp_files=True on your traj"
+            raise ValueError(err)
+
+        # Make the MBAR variable Nk and mlip_coef
+        for state in traj:
+            for conf in state:
+                if "parent_mlip" not in conf.info:  # Initial or training
+                    continue
+                else:  # A traj
+                    model = conf.info['parent_mlip']
+                    if not Path(model).exists:
+                        err = "Some parent MLIP are missing. "
+                        err += "Rerun MLACS with DatabaseCalculator and "
+                        err += "OtfMlacs.keep_tmp_files=True on your traj"
+                        raise FileNotFoundError(err)
+                    if model not in parent_mlip:  # New state
+                        parent_mlip.append(model)
+                        coef = self.descriptor.read_mlip(subfolder=model)
+                        mlip_coef.append(coef)
+        return parent_mlip, np.array(mlip_coef)
+
+# ========================================================================== #
+    def next_coefs(self, mlip_coef, mlip_subfolder):
+        """
+        Update MLACS just like train_mlip, but without actually computing
+        the coefficients
+        """
+        sf = self.folder/mlip_subfolder
+        self.coefficients = mlip_coef
+        idx_e, idx_f, idx_s = self._get_idx_fit()
+
+        mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
+        _, weight_fn = self.weight.compute_weight(mlip_coef,
+                                                  self.predict,
+                                                  subfolder=sf)
+        desc_name = self.descriptor.desc_name
+        create_link(sf/weight_fn, self.folder/"MLIP.weight")
+        create_link(sf/mlip_fn, self.folder/f"{desc_name}.model")
 
 # ========================================================================== #
     def test_mlip(self, testset):
@@ -179,15 +249,18 @@ class MlipManager:
     def _get_idx_fit(self):
         """
         """
-        if self.nconfs < self.nthrow:
-            idx_e = idx_f = idx_s = 0
-        elif self.nconfs >= self.nthrow and self.nconfs < 2 * self.nthrow:
-            idx_e = self.nconfs - self.nthrow
-        else:
-            idx_e = self.nthrow
+        idx_e = 0
         idx_f = 3 * self.natoms[:idx_e].sum()
         idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
+
+# ========================================================================== #
+    def _get_pair_style(self):
+        return self.descriptor.get_pair_style(self.folder)
+
+# ========================================================================== #
+    def _get_pair_coeff(self):
+        return self.descriptor.get_pair_coeff(self.folder)
 
 
 # ========================================================================== #
@@ -199,13 +272,9 @@ class SelfMlipManager(MlipManager):
     """
     def __init__(self,
                  descriptor,
-                 nthrow=10,
-                 energy_coefficient=1.0,
-                 forces_coefficient=1.0,
-                 stress_coefficient=0.0):
-        MlipManager.__init__(self, descriptor, nthrow,
-                             energy_coefficient, forces_coefficient,
-                             stress_coefficient)
+                 weight=None,
+                 folder=Path("MLIP").absolute()):
+        MlipManager.__init__(self, descriptor, weight=weight, folder=folder)
         self.configurations = []
         self.natoms = []
 
@@ -216,6 +285,7 @@ class SelfMlipManager(MlipManager):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         nat = np.array([len(at) for at in atoms], dtype=int)
+
         self.configurations.extend(atoms)
         self.natoms = np.append(self.natoms, nat)
         self.natoms = np.array(self.natoms, dtype=int)

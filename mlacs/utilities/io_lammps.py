@@ -1,4 +1,245 @@
+from pathlib import Path
+
+import numpy as np
+from ase.io import read
+from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.lammps import Prism, convert
+
+from .path_integral import hbar
+
+
+class LammpsInput:
+    """
+
+    """
+    def __init__(self, preambule=None):
+        if preambule is not None:
+            self.preambule = f"# {preambule}\n\n"
+        else:
+            self.preambule = ""
+        self.nvar = 0
+        self.vardict = dict()
+
+    def add_block(self, name, block, order=-1, before=None, after=None):
+        """
+
+        """
+        if before is not None and after is not None:
+            msg = "before and after can't be both set"
+            raise ValueError(msg)
+
+        if before is not None:
+            order = self.vardict[before]["order"]
+        elif after is not None:
+            order = self.vardict[after]["order"] + 1
+
+        if order < 0:
+            order = self.nvar + 1
+        else:
+            keys = []
+            values = []
+            for key, val in self.vardict.items():
+                keys.append(key)
+                values.append(val["order"])
+            keys = np.array(keys)
+            values = np.array(values)
+            argsort = np.argsort(values)
+            values = values[argsort]
+            keys = keys[argsort]
+            if order > np.max(values) or order not in values:
+                self.vardict["name"]["order"] = order
+            elif order in values:
+                values[values >= order] += 1
+                for i, (key, val) in enumerate(zip(keys, values)):
+                    self.vardict[key]["order"] = values[i]
+        self.vardict[name] = dict(order=order, block=block)
+        self.nvar += 1
+
+    def to_string(self):
+        """
+
+        """
+        keys = []
+        orders = []
+        blocks = []
+        for key, val in self.vardict.items():
+            keys.append(key)
+            orders.append(val["order"])
+            blocks.append(val["block"])
+
+        keys = np.array(keys)
+        orders = np.array(orders)
+        blocks = np.array(blocks)
+
+        argsort = np.argsort(orders)
+        blocks = blocks[argsort]
+
+        txt = self.preambule
+        txt += "\n\n".join(str(block) for block in blocks)
+        return txt
+
+    def pop(self, name):
+        return self.vardict.pop(name)
+
+    def __str__(self):
+        return self.to_string()
+
+    def __call__(self, name, block, order=-1):
+        self.add_block(name, block, order)
+
+
+class LammpsBlockInput:
+    """
+
+    """
+    def __init__(self, name, title=None):
+        self.name = name
+        self.vardict = dict()
+        self.nvar = 0
+        if title is not None:
+            title = title.strip()
+            nchar = len(title)
+            self.title = "#" * (12 + nchar) + "\n"
+            self.title += title.center(nchar + 10, " ").center(nchar + 12, "#")
+            self.title += "\n"
+            self.title += "#" * (12 + nchar) + "\n"
+        else:
+            self.title = "\n"
+
+    def add_variable(self, name, line, order=-1, before=None, after=None):
+        """
+
+        """
+        if before is not None and after is not None:
+            msg = "before and after can't be both set"
+            raise ValueError(msg)
+
+        if before is not None:
+            order = self.vardict[before]["order"]
+        elif after is not None:
+            order = self.vardict[after]["order"] + 1
+
+        if order < 0:
+            order = self.nvar + 1
+        else:
+            keys = []
+            values = []
+            for key, val in self.vardict.items():
+                keys.append(key)
+                values.append(val["order"])
+            keys = np.array(keys)
+            values = np.array(values)
+            argsort = np.argsort(values)
+            values = values[argsort]
+            keys = keys[argsort]
+            if order in values:
+                values[values >= order] += 1
+                for i, (key, val) in enumerate(zip(keys, values)):
+                    self.vardict[key]["order"] = values[i]
+        self.vardict[name] = dict(order=order, line=line)
+        self.nvar += 1
+
+    def to_string(self):
+        """
+
+        """
+        keys = []
+        orders = []
+        lines = []
+        for key, val in self.vardict.items():
+            keys.append(key)
+            orders.append(val["order"])
+            lines.append(val["line"])
+
+        keys = np.array(keys)
+        orders = np.array(orders)
+        lines = np.array(lines)
+
+        argsort = np.argsort(orders)
+        line = lines[argsort]
+
+        txt = self.title
+        txt += "\n".join(line)
+        return txt
+
+    def pop(self, name):
+        return self.vardict.pop(name)
+
+    def extend(self, block):
+        for key, val in block.vardict.items():
+            self.__call__(key, val['line'])
+
+    def __str__(self):
+        return self.to_string()
+
+    def __repr__(self):
+        return f"LammbsBlockInput({self.name})"
+
+    def __call__(self, name, line, order=-1):
+        self.add_variable(name, line, order)
+
+
+class EmptyLammpsBlockInput(LammpsBlockInput):
+    """
+
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def to_string(self):
+        return ""
+
+
+# ========================================================================== #
+def get_block_rdf(nsteps, filename='spce-rdf.dat', rmax=None):
+    """
+    Function to compute and output the radial distribution function
+    """
+    # freq = int(nsteps/5)
+    block = LammpsBlockInput("RDF", "Compute RDF")
+    block("v_rep", f"variable repeat equal {nsteps}/2")
+    txt = "compute rdf all rdf ${repeat} 1 1"
+    if rmax is not None:
+        txt += ' cutoff {rmax}'
+    block("c_rdf", txt)
+    txt = "fix rdf all ave/time 1 ${repeat}" + \
+          f" {nsteps} c_rdf[*] file {filename} mode vector\n"
+    block("rdf", txt)
+    return block
+
+
+# ========================================================================== #
+def get_block_adf(nsteps, filename='spce-adf.dat'):
+    """
+    Function to compute and output the angle distribution function
+    """
+    # freq = int(nsteps/5)
+    block = LammpsBlockInput("ADF", "Compute ADF")
+    block("v_rep", "variable repeat equal 1")
+    block("c_adf", "compute adf all adf 360")
+    txt = "fix adf all ave/time 100 ${repeat}" + \
+          f" {nsteps} c_adf[*] file {filename} mode vector\n"
+    block("adf", txt)
+    return block
+
+
+# ========================================================================== #
+def get_block_diffusion(nsteps, filename='diffusion.dat'):
+    """
+    Function to compute and output the diffusion coefficient
+    """
+    # freq = int(nsteps/5)
+    block = LammpsBlockInput("MSD", "Compute MSD and diffusion coefficient")
+    block("v_t", "variable t equal step")
+    block("c_msd", "compute msd all msd")
+    block("v_msd", "variable msd equal c_msd[4]")
+    block("v_twopts", "variable twopoint equal c_msd[4]/6/(step*dt+1.0e-6)")
+    block("f_msd", "fix msd all vector 1000 c_msd[4]")
+    block("v_slope", "variable fislope equal slope(f_msd)/6/(10000*dt)")
+    txt = 'fix dcoeff all print 100 "${t} ${msd} ${twopoint} ${fitslope}"' + \
+          f' append {filename} title "# Step MSD D(start) D(slope)"'
+    block("diffusion", txt)
+    return block
 
 
 # ========================================================================== #
@@ -247,7 +488,7 @@ def get_interaction_input(pair_style,
 
 
 # ========================================================================== #
-def get_last_dump_input(workdir, elem, nsteps, nbeads=1, with_delay=True):
+def get_last_dump_input(elem, nsteps, nbeads=1, with_delay=True):
     """
     Function to write the dump of the last configuration of the mlmd
     """
@@ -294,30 +535,6 @@ def get_diffusion_input(msdfile):
 
 
 # ========================================================================== #
-def write_lammps_NEB_ASCIIfile(filename, supercell):
-    '''
-    Convert Ase Atoms into an ASCII file for lammps neb calculations.
-
-    Parameters
-    ----------
-    filename : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-
-    Return
-    ------
-       Final NEB configuration :class: `file`
-    '''
-    instr = '# Final coordinates of the NEB calculation.\n'
-    instr += '{0}\n'.format(len(supercell))
-    for atoms in supercell:
-        instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
-    with open(filename, "w") as w:
-        w.write(instr)
-
-
-# ========================================================================== #
 def get_rdf_input(rdffile, nsteps):
     """
     Function to compute and output the radial distribution function
@@ -338,7 +555,31 @@ def get_rdf_input(rdffile, nsteps):
 
 
 # ========================================================================== #
-def write_atoms_lammps_spin_style(fd, atoms, spin):
+def write_lammps_NEB_ASCIIfile(filename, supercell):
+    '''
+    Convert Ase Atoms into an ASCII file for lammps neb calculations.
+
+    Parameters
+    ----------
+    filename : :class:`str`
+        name of the output file
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+        ASE atoms objects to be rattled
+
+    Return
+    ------
+       Final NEB configuration :class:`file`
+    '''
+    instr = '# Final coordinates of the NEB calculation.\n'
+    instr += '{0}\n'.format(len(supercell))
+    for atoms in supercell:
+        instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
+    with open(filename, "w") as w:
+        w.write(instr)
+
+
+# ========================================================================== #
+def write_atoms_lammps_spin_style(fd, atoms, spin, velocities=True):
     """
     Function to write atoms in the LAMMPS spin style
     Loosely adapted from ASE write_lammpsdata function
@@ -372,7 +613,102 @@ def write_atoms_lammps_spin_style(fd, atoms, spin):
         s = species.index(symbols[i]) + 1
         line = f"{i+1:>6} {s:>3} "  # Index and species
         line += f"{r[0]:23.17f} {r[1]:23.17f} {r[2]:23.17f} "  # Positions
-        line += f"{spin[i, 0]:23.17f}"  # Spin amplitude
-        line += f"{spin[i, 1]:23.17f} {spin[i, 2]:23.17f} {spin[i, 3]:23.17f} "
+        norm = np.linalg.norm(spin[i])
+        if np.isclose(norm, 0, 1e-5):
+            norm = 0.0
+            sp = np.zeros(3)
+        else:
+            sp = spin[i] / norm
+        line += f"{sp[0]:23.17f} {sp[1]:23.17f} {sp[2]:23.17f} "
+        line += f"{norm} "
         line += "\n"
         fd.write(line)
+
+    if velocities and atoms.get_velocities() is not None:
+        fd.write("\n\nVelocities \n\n")
+        vel = prismobj.vector_to_lammps(atoms.get_velocities())
+        for i, v in enumerate(vel):
+            v = convert(v, "velocity", "ASE", "metal")
+            fd.write(
+                "{0:>6} {1:23.17g} {2:23.17g} {3:23.17g}\n".format(
+                    *(i + 1,) + tuple(v)
+                )
+            )
+
+    fd.flush()
+
+
+def reconstruct_mlmd_trajectory(trajfile, logfile):
+    """
+    Function to reconstruct a trajectory from LAMMPS
+    Note that this function is made specifically for
+    trajectory launched with MLACS, and won't work
+    for general LAMMPS trajectories.
+
+    Parameters
+    ----------
+    trajfile: Path or str
+        The file for the trajectory
+    logfile: Path or str
+        The file for the log
+    return
+    ------
+        Traj: list of ase.Atoms object
+    """
+    trajfile = Path(trajfile)
+    logfile = Path(logfile)
+
+    isspin = False
+
+    # First we get the index of the quantities we want
+    with open(logfile, "r") as fd:
+        line = np.array(fd.readline().split())
+        assert line[0] == "#"
+
+        idx_epot = np.where(line == "Epot")[0][0] - 1
+
+        if "Magn_x" in line:
+            isspin = True
+            idx_emagn = np.where(line == "Espin")
+
+    trajconf = read(trajfile, ":")
+    log = np.loadtxt(logfile)[:-1]  # the -1 is due to the last dump
+    nconf = len(trajconf)
+    assert nconf == log.shape[0]
+
+    traj = []
+    for at, logat in zip(trajconf, log):
+        newat = at.copy()
+        epot = logat[idx_epot]
+        if isspin:
+            espin = logat[idx_emagn]
+
+            sp_n = newat.arrays.pop("c_spin[1]")
+            sp_x = newat.arrays.pop("c_spin[2]")
+            sp_y = newat.arrays.pop("c_spin[3]")
+            sp_z = newat.arrays.pop("c_spin[4]")
+            sp = np.c_[sp_x, sp_y, sp_z] * sp_n
+
+            fsp_x = newat.arrays.pop("c_spin[5]")
+            fsp_y = newat.arrays.pop("c_spin[6]")
+            fsp_z = newat.arrays.pop("c_spin[7]")
+            fsp = np.c_[fsp_x, fsp_y, fsp_z] * hbar / (2 * np.pi)
+
+            epot = epot + espin
+
+            newat.set_array("spins", sp)
+            newat.set_array("spin_forces", fsp)
+
+        try:
+            f_x = newat.arrays.pop("f_ff[1]")
+            f_y = newat.arrays.pop("f_ff[2]")
+            f_z = newat.arrays.pop("f_ff[3]")
+            forces = np.c_[f_x, f_y, f_z]
+        except KeyError:
+            forces = at.get_forces()
+
+        calc = SinglePointCalculator(newat, energy=epot, forces=forces,
+                                     stress=np.zeros(6))
+        newat.calc = calc
+        traj.append(newat)
+    return traj

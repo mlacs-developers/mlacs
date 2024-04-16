@@ -38,9 +38,9 @@ class ThermodynamicIntegration:
 
         # Construct the working directory to run the thermodynamic integrations
         if wdir is None:
-            self.workdir = os.getcwd() + "/ThermoInt/"
+            self.workdir = os.path.join(os.getcwd(), "ThermoInt/")
         elif wdir is not None:
-            self.workdir = wdir + "ThermoInt/"
+            self.workdir = os.path.join(wdir, "ThermoInt/")
         if not os.path.exists(self.workdir):
             os.makedirs(self.workdir)
 
@@ -76,17 +76,17 @@ class ThermodynamicIntegration:
                         executor.submit(self._run_one_state, istate, i)
                         msg = f"State {istate+1}/{self.nstate} " + \
                               f"instance_{i+1} launched\n"
-                        stateworkdir = self.workdir + \
-                            self.state[istate].get_workdir() + \
-                            f"for_back_{i+1}/"
+                        stateworkdir = os.path.join(self.workdir,
+                            self.state[istate].get_workdir(),
+                            f"for_back_{i+1}/")
                         msg += "Working directory for this instance " + \
                                f"of state : \n{stateworkdir}\n"
                         self.log.logger_log.info(msg)
                 elif self.ninstance == 1:
                     executor.submit(self._run_one_state, istate, i=1)
                     msg = f"State {istate+1}/{self.nstate} launched\n"
-                    stateworkdir = self.workdir + \
-                        self.state[istate].get_workdir()
+                    stateworkdir = os.path.join(self.workdir,
+                        self.state[istate].get_workdir())
                     msg += "Working directory for this state " + \
                            f": \n{stateworkdir}\n"
                     self.log.logger_log.info(msg)
@@ -102,9 +102,9 @@ class ThermodynamicIntegration:
         """
         ii = istate + 1
         if self.ninstance > 1:
-            stateworkdir = self.workdir + \
-                self.state[istate].get_workdir() + \
-                f"for_back_{i+1}/"
+            stateworkdir = os.path.join(self.workdir,
+                self.state[istate].get_workdir(),
+                f"for_back_{i+1}/")
             self.state[istate].run(stateworkdir)
             msg = f"State {ii} instance_{i+1} : Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
@@ -116,7 +116,7 @@ class ThermodynamicIntegration:
             msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
         elif self.ninstance == 1:
-            stateworkdir = self.workdir + self.state[istate].get_workdir()
+            stateworkdir = os.path.join(self.workdir, self.state[istate].get_workdir())
             self.state[istate].run(stateworkdir)
             msg = f"State {ii}: Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
@@ -146,7 +146,7 @@ class ThermodynamicIntegration:
         Error and average in free energy instances for one state
         Computed if ninstance > 1
         """
-        stateworkdir = self.workdir + self.state[istate].get_workdir()
+        stateworkdir = os.path.join(self.workdir, self.state[istate].get_workdir())
         fe = []
         for i in range(self.ninstance):
             # tmp_fe = np.loadtxt(stateworkdir +
@@ -176,6 +176,6 @@ class ThermodynamicIntegration:
         #                        f"for_back_{i+1}/"
         # elif self.ninstance == 1:
         for istate in range(self.nstate):
-            stateworkdir = self.workdir + \
-                           self.state[istate].get_workdir()
+            stateworkdir = os.path.join(self.workdir,
+                           self.state[istate].get_workdir())
         return stateworkdir

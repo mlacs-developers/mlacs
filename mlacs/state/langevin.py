@@ -74,20 +74,26 @@ class LangevinState(StateManager):
                  init_momenta=None):
 
         StateManager.__init__(self,
-                              dt,
-                              nsteps,
-                              nsteps_eq,
-                              fixcm,
-                              logfile,
-                              trajfile,
-                              loginterval)
-
+                              nsteps=nsteps,
+                              nsteps_eq=nsteps_eq,
+                              logfile=logfile,
+                              trajfile=trajfile,
+                              loginterval=loginterval)
+        self.pressure = None
+        self.dt = dt
+        self.fixcm = fixcm
         self.temperature = temperature
+        self.dt = dt
+        self.fixcm = fixcm
         self.friction = friction
         self.init_momenta = init_momenta
         self.rng = rng
         if self.rng is None:
             self.rng = np.random.default_rng()
+        self.pressure = None
+
+        self.info_dynamics = dict(ensemble="NVT",
+                                  temperature=self.temperature)
 
         self.ispimd = False
         self.isrestart = False
@@ -123,7 +129,6 @@ class LangevinState(StateManager):
                        friction=self.friction,
                        fixcm=self.fixcm,
                        rng=self.rng)
-
         if self.trajfile is not None:
             trajectory = Trajectory(self.trajfile, mode="a", atoms=atoms)
             dyn.attach(trajectory.write, interval=self.loginterval)
@@ -132,6 +137,7 @@ class LangevinState(StateManager):
             dyn.attach(MDLogger(dyn, atoms, self.logfile, stress=True),
                        interval=self.loginterval)
         dyn.run(nsteps)
+        dyn.atoms.info['info_state'] = self.info_dynamics
         return dyn.atoms
 
 # ========================================================================== #

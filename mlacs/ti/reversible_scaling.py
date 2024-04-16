@@ -253,7 +253,7 @@ class ReversibleScalingState(ThermoState):
         input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
         input_string += f"variable      tstart equal {self.t_start}\n"
         input_string += f"variable      tend  equal {self.t_end}\n"
-        input_string += f"timestep      {self.dt/ 1000}\n"
+        input_string += f"timestep      {self.dt / 1000}\n"
         input_string += "#####################################\n"
         input_string += "\n\n"
 

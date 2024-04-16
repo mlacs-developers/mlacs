@@ -2,32 +2,21 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+import os
+import copy
 import importlib
 import numpy as np
 
 from ase.atoms import Atoms
 
-pafi_args = ['temperature',
-             'configurations',
-             'Kspring',
-             'maxjump',
-             'dt',
-             'damp',
-             'brownian']
-neb_args = ['configurations',
-            'Kspring',
-            'dt']
-rdf_args = ['temperature',
-            'dt',
-            'nsteps',
-            'nsteps_eq',
-            'langevin',
-            'logfile',
-            'rdffile']
+from ..utilities.io_lammps import LammpsBlockInput
+from ..utilities.miscellanous import read_distribution_files as read_df
+
 ti_args = ['atoms',
            'pair_style',
            'pair_coeff',
            'temperature',
+           'pressure',
            'nsteps',
            'nsteps_eq']
 
@@ -37,10 +26,25 @@ ti_args = ['atoms',
 class CalcProperty:
     """
     Parent Class for on the fly property calculations.
+
+    Parameters
+    ----------
+    method: :class:`str` type of criterion.
+        - max, maximum difference between to consecutive step < criterion
+        - ave, average difference between to consecutive step < criterion
+
+        Default ``max``
+
+    criterion: :class:`float`
+        Stopping criterion value (eV). Default ``0.001``
+
+    frequence : :class:`int`
+        Interval of Mlacs step to compute the property. Default ``1``
     """
 
     def __init__(self,
                  args={},
+                 state=None,
                  method='max',
                  criterion=0.001,
                  frequence=1):
@@ -52,6 +56,8 @@ class CalcProperty:
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        if state is not None:
+            self.state = copy.deepcopy(state)
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -119,49 +125,28 @@ class CalcProperty:
 
 # ========================================================================== #
 # ========================================================================== #
-class CalcMfep(CalcProperty):
+class CalcPafi(CalcProperty):
     """
     Class to set a minimum free energy calculation.
-    See PafiLammpsState and PafiLammpsState.run_MFEP parameters.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
+    See :func:`PafiLammpsState.run_dynamics` parameters.
     """
 
     def __init__(self,
                  args,
+                 state=None,
                  method='max',
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
-
-        from mlacs.state import PafiLammpsState
-        self.pafi = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in pafi_args:
-                self.pafi[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = PafiLammpsState(**self.pafi)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.kwargs['workdir'] = wdir + 'Mfep_Calculation/'
-        self.state.run_MFEP(**self.kwargs)
-        self.new = np.loadtxt(self.state.workdir + 'free_energy.dat').T[5]
+        self.state.workdir = wdir / 'PafiPath_Calculation'
+        atoms = self.state.path.atoms[0]
+        self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
         return self.isconverged
 
 # ========================================================================== #
@@ -183,48 +168,27 @@ class CalcMfep(CalcProperty):
 class CalcNeb(CalcProperty):
     """
     Class to set a NEB calculation.
-    See NebLammpsState and NebLammpsState.run_NEB parameters.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
-
+    See :func:`NebLammpsState.run_dynamics` parameters.
     """
 
     def __init__(self,
                  args,
+                 state=None,
                  method='max',
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
-
-        from mlacs.state import NebLammpsState
-        self.neb = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in neb_args:
-                self.neb[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = NebLammpsState(**self.neb)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a NEB calculation with lammps. Use replicas.
         """
-        self.kwargs['workdir'] = wdir + '/NEB_Calculation/'
-        self.state.run_NEB(**self.kwargs)
+        self.state.workdir = wdir / 'NEB_Calculation'
+        atoms = self.state.atoms[0]
+        self.state.run_dynamics(atoms, **self.kwargs)
         self.state.extract_NEB_configurations()
-        self.new = self.state.true_energies
+        self.new = self.state.spline_energies
         return self.isconverged
 
 # ========================================================================== #
@@ -279,18 +243,41 @@ class CalcRdf(CalcProperty):
             else:
                 self.kwargs[keys] = values
         self.state = RdfLammpsState(**self.rdf)
+=======
+                 state=None,
+                 method='max',
+                 criterion=0.05,
+                 frequence=5):
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
+
+        self.useatoms = True
+        self.step = self.state.nsteps_eq
+        if 'nsteps' in self.kwargs.keys():
+            self.step = self.kwargs['nsteps'] / 10
+            self.state.nsteps = self.kwargs['nsteps']
+            self.kwargs.pop('nsteps')
+        self.filename = 'spce-rdf.dat'
+        if 'filename' in self.kwargs.keys():
+            self.filename = self.kwargs['filename']
+            self.kwargs.pop('filename')
+>>>>>>> b70f7b483face325ec978322cef5c1e80a34ef2d
 
 # ========================================================================== #
     def _exec(self, wdir):
         """
         Exec a Rdf calculation with lammps.
         """
-        # take the current conf of istate 0
-        self.kwargs['supercell'] = self.atoms[0]
-        self.kwargs['workdir'] = wdir + '/Rdf_Calculation/'
-        self.state.run_dynamics(**self.kwargs)
-        self.new = np.loadtxt(self.kwargs['workdir'] +
-                              self.rdf['rdffile'], skiprows=4, usecols=(2))
+        from ..utilities.io_lammps import get_block_rdf
+
+        self.state.workdir = wdir / 'Rdf_Calculation'
+        if self.state._myblock is None:
+            block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
+            block("equilibrationrun", f"run {self.step}")
+            block("reset_timestep", "reset_timestep 0")
+            block.extend(get_block_rdf(self.step, self.filename))
+            self.state._myblock = block
+        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
+        self.new = read_df(self.state.workdir / self.filename)[0]
         return self.isconverged
 
 # ========================================================================== #
@@ -308,36 +295,84 @@ class CalcRdf(CalcProperty):
 
 # ========================================================================== #
 # ========================================================================== #
+class CalcAdf(CalcProperty):
+    """
+    Class to set the angle distribution function calculation.
+    """
+
+    def __init__(self,
+                 args,
+                 state=None,
+                 method='max',
+                 criterion=0.05,
+                 frequence=5):
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
+
+        self.useatoms = True
+        self.step = self.state.nsteps_eq
+        if 'nsteps' in self.kwargs.keys():
+            self.step = self.kwargs['nsteps'] / 10
+            self.state.nsteps = self.kwargs['nsteps']
+            self.kwargs.pop('nsteps')
+        self.filename = 'spce-adf.dat'
+        if 'filename' in self.kwargs.keys():
+            self.filename = self.kwargs['filename']
+            self.kwargs.pop('filename')
+
+# ========================================================================== #
+    def _exec(self, wdir):
+        """
+        Exec an Adf calculation with lammps.
+        """
+
+        from ..utilities.io_lammps import get_block_adf
+
+        self.state.workdir = wdir / 'Adf_Calculation'
+        if self.state._myblock is None:
+            block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
+            block("equilibrationrun", f"run {self.step}")
+            block("reset_timestep", "reset_timestep 0")
+            block.extend(get_block_adf(self.step, self.filename))
+            self.state._myblock = block
+        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
+        self.new = read_df(self.state.workdir / self.filename)[0]
+        return self.isconverged
+
+# ========================================================================== #
+    def __repr__(self):
+        """
+        Return a string for the log with informations of the calculated
+        property.
+        """
+        msg = 'For the angle distribution function g(theta):\n'
+        msg += self.state.log_recap_state()
+        msg += f'        - Maximum  : {self.maxf}\n'
+        msg += f'        - Averaged : {self.avef}\n\n'
+        return msg
+
+
+# ========================================================================== #
+# ========================================================================== #
 class CalcTi(CalcProperty):
     """
     Class to set a nonequilibrium thermodynamic integration calculation.
-    See ThermoState and the run_dynamics function parameters of the
-    EinsteinSolidState and UFLiquidState.
+    See the :class:`ThermodynamicIntegration` classe.
 
     Parameters
     ----------
-    state: :class:`str`
-        State of the system: solild or liquid.
+    phase: :class:`str`
+        Structure of the system: solild or liquid.
         Set either the Einstein crystal as a reference system or the UF liquid.
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value. Default ``1 meV``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``10``
-
     """
     def __init__(self,
                  args,
                  phase,
+                 state=None,
                  ninstance=None,
                  method='max',
                  criterion=0.001,
                  frequence=10):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
         self.ninstance = ninstance
         self.phase = phase
@@ -370,7 +405,7 @@ class CalcTi(CalcProperty):
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
                                            wdir,
-                                           logfile=wdir + "TiCheckFe.log")
+                                           logfile=os.path.join(wdir, "TiCheckFe.log"))
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
@@ -413,21 +448,15 @@ class CalcExecFunction(CalcProperty):
     function: :class:`str` or `function`
         Function to call. If the function is a `str`, you to define the
         module to load the function.
+
     args: :class:`dict`
         Arguments of the function.
+
     module: :class:`str`
         Module to load the function.
+
     useatoms: :class:`bool`
         True if the function is called from an ase.Atoms object.
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value (eV). Default ``0.001``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``1``
-
     """
 
     def __init__(self,
@@ -438,7 +467,7 @@ class CalcExecFunction(CalcProperty):
                  gradient=False,
                  criterion=0.001,
                  frequence=1):
-        CalcProperty.__init__(self, args, 'max', criterion, frequence)
+        CalcProperty.__init__(self, args, None, 'max', criterion, frequence)
 
         self._func = function
         if module is not None:

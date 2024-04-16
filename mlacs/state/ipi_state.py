@@ -18,6 +18,7 @@ from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
 from . import LammpsState
 from ..utilities import get_elements_Z_and_masses
+from ..utilities.io_lammps import LammpsInput
 
 
 # ========================================================================== #
@@ -218,7 +219,11 @@ class IpiState(LammpsState):
     def _build_lammps_command(self, bead=''):
         """
         """
-        lammps_command = self.cmd + ' -in ' + \
+        envvar = "ASE_LAMMPSRUN_COMMAND"
+        cmd = os.environ.get(envvar)
+        if cmd is None:
+            cmd = "lmp_serial"
+        lammps_command = cmd + ' -in ' + \
             self.lammpsfname + " -screen log." + bead + ' -log none'
         return lammps_command
 
@@ -240,7 +245,7 @@ class IpiState(LammpsState):
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        write_lammps_data(self.workdir + self.atomsfname,
+        write_lammps_data(os.path.join(self.workdir, self.atomsfname),
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
@@ -255,15 +260,20 @@ class IpiState(LammpsState):
 
         atomswrite = atoms.copy()
         atomswrite.positions = atoms.get_positions() / Bohr
-        write(self.workdir + self.ipiatomsfname, atomswrite, format='xyz')
-        self.write_lammps_input(atoms,
-                                atom_style,
-                                pair_style,
-                                pair_coeff,
-                                model_post,
-                                1000000000,
-                                self.temperature,
-                                self.pressure)
+        write(os.path.join(self.workdir, self.ipiatomsfname),
+              atomswrite, format='xyz')
+
+        # Write Lammps input
+        blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
+                                        model_post, atom_style, eq)
+        lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+        for block in blocks:
+            lmp_input(block.name, block)
+
+        with open(os.path.join(self.workdir, self.lammpsfname), "w") as fd:
+            fd.write(str(lmp_input))
+
+        # Write i-pi input
         self.write_ipi_input(atoms, nsteps)
         ipi_command = f"{self.cmdipi} {self.ipifname} > ipi.log"
         # We start by running ipi alone
@@ -282,6 +292,7 @@ class IpiState(LammpsState):
             msg = "i-pi stopped prematurely"
             raise RuntimeError(msg)
         atoms = self.create_ase_atom(pbc, nbeads)
+
         return atoms
 
 # ========================================================================== #
@@ -481,6 +492,7 @@ class IpiState(LammpsState):
         # Currently implemented : nve, nvt, npt, nst
         dynamics = ET.Element('dynamics', attrib={'mode': self.ensemble})
 
+        damp = self.damp
         if self.damp is None:
             damp = 100*self.dt
         tdamp = _add_textxml(ET.Element('tau',
@@ -546,14 +558,14 @@ class IpiState(LammpsState):
         tree = ET.ElementTree(simulation)
         if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
             ET.indent(tree)
-        tree.write(self.workdir + self.ipifname, encoding='unicode',
-                   xml_declaration=True)
+        tree.write(os.path.join(self.workdir, self.ipifname),
+                   encoding='unicode', xml_declaration=True)
 
 # ========================================================================== #
     def create_ase_atom(self, pbc, nbeads_return):
         """
         """
-        pref = self.workdir + self.prefix
+        pref = os.path.join(self.workdir, self.prefix)
         nmax = len(str(self.nbeads))
         if self.nbeads == 1:
             image = 0

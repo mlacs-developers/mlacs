@@ -5,9 +5,10 @@ from subprocess import run, PIPE
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, subfolder
 from .mliap_descriptor import default_snap
 from .descriptor import Descriptor, combine_reg
+from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
 
 # ========================================================================== #
@@ -29,12 +30,13 @@ class SnapDescriptor(Descriptor):
         A dictionnary of parameters for the descriptor input
 
         The default values are
-            - twojmax = 8
-            - rfac0 = 0.99363
-            - rmin0 = 0.0
-            - switchflag = 1
-            - bzeroflag = 1
-            - wselfallflag = 0
+
+        - twojmax = 8
+        - rfac0 = 0.99363
+        - rmin0 = 0.0
+        - switchflag = 1
+        - bzeroflag = 1
+        - wselfallflag = 0
 
     model: :class:`str`
         The type of model use. Can be either 'linear' or 'quadratic'
@@ -49,16 +51,24 @@ class SnapDescriptor(Descriptor):
         A multiplication factor for the regularization that apply only to
         the quadratic component of the descriptor
         Default 1.0
+
+    Examples
+    --------
+
+    >>> from ase.build import bulk
+    >>> atoms = bulk("Cu", cubic=True).repeat(2)
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(atoms, rcut=4.2, parameters=dict(twojmax=6))
+    >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
-                 model="linear", alpha=1.0, alpha_quad=1.0, folder="Snap"):
+                 model="linear", alpha=1.0, alpha_quad=1.0):
         self.chemflag = parameters.pop("chemflag", 0)
         Descriptor.__init__(self, atoms, rcut, alpha)
         self.alpha_quad = alpha_quad
-        self.folder = Path(folder).absolute()
-        self.get_pair_style_coeff()
-
         self.model = model
+        self.desc_name = "SNAP"
 
         # Initialize the parameters for the descriptors
         self.radelems = parameters.pop("radelems", None)
@@ -93,16 +103,14 @@ class SnapDescriptor(Descriptor):
         self.cmd = cmd
 
 # ========================================================================== #
-    def _compute_descriptor(self, atoms, forces=True, stress=True):
+    def compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
-        self.folder.mkdir(parents=True, exist_ok=True)
-
         nat = len(atoms)
         el, z, masses, charges = get_elements_Z_and_masses(atoms)
         chemsymb = np.array(atoms.get_chemical_symbols())
 
-        lmp_atfname = self.folder / "atoms.lmp"
+        lmp_atfname = "atoms.lmp"
         self._write_lammps_input(masses, atoms.get_pbc())
         self._write_mlip_params()
 
@@ -115,7 +123,7 @@ class SnapDescriptor(Descriptor):
                           specorder=self.elements.tolist())
         self._run_lammps(lmp_atfname)
 
-        bispectrum = np.loadtxt(self.folder / "descriptor.out",
+        bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
         bispectrum[-6:, 1:-1] /= -atoms.get_volume()
 
@@ -136,47 +144,51 @@ class SnapDescriptor(Descriptor):
     def _write_lammps_input(self, masses, pbc):
         """
         """
-        input_string = "# LAMMPS input file for extracting MLIP descriptors\n"
-        input_string += "clear\n"
-        input_string += "boundary         "
-        for ppp in pbc:
-            if ppp:
-                input_string += "p "
-            else:
-                input_string += "f "
-        input_string += "\n"
-        input_string += "atom_style      atomic\n"
-        input_string += "units            metal\n"
-        input_string += "read_data        atoms.lmp\n"
-        for n1 in range(len(self.masses)):
-            input_string += f"mass             {n1+1} {self.masses[n1]}\n"
+        txt = "LAMMPS input file for extracting SNAP descriptors"
+        lmp_in = LammpsInput(txt)
 
-        input_string += f"pair_style       zero {2*self.rcut}\n"
-        input_string += "pair_coeff       * *\n"
+        block = LammpsBlockInput("init", "Initialization")
+        block("clear", "clear")
+        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        block("boundary", f"boundary {pbc_txt}")
+        block("atom_style", "atom_style  atomic")
+        block("units", "units metal")
+        block("read_data", "read_data atoms.lmp")
+        for i, m in enumerate(masses):
+            block(f"mass{i}", f"mass   {i+1} {m}")
+        lmp_in("init", block)
 
-        input_string += "thermo         100\n"
-        input_string += "timestep       0.005\n"
-        input_string += "neighbor       1.0 bin\n"
-        input_string += "neigh_modify   once no every 1 delay 0 check yes\n"
+        block = LammpsBlockInput("interaction", "Interactions")
+        block("pair_style", f"pair_style zero {2*self.rcut}")
+        block("pair_coeff", "pair_coeff  * *")
+        lmp_in("interaction", block)
 
-        input_string += f"compute      ml all snap {self._snap_opt_str()}\n"
-        input_string += "fix          ml all ave/time 1 1 1 c_ml[*] " + \
-                        "file descriptor.out mode vector\n"
-        input_string += "run              0\n"
+        block = LammpsBlockInput("fake_dynamic", "Fake dynamic")
+        block("thermo", "thermo 100")
+        block("timestep", "timestep 0.005")
+        block("neighbor", "neighbor 1.0 bin")
+        block("neigh_modify", "neigh_modify once no every 1 delay 0 check yes")
+        lmp_in("fake_dynamic", block)
 
-        with open(self.folder / "base.in", "w") as fd:
-            fd.write(input_string)
+        block = LammpsBlockInput("compute", "Compute")
+        block("compute", f"compute ml all snap {self._snap_opt_str()}")
+        block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
+              "file descriptor.out mode vector")
+        block("run", "run 0")
+        lmp_in("compute", block)
+
+        with open("lammps_input.in", "w") as fd:
+            fd.write(str(lmp_in))
 
 # ========================================================================== #
     def _run_lammps(self, lmp_atoms_fname):
         '''
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
-        lammps_command = self.cmd + ' -in base.in -log none -sc lmp.out'
-        lmp_handle = run(lammps_command,
+        lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
+        lmp_handle = run(lmp_cmd,
                          shell=True,
-                         stderr=PIPE,
-                         cwd=self.folder)
+                         stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
         if lmp_handle.returncode != 0:
@@ -190,49 +202,58 @@ class SnapDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        (self.folder / "lmp.out").unlink()
-        (self.folder / "descriptor.out").unlink()
-        (self.folder / "base.in").unlink()
-        (self.folder / "atoms.lmp").unlink()
+        Path("lmp.out").unlink()
+        Path("descriptor.out").unlink()
+        Path("lammps_input.in").unlink()
+        Path("atoms.lmp").unlink()
 
 # ========================================================================== #
+    @subfolder
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        with open(self.folder / "MLIP.descriptor", "w") as f:
-            f.write("# ")
-            # Adding a commment line to know what elements are fitted here
-            for elements in self.elements:
-                f.write("{:} ".format(elements))
-            f.write("MLIP parameters\n")
-            f.write("# Descriptor:  SNAP\n")
-            f.write(f"# Model:       {self.model}\n")
-            f.write("\n")
-            f.write(f"rcutfac         {self.rcut}\n")
-            for key in self.params.keys():
-                f.write(f"{key:12}    {self.params[key]}\n")
-            if self.chemflag:
-                f.write("\n\n")
-                f.write("chemflag     1\n")
-                f.write("bnormflag    1\n")
-            if self.model == "quadratic":
-                f.write("quadraticflag  1")
+        self.mlip_desc = Path.cwd()
+        with open(f"{self.desc_name}.descriptor", "w") as f:
+            f.write(self.get_mlip_params())
 
 # ========================================================================== #
-    def write_mlip(self, coefficients, folder=None, comments=""):
-        """
-        """
+    def get_mlip_params(self):
+        s = ("# ")
+        # Adding a commment line to know what elements are fitted here
+        for elements in self.elements:
+            s += ("{:} ".format(elements))
+        s += ("MLIP parameters\n")
+        s += ("# Descriptor:  SNAP\n")
+        s += (f"# Model:       {self.model}\n")
+        s += ("\n")
+        s += (f"rcutfac         {self.rcut}\n")
+        for key in self.params.keys():
+            s += (f"{key:12}    {self.params[key]}\n")
+        if self.chemflag:
+            s += ("\n\n")
+            s += ("chemflag     1\n")
+            s += ("bnormflag    1\n")
+        if self.model == "quadratic":
+            s += ("quadraticflag  1")
+        return s
 
+# ========================================================================== #
+    @subfolder
+    def write_mlip(self, coefficients):
+        """
+        """
+        if Path(f"{self.desc_name}.model").exists():
+            Path(f"{self.desc_name}.model").unlink()
+
+        self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
-
-        with open(self.folder / "MLIP.model", "w") as fd:
+        with open(f"{self.desc_name}.model", "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
             fd.write("# Descriptor   SNAP\n")
-            fd.write(comments)
             fd.write("\n")
             fd.write(f"{self.nel} {self.ndesc+1}\n")
 
@@ -245,6 +266,42 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
+        return f"{self.desc_name}.model"
+
+# ========================================================================== #
+    @subfolder
+    def read_mlip(self):
+        """
+        Read MLIP parameters from a file.
+        """
+        fn = Path(f"{self.desc_name}.model")
+        if not fn.is_file():
+            raise FileNotFoundError(f"File {fn.absolute()} does not exist")
+
+        with open(fn, "r") as fd:
+            lines = fd.readlines()
+
+        coefs = []
+        coefficients = []
+        intercepts = []
+        for line in lines:
+            line = line.strip()
+            if line.startswith('#') or len(line) == 0:
+                continue
+            line = line.split()
+            if len(line) == 2:  # Consistency check: nel, ndesc+1
+                assert int(line[0]) == self.nel, "The descriptor changed"
+                assert int(line[1]) == self.ndesc+1, "The descriptor changed"
+                continue
+
+            if len(line) == 3:  # el, radelems, welems
+                continue
+            if (len(coefs)+len(intercepts)) % (self.ndesc+1) == 0:
+                intercepts.append(float(line[0]))
+            else:
+                coefs.append(float(line[0]))
+        coefficients = np.r_[intercepts, coefs]
+        return coefficients
 
 # ========================================================================== #
     def _regularization_matrix(self):
@@ -259,15 +316,20 @@ class SnapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style_coeff(self):
-        """
-        """
-        modelfile = self.folder / "MLIP.model"
-        descfile = self.folder / "MLIP.descriptor"
-        pair_style = "snap"
+    def get_pair_style(self, folder=None):
+        return "snap"
+
+# ========================================================================== #
+    def get_pair_coeff(self, folder=Path("")):
+        modelfile = folder / f"{self.desc_name}.model"
+        descfile = folder / f"{self.desc_name}.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
-        return pair_style, pair_coeff
+        return pair_coeff
+
+# ========================================================================== #
+    def get_pair_style_coeff(self, folder):
+        return self.get_pair_style(folder), self.get_pair_coeff(folder)
 
 # ========================================================================== #
     def _snap_opt_str(self):

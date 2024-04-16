@@ -176,7 +176,7 @@ class EinsteinSolidState(ThermoState):
 
         if self.equilibrate:
             self.run_averaging(wdir)
-
+            
         if self.k is None:
             # First get optimal spring constant
             self.compute_msd(wdir)
@@ -481,7 +481,6 @@ class EinsteinSolidState(ThermoState):
         #     input_string += "fix           f2  all nph iso " + \
         #                     f"{self.pressure*10000} " + \
         #                     f"{self.pressure*10000} {pdamp}\n"
-
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
@@ -499,6 +498,9 @@ class EinsteinSolidState(ThermoState):
         input_string += "#           Compute MSD\n"
         input_string += "#####################################\n"
         input_string += "run         ${nstepseq}\n"
+        # if self.pressure is not None:
+        #     input_string += "unfix           f2\n"
+        #     input_string += "fix             f2  all nve\n"
         for iel, el in enumerate(self.elem):
             input_string += f"fix         f{iel+3} {el} print 1 " + \
                             f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"
