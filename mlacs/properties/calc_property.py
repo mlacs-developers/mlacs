@@ -243,12 +243,6 @@ class CalcRdf(CalcProperty):
             else:
                 self.kwargs[keys] = values
         self.state = RdfLammpsState(**self.rdf)
-=======
-                 state=None,
-                 method='max',
-                 criterion=0.05,
-                 frequence=5):
-        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
         self.useatoms = True
         self.step = self.state.nsteps_eq
@@ -260,8 +254,6 @@ class CalcRdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
->>>>>>> b70f7b483face325ec978322cef5c1e80a34ef2d
-
 # ========================================================================== #
     def _exec(self, wdir):
         """
