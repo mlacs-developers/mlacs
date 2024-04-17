@@ -4,7 +4,7 @@ from ase.build import bulk
 from ase.calculators.emt import EMT
 
 from mlacs.mlip import SnapDescriptor, LinearPotential
-from mlacs.state import LammpsState, RdfLammpsState
+from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 from mlacs.properties import CalcRdf
 
