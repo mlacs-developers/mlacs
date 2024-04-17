@@ -48,19 +48,12 @@ friction = 0.01    # Friction coefficient for the Langevin thermostat.
 descriptor = SnapDescriptor(atoms, rcut=rcut, parameters=parameters)
 mlip = LinearPotential(descriptor)
 
-rdf_params = {'temperature': 300,
-              'dt': 1.5,
-              'nsteps':80000,
-              'nsteps_eq':20000,
-              'logfile': 'mlmd.log',
-              'rdffile': 'rdf_.dat',
-              'pair_style': mlip.pair_style,
-              'pair_coeff': mlip.pair_coeff }
-
-properties = CalcRdf(rdf_params, atoms)
+kwargs = {'pair_style': mlip.pair_style,
+          'pair_coeff': mlip.pair_coeff}
 
 # Creation of the State Manager
 state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq)
+properties = CalcRdf(state=state, args=kwargs)
 
 # Creation of the OtfMLACS object
 sampling = OtfMlacs(atoms, state, calc, mlip, properties, neq=neq)

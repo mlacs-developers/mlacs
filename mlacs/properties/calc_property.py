@@ -229,20 +229,11 @@ class CalcRdf(CalcProperty):
 
     def __init__(self,
                  args,
+                 state=None,
                  method='max',
                  criterion=0.05,
                  frequence=2):
-        CalcProperty.__init__(self, args, method, criterion, frequence)
-
-        from mlacs.state import RdfLammpsState
-        self.rdf = {}
-        self.kwargs = {}
-        for keys, values in args.items():
-            if keys in rdf_args:
-                self.rdf[keys] = values
-            else:
-                self.kwargs[keys] = values
-        self.state = RdfLammpsState(**self.rdf)
+        CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
         self.useatoms = True
         self.step = self.state.nsteps_eq
