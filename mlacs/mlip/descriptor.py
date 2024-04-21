@@ -44,9 +44,12 @@ class Descriptor(ABC):
     def compute_descriptors(self, atoms, forces=True, stress=True):
         desc = []
         for at in atoms:
-            desc.append(self.compute_descriptor(atoms=at,
-                                                forces=forces,
-                                                stress=stress))
+            if "descriptor" in at.info:
+                desc.append(at.info['descriptor'])
+            else:
+                desc.append(self.compute_descriptor(atoms=at,
+                                                    forces=forces,
+                                                    stress=stress))
         return desc
 
 # ========================================================================== #
