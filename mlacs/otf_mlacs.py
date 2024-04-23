@@ -343,7 +343,7 @@ class OtfMlacs:
             return False
 
         # And now we can write the configurations in the trajectory files
-        attrue = self.add_descriptor(atoms_true)
+        attrue = self.add_traj_descriptors(atoms_true)
         for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
             if attrue is not None:
                 self.mlip.update_matrices(attrue)
@@ -442,7 +442,7 @@ class OtfMlacs:
         uniq_at = self.calc.compute_true_potential(uniq_at,
                                                    tmp_state,
                                                    tmp_step)
-        uniq_at = self.add_descriptor(uniq_at)
+        uniq_at = self.add_traj_descriptors(uniq_at)
         msg = "Computation done, creating trajectories"
         self.log.logger_log.info(msg)
 
@@ -513,7 +513,7 @@ class OtfMlacs:
             elif isinstance(self.confs_init, list):
                 confs_init = self.confs_init
 
-            confs_init = self.add_descriptor(confs_init)
+            confs_init = self.add_traj_descriptors(confs_init)
 
             checkisfile = False
             if os.path.isfile("Training_configurations.traj"):
@@ -696,7 +696,7 @@ class OtfMlacs:
             return False
 
 # ========================================================================== #
-    def add_descriptor(self, atoms):
+    def add_traj_descriptors(self, atoms):
         """
         Add descriptors in trajectory files.
         """
