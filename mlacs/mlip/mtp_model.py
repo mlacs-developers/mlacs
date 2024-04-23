@@ -266,7 +266,6 @@ class MomentTensorPotential(SelfMlipManager):
             import re
             with open(subfolder / "pot.mtp", "r", encoding="ISO-8859-1") as fd:
                 for line in fd.readlines():
-                    print(line)
                     if line.startswith("potential_name"):
                         oldlevel = int(re.search(r'\d+$', line).group())
                         break
