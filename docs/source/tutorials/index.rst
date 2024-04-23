@@ -31,6 +31,7 @@ Machine-Learning Assisted Samping
     :maxdepth: 2
 
     mlacs_tuto1
+    mlacs_tuto2
 
 
 Thermodynamic integration
