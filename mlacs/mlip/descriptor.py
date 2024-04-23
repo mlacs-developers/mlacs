@@ -251,8 +251,9 @@ class BlankDescriptor(Descriptor):
 
 # ========================================================================== #
     def compute_descriptor(self, atoms, forces=True, stress=True):
-        msg = "BlankDescriptor can't give access to descriptor"
-        raise NotImplementedError(msg)
+        # msg = "BlankDescriptor can't give access to descriptor"
+        # raise NotImplementedError(msg)
+        pass
 
 # ========================================================================== #
     @subfolder
