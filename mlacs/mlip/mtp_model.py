@@ -91,7 +91,8 @@ class MomentTensorPotential(SelfMlipManager):
 
         self.cmd = mlpbin
         self.version = 2
-        mlp_info = Popen(shlex.split('mlp list'), stdout=PIPE).communicate()[0]
+        testcmd = shlex.split(f'{mlpbin} list')
+        mlp_info = Popen(testcmd, stdout=PIPE).communicate()[0]
         if b'calculate_efs' in mlp_info:
             self.version = 3
 
