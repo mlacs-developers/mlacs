@@ -37,6 +37,7 @@ class CalcProperty:
 
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
+        Can be ``None``, in this case there is no criterion.
 
     frequence : :class:`int`
         Interval of Mlacs step to compute the property. Default ``1``
@@ -98,7 +99,9 @@ class CalcProperty:
         if not self.isgradient:
             self.maxf = np.max(np.abs(self.new))
         self.avef = np.average(np.abs(self.new-self.old))
-        if self.method == 'max' and self.maxf < self.stop:
+        if self.stop is None:
+            return False
+        elif self.method == 'max' and self.maxf < self.stop:
             return True
         elif self.method == 'ave' and self.avef < self.stop:
             return True
@@ -245,6 +248,7 @@ class CalcRdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
+
 # ========================================================================== #
     def _exec(self, wdir):
         """
@@ -385,10 +389,11 @@ class CalcTi(CalcProperty):
         """
         from mlacs.ti import ThermodynamicIntegration
         # Creation of ti object ---------------------------------------------
+        path = os.path.join(wdir, "TiCheckFe.log")
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
                                            wdir,
-                                           logfile=os.path.join(wdir, "TiCheckFe.log"))
+                                           logfile=path)
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
@@ -446,7 +451,7 @@ class CalcExecFunction(CalcProperty):
                  function,
                  args={},
                  module=None,
-                 aseatoms=True,
+                 use_atoms=True,
                  gradient=False,
                  criterion=0.001,
                  frequence=1):
@@ -457,7 +462,7 @@ class CalcExecFunction(CalcProperty):
             importlib.import_module(module)
             self._function = getattr(module, function)
         self.isfirst = True
-        self.useatoms = aseatoms
+        self.use_atoms = use_atoms
         self.isgradient = gradient
 
 # ========================================================================== #
@@ -465,7 +470,7 @@ class CalcExecFunction(CalcProperty):
         """
         Execute function
         """
-        if self.useatoms:
+        if self.use_atoms:
             self._function = [getattr(_, self._func) for _ in self.atoms]
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
         else:
@@ -482,4 +487,50 @@ class CalcExecFunction(CalcProperty):
         if self.isgradient:
             msg += 'Computed with the previous step:\n'
         msg += f'        - Maximum  : {self.maxf}\n'
+        return msg
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcTrueVolume(CalcExecFunction):
+    """
+    Class to compute the averaged volume of all configurations.
+    Warning: if you have multiple states, it will averaged all the states.
+
+    Parameters
+    ----------
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+    def __init__(self,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        CalcExecFunction.__init__(self, 'get_volume', dict(), None,
+                                  True, gradient, criterion, frequence)
+        self.weight = weight
+
+# ========================================================================== #
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        func = [getattr(_, self._func) for _ in self.weight.database]
+        volume = np.r_[[_f() for _f in func]]
+        volume = volume / len(self.weight.database[0])
+        w = np.ones(len(volume))
+        if self.weight is not None and not len(self.weight.weight) == 0:
+            w = self.weight.weight
+        self.new = np.average(volume, weights=w)
+        return self.isconverged
+
+# ========================================================================== #
+    def __repr__(self):
+        """
+        Return a string for the log with informations of the calculated
+        property.
+        """
+        msg = 'Computing the averaged volume of all configurations.\n'
+        msg += f'        - vol/atom: {self.new[0]:10.5f} angs^3/at\n'
         return msg
