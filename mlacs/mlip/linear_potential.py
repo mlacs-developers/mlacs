@@ -3,6 +3,7 @@
 from pathlib import Path
 import numpy as np
 from ase.units import GPa
+from ase import Atoms
 
 from . import MlipManager
 from ..utilities import compute_correlation, create_link
@@ -25,9 +26,28 @@ class LinearPotential(MlipManager):
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
 
+    parameters: :class:`dict`
+        The parameters for the fit.
+        By default, the fit is a simple ordinary least squares.
+        Ridge regression can be use by setting a dictionnary as
+        ``dict(method=ridge, lambda_ridge=alpha)``, with alpha the ridge
+        coefficient.
+
     weight: :class:`WeightingPolicy`
         Weight used for the fitting and calculation of properties.
-        Default :class:`None`
+        Default :class:`None`, which results in the use of uniform weights.
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(confs[0], rcut=4.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
     def __init__(self,
                  descriptor,
@@ -51,6 +71,7 @@ class LinearPotential(MlipManager):
                 hyperparam = self.parameters["hyperparameters"]
             hyperparam["fit_intercept"] = False
             self.parameters["hyperparameters"] = hyperparam
+        self.can_use_weight = True
 
 # ========================================================================== #
     def train_mlip(self, mlip_subfolder):
@@ -96,15 +117,19 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
+        else:
+            msg = f"Fitting method {self.parameters['method']} " + \
+                  "unknown"
+            raise ValueError(msg)
+
         msg += "\nNumber of configurations for training: " + \
                f"{len(self.natoms[idx_e:]):}\n"
         msg += "Number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n\n"
 
         tmp_msg, weight_fn = self.weight.compute_weight(
-            amat_e,
             self.coefficients,
-            self.get_mlip_energy,
+            self.predict,
             subfolder=mlip_subfolder)
 
         msg += tmp_msg
@@ -128,7 +153,7 @@ class LinearPotential(MlipManager):
         s_mlip = np.einsum('ij,j->i', amat_s, self.coefficients)
 
         w = None
-        if np.shape(w) == np.shape(ymat_e):
+        if len(self.weight.weight) > 0:
             w = self.weight.weight
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)
@@ -137,35 +162,32 @@ class LinearPotential(MlipManager):
         self.fit_res = r
 
         # Information to MLIP-Energy_comparison.dat
-        header = f"Weighted rmse: {self.fit_res[0,0]:.6f} eV/at,    " + \
-                 f"Weighted mae: {self.fit_res[1,0]:.6f} eV/at\n" + \
+        header = f"Weighted rmse: {self.fit_res[0, 0]:.6f} eV/at,    " + \
+                 f"Weighted mae: {self.fit_res[1, 0]:.6f} eV/at\n" + \
                  " True Energy           Predicted Energy"
         np.savetxt("MLIP-Energy_comparison.dat",
                    np.c_[ymat_e, e_mlip],
                    header=header, fmt="%25.20f  %25.20f")
-        header = f"Weighted rmse: {self.fit_res[0,1]:.6f} eV/angs   " + \
-                 f"Weighted mae: {self.fit_res[1,1]:.6f} eV/angs\n" + \
+        header = f"Weighted rmse: {self.fit_res[0, 1]:.6f} eV/angs   " + \
+                 f"Weighted mae: {self.fit_res[1, 1]:.6f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
         np.savetxt("MLIP-Forces_comparison.dat",
                    np.c_[ymat_f, f_mlip],
                    header=header, fmt="%25.20f  %25.20f")
-        header = f"Weighted rmse: {self.fit_res[0,2]:.6f} GPa       " + \
-                 f"Weighted mae: {self.fit_res[1,2]:.6f} GPa\n" + \
+        header = f"Weighted rmse: {self.fit_res[0, 2]:.6f} GPa       " + \
+                 f"Weighted mae: {self.fit_res[1, 2]:.6f} GPa\n" + \
                  " True Stress           Predicted Stress"
         np.savetxt("MLIP-Stress_comparison.dat",
                    np.c_[ymat_s, s_mlip] / GPa,
                    header=header, fmt="%25.20f  %25.20f")
 
         # Message to Mlacs.log
-        msg = f"Weighted RMSE Energy    {self.fit_res[0,0]:.4f} eV/at\n"
-        msg += f"Weighted MAE Energy     {self.fit_res[1,0]:.4f} eV/at\n"
-        # msg += f"Weighted Rsquared Energy    {self.fit_res[0,2]:.4f}\n"
-        msg += f"Weighted RMSE Forces    {self.fit_res[0,1]:.4f} eV/angs\n"
-        msg += f"Weighted MAE Forces     {self.fit_res[1,1]:.4f} eV/angs\n"
-        # msg += f"Weighted Rsquared Forces    {self.fit_res[1,2]:.4f}\n"
-        msg += f"Weighted RMSE Stress    {self.fit_res[0,2]:.4f} GPa\n"
-        msg += f"Weighted MAE Stress     {self.fit_res[1,2]:.4f} GPa\n"
-        # msg += f"Weighted Rsquared Stres    {self.fit_res[2,2]:.4f}\n"
+        msg = f"Weighted RMSE Energy    {self.fit_res[0, 0]:.4f} eV/at\n"
+        msg += f"Weighted MAE Energy     {self.fit_res[1, 0]:.4f} eV/at\n"
+        msg += f"Weighted RMSE Forces    {self.fit_res[0, 1]:.4f} eV/angs\n"
+        msg += f"Weighted MAE Forces     {self.fit_res[1, 1]:.4f} eV/angs\n"
+        msg += f"Weighted RMSE Stress    {self.fit_res[0, 2]:.4f} GPa\n"
+        msg += f"Weighted MAE Stress     {self.fit_res[1, 2]:.4f} GPa\n"
         return msg
 
 # ========================================================================== #
@@ -178,27 +200,38 @@ class LinearPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, atoms):
+    def predict(self, desc, coef=None):
         """
+        Predict energy (eV), forces (eV/ang) and stress (eV/ang**3) given
+        desc which can be of type ase.Atoms or list of ase.Atoms.
+        Can choose the coefficients to calculate with, or use the latest one
         """
-        assert self.coefficients is not None, 'The model has not been trained'
+        if isinstance(desc, Atoms):
+            desc = [desc]
+        if coef is None:
+            coef = self.coefficients
+        assert coef is not None, 'The model has not been trained'
 
-        res = self.descriptor.calculate(atoms, subfolder=self.folder)[0]
+        if isinstance(desc[0], Atoms):
+            desc = self.descriptor.calculate(desc, subfolder=self.folder)
+        else:
+            raise NotImplementedError
+
+        amat_e = [d['desc_e'] for d in desc]
+        amat_f = [d['desc_f'] for d in desc]
+        amat_s = [d['desc_s'] for d in desc]
 
         # We use the latest value coefficients to get the properties
-        energy = np.einsum('ij,j->', res['desc_e'], self.coefficients)
-        forces = np.einsum('ij,j->i', res['desc_f'], self.coefficients)
-        stress = np.einsum('ij,j->i', res['desc_s'], self.coefficients)
+        energy = np.einsum('nij,j->n',  amat_e, coef)
+        forces = np.einsum('nij,j->ni', amat_f, coef)
+        stress = np.einsum('nij,j->ni', amat_s, coef)
 
-        forces = forces.reshape(len(atoms), 3)
+        #  This line will cause problem if the number of atoms vary
+        forces = forces.reshape(len(energy), -1, 3)
 
+        if len(energy) == 1:
+            return energy[0], forces[0], stress[0]
         return energy, forces, stress
-
-# ========================================================================== #
-    def get_mlip_energy(self, coef, desc):
-        """
-        """
-        return np.einsum('ij,j->i', desc, coef)
 
 # ========================================================================== #
     def set_coefficients(self, coefficients):

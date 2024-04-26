@@ -31,12 +31,13 @@ class SnapDescriptor(Descriptor):
         A dictionnary of parameters for the descriptor input
 
         The default values are
-            - twojmax = 8
-            - rfac0 = 0.99363
-            - rmin0 = 0.0
-            - switchflag = 1
-            - bzeroflag = 1
-            - wselfallflag = 0
+
+        - twojmax = 8
+        - rfac0 = 0.99363
+        - rmin0 = 0.0
+        - switchflag = 1
+        - bzeroflag = 1
+        - wselfallflag = 0
 
     model: :class:`str`
         The type of model use. Can be either 'linear' or 'quadratic'
@@ -51,6 +52,16 @@ class SnapDescriptor(Descriptor):
         A multiplication factor for the regularization that apply only to
         the quadratic component of the descriptor
         Default 1.0
+
+    Examples
+    --------
+
+    >>> from ase.build import bulk
+    >>> atoms = bulk("Cu", cubic=True).repeat(2)
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(atoms, rcut=4.2, parameters=dict(twojmax=6))
+    >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
                  model="linear", alpha=1.0, alpha_quad=1.0):

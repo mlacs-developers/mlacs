@@ -2,6 +2,7 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+from pathlib import Path
 import ase
 from .calc_manager import CalcManager
 
@@ -11,7 +12,7 @@ from .calc_manager import CalcManager
 class DatabaseCalc(CalcManager):
     """
     Calculators that sequentially reads a previously calculated traj files.
-    Normal utilisator want to set OtfMlacs.nstep to len(traj)
+    Normal utilisator want to set OtfMlacs.nstep to len(traj).
     Can be used with restart to append trajfile to the current traj.
 
     Parameters
@@ -19,10 +20,10 @@ class DatabaseCalc(CalcManager):
     calc: :class:`ase.calculator`
         A ASE calculator object
 
-    trajfile :class:`str` or :class:`pathlib.Path`
+    trajfile: :class:`str` or :class:`pathlib.Path`
         The trajectory file from which DatabaseCalc will read
 
-    trainfile :class:`str`, :class:`pathlib.Path`,
+    trainfile: :class:`str`, :class:`pathlib.Path`,
         The training.traj file, configuration used for fitting but
         not counted for thermodynamic properties
 
@@ -36,7 +37,10 @@ class DatabaseCalc(CalcManager):
                  trainfile,
                  magmoms=None):
         CalcManager.__init__(self, "dummy", magmoms)
-        self.traj = ase.io.read(trajfile, index=":")
+        if isinstance(trajfile, str) or isinstance(trajfile, Path):
+            self.traj = [ase.io.read(trajfile, index=":")]
+        else:
+            self.traj = [ase.io.read(t, index=":") for t in trajfile]
         self.training = ase.io.read(trainfile, index=":")
         self.current_conf = 0
 
@@ -46,24 +50,30 @@ class DatabaseCalc(CalcManager):
                                state=None,
                                step=None):
         """
-        1. Create a copy of the next atoms in traj as true_atoms
-        2. Modify mlip_atoms positions to match what we have in the traj
-        3. Change the Parent MLIP that generated true_confs
+        Return the energy of given configurations contained in the Trajectory
+        file. This is a way to replay a previously done MLACS simulations.
         """
-        assert len(mlip_confs) + self.current_conf <= len(self.traj), \
+        # 1. Create a copy of the next atoms in traj as true_atoms
+        # 2. Modify mlip_atoms positions to match what we have in the traj
+        # 3. Change the Parent MLIP that generated true_confs
+        length_trajs = sum([len(t) for t in self.traj])
+        assert len(mlip_confs) + self.current_conf <= length_trajs, \
             "You cannot do more step than there is in the Trajectory file" +\
-            f"\nNumber of conf in the given Trajectory: {len(self.traj)}"
+            "\nNumber of conf in the given Trajectory. If multiple state" +\
+            " you need to give a list of Traj file."
 
         true_confs = []
+        i = 0
         for mlip_conf, s in zip(mlip_confs, state):
             if s == "Training":
                 true_confs.append(self.training.pop())
                 continue
 
-            true_confs.append(self.traj[self.current_conf])
+            true_confs.append(self.traj[i][self.current_conf])
             mlip_conf.set_positions(true_confs[-1].get_positions())
-
             true_confs[-1].info = mlip_conf.info
-
+            i += 1
+        if state[0] != "Training":
             self.current_conf += 1
+
         return true_confs

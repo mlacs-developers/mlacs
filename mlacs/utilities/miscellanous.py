@@ -100,15 +100,23 @@ def compute_correlation(data, weight=None):
         The data for which to compute the correlation.
         The first column should be the ground truth and the second column
         should be the prediction of the model
-    datatype: :class:`str`
-        The type of data to which the correlation are to be computed.
-        Can be either energy, forces or stress
+    weight: :class:`numpy.ndarray`
+        Weight to be applied to compute the averages.
+        Has to be a divisor of the length of the data
+
+    Returns
+    -------
+        result: :class:`numpy.ndarray`
+            An length 3 array with (in order) the rmse, mae and :class:`R^2`
     """
     if weight is None:  # Uniform weighting
         nconf = np.shape(data)[0]
         weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
+
+    assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
+    weight = np.repeat(weight, len(datatrue)//len(weight))
 
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
     rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
@@ -202,8 +210,6 @@ def interpolate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Activate periodic function boundary conditions
     border : :class:`bol`
         Impose a zero derivative condition at the function boundaries
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
 
     Return
     ------
@@ -259,8 +265,6 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
         Activate periodic function boundary conditions
     border : :class:`bol`
         Impose a zero derivative condition at the function boundaries
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
 
     Return
     ------

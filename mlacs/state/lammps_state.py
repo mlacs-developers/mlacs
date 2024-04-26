@@ -21,7 +21,7 @@ from ..utilities.io_lammps import (LammpsInput,
 
 class BaseLammpsState(StateManager):
     """
-
+    Base class to perform simulations with LAMMPS.
     """
     def __init__(self, nsteps, nsteps_eq, logfile, trajfile, loginterval=50,
                  workdir=None, blocks=None):
@@ -266,7 +266,7 @@ class BaseLammpsState(StateManager):
 # ========================================================================== #
 class LammpsState(BaseLammpsState):
     """
-    Class to manage States with LAMMPS
+    Class to perform NVT or NPT simulations with LAMMPS.
 
     Parameters
     ----------
@@ -292,6 +292,9 @@ class LammpsState(BaseLammpsState):
         Default ``None``
 
     damp: :class:`float` or ``None`` (optional)
+        The damping value for the thermostat.
+        The default gives a sensible value of a hundred times the
+        timestep.
 
     langevin: :class:`Bool` (optional)
         If ``True``, a Langevin thermostat is used for the thermostat.
@@ -324,32 +327,17 @@ class LammpsState(BaseLammpsState):
     ptype: ``iso`` or ``aniso`` (optional)
         Handle the type of pressure applied. Default ``iso``
 
+    twodimensional: :class:`bool` (optional)
+        If set to ``True`` and pressure is not ``None``, set the pressure
+        only on the x and y axis. Pressure along `x` and `y` axis can
+        still be coupled by setting ``ptype`` to `iso`.
+        default ``False``
+
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
 
-    nsteps : :class:`int` (optional)
-        Number of MLMD steps for production runs. Default ``1000`` steps.
-
-    nsteps_eq : :class:`int` (optional)
-        Number of MLMD steps for equilibration runs. Default ``100`` steps.
-
     fixcm : :class:`Bool` (optional)
         Fix position and momentum center of mass. Default ``True``.
-
-    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
-        Custom block input class. Can be a list of blocks.
-        If ``None``, nothing is added in the input. Default ``None``.
-
-    logfile : :class:`str` (optional)
-        Name of the file for logging the MLMD trajectory.
-        If ``None``, no log file is created. Default ``None``.
-
-    trajfile : :class:`str` (optional)
-        Name of the file for saving the MLMD trajectory.
-        If ``None``, no traj file is created. Default ``None``.
-
-    loginterval : :class:`int` (optional)
-        Number of steps between MLMD logging. Default ``50``.
 
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
@@ -362,16 +350,46 @@ class LammpsState(BaseLammpsState):
         If the default ``None`` is set, momenta are initialized with a
         Maxwell Boltzmann distribution.
 
+    nsteps : :class:`int` (optional)
+        Number of MLMD steps for production runs. Default ``1000`` steps.
+
+    nsteps_eq : :class:`int` (optional)
+        Number of MLMD steps for equilibration runs. Default ``100`` steps.
+
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no traj file is created. Default ``None``.
+
+    loginterval : :class:`int` (optional)
+        Number of steps between MLMD logging. Default ``50``.
+
     workdir : :class:`str` (optional)
         Working directory for the LAMMPS MLMD simulations.
         If ``None``, a LammpsMLMD directory is created
+
+    blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
+        Custom block input class. Can be a list of blocks.
+        If ``None``, nothing is added in the input. Default ``None``.
+
+    Examples
+    --------
+
+    >>> from mlacs.state import LammpsState
+    >>>
+    >>> state = LammpsState(temperature=300, pressure=None) #NVT
+    >>> state = LammpsState(temperature=300, pressure=0)    #NPT
+    >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
     def __init__(self, temperature, pressure=None, t_stop=None,
                  p_stop=None, damp=None, langevin=True, gjf="vhalf",
                  qtb=False, fd=200, n_f=100, pdamp=None, ptype="iso",
-                 dt=1.5, fixcm=True, rng=None, init_momenta=None,
-                 nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 twodimensional=False, dt=1.5, fixcm=True, rng=None,
+                 init_momenta=None, nsteps=1000, nsteps_eq=100, logfile=None,
+                 trajfile=None, loginterval=50, workdir=None, blocks=None):
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
                          workdir, blocks)
 
@@ -391,6 +409,7 @@ class LammpsState(BaseLammpsState):
         self.fixcm = fixcm
         self.rng = rng
         self.init_momenta = init_momenta
+        self.twodimensional = twodimensional
 
         if self.rng is None:
             self.rng = np.random.default_rng()
@@ -419,10 +438,12 @@ class LammpsState(BaseLammpsState):
                 temp = np.max(tmp_temp)
             else:
                 temp = self.rng.uniform(*tmp_temp)
+            self.info_dynamics["temperature"] = temp
         if self.p_stop is None:
             press = self.pressure
         else:
             press = self.rng.uniform(self.pressure, self.p_stop)
+            self.info_dynamics["pressure"] = press
         if self.qtb:
             qtbseed = self.rng.integers(1, 99999999)
         if self.langevin:
@@ -461,8 +482,14 @@ class LammpsState(BaseLammpsState):
                 txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
                       f"{langevinseed} gjf {self.gjf} zero yes"
                 block("langevin", txt)
-                txt = f"fix f2 all nph {self.ptype} " + \
-                      f"{press*10000} {press*10000} {self.pdamp}"
+                ptxt = f"{press*10000} {press*10000} {self.pdamp}"
+                txt = "fix f2 all nph "
+                if self.twodimensional:
+                    txt += f"x {ptxt} y {ptxt} "
+                    if self.ptype == "iso":
+                        txt += "couple xy "
+                else:
+                    txt += f"{self.ptype} {ptxt}"
                 block("nph", txt)
             else:
                 txt = f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
@@ -493,10 +520,7 @@ class LammpsState(BaseLammpsState):
         if self.temperature is None:  # NVE
             raise NotImplementedError
         ensemble[2] = "T"
-
-        temperature = None
-        if self.t_stop is None:
-            temperature = self.temperature
+        temperature = self.temperature
 
         # NVT, NPT, no (uVT, uPT, NVE) yet
         self.ensemble = ''.join(ensemble)

@@ -54,7 +54,7 @@ class WeightingPolicy:
         if database is not None:
             self.matsize = [len(a) for a in database]
 
-        self.weight = []
+        self.weight = np.array([])
         if weight is not None:
             if isinstance(weight, str):
                 weight = np.loadtxt(weight)
@@ -63,11 +63,21 @@ class WeightingPolicy:
             weight = np.loadtxt("MLIP.weight")
             self.weight = weight
         else:
-            self.weight = []
+            self.weight = np.array([])
+
+# ========================================================================== #
+    def get_effective_conf(self):
+        """
+        Compute the number of effective configurations.
+        """
+        if len(self.weight) == 0:
+            return 0
+        neff = np.sum(self.weight)**2 / np.sum(self.weight**2)
+        return neff
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, desc, coef, f_mlipE):
+    def compute_weight(self, coef, f_mlipE):
         """
         """
         raise NotImplementedError
@@ -91,13 +101,17 @@ class WeightingPolicy:
         raise NotImplementedError
 
 # ========================================================================== #
-    def init_weight(self):
+    def init_weight(self, scale=1):
         """
-        Initialize the weight matrice with W = scale * 1/N.
+        Scale the weight matrice to include the new configurations.
+        Those have weight 1/Neff.
         """
         n_tot = len(self.matsize)
-        weight = np.ones(n_tot) / n_tot
-        weight[:len(self.weight)] = self.weight
+        neff = self.get_effective_conf()
+        nnew = n_tot - len(self.weight)
+        weight = (np.ones(n_tot)*scale) / (neff + nnew)
+        ratio = neff / (neff + nnew)
+        weight[:len(self.weight)] = self.weight * ratio
         return weight / np.sum(weight)
 
 # ========================================================================== #
@@ -122,12 +136,15 @@ class UniformWeight(WeightingPolicy):
     """
     Class that gives uniform weight in MLACS.
 
-    nthrow: :class: int
+    Parameters
+    ----------
+    nthrow: :class:`int`
         Number of configurations to ignore when doing the fit.
         Three cases :
-         1. If nconf > 2*nthrow, remove the nthrow first configuration
-         2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
-         3. If nconf < nthrow, keep all conf
+
+        1. If nconf > 2*nthrow, remove the nthrow first configuration
+        2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
+        3. If nconf < nthrow, keep all conf
 
     """
 
@@ -144,7 +161,7 @@ class UniformWeight(WeightingPolicy):
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, desc=None, coef=None, f_mlipE=None):
+    def compute_weight(self, coef, f_mlipE):
         """
         Compute Uniform Weight taking into account nthrow :
         """

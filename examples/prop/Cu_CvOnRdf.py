@@ -5,15 +5,11 @@ from ase.calculators.emt import EMT
 
 from mlacs.mlip import SnapDescriptor, LinearPotential
 from mlacs.state import LammpsState
-
-from mlacs.ti import ThermodynamicIntegration
-from mlacs.ti import EinsteinSolidState
-
 from mlacs import OtfMlacs
-from mlacs.properties import CalcTi
+from mlacs.properties import CalcRdf
 
 """
-Example of a MLACS simulation of Cu at 300 K taht converges on free energy.
+Example of a MLACS simulation of Cu at 300 K.
 The true potential is the EMT as implemented in ASE.
 """
 # System
@@ -52,19 +48,12 @@ friction = 0.01    # Friction coefficient for the Langevin thermostat.
 descriptor = SnapDescriptor(atoms, rcut=rcut, parameters=parameters)
 mlip = LinearPotential(descriptor)
 
-neti_params = {'atoms': atoms,
-               'temperature': 300,
-               'dt': 1.5,
-               'nsteps':200,
-               'nsteps_eq':100,
-               'nsteps_msd': 100,
-               'pair_style': mlip.pair_style,
-               'pair_coeff': mlip.pair_coeff}
-
-properties = [CalcTi(neti_params, 'solid', ninstance=4, frequence=2)]
+kwargs = {'pair_style': mlip.pair_style,
+          'pair_coeff': mlip.pair_coeff}
 
 # Creation of the State Manager
 state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq)
+properties = CalcRdf(state=state, args=kwargs)
 
 # Creation of the OtfMLACS object
 sampling = OtfMlacs(atoms, state, calc, mlip, properties, neq=neq)

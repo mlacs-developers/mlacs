@@ -568,7 +568,7 @@ def write_lammps_NEB_ASCIIfile(filename, supercell):
 
     Return
     ------
-       Final NEB configuration :class: `file`
+       Final NEB configuration :class:`file`
     '''
     instr = '# Final coordinates of the NEB calculation.\n'
     instr += '{0}\n'.format(len(supercell))

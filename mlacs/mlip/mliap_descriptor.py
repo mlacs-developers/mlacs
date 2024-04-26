@@ -42,17 +42,19 @@ class MliapDescriptor(Descriptor):
         A dictionnary of parameters for the descriptor input
 
         If the `style` is set to `snap`, then the default values are
-            - twojmax = 8
-            - rfac0 = 0.99363
-            - rmin0 = 0.0
-            - switchflag = 1
-            - bzeroflag = 1
-            - wselfallflag = 0
+
+        - twojmax = 8
+        - rfac0 = 0.99363
+        - rmin0 = 0.0
+        - switchflag = 1
+        - bzeroflag = 1
+        - wselfallflag = 0
 
         If the `style` is set to `so3`, then the default values are
-            - nmax = 4
-            - lmax = 4
-            - alpha = 1.0
+
+        - nmax = 4
+        - lmax = 4
+        - alpha = 1.0
 
     model: :class:`str`
         The type of model use. Can be either 'linear' or 'quadratic'
@@ -66,6 +68,9 @@ class MliapDescriptor(Descriptor):
         The multiplication factor to the regularization parameter for
         ridge regression.
         Default 1.0
+
+    Examples
+    --------
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
                  model="linear", style="snap", alpha=1.0):

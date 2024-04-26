@@ -69,24 +69,24 @@ class OtfMlacs:
         If several states are used, this input can be a list of :class:`str`.
         Default ``\"Trajectory\"``.
 
-    confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms`  (optional)
-        if :class:`int`: Number of configuirations used
-        to train a preliminary MLIP
-        The configurations are created by rattling the first structure
-        if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
-        computed in order to create the initial training configurations
+    confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
+        If :class:`int`, Number of configurations used to train a preliminary
+        MLIP. The configurations are created by rattling the first structure.
+        If :class:`list` of :class:`ase.Atoms`, The atoms that are to be
+        computed in order to create the initial training configurations.
         Default ``1``.
 
     std_init: :class:`float` (optional)
-        Variance (in angs^2) of the displacement when creating
-        initial configurations. Default ``0.05`` angs^2
+        Variance (in :math:`\mathring{a}^2`) of the displacement
+        when creating initial configurations.
+        Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool`(optional)
+    keep_tmp_mlip: :class:`bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
-    ntrymax: :class:`int`(optional)
+    ntrymax: :class:`int` (optional)
         The maximum number of tentative to retry a step if
         the reference potential raises an error or didn't converge.
         Default ``0``.
@@ -234,7 +234,7 @@ class OtfMlacs:
             else:
                 eq.append(False)
                 msg = f"Production step for state {istate+1}, "
-            msg += f"configuration {trajstep} for this state"
+            msg += f"configurations {trajstep} for this state"
             self.log.logger_log.info(msg)
         self.log.logger_log.info("\n")
         # Training MLIP
@@ -728,7 +728,8 @@ class OtfMlacs:
 
         # If the last simulation was with keep_tmp_mlip=False,
         # we put the old MLIP.model and weight in a Coef folder
-        if len(no_parent_atoms) > 1 and self.keep_tmp_mlip:
+        can_use_weight = self.mlip.can_use_weight
+        if len(no_parent_atoms) > 1 and self.keep_tmp_mlip and can_use_weight:
             msg = "Some configuration in Trajectory have no parent_mlip\n"
             msg += "You should rerun this simulation with DatabaseCalc\n"
             self.log.logger_log.info(msg)
@@ -752,6 +753,7 @@ class OtfMlacs:
                                  mlip_subfolder=mlip_sf)
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
+
         # Update this simulation traj
         self.traj = []
         self.atoms = []

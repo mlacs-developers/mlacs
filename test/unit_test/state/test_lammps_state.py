@@ -115,3 +115,59 @@ def test_NPT():
     assert (info['pressure'] == 1)
     assert ('volume' not in md_at.info)
     cleanup()
+
+
+def test_tstop():
+    """
+    Make sure NPT correctly add atoms.info['info_state']
+    """
+    cleanup()
+    mpath, dpath = create_mlip()
+
+    ls = LammpsState(300, nsteps=100, nsteps_eq=20,
+                     dt=0.5, pressure=1, t_stop=500)
+    at = bulk("Cu").repeat(2)
+    ps = f"mliap model linear {mpath} descriptor sna {dpath}"
+    pc = ['* * Cu']
+    model_post = None
+    atom_style = "atomic"
+    eq = False
+
+    md_at = ls.run_dynamics(at, ps, pc, model_post, atom_style, eq)
+
+    # Test
+    assert ('info_state' in md_at.info)
+    info = md_at.info['info_state']
+    assert (info['ensemble'] == "NPT")
+    assert (info['temperature'] is not None)
+    assert (info['pressure'] == 1)
+    assert ('volume' not in md_at.info)
+    cleanup()
+
+
+def test_pstop():
+    """
+    Make sure NPT correctly add atoms.info['info_state']
+    """
+    cleanup()
+    mpath, dpath = create_mlip()
+
+    ls = LammpsState(3200, nsteps=100, nsteps_eq=20,
+                     dt=0.5, pressure=1, p_stop=10)
+    at = bulk("Cu").repeat(2)
+    ps = f"mliap model linear {mpath} descriptor sna {dpath}"
+    pc = ['* * Cu']
+    model_post = None
+    atom_style = "atomic"
+    eq = False
+
+    md_at = ls.run_dynamics(at, ps, pc, model_post, atom_style, eq)
+
+    # Test
+    assert ('info_state' in md_at.info)
+    info = md_at.info['info_state']
+    assert (info['ensemble'] == "NPT")
+    assert (info['temperature'] == 3200)
+    assert (info['pressure'] is not None)
+    assert ('volume' not in md_at.info)
+    cleanup()

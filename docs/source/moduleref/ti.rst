@@ -14,7 +14,7 @@ ThermodynamicIntegration
 .. module:: mlacs.ti.thermostate
 
 ThermoState
-***********
+~~~~~~~~~~~
 
 .. autoclass:: ThermoState
 
@@ -22,7 +22,7 @@ ThermoState
 .. module:: mlacs.ti.solids
 
 EinsteinSolidState
-******************
+~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: EinsteinSolidState
 
@@ -30,7 +30,7 @@ EinsteinSolidState
 .. module:: mlacs.ti.liquids
 
 UFLiquidState
-*************
+~~~~~~~~~~~~~
 
 .. autoclass:: UFLiquidState
 
@@ -45,6 +45,9 @@ ReversibleScalingState
 
 .. module:: mlacs.ti.gpthermoint
 
+Gaussian Process
+################
+
 GpThermoIntT
 ************
 
@@ -56,11 +59,3 @@ GpThermoIntVT
 
 .. autoclass:: GpThermoIntVT
    :members: add_new_data, get_helmholtz_free_energy, get_gibbs_free_energy, get_volume_from_press_temp, get_thermal_expansion
-
-
-.. module:: mlacs.ti.helpers
-
-prepare_ti
-**********
-
-.. autofunction:: prepare_ti

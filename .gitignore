@@ -20,3 +20,6 @@ docs/source/tutorials/*jpeg
 
 # Pytest
 .coverage
+
+# Git files
+*.orig

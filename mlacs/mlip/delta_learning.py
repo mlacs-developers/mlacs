@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from ase.atoms import Atoms
 from ase.calculators.lammpsrun import LAMMPS
 from ase.calculators.singlepoint import SinglePointCalculator
@@ -23,12 +21,26 @@ class DeltaLearningPotential(MlipManager):
         If an overlay of pair style is used, this input as to be a
         :class:`list` of :class:`str` of the pair_style.
         For example :
-        pair_style = ['sw', 'zbl 3.0 4.0']
-        pair_coeff = [['* * Si.sw Si'],
-                      [* * 14 14]]
 
     pair_coeff: :class:`list` of :class:`str`
         The pair_coeff of the LAMMPS reference potential.
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(confs[0], rcut=6.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
+    >>>
+    >>> from mlacs.mlip import DeltaLearningPotential
+    >>> ps = ['sw', 'zbl 3.0 4.0']
+    >>> pc = [['* * Si.sw Si'], ['* * 14 14']]
+    >>> dmlip = DeltaLearningPotential(mlip, pair_style=ps, pair_coeff=pc)
+    >>> dmlip.update_matrices(confs)
+    >>> dmlip.train_mlip()
     """
     def __init__(self,
                  model,
@@ -36,9 +48,14 @@ class DeltaLearningPotential(MlipManager):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 folder=Path("MLIP")):
-        self.model = model
+                 folder=None):
+        if folder != model.folder:
+            if folder is not None:
+                model.folder = folder
+            else:
+                folder = model.folder
 
+        self.model = model
         weight = self.model.weight
 
         if not isinstance(pair_style, list):
@@ -59,6 +76,8 @@ class DeltaLearningPotential(MlipManager):
         self._ref_s = None
 
 # ========================================================================== #
+
+# ========================================================================== #
     def get_ref_pair_style(self, lmp=False):
         """
         Return self.ref_pair_style which is an array.
@@ -74,6 +93,25 @@ class DeltaLearningPotential(MlipManager):
             for ps in self.ref_pair_style:
                 full_pair_style += f"{ps} "
             return full_pair_style
+
+# ========================================================================== #
+    def get_ref_pair_coeff(self):
+        """
+        Return the pair_coeff for the reference calculations
+        """
+        if len(self.ref_pair_style) == 1:
+            return self.ref_pair_coeff
+        else:
+            ref_pair_coeff = []
+            for ps, pc in zip(self.ref_pair_style, self.ref_pair_coeff):
+                refpssplit = ps.split()
+                for ppc in pc:
+                    refpcsplit = ppc.split()
+                    refpc = " ".join([*refpcsplit[:2],
+                                      refpssplit[0],
+                                      *refpcsplit[2:]])
+                    ref_pair_coeff.append(refpc)
+            return ref_pair_coeff
 
 # ========================================================================== #
     def _get_pair_style(self):
@@ -99,17 +137,19 @@ class DeltaLearningPotential(MlipManager):
 
         # First let's take care of only one reference potential
         if len(self.ref_pair_style) == 1:
-            refpcsplit = self.ref_pair_coeff[0].split()
             refpssplit = self.ref_pair_style[0].split()
-            refpc = " ".join([*refpcsplit[:2],
-                              refpssplit[0],
-                              *refpcsplit[2:]])
+            full_pair_coeff = []
+            for refpc in self.ref_pair_coeff:
+                refpcsplit = refpc.split()
+                full_pair_coeff.append(" ".join([*refpcsplit[:2],
+                                       refpssplit[0],
+                                       *refpcsplit[2:]]))
             mlpcsplit = self.model.pair_coeff[0].split()
             mlpssplit = self.model.pair_style.split()
             mlpc = " ".join([*mlpcsplit[:2],
                              mlpssplit[0],
                              *mlpcsplit[2:]])
-            full_pair_coeff = [refpc, mlpc]
+            full_pair_coeff.append(mlpc)
 
         # And now with an overlay reference potential
         else:
@@ -128,15 +168,14 @@ class DeltaLearningPotential(MlipManager):
                              mlpssplit[0],
                              *mlpcsplit[2:]])
             full_pair_coeff.append(mlpc)
-
         return full_pair_coeff
 
 # ========================================================================== #
-    def get_mlip_energy(self, coef, desc):
+    def predict(self, atoms, coef=None):
         """
         Function that gives the mlip_energy
         """
-        return self.model.get_mlip_energy(coef, desc)
+        return self.model.predict(atoms, coef)
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -147,7 +186,7 @@ class DeltaLearningPotential(MlipManager):
             atoms = [atoms]
 
         calc = LAMMPS(pair_style=self.get_ref_pair_style(lmp=True),
-                      pair_coeff=self.ref_pair_coeff,
+                      pair_coeff=self.get_ref_pair_coeff(),
                       atom_style=self.ref_atom_style)
 
         if self.model_post is not None:
@@ -190,6 +229,14 @@ class DeltaLearningPotential(MlipManager):
         """
         msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
         return msg
+
+    # GA: Need to overwrite this abstract methods, but I'm not sure
+    #     if it is used at all.
+    def get_mlip_energy(coef, desc):
+        """
+        Function that gives the mlip_energy
+        """
+        raise NotImplementedError
 
 # ========================================================================== #
     def get_calculator(self):

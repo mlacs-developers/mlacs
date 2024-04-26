@@ -25,6 +25,8 @@ def expected_files(expected_files_base):
     return expected_files_base
 
 
+@pytest.mark.skipif(context.has_lammps_nompi(),
+                    reason="Lammps needs mpi to run PAFI")
 def test_mlacs_nebstate_vanilla(root, treelink):
 
     atoms = bulk("Ag", cubic=True).repeat(3)

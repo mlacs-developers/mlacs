@@ -26,7 +26,7 @@ default_fit_parameters = dict(scale_by_forces=0,
                               bfgs_conv_tol=1e-3,
                               weighting="vibrations",
                               init_params="random",
-                              update_mindist=False)
+                              update_mindist=True)
 
 
 # ========================================================================== #
@@ -45,15 +45,16 @@ class MomentTensorPotential(SelfMlipManager):
         The path to the  `mlp` binary. If mpi is desired, the command
         should be set as 'mpirun /path/to/mlp'
 
-    mpt_parameters: :class:`dict`
+    mtp_parameters: :class:`dict`
         The dictionnary with inputs for the potential.
 
         The default values are set to
-            - level = 8
-            - radial_basis_type = 'RBChebyshev'
-            - min_dist=1.0,
-            - max_dist=5.0,
-            - radial_basis_size=8
+
+        - level = 8
+        - radial_basis_type = 'RBChebyshev'
+        - min_dist=1.0,
+        - max_dist=5.0,
+        - radial_basis_size=8
 
     fit_parameters: :class:`dict`
         The parameters for the fit of the potential
@@ -65,6 +66,17 @@ class MomentTensorPotential(SelfMlipManager):
             - weighting='vibrations'
             - init_params='random'
             - update_mindist=False
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import MomentTensorPotential
+    >>> mlip = MomentTensorPotential(confs[0], mtp_parameters=dict(level=6))
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
     def __init__(self,
                  atoms,
@@ -73,8 +85,9 @@ class MomentTensorPotential(SelfMlipManager):
                  mtp_parameters={},
                  fit_parameters={}):
         SelfMlipManager.__init__(self,
-                                 BlankDescriptor(atoms),
-                                 folder)
+                                 descriptor=BlankDescriptor(atoms),
+                                 weight=None,
+                                 folder=folder)
 
         self.cmd = mlpbin
 
@@ -91,6 +104,40 @@ class MomentTensorPotential(SelfMlipManager):
 
         self.fit_parameters = default_fit_parameters
         self.fit_parameters.update(fit_parameters)
+
+# ========================================================================== #
+    def read_parent_mlip(self, traj):
+        """
+        Get a list of all the mlip that have generated a conf in traj
+        and get the coefficients of all these mlip
+        """
+        parent_mlip = []
+        mlip_coef = []
+        # Make the MBAR variable Nk and mlip_coef
+        for state in traj:
+            for conf in state:
+                if "parent_mlip" not in conf.info:  # Initial or training
+                    continue
+                else:  # A traj
+                    model = conf.info['parent_mlip']
+                    if not Path(model).exists:
+                        err = "Some parent MLIP are missing. "
+                        err += "Rerun MLACS with DatabaseCalculator and "
+                        err += "OtfMlacs.keep_tmp_files=True on your traj"
+                        raise FileNotFoundError(err)
+                    if model not in parent_mlip:  # New state
+                        parent_mlip.append(model)
+                        coef = model
+                        mlip_coef.append(coef)
+        return parent_mlip, np.array(mlip_coef)
+
+# ========================================================================== #
+    def next_coefs(self, mlip_coef, mlip_subfolder):
+        """
+        Update MLACS just like train_mlip, but without actually computing
+        the coefficients
+        """
+        pass
 
 # ========================================================================== #
     def get_pair_style(self, folder):
@@ -113,6 +160,11 @@ class MomentTensorPotential(SelfMlipManager):
             subfolder = self.folder
         else:
             subfolder = self.folder / mlip_subfolder
+            # We need to remove the old subfolder. If calculation ended at
+            # some specific weird moments, it can cause access problem
+            # for the mlp binary otherwise
+            if subfolder.exists():
+                shutil.rmtree(subfolder)
 
         subfolder.mkdir(parents=True, exist_ok=True)
 
@@ -248,9 +300,12 @@ class MomentTensorPotential(SelfMlipManager):
         mlp_command += f" --bfgs-conv-tol={bfgs_conv_tol}"
         scale_by_forces = self.fit_parameters["scale_by_forces"]
         mlp_command += f" --scale-by-force={scale_by_forces}"
-        mlp_command += f" --energy-weight={self.weight.energy_coefficients}"
-        mlp_command += f" --force-weight={self.weight.forces_coefficients}"
-        mlp_command += f" --stress-weight={self.weight.stress_coefficients}"
+        mlp_command += f" --energy-weight={self.weight.energy_coefficient}"
+        mlp_command += f" --force-weight={self.weight.forces_coefficient}"
+        mlp_command += f" --stress-weight={self.weight.stress_coefficient}"
+        weighting = self.fit_parameters["weighting"]
+        mlp_command += f" --weighting={weighting}"
+        print(mlp_command)
         with open(subfolder / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
@@ -260,6 +315,20 @@ class MomentTensorPotential(SelfMlipManager):
             msg = "mlp stopped with the exit code \n" + \
                   f"{mlp_handle.stderr.decode()}"
             raise RuntimeError(msg)
+
+# ========================================================================== #
+    def _get_pair_style(self):
+        return self.get_pair_style(self.folder)
+
+# ========================================================================== #
+    def _get_pair_coeff(self):
+        return self.get_pair_coeff(self.folder)
+
+# ========================================================================== #
+    def predict(self, atoms, coef=None):
+        msg = "Getting the MLIP energy from descriptor is not accessible " + \
+              "for SelfMlipManager"
+        raise NotImplementedError(msg)
 
 # ========================================================================== #
     def _run_test(self, subfolder):

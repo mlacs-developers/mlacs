@@ -6,8 +6,9 @@ from ase.build import bulk
 from ase.calculators.singlepoint import SinglePointCalculator
 
 from ... import context  # noqa
-from mlacs.mlip import SnapDescriptor
+from mlacs.mlip import SnapDescriptor, LinearPotential
 from mlacs.mlip.mlip_manager import MlipManager, SelfMlipManager
+from mlacs.mlip.delta_learning import DeltaLearningPotential
 
 
 def create_dum_data(atoms):
@@ -99,3 +100,55 @@ def test_update_matrices_self():
     manager.update_matrices(fakeat)
     for refat, predat in zip(fakeat, manager.configurations):
         assert refat == predat
+
+
+@patch.multiple(SelfMlipManager, __abstractmethods__=set())
+def test_update_matrices_delta():
+    at = bulk("Si")
+    desc = SnapDescriptor(at, 2.3)
+    nparams = desc.ncolumns
+    model = LinearPotential(desc, parameters=dict(twojmax=4))
+    ref_pair_style = "zbl 3.0 4.0"
+    ref_pair_coeff = ["* * 14 14"]
+    manager = DeltaLearningPotential(model, ref_pair_style,
+                                     ref_pair_coeff)
+
+    nconfs = 0
+    assert len(manager.model.natoms) == nconfs
+
+    # Let's try adding one atom
+    fakeat = create_dum_data(at)
+    manager.update_matrices(fakeat)
+    nconfs += 1
+    assert manager.model.nconfs == nconfs
+    assert len(manager.model.natoms) == nconfs
+
+    nf = 3 * len(at) * nconfs
+    ns = nconfs * 6
+    assert manager.model.amat_e.shape == (nconfs, nparams)
+    assert manager.model.amat_f.shape == (nf, nparams)
+    assert manager.model.amat_s.shape == (ns, nparams)
+    assert manager.model.ymat_e.shape == (nconfs,)
+    assert manager.model.ymat_f.shape == (nf,)
+    assert manager.model.ymat_s.shape == (ns,)
+
+    # Let's try adding several atoms
+    fakeat = []
+    for _ in range(5):
+        fakeat.append(create_dum_data(at))
+        nconfs += 1
+    manager.update_matrices(fakeat)
+    assert manager.nconfs == nconfs
+    assert len(manager.model.natoms) == nconfs
+
+    nf = 3 * len(at) * nconfs
+    ns = nconfs * 6
+    assert manager.model.amat_e.shape == (nconfs, nparams)
+    assert manager.model.amat_f.shape == (nf, nparams)
+    assert manager.model.amat_s.shape == (ns, nparams)
+    assert manager.model.ymat_e.shape == (nconfs,)
+    assert manager.model.ymat_f.shape == (nf,)
+    assert manager.model.ymat_s.shape == (ns,)
+
+    if manager.folder.exists():
+        shutil.rmtree(manager.folder)

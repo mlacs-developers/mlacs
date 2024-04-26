@@ -26,7 +26,8 @@ def plot_correlation(ax,
                      showrmse=True,
                      showmae=True,
                      showrsquared=True,
-                     size=5):
+                     size=5,
+                     axcbar=None):
     """
     Function to plot the correlation between true and model data on an axes
 
@@ -64,6 +65,11 @@ def plot_correlation(ax,
         data[:, 1] -= data[:, 0].min()
         data[:, 0] -= data[:, 0].min()
 
+    cancbar = np.any([weight is not None, density])
+    if axcbar is not None and not cancbar:
+        msg = "You need weight or density to use plot a color bar"
+        raise ValueError(msg)
+
     datatrue = data[:, 0]
     datatest = data[:, 1]
 
@@ -71,15 +77,19 @@ def plot_correlation(ax,
     maxdata = data.max()
     minmax = [mindata, maxdata]
 
-    rmse, mae, rsquared = compute_correlation(data)
+    rmse, mae, rsquared = compute_correlation(data, weight)
 
     if density:
         xy = np.vstack([datatrue, datatest])
         z = gaussian_kde(xy)(xy)
         norm = mpl.colors.LogNorm(z.min(), z.max())
         idx = z.argsort()
-        ax.scatter(datatrue[idx], datatest[idx], c=z[idx],
-                   linewidths=5, norm=norm, s=size, cmap=cmap)
+        plot = ax.scatter(datatrue[idx], datatest[idx], c=z[idx],
+                          linewidths=5, norm=norm, s=size, cmap=cmap)
+        if axcbar is not None:
+            mpl.colorbar.Colorbar(axcbar, plot, cmap=cmap, norm=norm)
+            axcbar.set_ylabel("Density")
+
     elif weight is not None:
         if datatype != "energy":
             w = []
@@ -91,9 +101,13 @@ def plot_correlation(ax,
                 msg = "Number of weight not consistent with the Database"
                 raise ValueError(msg)
             weight = np.r_[w] / np.sum(np.r_[w])
-        norm = mpl.colors.LogNorm(weight.min(), weight.max())
-        ax.scatter(datatrue, datatest, c=weight,
-                   linewidths=5, norm=norm, s=size, cmap=cmap)
+        # We add a small number to the min to avoid a possible 0 with the log
+        norm = mpl.colors.LogNorm(weight.min() + 1e-8, weight.max())
+        plot = ax.scatter(datatrue, datatest, c=weight,
+                          linewidths=5, norm=norm, s=size, cmap=cmap)
+        if axcbar is not None:
+            mpl.colorbar.Colorbar(axcbar, plot, cmap=cmap, norm=norm)
+            axcbar.set_ylabel("Weight")
     else:
         ax.plot(datatrue, datatest, ls="", marker=marker,
                 c=color, rasterized=True, markersize=size,
@@ -204,6 +218,20 @@ def plot_error(ax,
     ax.set_ylabel("Density [%]")
     ax.set_xlim(minmax)
     ax.set_ylim(0)
+    return ax
+
+
+def plot_weights(ax, weights, color=blue):
+    xrange = np.arange(len(weights))
+    neff = np.sum(weights)**2 / np.sum(weights**2)
+
+    ax.bar(xrange, weights)
+    ax.text(0.01, 0.9, f"Eff. N. conf = {neff:5.4f}",
+            fontsize=30,
+            transform=ax.transAxes)
+    ax.set_ylim(0)
+    ax.set_xlabel("Configuration index")
+    ax.set_ylabel("Weight")
     return ax
 
 

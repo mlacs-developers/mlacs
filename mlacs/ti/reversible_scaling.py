@@ -29,6 +29,14 @@ class ReversibleScalingState(ThermoState):
         pair_style for the LAMMPS input
     pair_coeff: :class:`str` or :class:`list` of :class:`str`
         pair_coeff for the LAMMPS input
+    fcorr1: :class:`float` or ``None``
+        First order cumulant correction to the free energy, in eV/at,
+        to be added to the results.
+        If ``None``, no value is added. Default ``None``.
+    fcorr2: :class:`float` or ``None``
+        Second order cumulant correction to the free energy, in eV/at,
+        to be added to the results.
+        If ``None``, no value is added. Default ``None``.
     t_start: :class:`float` (optional)
         Initial temperature of the simulation, in Kelvin. Default ``300``.
     t_end: :class:`float` (optional)
@@ -79,12 +87,14 @@ class ReversibleScalingState(ThermoState):
                  atoms,
                  pair_style,
                  pair_coeff,
+                 fcorr1=None,
+                 fcorr2=None,
                  t_start=300,
                  t_end=1200,
                  fe_init=None,
                  phase=None,
                  ninstance=1,
-                 dt=1.5,
+                 dt=1,
                  damp=None,
                  pressure=None,
                  pdamp=None,
@@ -108,6 +118,7 @@ class ReversibleScalingState(ThermoState):
         self.pressure = pressure
         self.pdamp = pdamp
         self.gjf = gjf
+        self.dt = dt
 
         # Free energy calculation before sweep
         if self.fe_init is None:
@@ -116,41 +127,42 @@ class ReversibleScalingState(ThermoState):
                                                 pair_style,
                                                 pair_coeff,
                                                 t_start,
-                                                fcorr1=None,
-                                                fcorr2=None,
+                                                pressure,
+                                                fcorr1,
+                                                fcorr2,
                                                 k=None,
                                                 dt=dt,
-                                                damp=None,
-                                                nsteps=10000,
-                                                nsteps_eq=5000,
-                                                nsteps_msd=25000,
-                                                rng=None,
-                                                suffixdir=None,
-                                                logfile=True,
-                                                trajfile=True,
-                                                interval=500,
-                                                loginterval=50,
-                                                trajinterval=50)
+                                                damp=damp,
+                                                pdamp=pdamp,
+                                                nsteps=nsteps,
+                                                nsteps_eq=nsteps_eq,
+                                                rng=rng,
+                                                suffixdir=suffixdir,
+                                                logfile=logfile,
+                                                trajfile=trajfile,
+                                                interval=interval,
+                                                loginterval=loginterval,
+                                                trajinterval=trajinterval)
             elif phase == 'liquid':
                 self.state = UFLiquidState(atoms,
                                            pair_style,
                                            pair_coeff,
                                            t_start,
-                                           fcorr1=None,
-                                           fcorr2=None,
-                                           p=50,
-                                           sigma=2.0,
+                                           pressure,
+                                           fcorr1,
+                                           fcorr2,
                                            dt=dt,
-                                           damp=None,
-                                           nsteps=10000,
-                                           nsteps_eq=5000,
-                                           rng=None,
-                                           suffixdir=None,
-                                           logfile=True,
-                                           trajfile=True,
-                                           interval=500,
-                                           loginterval=50,
-                                           trajinterval=50)
+                                           damp=damp,
+                                           pdamp=pdamp,
+                                           nsteps=nsteps,
+                                           nsteps_eq=nsteps_eq,
+                                           rng=rng,
+                                           suffixdir=suffixdir,
+                                           logfile=logfile,
+                                           trajfile=trajfile,
+                                           interval=interval,
+                                           loginterval=loginterval,
+                                           trajinterval=trajinterval)
             self.ti = ThermodynamicIntegration(self.state,
                                                ninstance,
                                                logfile='FreeEnergy.log')
@@ -173,12 +185,12 @@ class ReversibleScalingState(ThermoState):
                              dt,
                              nsteps,
                              nsteps_eq,
-                             rng,
-                             logfile,
-                             trajfile,
-                             interval,
-                             loginterval,
-                             trajinterval)
+                             rng=rng,
+                             logfile=logfile,
+                             trajfile=trajfile,
+                             interval=interval,
+                             loginterval=loginterval,
+                             trajinterval=trajinterval)
 
         self.suffixdir = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
         if self.pressure is None:
@@ -198,7 +210,7 @@ class ReversibleScalingState(ThermoState):
         if not os.path.exists(wdir):
             os.makedirs(wdir)
 
-            self.run_dynamics(wdir)
+        self.run_dynamics(wdir)
 
         with open(wdir + "MLMD.done", "w") as f:
             f.write("Done")
@@ -230,7 +242,7 @@ class ReversibleScalingState(ThermoState):
             for pc in self.pair_coeff:
                 pc_ = pc.split()
                 hpc_ = " ".join([*pc_[:2], *pc_[2:]])
-                hybrid_pair_coeff.append(hoc_)
+                hybrid_pair_coeff.append(hpc_)
 
         input_string = self.get_general_input()
 
@@ -241,7 +253,7 @@ class ReversibleScalingState(ThermoState):
         input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
         input_string += f"variable      tstart equal {self.t_start}\n"
         input_string += f"variable      tend  equal {self.t_end}\n"
-        input_string += f"timestep      {self.dt/ 1000}\n"
+        input_string += f"timestep      {self.dt / 1000}\n"
         input_string += "#####################################\n"
         input_string += "\n\n"
 
@@ -260,7 +272,8 @@ class ReversibleScalingState(ThermoState):
             input_string += "variable      ycm equal xcm(all,y)\n"
             input_string += "variable      zcm equal xcm(all,z)\n"
         input_string += "fix           f1  all langevin ${tstart} " + \
-                f"${{tstart}}  {damp}  {self.rng.integers(99999)} zero yes\n"
+                        f"${{tstart}}  {damp}  {self.rng.integers(99999)}" + \
+                        " zero yes\n"
         if self.pressure is None:
             input_string += "fix           f2  all nve\n"
         else:
@@ -276,7 +289,7 @@ class ReversibleScalingState(ThermoState):
         input_string += "# Fix center of mass\n"
         input_string += "compute       c1 all temp/com\n"
         input_string += "fix_modify    f1 temp c1\n"
-        if self.pressire is not None:
+        if self.pressure is not None:
             input_string += "fix_modify    f2 temp c1\n"
         input_string += "#####################################\n"
 
@@ -296,15 +309,15 @@ class ReversibleScalingState(ThermoState):
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
             "1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        if len(self.pair_coeff) ==1:
+        if len(self.pair_coeff) == 1:
             input_string += "fix          f3 all adapt 1 pair " + \
                             f"{self.pair_style} scale * * v_lambda\n"
         else:
             input_string += "pair_style hybrid/scaled v_lamda " + \
-                            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
-                            f"v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[1] + "\n"
+                            f"{pair_style[1]} {pair_style[2]} " + \
+                            f"{pair_style[3]} + v_lambda {pair_style[4]}\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[1] + "\n"
             input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
@@ -324,15 +337,15 @@ class ReversibleScalingState(ThermoState):
         input_string += "run          ${nstepseq}\n"
         input_string += "variable     lambda equal " + \
             "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
-        if len(self.pair_coeff) ==1:
+        if len(self.pair_coeff) == 1:
             input_string += "fix          f3 all adapt 1 pair " + \
                             f"{self.pair_style} scale * * v_lambda\n"
         else:
             input_string += "pair_style hybrid/scaled v_lamda " + \
-                            f"{pair_style[1]} {pair_style[2]} {pair_style[3]} " + \
-                            f"v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff" + hybdrid_pair_coeff[1] + "\n"
+                            f"{pair_style[1]} {pair_style[2]} " + \
+                            f"{pair_style[3]} v_lambda {pair_style[4]}\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[0] + "\n"
+            input_string += "pair_coeff    " + hybrid_pair_coeff[1] + "\n"
             input_string += "\n"
         input_string += "fix          f4 all print 1 " + \
             "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \

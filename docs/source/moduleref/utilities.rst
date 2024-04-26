@@ -23,7 +23,9 @@ Miscellanous
 Lammps IO
 *********
 
-.. autofunction:: write_lammps_NEB_ASCIIfile
+.. autoclass:: LammpsInput
+
+.. autoclass:: LammpsBlockInput
 
 .. module:: mlacs.utilities.io_abinit
 
