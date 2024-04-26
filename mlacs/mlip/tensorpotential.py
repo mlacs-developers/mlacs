@@ -90,12 +90,10 @@ class TensorpotPotential(MlipManager):
         msg += "Number of atomic environments for training: " + \
                f"{sum(self.natoms)}\n"
 
-        f_mlipE = self.get_mlip_energy  # (desc, coef)
         tmp_msg, weight_fn = self.weight.compute_weight(
-           desc=self.atoms,
-           coef=coef_fn,
-           f_mlipE=f_mlipE,
-           subfolder=mlip_subfolder)
+            self.coef,
+            self.predict,
+            subfolder=mlip_subfolder)
 
         create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
         create_link(mlip_subfolder/md_fn, self.folder/md_fn)

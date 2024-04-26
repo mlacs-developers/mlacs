@@ -361,7 +361,6 @@ def create_link(fn, lk):
     Creates a symbolic link lk pointing to fn
     If lk already exists, replace it
     """
-    print(f"Want to create a link at {lk} pointing to {fn}")
     if os.path.isfile(lk):
         if os.path.islink(lk):  # lk is already a link
             os.remove(lk)
@@ -369,7 +368,6 @@ def create_link(fn, lk):
             return
     if not os.path.exists(fn):
         return
-    print(f"Creating a link at {lk} pointing to {fn}")
     os.symlink(fn, lk)
 
 
