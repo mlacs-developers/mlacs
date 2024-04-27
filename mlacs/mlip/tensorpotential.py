@@ -5,6 +5,7 @@ import numpy as np
 from . import MlipManager
 from ..utilities import compute_correlation, create_link
 
+from ase.units import GPa
 from ase import Atoms
 from pathlib import Path
 
@@ -79,7 +80,7 @@ class TensorpotPotential(MlipManager):
             mlip_subfolder = self.folder / mlip_subfolder
 
         W = self.weight.get_weights()
-        md_fn, coef_fn = self.descriptor.fit(
+        coef_fn = self.descriptor.fit(
             weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
             energy=self.new_ymat_e, forces=self.new_ymat_f, 
             subfolder=mlip_subfolder)
@@ -95,8 +96,66 @@ class TensorpotPotential(MlipManager):
             self.predict,
             subfolder=mlip_subfolder)
 
+        msg += tmp_msg
+        msg += self.compute_tests()
+
         create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
-        create_link(mlip_subfolder/md_fn, self.folder/md_fn)
+        create_link(mlip_subfolder/coef_fn, self.folder/coef_fn)
+        return msg
+
+# ========================================================================== #
+    def compute_tests(self):
+        """
+        Compute the weighted RMSE and MAE
+        """
+        mlip_e, mlip_f, mlip_s = self.predict(desc=self.atoms)
+        true_e = np.array([at.get_potential_energy() for at in self.atoms])
+        true_f = [at.get_forces() for at in self.atoms]
+        true_s = [at.get_stress() for at in self.atoms]
+
+        mlip_f = np.reshape(mlip_f, [-1])
+        mlip_s = np.reshape(mlip_s, [-1])
+        true_f = np.reshape(true_f, [-1])
+        true_s = np.reshape(true_s, [-1])
+        
+        w = None
+        if len(self.weight.weight) > 0:
+            w = self.weight.weight
+
+        res_E = compute_correlation(np.c_[true_e, mlip_e], weight=w)
+        res_F = compute_correlation(np.c_[true_f, mlip_f], weight=w)
+        res_S = compute_correlation(np.c_[true_s, mlip_s]/GPa, weight=w)
+        r = np.c_[res_E, res_F, res_S]
+        self.fit_res = r
+
+        # Information to MLIP-Energy_comparison.dat
+        header = f"Weighted rmse: {self.fit_res[0, 0]:.6f} eV/at,    " + \
+                 f"Weighted mae: {self.fit_res[1, 0]:.6f} eV/at\n" + \
+                 " True Energy           Predicted Energy"
+        np.savetxt("MLIP-Energy_comparison.dat",
+                   np.c_[true_e, mlip_e],
+                   header=header, fmt="%25.20f  %25.20f")
+        header = f"Weighted rmse: {self.fit_res[0, 1]:.6f} eV/angs   " + \
+                 f"Weighted mae: {self.fit_res[1, 1]:.6f} eV/angs\n" + \
+                 " True Forces           Predicted Forces"
+
+        np.savetxt("MLIP-Forces_comparison.dat",
+                   np.c_[true_f, mlip_f],
+                   header=header, fmt="%25.20f  %25.20f")
+        header = f"Weighted rmse: {self.fit_res[0, 2]:.6f} GPa       " + \
+                 f"Weighted mae: {self.fit_res[1, 2]:.6f} GPa\n" + \
+                 " True Stress           Predicted Stress"
+        np.savetxt("MLIP-Stress_comparison.dat",
+                   np.c_[true_s, mlip_s] / GPa,
+                   header=header, fmt="%25.20f  %25.20f")
+
+        # Message to Mlacs.log
+        msg = f"Weighted RMSE Energy    {self.fit_res[0, 0]:.4f} eV/at\n"
+        msg += f"Weighted MAE Energy     {self.fit_res[1, 0]:.4f} eV/at\n"
+        msg += f"Weighted RMSE Forces    {self.fit_res[0, 1]:.4f} eV/angs\n"
+        msg += f"Weighted MAE Forces     {self.fit_res[1, 1]:.4f} eV/angs\n"
+        msg += f"Weighted RMSE Stress    {self.fit_res[0, 2]:.4f} GPa\n"
+        msg += f"Weighted MAE Stress     {self.fit_res[1, 2]:.4f} GPa\n"
         return msg
 
 # ========================================================================== #
@@ -109,31 +168,16 @@ class TensorpotPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, atoms):
+    def predict(self, desc, coef=None):
         """
         Give the energy forces stress of atoms according to the potential.
-        """
-        return self.get_mlip_energy(atoms)
-
-# ========================================================================== #
-    def get_mlip_energy(self, atoms, coef=None):
-        """
-        Calculate the energy predicted by the potential on a configuration
-
-        Parameters
-        ----------
-        coef: :class:`pathlib.Path` or :class:`str`
-              Path to the potential file
-
-        atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-              Configuration to evaluate
         """
         if coef is None:
             coef = self.coef[-1]
         if isinstance(coef, str):
             coef = Path(coef)
 
-        return self.descriptor.get_mlip_energy(atoms, coef)
+        return self.descriptor.predict(desc, coef, subfolder=self.folder)
 
 # ========================================================================== #
     def __str__(self):

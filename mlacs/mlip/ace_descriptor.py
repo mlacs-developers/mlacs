@@ -10,8 +10,11 @@ from ase import Atoms
 from ..utilities import update_dataframe
 from pyace.basis import BBasisConfiguration
 
-from ..utilities import subfolder
+from ase.io import read
+from ase.io.lammpsdata import write_lammps_data
+from ..utilities import get_elements_Z_and_masses, subfolder
 from .descriptor import Descriptor
+from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
 try:
     import pandas as pd
@@ -237,7 +240,7 @@ class AceDescriptor(Descriptor):
                 msg += f"Else, try this command '{yace_cmd}' inside "
                 msg += f"{Path().cwd()}"
                 raise RuntimeError(msg)
-        return "ACE.yace", "interim_potential_best_cycle.yaml"
+        return "ACE.yace"
 
 # ========================================================================== #
     @subfolder
@@ -287,8 +290,96 @@ class AceDescriptor(Descriptor):
         return e
 
 # ========================================================================== #
-    def predict(self, atoms, bconf=None):
-        raise NotImplementedError
+    @subfolder
+    def predict(self, atoms, coef):
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+
+        e, f, s = [], [], []
+        for at in atoms:
+            lmp_atfname="atoms.lmp"
+            el, z, masses, charges = get_elements_Z_and_masses(at)
+
+            self._write_lammps_input(masses, at.get_pbc(), coef, el)
+            write_lammps_data(lmp_atfname,
+                              at,
+                              specorder=self.elements.tolist())
+
+            self._run_lammps(lmp_atfname)
+            tmp_e, tmp_f, tmp_s = self._read_lammps_output(len(at))
+            e.append(tmp_e)
+            f.append(tmp_f)
+            s.append(tmp_s)
+            self.cleanup()
+        if len(e) == 1:
+            return e[0], f[0], s[0]
+
+        return e, f, s
+
+# ========================================================================== #
+    def _read_lammps_output(self, natoms):
+        with open("lammps.out", "r") as f:
+            lines = f.readlines()
+    
+        l = None
+        tofind = "Step          Temp          E_pair         Press"
+        for idx, line in enumerate(lines):
+            if tofind in line:
+                l = lines[idx+1].split()
+        if l is None:
+            raise ValueError("lammps.out didnt have the expected format")
+    
+        bar2GPa = 1e-4
+        e = float(l[2])/natoms
+        f = read('forces.out', format='lammps-dump-text').get_forces()
+        s = np.loadtxt('stress.out', skiprows=4)[:,1]*bar2GPa
+        return e, f, s
+
+# ========================================================================== #
+    def cleanup(self):
+        '''
+        Function to cleanup the LAMMPS files used
+        to extract the descriptor and gradient values
+        '''
+        Path("forces.out").unlink()
+        Path("lammps.out").unlink()
+        Path("lammps.in").unlink()
+        Path("atoms.lmp").unlink()
+
+# ========================================================================== #
+    def _write_lammps_input(self, masses, pbc, coef, el):
+        """
+        """
+        txt = "LAMMPS input file for extracting MLIP descriptors"
+        lmp_in = LammpsInput(txt)
+
+        block = LammpsBlockInput("init", "Initialization")
+        block("clear", "clear")
+        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        block("boundary", f"boundary {pbc_txt}")
+        block("atom_style", "atom_style  atomic")
+        block("units", "units metal")
+        block("read_data", "read_data atoms.lmp")
+        for i, m in enumerate(masses):
+            block(f"mass{i}", f"mass   {i+1} {m}")
+        lmp_in("init", block)
+
+        block = LammpsBlockInput("interaction", "Interactions")
+        block("pair_style", f"pair_style pace")
+        pc = f"pair_coeff * * {coef} {' '.join(self.elements)}"
+        block("pair_coeff", pc)
+        lmp_in("interaction", block)
+
+        block = LammpsBlockInput("compute", "Compute")
+        block("thermo_style", "thermo_style custom step temp epair press")
+        block("cp", "compute svirial all pressure NULL virial")
+        block("fs", "fix svirial all ave/time 1 1 1 c_svirial file stress.out mode vector")
+        block("dump", "dump dump_force all custom 1 forces.out id type x y z fx fy fz")
+        block("run", "run 0")
+        lmp_in("compute", block)
+
+        with open("lammps.in", "w") as fd:
+            fd.write(str(lmp_in))
 
 # ========================================================================== #
     def _verify_dependency(self):
@@ -347,48 +438,11 @@ class AceDescriptor(Descriptor):
         return atomic_env
 
 # ========================================================================== #
-    def _write_lammps_input(self, masses, pbc):
-        """
-        This one is only used for getting the descriptor
-        """
-        raise NotImplementedError("yes")
-        input_string = "# LAMMPS input file for extracting MLIP descriptors\n"
-        input_string += "clear\n"
-        input_string += "boundary         "
-        for ppp in pbc:
-            if ppp:
-                input_string += "p "
-            else:
-                input_string += "f "
-        input_string += "\n"
-        input_string += "atom_style      atomic\n"
-        input_string += "units            metal\n"
-        input_string += "read_data        atoms.lmp\n"
-        for n1 in range(len(self.masses)):
-            input_string += f"mass             {n1+1} {self.masses[n1]}\n"
-
-        input_string += f"pair_style       zero {2*self.rcut}\n"
-        input_string += "pair_coeff       * *\n"
-
-        input_string += "thermo         100\n"
-        input_string += "timestep       0.005\n"
-        input_string += "neighbor       1.0 bin\n"
-        input_string += "neigh_modify   once no every 1 delay 0 check yes\n"
-
-        input_string += f"compute      ml all pace {self._ace_opt_str()}\n"
-        input_string += "fix          ml all ave/time 1 1 1 c_ml[*] " + \
-                        "file descriptor.out mode vector\n"
-        input_string += "run              0\n"
-
-        with open(self.folder / "base.in", "w") as fd:
-            fd.write(input_string)
-
-# ========================================================================== #
     def _run_lammps(self, lmp_atoms_fname):
         '''
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
-        lammps_command = self.cmd + ' -in base.in -log none -sc lmp.out'
+        lammps_command = self.cmd + ' -in lammps.in -log none -sc lammps.out'
         lmp_handle = run(shlex.split(lammps_command),
                          stderr=PIPE)
 
@@ -404,6 +458,9 @@ class AceDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
+        #Path("lammps.out").unlink()
+        #Path("lammps.in").unlink()
+        #Path("atoms.lmp").unlink()
         pass
 
 # ========================================================================== #
@@ -419,7 +476,7 @@ class AceDescriptor(Descriptor):
         acefile = folder / "ACE.yace"
         pair_style = "pace"
         pair_coeff = [f"* * {acefile} " +
-                      ''.join(self.elements)]
+                      ' '.join(self.elements)]
         return pair_style, pair_coeff
 
 # ========================================================================== #
@@ -453,48 +510,6 @@ class AceDescriptor(Descriptor):
         else:
             df = None
         return df
-
-# ========================================================================== #
-    def get_mlip_energy(self, atoms, coef):
-        """
-        Give the energy, forces, stress of atoms according to the ACE
-
-        Note : GeneralAceFit use ase.calculate which leads to this function
-               PyACEFit actually compute the value using atomic environment
-
-        Parameters
-        ----------
-        coef: :class:`pathlib.Path`
-              Path to the ACE potential file
-
-        atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        """
-        if not isinstance(atoms, list):
-            atoms = [atoms]
-        desc = self.compute_descriptor(atoms)
-
-        name = [f"conf{i}" for i in range(len(atoms))]
-        df = update_dataframe(df=None, name=name, atoms=atoms,
-                              atomic_env=desc)
-
-        scoef = str(coef)
-   
-        bconf = BBasisConfiguration(scoef)
-
-        exe_args = dict(parallel_mode="process", n_workers=1)
-        pyacefit = pyace.PyACEFit(bconf, executors_kw_args=exe_args)
-        pred = pyacefit.predict(df)
-        e = pred['energy_pred'].values[0]
-        pd_f = pred['forces_pred'].values
-        s = np.zeros(6)
-
-        # f is an array of nconf. Then each conf is a np.array
-        f = []
-        for force_conf in pd_f:
-            f.append(force_conf)
-        f = np.array(f)
-
-        return e, f, s
 
 # ========================================================================== #
     def __str__(self):

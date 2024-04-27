@@ -40,14 +40,6 @@ class LinearPotential(MlipManager):
     Examples
     --------
 
-    >>> from ase.io import read
-    >>> confs = read('Trajectory.traj', index=':')
-    >>>
-    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
-    >>> desc = SnapDescriptor(confs[0], rcut=4.2, parameters=dict(twojmax=6))
-    >>> mlip = LinearPotential(desc)
-    >>> mlip.update_matrices(confs)
-    >>> mlip.train_mlip()
     """
     def __init__(self,
                  descriptor,
@@ -171,6 +163,7 @@ class LinearPotential(MlipManager):
         header = f"Weighted rmse: {self.fit_res[0, 1]:.6f} eV/angs   " + \
                  f"Weighted mae: {self.fit_res[1, 1]:.6f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
+
         np.savetxt("MLIP-Forces_comparison.dat",
                    np.c_[ymat_f, f_mlip],
                    header=header, fmt="%25.20f  %25.20f")
