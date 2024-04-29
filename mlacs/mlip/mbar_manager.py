@@ -117,6 +117,7 @@ class MbarManager(WeightingPolicy):
         self._newddb = []
 
         # Calculate the MLIP Energy and Pressure according to the new coef
+        print("Coef from computeweight", coef)
         mlip_E, mlip_F, mlip_S = predict(self.database, coef)
         mlip_P = []
         for s in mlip_S:

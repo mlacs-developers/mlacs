@@ -84,7 +84,7 @@ class TensorpotPotential(MlipManager):
             weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
             energy=self.new_ymat_e, forces=self.new_ymat_f, 
             subfolder=mlip_subfolder)
-        self.coef.append(mlip_subfolder/coef_fn)
+        self.coef = mlip_subfolder/coef_fn
 
         msg = "Number of configurations for training: " + \
               f"{self.nconfs}\n"
@@ -173,10 +173,11 @@ class TensorpotPotential(MlipManager):
         Give the energy forces stress of atoms according to the potential.
         """
         if coef is None:
-            coef = self.coef[-1]
+            coef = self.coef
         if isinstance(coef, str):
             coef = Path(coef)
 
+        print("Tensorpotential predict. Should be 1 coef :", desc, coef)
         return self.descriptor.predict(desc, coef, subfolder=self.folder)
 
 # ========================================================================== #
