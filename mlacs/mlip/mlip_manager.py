@@ -123,9 +123,9 @@ class MlipManager(ABC):
         # Check that this simulation and the previous one use the same mlip
         fn_descriptor = self.folder / f"{desc_name}.descriptor"
         with open(fn_descriptor, "r") as f:
-            lines = f.read()
+            previous_mlip = f.read()
 
-        if not lines == self.descriptor.get_mlip_params():
+        if not previous_mlip == self.descriptor.get_mlip_params():
             err = "The MLIP.descriptor from {fn_descriptor} seems different "
             err += "to the one you have in this simulation. If you want a "
             err += "new mlip: Rerun MLACS with DatabaseCalculator and "
@@ -146,7 +146,7 @@ class MlipManager(ABC):
                         raise FileNotFoundError(err)
                     if model not in parent_mlip:  # New state
                         parent_mlip.append(model)
-                        coef = self.descriptor.read_mlip(subfolder=model)
+                        coef = self.descriptor.get_coef(subfolder=model)
                         mlip_coef.append(coef)
         return parent_mlip, np.array(mlip_coef)
 
@@ -158,7 +158,6 @@ class MlipManager(ABC):
         """
         sf = self.folder/mlip_subfolder
         self.coefficients = mlip_coef
-        idx_e, idx_f, idx_s = self._get_idx_fit()
 
         mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
         _, weight_fn = self.weight.compute_weight(mlip_coef,

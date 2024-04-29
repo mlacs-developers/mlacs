@@ -99,9 +99,61 @@ class TensorpotPotential(MlipManager):
         msg += tmp_msg
         msg += self.compute_tests()
 
+        #print("x0 = ", vars(self.descriptor.acefit))
+        #print("x0 = ", dir(self.descriptor.acefit))
+        #print(self.descriptor.acefit.target_bbasisconfig)
+        #print(self.descriptor.acefit.target_bbasisconfig.get_all_coeffs)
+        #print(dir(self.descriptor.acefit.target_bbasisconfig))
+
+        #desc_name = f"{self.descriptor.desc_name}.descriptor"
         create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
+        #create_link(mlip_subfolder/md_fn, self.folder/md_fn)
         create_link(mlip_subfolder/coef_fn, self.folder/coef_fn)
         return msg
+
+# ========================================================================== #
+    def read_parent_mlip(self, traj):
+        """
+        Get a list of all the mlip that have generated a conf in traj
+        and get the coefficients of all these mlip
+        """
+        parent_mlip = []
+        mlip_coef = []
+        desc_name = self.descriptor.desc_name
+
+        # Make the MBAR variable Nk and mlip_coef
+        for state in traj:
+            for conf in state:
+                if "parent_mlip" not in conf.info:  # Initial or training
+                    continue
+                else:  # A traj
+                    yace_path = conf.info['parent_mlip']
+                    if not Path(yace_path).exists:
+                        err = "Some parent MLIP are missing. "
+                        err += "Rerun MLACS with DatabaseCalculator and "
+                        err += "OtfMlacs.keep_tmp_files=True on your traj"
+                        raise FileNotFoundError(err)
+                    if yace_path not in parent_mlip:  # New state
+                        parent_mlip.append(yace_path)
+                        mlip_coef.append(yace_path)
+        return parent_mlip, np.array(mlip_coef)
+
+# ========================================================================== #
+    def next_coefs(self, mlip_coef, mlip_subfolder):
+        """
+        Update MLACS just like train_mlip, but without actually computing
+        the coefficients
+        """
+        sf = Path(mlip_coef).parent
+        self.coefficients = mlip_coef
+
+        self.descriptor.set_restart_coefficient(subfolder=sf)
+        _, weight_fn = self.weight.compute_weight(mlip_coef,
+                                                  self.predict,
+                                                  subfolder=sf)
+
+        create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
+        create_link(mlip_subfolder/mlip_coef, self.folder/mlip_coef)
 
 # ========================================================================== #
     def compute_tests(self):
@@ -176,8 +228,6 @@ class TensorpotPotential(MlipManager):
             coef = self.coef
         if isinstance(coef, str):
             coef = Path(coef)
-
-        print("Tensorpotential predict. Should be 1 coef :", desc, coef)
         return self.descriptor.predict(desc, coef, subfolder=self.folder)
 
 # ========================================================================== #

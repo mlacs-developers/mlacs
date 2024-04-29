@@ -9,6 +9,7 @@ import numpy as np
 from ase import Atoms
 from ..utilities import update_dataframe
 from pyace.basis import BBasisConfiguration
+from pyace import ACEBBasisSet
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
@@ -187,6 +188,15 @@ class AceDescriptor(Descriptor):
         self.acefit = None
 
 # ========================================================================== #
+    @subfolder
+    def get_mlip_params(self):
+        """
+        Returns a string containing the ACE.yace file which uniquely defines
+        a ACE.yace file
+        """
+        raise NotImplementedError
+
+# ========================================================================== #        
     def prepare_wf(self, wf, natoms):
         """
         Reshape wf from a flat array to a list of np.array where each
@@ -221,17 +231,19 @@ class AceDescriptor(Descriptor):
         # Do the fitting
         if self.acefit is None:
             self.create_acefit()
-        else: 
+        else:
+            #self.acefit.target_bbasisconfig.set_all_coeffs(x0)
             self.acefit.fit_config['fit_cycles'] += 1
         
         try:
             self.acefit.fit()
-        except StopIteration as e:  # Scipy >= 1.11 works with StopIteration
+        except StopIteration as e:  # Scipy >= 1.11 catch StopIteration
             print("Warning : You should upgrade to Scipy>=1.11.0.")
             print("Everything should still work")
         finally:
             fn_yaml = "interim_potential_best_cycle.yaml"
             yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
+            self.mlip_model = Path.cwd() / "ACE.yace"
             run(shlex.split(yace_cmd))
             if not Path("ACE.yace").exists():
                 msg = "The ACE fitting wasn't successful\n"
@@ -240,7 +252,19 @@ class AceDescriptor(Descriptor):
                 msg += f"Else, try this command '{yace_cmd}' inside "
                 msg += f"{Path().cwd()}"
                 raise RuntimeError(msg)
-        return "ACE.yace"
+        return "ACE.yace"#, "interim_best_cycle.yaml"
+
+# ========================================================================== #
+    @subfolder
+    def set_restart_coefficient(self):
+        """
+        Restart the calculation with the coefficient from this folder.
+        This is because we cannot get back the coefficients from ACE.yace
+        """
+        if self.acefit is None:
+            self.create_acefit()
+        fn = "interim_potential_best_cycle.yaml"
+        test = self.bconf.set_all_coeffs(ACEBBasisSet(fn).all_coeffs)
 
 # ========================================================================== #
     @subfolder
@@ -341,7 +365,9 @@ class AceDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
+        print("CLEANING UP")
         Path("forces.out").unlink()
+        Path("stress.out").unlink()
         Path("lammps.out").unlink()
         Path("lammps.in").unlink()
         Path("atoms.lmp").unlink()

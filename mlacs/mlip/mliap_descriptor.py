@@ -297,9 +297,9 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     @subfolder
-    def read_mlip(self):
+    def get_coef(self):
         """
-        Read MLIP parameters from a file.
+        Read MLIP coefficients from a file.
         """
         fn = Path(f"{self.desc_name}.model")
         if not fn.is_file():
