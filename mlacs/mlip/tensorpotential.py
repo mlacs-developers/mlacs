@@ -38,8 +38,9 @@ class TensorpotPotential(MlipManager):
                              weight=weight)
         self.natoms = []
         self.nconfs = 0
-        db_fn = Path(self.folder / self.descriptor.db_fn).absolute()
-        self.descriptor.db_fn = db_fn
+        if not self.folder.exists():
+            self.folder.mkdir()
+        self.descriptor.set_parent_folder(self.folder)
         ps, pc = self.descriptor.get_pair_style_coeff(self.folder)
         self.pair_style = ps
         self.pair_coeff = pc
@@ -84,13 +85,16 @@ class TensorpotPotential(MlipManager):
 
         W = self.weight.get_weights()
 
-        print("BEFORE FIT")
-        coef_fn = self.descriptor.fit(
-            weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
-            energy=self.new_ymat_e, forces=self.new_ymat_f, 
-            subfolder=mlip_subfolder)
-        self.coef = mlip_subfolder/coef_fn
-        print("AFTER FIT")
+        # Also redirected stdout to pyace.log as there is some print in pyace
+        fitting_log = self.descriptor.log.handlers[0].baseFilename
+        with open(fitting_log, "a") as f:
+            sys.stdout = f
+            coef_fn = self.descriptor.fit(
+                weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
+                energy=self.new_ymat_e, forces=self.new_ymat_f, 
+                subfolder=mlip_subfolder)
+            self.coef = mlip_subfolder/coef_fn
+            sys.stdout = sys.__stdout__
 
         msg = "Number of configurations for training: " + \
               f"{self.nconfs}\n"

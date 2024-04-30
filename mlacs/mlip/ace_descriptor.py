@@ -1,3 +1,4 @@
+import sys
 import os
 import warnings
 import logging
@@ -29,6 +30,7 @@ warnings.filterwarnings("ignore", category=Warning, module="tensorflow")
 try:
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Remove GPU warning for tf
     import tensorflow as tf  # noqa
+    tf.get_logger().setLevel(logging.ERROR) # Remove a warning
     istf = True
 except ImportError:
     istf = False
@@ -186,24 +188,35 @@ class AceDescriptor(Descriptor):
         if 'elements' not in self.loss:
             bconf['elements'] = np.unique(atoms.get_chemical_symbols())
         self.bconf = create_multispecies_basis_config(bconf)
-        self.acefit = None
-        
-        self.kill_logger()
+        self.acefit = None 
 
 # ========================================================================== #
-    def kill_logger(self):
-        # Create a file handler
-        file_handler = logging.FileHandler('/home/nadeauo/Projects/27-ACE_MLACS/01-CuEMT/pyace.log') 
+    def set_parent_folder(self, parent_folder):
+        """
+        Set the MLIP folder to finalize the creation of the Descriptor
+        """
+        self.db_fn = Path(parent_folder / self.db_fn).absolute()
+        self.redirect_logger(parent_folder)
+
+# ========================================================================== #
+    def redirect_logger(self, parent_folder):
+        """
+        Redirect python used by pyace to pyace.log
+        """
+        file_handler = logging.FileHandler(parent_folder / 'pyace.log')
         
-        # Define the loggers
+        # A lot of loggers are involved with pyace
         loggers = [
             __name__,
             'pyace.generalfit',
             'pyace.preparedata',
             'pyace.fitadapter',
+            'pyace.metrics_aggregator',
+            'numexpr.utils',
             'tensorpotential.fit',
-            'tensorflow.python.platform.tf_logging'
         ]
+        logging.getLogger('numexpr.utils').setLevel(logging.CRITICAL)
+
         # Loop through the loggers and set the file handler for each
         for logger_name in loggers:
             logger = logging.getLogger(logger_name)
@@ -258,7 +271,6 @@ class AceDescriptor(Descriptor):
         else:
             #self.acefit.target_bbasisconfig.set_all_coeffs(x0)
             self.acefit.fit_config['fit_cycles'] += 1
-        
         try:
             self.acefit.fit()
         except StopIteration as e:  # Scipy >= 1.11 catch StopIteration
@@ -268,7 +280,9 @@ class AceDescriptor(Descriptor):
             fn_yaml = "interim_potential_best_cycle.yaml"
             yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
             self.mlip_model = Path.cwd() / "ACE.yace"
-            run(shlex.split(yace_cmd))
+            with open("/dev/null", "w") as null:
+                run(shlex.split(yace_cmd), stdout=sys.stdout, stderr=sys.stdout)
+
             if not Path("ACE.yace").exists():
                 msg = "The ACE fitting wasn't successful\n"
                 msg += "If interim_potential_best_cycle.yaml doesn't exist "
@@ -309,12 +323,13 @@ class AceDescriptor(Descriptor):
                     last_fit_metric_data, title='INIT STATS:')
             e = last_fit_metric_data["rmse_epa"] * 1e3
             f = last_fit_metric_data["rmse_f_comp"] * 1e3
-            self.log.info(f"Energy: {e} (meV/at), Tol:{self.tol_e} (meV/at)")
-            self.log.info(f"Forces: {f} (meV/ang), Tol:{self.tol_f} (meV/ang)")
+            msg = f"Step: {last_fit_metric_data['iter_num']}   "
+            msg += f"Energy: {e:.4f} (meV/at), Forces: {f:.4f} (meV/ang)"
+            self.log.info(msg)
             if iter_num > 0 and self.tol_e >= e and self.tol_f >= f:
                 s = "Convergence reached:\n"
-                s += f"RMSE of energy: {e} < {self.tol_e} (meV/at)\n"
-                s += f"RMSE of forces: {f} < {self.tol_f} (meV/ang)\n"
+                s += f"RMSE of energy: {e:.8f} < {self.tol_e} (meV/at)\n"
+                s += f"RMSE of forces: {f:.8f} < {self.tol_f} (meV/ang)\n"
                 self.log.info(s)
                 raise StopIteration("My convergence reached")
 
@@ -353,7 +368,6 @@ class AceDescriptor(Descriptor):
                               at,
                               specorder=self.elements.tolist())
 
-            print("We are predicting with :", coef)
             self._run_lammps(lmp_atfname)
             tmp_e, tmp_f, tmp_s = self._read_lammps_output(len(at))
             e.append(tmp_e)
@@ -579,6 +593,4 @@ class AceDescriptor(Descriptor):
         txt += f"Fitting: {self.fitting}\n"
         txt += f"Backend: {self.backend}\n"
         txt += f"BBasisConfiguration: {self.bconf}\n"
-
-        Warning("I should print the params of the ACE descriptor here")
         return txt
