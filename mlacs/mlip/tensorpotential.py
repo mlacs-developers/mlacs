@@ -1,6 +1,8 @@
 '''
 '''
+import sys
 import numpy as np
+import logging
 
 from . import MlipManager
 from ..utilities import compute_correlation, create_link
@@ -29,6 +31,7 @@ class TensorpotPotential(MlipManager):
                  descriptor,
                  folder="Tensorpot",
                  weight=None):
+
         MlipManager.__init__(self,
                              descriptor=descriptor,
                              folder=folder,
@@ -80,11 +83,14 @@ class TensorpotPotential(MlipManager):
             mlip_subfolder = self.folder / mlip_subfolder
 
         W = self.weight.get_weights()
+
+        print("BEFORE FIT")
         coef_fn = self.descriptor.fit(
             weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
             energy=self.new_ymat_e, forces=self.new_ymat_f, 
             subfolder=mlip_subfolder)
         self.coef = mlip_subfolder/coef_fn
+        print("AFTER FIT")
 
         msg = "Number of configurations for training: " + \
               f"{self.nconfs}\n"
@@ -99,15 +105,7 @@ class TensorpotPotential(MlipManager):
         msg += tmp_msg
         msg += self.compute_tests()
 
-        #print("x0 = ", vars(self.descriptor.acefit))
-        #print("x0 = ", dir(self.descriptor.acefit))
-        #print(self.descriptor.acefit.target_bbasisconfig)
-        #print(self.descriptor.acefit.target_bbasisconfig.get_all_coeffs)
-        #print(dir(self.descriptor.acefit.target_bbasisconfig))
-
-        #desc_name = f"{self.descriptor.desc_name}.descriptor"
         create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
-        #create_link(mlip_subfolder/md_fn, self.folder/md_fn)
         create_link(mlip_subfolder/coef_fn, self.folder/coef_fn)
         return msg
 
@@ -145,7 +143,7 @@ class TensorpotPotential(MlipManager):
         the coefficients
         """
         sf = Path(mlip_coef).parent
-        self.coefficients = mlip_coef
+        self.coef = mlip_coef
 
         self.descriptor.set_restart_coefficient(subfolder=sf)
         _, weight_fn = self.weight.compute_weight(mlip_coef,

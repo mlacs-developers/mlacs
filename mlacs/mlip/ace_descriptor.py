@@ -1,5 +1,6 @@
 import os
 import warnings
+import logging
 
 from pathlib import Path
 from subprocess import run, PIPE
@@ -186,6 +187,29 @@ class AceDescriptor(Descriptor):
             bconf['elements'] = np.unique(atoms.get_chemical_symbols())
         self.bconf = create_multispecies_basis_config(bconf)
         self.acefit = None
+        
+        self.kill_logger()
+
+# ========================================================================== #
+    def kill_logger(self):
+        # Create a file handler
+        file_handler = logging.FileHandler('/home/nadeauo/Projects/27-ACE_MLACS/01-CuEMT/pyace.log') 
+        
+        # Define the loggers
+        loggers = [
+            __name__,
+            'pyace.generalfit',
+            'pyace.preparedata',
+            'pyace.fitadapter',
+            'tensorpotential.fit',
+            'tensorflow.python.platform.tf_logging'
+        ]
+        # Loop through the loggers and set the file handler for each
+        for logger_name in loggers:
+            logger = logging.getLogger(logger_name)
+            logger.addHandler(file_handler)
+            logger.propagate = False
+        self.log = logging.getLogger(__name__)
 
 # ========================================================================== #
     @subfolder
@@ -238,8 +262,8 @@ class AceDescriptor(Descriptor):
         try:
             self.acefit.fit()
         except StopIteration as e:  # Scipy >= 1.11 catch StopIteration
-            print("Warning : You should upgrade to Scipy>=1.11.0.")
-            print("Everything should still work")
+            self.log.warning("Warning : You should upgrade to Scipy>=1.11.0.")
+            self.log.warning("Everything should still work")
         finally:
             fn_yaml = "interim_potential_best_cycle.yaml"
             yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
@@ -285,13 +309,13 @@ class AceDescriptor(Descriptor):
                     last_fit_metric_data, title='INIT STATS:')
             e = last_fit_metric_data["rmse_epa"] * 1e3
             f = last_fit_metric_data["rmse_f_comp"] * 1e3
-            print(f"Energy: {e} (meV/at), Tol:{self.tol_e} (meV/at)")
-            print(f"Forces: {f} (meV/ang), Tol:{self.tol_f} (meV/ang)")
+            self.log.info(f"Energy: {e} (meV/at), Tol:{self.tol_e} (meV/at)")
+            self.log.info(f"Forces: {f} (meV/ang), Tol:{self.tol_f} (meV/ang)")
             if iter_num > 0 and self.tol_e >= e and self.tol_f >= f:
                 s = "Convergence reached:\n"
                 s += f"RMSE of energy: {e} < {self.tol_e} (meV/at)\n"
                 s += f"RMSE of forces: {f} < {self.tol_f} (meV/ang)\n"
-                print(s)
+                self.log.info(s)
                 raise StopIteration("My convergence reached")
 
         self.callback = lambda val: check_conv(val)
@@ -329,6 +353,7 @@ class AceDescriptor(Descriptor):
                               at,
                               specorder=self.elements.tolist())
 
+            print("We are predicting with :", coef)
             self._run_lammps(lmp_atfname)
             tmp_e, tmp_f, tmp_s = self._read_lammps_output(len(at))
             e.append(tmp_e)
@@ -365,7 +390,6 @@ class AceDescriptor(Descriptor):
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        print("CLEANING UP")
         Path("forces.out").unlink()
         Path("stress.out").unlink()
         Path("lammps.out").unlink()
