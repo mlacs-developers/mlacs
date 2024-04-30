@@ -66,18 +66,12 @@ except ImportError:
     ispyace = False
 
 
-# TODO : 1. Restarts from previous calc
-#        2. Create/Update dataframe in utilities
-#        3. Mbar
-#        4. Lammps
-#        5. Random Function
-#        6. Error if DeltaLearningPotential with ACE
-#        7. Remove electronic contribution during the fitting
-#        8. Start the fitting with a SNAP
-#        9. Make sure scipy has the time to write the coefficients before
-#           the StopIteration flag in Python 3.7
-#       10. Can predict deal with stress ?
-#       11. Add a check for stress coeff to be 0 until I figure it out
+# TODO : 1. ACE_fit(Tensorpotential, Traj)
+#        2. Vérifier poids
+#        3. Bug Weighted RMSE, MAE Energy
+#        4. Error if DeltaLearningPotential with ACE
+#        5. Drautz and TrainingConf weight
+#        6. Remove electronic contribution during the fitting
 # ========================================================================== #
 # ========================================================================== #
 class AceDescriptor(Descriptor):
@@ -344,7 +338,8 @@ class AceDescriptor(Descriptor):
 # ========================================================================== #
     def calc_free_e(self, atoms):
         """
-        Calculate the energy of free atom in the structure
+        Calculate the contribution which isn't the binding energy 
+        for this particular configuration
         """
         e = 0
         for atom in atoms:

@@ -163,10 +163,11 @@ class TensorpotPotential(MlipManager):
         Compute the weighted RMSE and MAE
         """
         mlip_e, mlip_f, mlip_s = self.predict(desc=self.atoms)
-        true_e = np.array([at.get_potential_energy() for at in self.atoms])
+        true_e = np.array([at.get_potential_energy()/len(at) \
+                for at in self.atoms])
         true_f = [at.get_forces() for at in self.atoms]
         true_s = [at.get_stress() for at in self.atoms]
-
+ 
         mlip_f = np.reshape(mlip_f, [-1])
         mlip_s = np.reshape(mlip_s, [-1])
         true_f = np.reshape(true_f, [-1])
