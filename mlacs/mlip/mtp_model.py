@@ -85,9 +85,10 @@ class MomentTensorPotential(SelfMlipManager):
     def __init__(self,
                  atoms,
                  mlpbin="mlp",
-                 folder=Path("MTP").absolute(),
                  mtp_parameters={},
-                 fit_parameters={}):
+                 fit_parameters={},
+                 folder='MTP',
+                 **kwargs):
 
         self.cmd = mlpbin
         self.version = 2
@@ -99,7 +100,8 @@ class MomentTensorPotential(SelfMlipManager):
         SelfMlipManager.__init__(self,
                                  descriptor=BlankDescriptor(atoms),
                                  weight=None,
-                                 folder=folder)
+                                 folder=folder,
+                                 **kwargs)
 
         self.level = mtp_parameters.pop("level", 8)
         if self.level % 2 or self.level > 28:
@@ -142,7 +144,7 @@ class MomentTensorPotential(SelfMlipManager):
         return parent_mlip, np.array(mlip_coef)
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef, mlip_subfolder):
+    def next_coefs(self, mlip_coef):
         """
         Update MLACS just like train_mlip, but without actually computing
         the coefficients
@@ -152,54 +154,50 @@ class MomentTensorPotential(SelfMlipManager):
 # ========================================================================== #
     def get_pair_style(self, folder):
         if self.version == 3:
-            return f"mlip load_from={self.folder / 'pot.mtp'}"
-        return f"mlip {self.folder / 'mlip.ini'}"
+            return f"mlip load_from={self.subdir / 'pot.mtp'}"
+        return f"mlip {self.subdir / 'mlip.ini'}"
 
 # ========================================================================== #
-    def get_pair_coeff(self, folder=None):
+    def get_pair_coeff(self):
         return ["* *"]
 
 # ========================================================================== #
-    def get_pair_style_coeff(self, folder):
-        return self.get_pair_style(folder=folder), \
-               self.get_pair_coeff(folder=folder)
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), \
+               self.get_pair_coeff()
 
 # ========================================================================== #
-    def train_mlip(self, mlip_subfolder=None):
+    def train_mlip(self):
         """
         """
-        if mlip_subfolder is None:
-            subfolder = self.folder
-        else:
-            subfolder = self.folder / mlip_subfolder
-            # We need to remove the old subfolder. If calculation ended at
-            # some specific weird moments, it can cause access problem
-            # for the mlp binary otherwise
-            if subfolder.exists():
-                shutil.rmtree(subfolder)
+        # We need to remove the old subfolder. If calculation ended at
+        # some specific weird moments, it can cause access problem
+        # for the mlp binary otherwise
+        if self.subfolder:
+            if self.subsubdir.exists():
+                shutil.rmtree(self.subsubdir)
 
-        subfolder.mkdir(parents=True, exist_ok=True)
+        self.subsubdir.mkdir(parents=True, exist_ok=True)
 
-        mtpfile = self.folder / "pot.mtp"
+        mtpfile = self.subdir / "pot.mtp"
 
         # Move old potential in new folder, to start BFGS from
         # previously trained MTP
         if mtpfile.exists():
-            shutil.move(mtpfile,
-                        subfolder / "pot.mtp")
+            shutil.move(mtpfile, self.subsubdir / "pot.mtp")
 
-        self._clean_folder(subfolder=subfolder)
-        self._write_configurations(subfolder=subfolder)
-        self._write_input(subfolder=subfolder)
-        self._write_mtpfile(subfolder=subfolder)
-        self._run_mlp(subfolder=subfolder)
+        self._clean_folder()
+        self._write_configurations()
+        self._write_input()
+        self._write_mtpfile()
+        self._run_mlp()
 
         # Symlink new MTP in the main folder
-        if mlip_subfolder is not None:
-            src = subfolder / "pot.mtp"
+        if self.subfolder:
+            src = self.subsubdir / "pot.mtp"
             symlink(src, mtpfile)
 
-        with open(self.folder / "mlip.ini", "w") as fd:
+        with open(self.path / "mlip.ini", "w") as fd:
             fd.write(f"mtp-filename    {mtpfile}\n")
             fd.write("select           FALSE")
 
@@ -208,7 +206,7 @@ class MomentTensorPotential(SelfMlipManager):
               f"{len(self.natoms[idx_e:]):}\n"
         msg += "number of atomic environments for training: " + \
                f"{self.natoms[idx_e:].sum():}\n"
-        msg += self._compute_test(msg, idx_e, subfolder=subfolder)
+        msg += self._compute_test(msg, idx_e)
         return msg
 
 # ========================================================================== #
@@ -225,52 +223,52 @@ class MomentTensorPotential(SelfMlipManager):
         return calc
 
 # ========================================================================== #
-    def _clean_folder(self, subfolder):
+    def _clean_folder(self):
         """
         """
         files = ["train.cfg",
                  "mlip.ini",
                  "initpot.mtp",
                  "out.cfg"]
-        for file in files:
-            if (subfolder / file).exists():
-                (subfolder / file).unlink()
+        for fn in files:
+            if (filepath := self.subsubdir / fn).exists():
+                filepath.unlink()
 
 # ========================================================================== #
-    def _write_configurations(self, subfolder):
+    def _write_configurations(self):
         """
         """
         idx_e, idx_f, idx_s = self._get_idx_fit()
         confs = self.configurations[idx_e:]
         chemmap = self.descriptor.elements
-        write_cfg(subfolder / "train.cfg", confs, chemmap)
+        write_cfg(self.subsubdir / "train.cfg", confs, chemmap)
 
 # ========================================================================== #
-    def _write_input(self, subfolder):
+    def _write_input(self):
         """
         """
-        mtpfile = subfolder / "pot.mtp"
-        with open(subfolder / "mlip.ini", "w") as fd:
+        mtpfile = self.subsubdir / "pot.mtp"
+        with open(self.subsubdir / "mlip.ini", "w") as fd:
             fd.write(f"mtp-filename    {mtpfile}\n")
             fd.write("select           FALSE")
 
 # ========================================================================== #
-    def _write_mtpfile(self, subfolder):
+    def _write_mtpfile(self):
         """
         """
         writenewmtp = True
-        mtpfile = subfolder / "initpot.mtp"
+        mtpfile = self.subsubdir / "initpot.mtp"
         lvl = self.level
         level = f"level{lvl}"
-        if (subfolder / "pot.mtp").exists():
+        if (potfile := self.subsubdir / "pot.mtp").exists():
             import re
-            with open(subfolder / "pot.mtp", "r", encoding="ISO-8859-1") as fd:
+            with open(potfile, "r", encoding="ISO-8859-1") as fd:
                 for line in fd.readlines():
                     if line.startswith("potential_name"):
                         oldlevel = int(re.search(r'\d+$', line).group())
                         break
             if oldlevel == lvl:
-                (subfolder / "pot.mtp").rename(mtpfile)
+                potfile.rename(mtpfile)
                 writenewmtp = False
         if writenewmtp:
             from . import _mtp_data
@@ -293,32 +291,32 @@ class MomentTensorPotential(SelfMlipManager):
                 fd.write(leveltxt)
 
 # ========================================================================== #
-    def _run_mlp(self, subfolder):
+    def _run_mlp(self):
         """
         """
         if self.version == 3:
-            mlp_command = self._get_cmd_mlip3(subfolder)
+            mlp_command = self._get_cmd_mlip3()
         else:
-            mlp_command = self._get_cmd_mlip2(subfolder)
+            mlp_command = self._get_cmd_mlip2()
         print(mlp_command)
-        with open(subfolder / "mlip.log", "w") as fd:
+        with open(self.subsubdir / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
                              stdout=fd,
-                             cwd=subfolder)
+                             cwd=self.subsubdir)
         if mlp_handle.returncode != 0:
             msg = "mlp stopped with the exit code \n" + \
                   f"{mlp_handle.stderr.decode()}"
             raise RuntimeError(msg)
 
 # ========================================================================== #
-    def _get_cmd_mlip2(self, subfolder):
+    def _get_cmd_mlip2(self):
         """
         Get mlp command from MLIP-2 package.
         """
-        initpotfile = subfolder / "initpot.mtp"
-        potfile = subfolder / "pot.mtp"
-        trainfile = subfolder / "train.cfg"
+        initpotfile = self.subsubdir / "initpot.mtp"
+        potfile = self.subsubdir / "pot.mtp"
+        trainfile = self.subsubdir / "train.cfg"
         cmd = self.cmd + f" train {initpotfile} {trainfile}"
         cmd += f" --trained-pot-name={potfile}"
         up_mindist = self.fit_parameters["update_mindist"]
@@ -340,13 +338,13 @@ class MomentTensorPotential(SelfMlipManager):
         return cmd
 
 # ========================================================================== #
-    def _get_cmd_mlip3(self, subfolder):
+    def _get_cmd_mlip3(self):
         """
         Get mlp command from MLIP-3 package.
         """
-        initpotfile = subfolder / "initpot.mtp"
-        potfile = subfolder / "pot.mtp"
-        trainfile = subfolder / "train.cfg"
+        initpotfile = self.subsubdir / "initpot.mtp"
+        potfile = self.subsubdir / "pot.mtp"
+        trainfile = self.subsubdir / "train.cfg"
         cmd = self.cmd + f" train {initpotfile} {trainfile}"
         cmd += f" --save_to={potfile}"
         # Default in MLIP-3 is mindist update, which is the opposite of MLIP-2.
@@ -383,11 +381,11 @@ class MomentTensorPotential(SelfMlipManager):
 
 # ========================================================================== #
     def _get_pair_style(self):
-        return self.get_pair_style(self.folder)
+        return self.get_pair_style()
 
 # ========================================================================== #
     def _get_pair_coeff(self):
-        return self.get_pair_coeff(self.folder)
+        return self.get_pair_coeff()
 
 # ========================================================================== #
     def predict(self, atoms, coef=None):
@@ -396,12 +394,12 @@ class MomentTensorPotential(SelfMlipManager):
         raise NotImplementedError(msg)
 
 # ========================================================================== #
-    def _run_test(self, subfolder):
+    def _run_test(self):
         """
         """
-        trainfile = subfolder / "train.cfg"
-        outfile = subfolder / "out.cfg"
-        potfile = subfolder / "pot.mtp"
+        trainfile = self.subsubdir / "train.cfg"
+        outfile = self.subsubdir / "out.cfg"
+        potfile = self.subsubdir / "pot.mtp"
         mlp_command = self.cmd
         if self.version == 3:
             mlp_command += f" calculate_efs {potfile} {trainfile}"
@@ -419,10 +417,10 @@ class MomentTensorPotential(SelfMlipManager):
         return e_mlip, f_mlip, s_mlip
 
 # ========================================================================== #
-    def _compute_test(self, msg, idx_e, subfolder):
+    def _compute_test(self, msg, idx_e):
         """
         """
-        e_mlip, f_mlip, s_mlip = self._run_test(subfolder=subfolder)
+        e_mlip, f_mlip, s_mlip = self._run_test()
 
         confs = self.configurations[idx_e:]
         e_dft = np.array([at.get_potential_energy() / len(at)for at in confs])

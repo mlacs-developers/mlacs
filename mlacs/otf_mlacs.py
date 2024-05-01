@@ -15,6 +15,7 @@ from ase.io.formats import UnknownFileTypeError
 from ase.calculators.calculator import Calculator
 from ase.calculators.singlepoint import SinglePointCalculator
 
+from .core import Manager
 from .mlip import LinearPotential, MliapDescriptor
 from .calc import CalcManager
 from .properties import PropertyManager
@@ -26,7 +27,7 @@ from .utilities.path_integral import compute_centroid_atoms
 
 # ========================================================================== #
 # ========================================================================== #
-class OtfMlacs:
+class OtfMlacs(Manager):
     """
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
@@ -63,9 +64,11 @@ class OtfMlacs:
         with the reference potential.
         Default ``1``, ignored for non-path integral States
 
-    prefix_output: :class:`str` (optional)
+    workdir: :class:`str` (optional)
+        The directory in which to run the calculation.
+
+    prefix: :class:`str` (optional)
         Prefix for the output files of the simulation.
-        If several states are used, this input can be a list of :class:`str`.
         Default ``\"Trajectory\"``.
 
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
@@ -98,16 +101,22 @@ class OtfMlacs:
                  prop=None,
                  neq=10,
                  nbeads=1,
-                 prefix_output="Trajectory",
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 ntrymax=0):
+                 ntrymax=0,
+                 workdir=''):
+
+        Manager.__init__(self, workdir=workdir)
+
+        # Initialize working directory
+        self.workdir.mkdir(exist_ok=True, parents=True)
+
         ##############
         # Check inputs
         ##############
         self.keep_tmp_mlip = keep_tmp_mlip
-        self._initialize_state(state, atoms, neq, prefix_output, nbeads)
+        self._initialize_state(state, atoms, neq, nbeads)
 
         # Create calculator object
         if isinstance(calc, Calculator):
@@ -119,13 +128,22 @@ class OtfMlacs:
                   "a CalcManager object"
             raise TypeError(msg)
 
+        self.calc.workdir = self.workdir
+
         # Create mlip object
         if mlip is None:
             descriptor = MliapDescriptor(self.atoms[0], 5.0)
             self.mlip = LinearPotential(descriptor)
         else:
             self.mlip = mlip
-        self.mlip.folder = Path.cwd().absolute() / self.mlip.folder
+
+        self.mlip.workdir = self.workdir
+        self.mlip.folder = 'MLIP'
+        self.mlip.descriptor.workdir = self.workdir
+        self.mlip.descriptor.folder = self.mlip.folder
+        self.mlip.weight.workdir = self.workdir
+        self.mlip.weight.folder = self.mlip.folder
+        self.mlip.subdir.mkdir(exist_ok=True, parents=True)
 
         # Create property object
         if prop is None:
@@ -134,33 +152,36 @@ class OtfMlacs:
             self.prop = prop
         else:
             self.prop = PropertyManager(prop)
-
+        self.prop.workdir = self.workdir
+        self.prop.folder = 'Properties'
+    
         # Miscellanous initialization
         self.rng = np.random.default_rng()
         self.ntrymax = ntrymax
-
+    
         #######################
         # Initialize everything
         #######################
-
+    
         if self.pimd:
             nmax = self.nbeads
         else:
             nmax = self.nstate
-
+    
         # Check if trajectory files already exists
         self.launched = self._check_if_launched(nmax)
-
-        self.log = MlacsLog("MLACS.log", self.launched)
+    
+        self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
+        self.logger = self.log.logger_log
         msg = ""
         for i in range(self.nstate):
             msg += f"State {i+1}/{self.nstate} :\n"
             msg += repr(self.state[i])
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
         msg = self.calc.log_recap_state()
-        self.log.logger_log.info(msg)
-        self.log.logger_log.info(repr(self.mlip))
-
+        self.logger.info(msg)
+        self.logger.info(repr(self.mlip))
+    
         # We initialize momenta and parameters for training configurations
         if not self.launched:
             for i in range(nmax):
@@ -168,32 +189,36 @@ class OtfMlacs:
                     self.state[0].initialize_momenta(self.atoms[i])
                 else:
                     self.state[i].initialize_momenta(self.atoms[i])
-                with open(self.prefix_output[i] + "_potential.dat", "w") as f:
+                prefix = self.state[i].prefix
+                pot_fname = self.workdir / (prefix + "_potential.dat")
+                with open(pot_fname, "w") as f:
                     f.write("# True epot [eV]          MLIP epot [eV]\n")
+            self.prefix = ''
             if self.pimd:
-                with open(self.prefix_centroid + "_potential.dat", "w") as f:
+                pot_fname = self.get_filepath("_potential.dat")
+                with open(pot_fname, "w") as f:
                     f.write("# True epot [eV]           True ekin [eV]   " +
                             "   MLIP epot [eV]            MLIP ekin [eV]\n")
+
             self.confs_init = confs_init
             self.std_init = std_init
             self.nconfs = [0] * self.nstate
-
+    
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
         else:
             self.restart_from_traj(nmax)
-
+    
         self.step = 0
         self.ntrymax = ntrymax
-        self.log.logger_log.info("")
+        self.logger.info("")
 
 # ========================================================================== #
+    @Manager.exec_from_workdir
     def run(self, nsteps=100):
         """
         Run the algorithm for nsteps
         """
-        # Initialize ntry in case of failing computation
-        self.ntry = 0
         while self.step < nsteps:
             if self.prop.check_criterion:
                 break
@@ -223,7 +248,7 @@ class OtfMlacs:
             nmax = self.nbeads
         else:
             nmax = self.nstate
-        self.log.logger_log.info("")
+        self.logger.info("")
         eq = []
         for istate in range(self.nstate):
             trajstep = self.nconfs[istate]
@@ -234,17 +259,22 @@ class OtfMlacs:
                 eq.append(False)
                 msg = f"Production step for state {istate+1}, "
             msg += f"configurations {trajstep} for this state"
-            self.log.logger_log.info(msg)
-        self.log.logger_log.info("\n")
+            self.logger.info(msg)
+        self.logger.info("\n")
+
+
         # Training MLIP
         msg = "Training new MLIP\n"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
 
-        mlip_subfolder = None
         if self.keep_tmp_mlip:
-            mlip_subfolder = f"Coef{max(self.nconfs)}"
-        msg = self.mlip.train_mlip(mlip_subfolder=mlip_subfolder)
-        self.log.logger_log.info(msg)
+            self.mlip.subfolder = f"Coef{max(self.nconfs)}"
+        else:
+            self.mlip.subfolder = ''
+
+        # TODO GA: mlip object should be logging instead
+        msg = self.mlip.train_mlip()
+        self.logger.info(msg)
 
         # Create MLIP atoms object
         atoms_mlip = []
@@ -259,7 +289,7 @@ class OtfMlacs:
 
         # Run the actual MLMD
         msg = "Running MLMD"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
 
         # For PIMD, i-pi state manager is handling the parallel stuff
         if self.pimd:
@@ -275,7 +305,7 @@ class OtfMlacs:
             for istate in range(self.nstate):
                 if self.state[istate].isrestart or eq[istate]:
                     msg = " -> Starting from first atomic configuration"
-                    self.log.logger_log.info(msg)
+                    self.logger.info(msg)
                     atoms_mlip[istate] = self.atoms_start[istate].copy()
                     self.state[istate].initialize_momenta(atoms_mlip[istate])
             # With those thread, we can execute all the states in parallell
@@ -291,26 +321,27 @@ class OtfMlacs:
                                             eq[istate]))
                     futures.append(exe)
                     msg = f"State {istate+1}/{self.nstate} has been launched"
-                    self.log.logger_log.info(msg)
+                    self.logger.info(msg)
                 for istate, exe in enumerate(futures):
                     atoms_mlip[istate] = exe.result()
                     if self.keep_tmp_mlip:
-                        mm = self.mlip.descriptor.mlip_model
+                        mm = self.mlip.descriptor.subsubdir
                         atoms_mlip[istate].info['parent_mlip'] = str(mm)
 
         # Computing energy with true potential
         msg = "Computing energy with the True potential\n"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
         atoms_true = []
         nerror = 0  # Handling of calculator error / non-convergence
 
-        if self.pimd:
-            nconfs = self.nconfs * self.nbeads
-        else:
-            nconfs = self.nconfs
+        # TODO GA: The threading should be done at this level,
+        #          up from calc.compute_true_potential.
+        subfolder_l = [s.subfolder for s in self.state]
+        step_l = [self.step] * self.nstate
         atoms_true = self.calc.compute_true_potential(atoms_mlip,
-                                                      self.prefix_output,
-                                                      nconfs)
+                                                      subfolder_l,
+                                                      step=step_l)
+
         for i, at in enumerate(atoms_mlip):
             at.calc = self.mlip.get_calculator()
             sp_calc_mlip.append(SinglePointCalculator(
@@ -325,20 +356,20 @@ class OtfMlacs:
                 if self.pimd:
                     msg = "One of the true potential calculation failed, " + \
                           "restarting the step\n"
-                    self.log.logger_log.info(msg)
+                    self.logger.info(msg)
                     return False
                 else:
                     msg = f"For state {i+1}/{nmax} calculation with " + \
                            "the true potential resulted in error " + \
                            "or didn't converge"
-                    self.log.logger_log.info(msg)
+                    self.logger.info(msg)
                     nerror += 1
 
         # True potential error handling
         if nerror == self.nstate:
             msg = "All true potential calculations failed, " + \
                   "restarting the step\n"
-            self.log.logger_log.info(msg)
+            self.logger.info(msg)
             return False
 
         # And now we can write the configurations in the trajectory files
@@ -348,7 +379,10 @@ class OtfMlacs:
                 self.mlip.update_matrices(attrue)
                 self.traj[i].write(attrue)
                 self.atoms[i] = attrue
-                with open(self.prefix_output[i] + "_potential.dat", "a") as f:
+
+                prefix = self.state[i].prefix
+                filepath = self.workdir / (prefix + "_potential.dat")
+                with open(filepath, "a") as f:
                     f.write("{:20.15f}   {:20.15f}\n".format(
                              attrue.get_potential_energy(),
                              atmlip.get_potential_energy()))
@@ -377,13 +411,13 @@ class OtfMlacs:
         # Computing "on the fly" properties.
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
-            msg = self.prop.run(self.step,
-                                self.prop.workdir / f"Step{self.step}")
-            self.log.logger_log.info(msg)
+            self.prop.subdir = f"Step{self.step}"
+            msg = self.prop.run(self.step)
+            self.logger.info(msg)
             if self.prop.check_criterion:
                 msg = "All property calculations are converged, " + \
                       "stopping MLACS ...\n"
-                self.log.logger_log.info(msg)
+                self.logger.info(msg)
         return True
 
 # ========================================================================== #
@@ -400,7 +434,7 @@ class OtfMlacs:
         self.traj = []  # To initialize the trajectories for each state
 
         msg = "Running initial step"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
         # Once each computation is done, we need to correctly assign each atom
         # to the right state, this is done using the idx_computed list of list
         uniq_at = []
@@ -420,16 +454,17 @@ class OtfMlacs:
                     idx_computed.append([istate])
 
         msg = f"There are {len(uniq_at)} unique configuration in the states "
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
+
         # And finally we compute the properties for each unique atoms
-        tmp_state = ["Initial"] * len(uniq_at)
-        tmp_step = np.linspace(0, len(uniq_at), len(uniq_at), dtype=int)
-        uniq_at = self.calc.compute_true_potential(uniq_at,
-                                                   tmp_state,
-                                                   tmp_step)
+        nstate = len(uniq_at)
+        subfolder_l = ["Initial"] * nstate
+        istep = np.arange(nstate, dtype=int)
+        uniq_at = self.calc.compute_true_potential(uniq_at, subfolder_l, istep)
         uniq_at = self.add_traj_descriptors(uniq_at)
+
         msg = "Computation done, creating trajectories"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
 
         # And now, we dispatch each atoms to the right trajectory
         for iun, at in enumerate(uniq_at):
@@ -463,19 +498,19 @@ class OtfMlacs:
                     at = self.atoms[ibead].copy()
                     at.set_masses(self.masses)
                     at.calc = calc
-                    self.traj.append(Trajectory(self.prefix_output[ibead] +
-                                                ".traj", mode="w"))
+                    prefix = self.state[ibead].prefix
+                    self.traj.append(Trajectory(prefix + ".traj", mode="w"))
                     self.traj[ibead].write(at)
 
                 # Create centroid traj
-                self.traj_centroid = Trajectory(self.prefix_centroid +
-                                                ".traj", mode="w")
+                self.traj_centroid = Trajectory(self.prefix_centroid + ".traj",
+                                                mode="w")
                 self.traj_centroid.write(compute_centroid_atoms(
                                          [at] * self.nbeads,
                                          self.temperature))
             else:
-                self.traj.append(Trajectory(self.prefix_output[istate] +
-                                            ".traj", mode="w"))
+                prefix = self.state[istate].prefix
+                self.traj.append(Trajectory(prefix + ".traj", mode="w"))
                 self.traj[istate].write(self.atoms[istate])
 
             self.nconfs[istate] += 1
@@ -485,7 +520,7 @@ class OtfMlacs:
         if self.mlip.nconfs == 0:
             msg = "\nComputing energy with true potential " + \
                   "on training configurations"
-            self.log.logger_log.info(msg)
+            self.logger.info(msg)
             # Check number of training configurations and create them if needed
             if self.confs_init is None:
                 confs_init = create_random_structures(uniq_at,
@@ -499,11 +534,11 @@ class OtfMlacs:
                 confs_init = self.confs_init
 
             confs_init = self.add_traj_descriptors(confs_init)
-
+            conf_fname = str(self.workdir / "Training_configurations.traj")
             checkisfile = False
-            if os.path.isfile("Training_configurations.traj"):
+            if os.path.isfile(conf_fname):
                 try:
-                    read("Training_configurations.traj")
+                    read(conf_fname)
                     checkisfile = True
                 except UnknownFileTypeError:
                     checkisfile = False
@@ -513,22 +548,23 @@ class OtfMlacs:
             if checkisfile:
                 msg = "Training configurations found\n"
                 msg += "Adding them to the training data"
-                self.log.logger_log.info(msg)
+                self.logger.info(msg)
 
-                confs_init = read("Training_configurations.traj", index=":")
+                confs_init = read(conf_fname, index=":")
                 for conf in confs_init:
                     self.mlip.update_matrices(conf)
             else:
-                init_traj = Trajectory("Training_configurations.traj",
-                                       mode="w")
-                tmp_state = ["Training"] * len(confs_init)
-                tmp_step = np.linspace(0,
-                                       len(confs_init)-1,
-                                       len(confs_init),
-                                       dtype=int)
-                confs_init = self.calc.compute_true_potential(confs_init,
-                                                              tmp_state,
-                                                              tmp_step)
+
+                # Distribute state training
+                nstate = len(confs_init)
+                subfolder_l = ["Training"] * nstate
+                istep = np.arange(nstate, dtype=int)
+                confs_init = self.calc.compute_true_potential(
+                    confs_init,
+                    subfolder=subfolder_l,
+                    step=istep)
+
+                init_traj = Trajectory(conf_fname, mode="w")
                 for i, conf in enumerate(confs_init):
                     if conf is None:
                         msg = "True potential calculation failed or " + \
@@ -538,11 +574,11 @@ class OtfMlacs:
                     init_traj.write(conf)
                 # We dont need the initial configurations anymore
                 del self.confs_init
-            self.log.logger_log.info("")
+            self.logger.info("")
         else:
             msg = f"There are already {self.mlip.nconfs} configurations " + \
                   "in the database, no need to start training computations\n"
-            self.log.logger_log.info(msg)
+            self.logger.info(msg)
         # And now we add the starting configurations in the fit matrices
         for at in uniq_at:
             self.mlip.update_matrices(at)
@@ -550,7 +586,7 @@ class OtfMlacs:
         self.launched = True
 
 # ========================================================================== #
-    def _initialize_state(self, state, atoms, neq, prefix_output, nbeads):
+    def _initialize_state(self, state, atoms, neq, nbeads, prefix='Trajectory'):
         """
         Function to initialize the state
         """
@@ -559,6 +595,18 @@ class OtfMlacs:
             self.state = [state]
         if isinstance(state, list):
             self.state = state
+        self.nstate = len(self.state)
+
+        for s in self.state:
+            s.workdir = self.workdir
+            s.folder = 'MolecularDynamics'
+            s.subfolder = prefix
+            s.prefix = prefix
+
+        if self.nstate > 1:
+            for i, s in enumerate(self.state):
+                s.subfolder = s.subfolder + f"_{i+1}"
+                s.prefix = s.prefix + f"_{i+1}"
 
         npimd = 0
         for s in self.state:
@@ -573,10 +621,12 @@ class OtfMlacs:
             raise ValueError(msg)
 
         self.atoms = []
-        self.nstate = len(self.state)
         if self.pimd:
             # We get the number of beads here
             self.nbeads = nbeads
+            assert self.nstate >= nbeads, (
+                'nbeads should be smaller than number of states')
+
             # We need to store the masses for isotope purposes
             self.masses = atoms.get_masses()
             # We need the temperature for centroid computation purposes
@@ -590,10 +640,7 @@ class OtfMlacs:
             self.neq = [neq]
 
             # Create prefix of output files
-            self.prefix_output = []
-            for i in range(self.nbeads):
-                self.prefix_output.append(prefix_output + "_{0}".format(i+1))
-            self.prefix_centroid = prefix_output + "_centroid"
+            self.prefix = prefix + "_centroid"
 
         else:
             # Create list of atoms
@@ -620,37 +667,6 @@ class OtfMlacs:
                 msg = "neq should be an integer or a list of integers"
                 raise TypeError(msg)
 
-            # Create prefix of output files
-            if isinstance(prefix_output, str):
-                self.prefix_output = []
-                if self.nstate > 1:
-                    for i in range(self.nstate):
-                        self.prefix_output.append(prefix_output +
-                                                  f"_{i+1}")
-                else:
-                    self.prefix_output.append(prefix_output)
-            elif isinstance(prefix_output, list):
-                assert len(prefix_output) == self.nstate
-                self.prefix_output = prefix_output
-                unique = len(set(prefix_output)) == len(prefix_output)
-                # Every name must be unique because of netcdf error
-                if unique:
-                    self.prefix_output = prefix_output
-                else:
-                    self.prefix_output = []
-                    msg = "Every state prefix must be unique.\n"
-                    msg += "Appending a number to differentiate them."
-                    logging.warning(msg)
-                    for i in range(self.nstate):
-                        self.prefix_output.append(prefix_output[i] + f"{i+1}")
-            else:
-                msg = "prefix_output should be a string or a list of strings"
-                raise TypeError(msg)
-
-        prefworkdir = os.getcwd() + "/MolecularDynamics/"
-        for istate in range(self.nstate):
-            self.state[istate].workdir = prefworkdir + \
-                                         self.prefix_output[istate]
 
 # ========================================================================== #
     def _check_if_launched(self, nmax):
@@ -661,18 +677,18 @@ class OtfMlacs:
         """
         _nat_init = 0
         for i in range(nmax):
-            _f = self.prefix_output[i] + ".traj"
-            if os.path.isfile(_f):
+            traj_fname = str(self.workdir / (self.state[i].prefix + ".traj"))
+            if os.path.isfile(traj_fname):
                 try:
-                    _nat_init += len(read(_f, index=':'))
+                    _nat_init += len(read(traj_fname, index=':'))
                 except UnknownFileTypeError:
                     return False
             else:
                 return False
-        _f = "Training_configurations.traj"
-        if os.path.isfile(_f):
+        traj_fname = str(self.workdir / "Training_configurations.traj")
+        if os.path.isfile(traj_fname):
             try:
-                _nat_init += len(read(_f, index=':'))
+                _nat_init += len(read(traj_fname, index=':'))
             except UnknownFileTypeError:
                 return False
         if 1 < _nat_init:
@@ -695,6 +711,8 @@ class OtfMlacs:
         return atoms
 
 # ========================================================================== #
+
+    @Manager.exec_from_workdir
     def restart_from_traj(self, nmax):
         """
         Restart a calculation from previous trajectory files
@@ -705,12 +723,12 @@ class OtfMlacs:
         if train_traj is not None:
             for i, conf in enumerate(train_traj):
                 msg = f"Configuration {i+1} / {len(train_traj)}"
-                self.log.logger_log.info(msg)
+                self.logger.info(msg)
                 self.mlip.update_matrices(conf)  # We add training conf
 
         # Add all the configuration of trajectories traj
         msg = "Adding previous configuration iteratively"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
         parent_list, mlip_coef = self.mlip.read_parent_mlip(prev_traj)
 
         # Directly adding initial conf to have it once even if multistate
@@ -735,39 +753,40 @@ class OtfMlacs:
         if len(no_parent_atoms) > 1 and self.keep_tmp_mlip and can_use_weight:
             msg = "Some configuration in Trajectory have no parent_mlip\n"
             msg += "You should rerun this simulation with DatabaseCalc\n"
-            self.log.logger_log.info(msg)
+            self.logger.info(msg)
 
-            fm = self.mlip.folder / "MLIP.model"
-            fw = self.mlip.folder / "MLIP.weight"
+            fm = self.mlip.subdir / "MLIP.model"
+            fw = self.mlip.subdir / "MLIP.weight"
+
             last_coef = max(self.nconfs)-1
-            coef_folder = self.mlip.folder / f"Coef{last_coef}"
+            self.mlip.subfolder = f"Coef{last_coef}"
 
             if os.path.isfile(fm):
-                if not os.path.exists(coef_folder):
-                    os.mkdir(coef_folder)
-                    os.rename(fm, coef_folder / "MLIP.model")
-                    os.rename(fw, coef_folder / "MLIP.weight")
+                if not os.path.exists(self.mlip.subsubdir):
+                    self.mlip.subsubdir.mkdir(exist_ok=True, parents=True)
+                    os.rename(fm, self.mlip.subsubdir / "MLIP.model")
+                    os.rename(fw, self.mlip.subsubdir / "MLIP.weight")
 
         curr_step = 0
         for i in range(len(atoms_by_mlip)):
             curr_step += 1
-            mlip_sf = Path(atoms_by_mlip[i][0].info['parent_mlip'])
-            self.mlip.next_coefs(mlip_coef[i],
-                                 mlip_subfolder=mlip_sf)
+            self.mlip.subsubdir = Path(atoms_by_mlip[i][0].info['parent_mlip'])
+            self.mlip.next_coefs(mlip_coef[i])
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
+        self.mlip.subfolder = ''
 
         # Update this simulation traj
         self.traj = []
         self.atoms = []
 
         for i in range(nmax):
-            self.traj.append(Trajectory(self.prefix_output[i]+".traj",
+            self.traj.append(Trajectory(self.state[i].get_filepath(".traj"),
                                         mode="a"))
             self.atoms.append(prev_traj[i][-1])
 
         if self.pimd:
-            self.traj_centroid = Trajectory(self.prefix_centroid + ".traj",
+            self.traj_centroid = Trajectory(self.get_filepath(".traj"),
                                             mode="a")
         del prev_traj
 
@@ -777,20 +796,21 @@ class OtfMlacs:
         Read Trajectory files from previous simulations
         """
         msg = "Adding previous configurations to the training data"
-        self.log.logger_log.info(msg)
-        if os.path.isfile("Training_configurations.traj"):
-            train_traj = Trajectory("Training_configurations.traj",
-                                    mode="r")
+        self.logger.info(msg)
+
+        conf_fname = str(self.workdir / "Training_configurations.traj")
+        if os.path.isfile(conf_fname):
+            train_traj = Trajectory(conf_fname, mode="r")
             msg = "{0} training configurations\n".format(len(train_traj))
-            self.log.logger_log.info(msg)
+            self.logger.info(msg)
         else:
             train_traj = None
 
         prev_traj = []
         lgth = []
         for i in range(nmax):
-            prev_traj.append(Trajectory(self.prefix_output[i] + ".traj",
-                                        mode="r"))
+            traj_fname = str(self.workdir / (self.state[i].prefix + ".traj"))
+            prev_traj.append(Trajectory(traj_fname, mode="r"))
             lgth.append(len(prev_traj[i]))
         if self.pimd:
             self.nconfs = [lgth[0]]
@@ -801,7 +821,7 @@ class OtfMlacs:
         else:
             self.nconfs = lgth
         msg = f"{np.sum(lgth)} configuration from trajectories\n"
-        self.log.logger_log.info(msg)
+        self.logger.info(msg)
         return train_traj, prev_traj
 
 

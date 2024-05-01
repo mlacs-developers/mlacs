@@ -8,6 +8,7 @@ from subprocess import call
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
+from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 
 from ase.io import read
@@ -15,7 +16,7 @@ from ase.io import read
 
 # ========================================================================== #
 # ========================================================================== #
-class ThermoState:
+class ThermoState(Manager):
     """
     Parent class for the thermodynamic state used in thermodynamic integration
 
@@ -67,7 +68,10 @@ class ThermoState:
                  trajfile=True,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50):
+                 trajinterval=50,
+                 **kwargs):
+
+        Manager.__init__(self, **kwargs)
 
         self.atoms = atoms
         self.pair_style = pair_style
@@ -96,35 +100,37 @@ class ThermoState:
             get_elements_Z_and_masses(self.atoms)
 
 # ========================================================================== #
-    def run_averaging(self, wdir):
+    @Manager.exec_from_path
+    def run_averaging(self):
         """
         """
-        atomsfname = wdir + "atoms.in"
-        lammpsfname = wdir + "lmp_equilibrate_input.in"
+        atomsfname = str(self.path / "atoms.in")
+        lammpsfname = str(self.path / "lmp_equilibrate_input.in")
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
         write_lammps_data(atomsfname, self.atoms)
-        self.write_lammps_equilibrate_input(wdir)
+        self.write_lammps_equilibrate_input()
 
-        call(lammps_command, shell=True, cwd=wdir)
+        call(lammps_command, shell=True, cwd=str(self.path))
 
-        last_dump_atoms = read(wdir + 'dump_averaging')
+        last_dump_atoms = read(str(self.path / 'dump_averaging'))
         equlibrated_structure = last_dump_atoms
         return equlibrated_structure
 
 # ========================================================================== #
-    def run_dynamics(self, wdir):
+    @Manager.exec_from_path
+    def run_dynamics(self):
         """
         """
-        atomsfname = wdir + "atoms.in"
-        lammpsfname = wdir + "lammps_input.in"
+        atomsfname = str(self.path / "atoms.in")
+        lammpsfname = str(self.path / "lammps_input.in")
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
         write_lammps_data(atomsfname, self.atoms)
 
-        self.write_lammps_input(wdir)
+        self.write_lammps_input()
 
-        call(lammps_command, shell=True, cwd=wdir)
+        call(lammps_command, shell=True, cwd=str(self.path))
 
 # ========================================================================== #
     def _get_lammps_command(self):
@@ -145,7 +151,8 @@ class ThermoState:
         raise NotImplementedError
 
 # ========================================================================== #
-    def write_lammps_equilibrate_input(self, wdir):
+    @Manager.exec_from_path
+    def write_lammps_equilibrate_input(self):
         """
         Write the LAMMPS input for MLMD equilibration
         at zero or finite pressure
@@ -191,14 +198,14 @@ class ThermoState:
         input_string += self.get_traj_input("averaging")
         input_string += "run           ${nsteps_averaging}\n"
 
-        with open(wdir + "lmp_equilibrate_input.in", "w") as f:
+        with open(self.path / "lmp_equilibrate_input.in", "w") as f:
             f.write(input_string)
 
 # ========================================================================== #
-    def get_workdir(self):
-        """
-        """
-        return self.suffixdir
+    #def get_workdir(self):
+    #    """
+    #    """
+    #    return self.suffixdir
 
 # ========================================================================== #
     def post_process(self):

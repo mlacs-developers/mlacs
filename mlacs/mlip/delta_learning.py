@@ -48,7 +48,9 @@ class DeltaLearningPotential(MlipManager):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 folder=None):
+                 folder=None,
+                 **kwargs):
+
         if folder != model.folder:
             if folder is not None:
                 model.folder = folder
@@ -69,7 +71,8 @@ class DeltaLearningPotential(MlipManager):
         self.ref_atom_style = atom_style
         self.atom_style = atom_style
 
-        MlipManager.__init__(self, self.model.descriptor, weight, folder)
+        MlipManager.__init__(self, self.model.descriptor, weight,
+                             folder=folder, **kwargs)
 
         self._ref_e = None
         self._ref_f = None
@@ -217,17 +220,20 @@ class DeltaLearningPotential(MlipManager):
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef, mlip_subfolder):
+    def next_coefs(self, mlip_coef):
         """
         """
-        msg = self.model.next_coefs(mlip_coef, mlip_subfolder)
+        msg = self.model.next_coefs(mlip_coef)
         return msg
 
 # ========================================================================== #
-    def train_mlip(self, mlip_subfolder):
+    def train_mlip(self):
         """
         """
-        msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
+        self.model.workdir = self.workdir
+        self.model.folder = self.folder
+        self.model.subfolder = self.subfolder
+        msg = self.model.train_mlip()
         return msg
 
     # GA: Need to overwrite this abstract methods, but I'm not sure

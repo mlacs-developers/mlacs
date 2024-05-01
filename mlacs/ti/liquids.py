@@ -9,6 +9,7 @@ import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
 from .thermostate import ThermoState
+from ..core.manager import Manager
 from ..utilities.thermo import (free_energy_uhlenbeck_ford,
                                 free_energy_ideal_gas)
 from ase.io import read
@@ -110,7 +111,8 @@ class UFLiquidState(ThermoState):
                  trajfile=True,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50):
+                 trajinterval=50,
+                 **kwargs):
 
         self.atoms = atoms
         self.temperature = temperature
@@ -150,58 +152,61 @@ class UFLiquidState(ThermoState):
                              trajfile,
                              interval,
                              loginterval,
-                             trajinterval)
+                             trajinterval,
+                             **kwargs)
 
-        self.suffixdir = "LiquidUF_T{0}K/".format(self.temperature)
-        if suffixdir is not None:
-            self.suffixdir = suffixdir
-        if self.suffixdir[-1] != "/":
-            self.suffixdir += "/"
+        self.subfolder = kwargs.get('subfolder', None)
+        if not str(self.subfolder): 
+            self.subfolder = f"LiquidUF_T{self.temperature}K"
+
+        # GA: suffixdir is replaced with subfolder
+        #self.suffixdir = self.subfolder
 
 # ========================================================================== #
-    def run(self, wdir):
+    @Manager.exec_from_path
+    def run(self):
         """
         """
-        if not os.path.exists(wdir):
-            os.makedirs(wdir)
 
         if self.equilibrate:
-            self.run_averaging(wdir)
+            self.run_averaging()
 
-        self.run_dynamics(wdir)
+        self.run_dynamics()
 
-        with open(wdir + "MLMD.done", "w") as f:
+        with open("MLMD.done", "w") as f:
             f.write("Done")
 
 # ========================================================================== #
-    def run_dynamics(self, wdir):
+    @Manager.exec_from_path
+    def run_dynamics(self):
         """
         """
         if self.equilibrate:
             # red last_dump_atoms
-            eq_structure = read(wdir + 'dump_averaging')
-            atomsfname = wdir + "eq_atoms.in"
+            eq_structure = read('dump_averaging')
+            atomsfname = str(self.path / "eq_atoms.in")
             write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
-            atomsfname = wdir + "atoms.in"
+            atomsfname = str(self.path / "atoms.in")
             write_lammps_data(atomsfname, self.atoms)
             atomsfname = "atoms.in"
-        lammpsfname = wdir + "lammps_input.in"
+        lammpsfname = str(self.path / "lammps_input.in")
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-        self.write_lammps_input(wdir, atomsfname)
-        call(lammps_command, shell=True, cwd=wdir)
+        self.write_lammps_input(atomsfname)
+        call(lammps_command, shell=True, cwd=str(self.path))
 
 # ========================================================================== #
-    def postprocess(self, wdir):
+    @Manager.exec_from_path
+    def postprocess(self):
         """
         Compute the free energy from the simulation
         """
         pass
         # Get needed value/constants
         if self.equilibrate:
-            eq_structure = read(wdir + 'dump_averaging')
+            eq_structure = read('dump_averaging')
             vol = eq_structure.get_volume()
         else:
             vol = self.atoms.get_volume()  # angs**3
@@ -225,8 +230,8 @@ class UFLiquidState(ThermoState):
                                           self.temperature)  # eV/at
 
         # Compute the work between Uhlenbeck-Ford potential and the MLIP
-        u_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
-        u_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
+        u_f, lambda_f = np.loadtxt("forward.dat", unpack=True)
+        u_b, lambda_b = np.loadtxt("backward.dat", unpack=True)
         int_f = np.trapz(u_f, lambda_f)
         int_b = np.trapz(u_b, lambda_b)
         work = (int_f - int_b) / 2.0  # eV/at
@@ -245,7 +250,7 @@ class UFLiquidState(ThermoState):
             pv = 0.0
 
         # write the results
-        with open(wdir+"free_energy.dat", "w") as f:
+        with open("free_energy.dat", "w") as f:
             header = "#   T [K]     Fe tot [eV/at]     " + \
                       "Fe harm [eV/at]      Work [eV/at]      PV [eV/at]"
             results = f"{self.temperature:10.3f}     " + \
@@ -299,7 +304,8 @@ class UFLiquidState(ThermoState):
                 return msg, free_energy + pv
 
 # ========================================================================== #
-    def write_lammps_input(self, wdir, atomsfname):
+    @Manager.exec_from_path
+    def write_lammps_input(self, atomsfname):
         """
         Write the LAMMPS input for the MLMD simulation
         """
@@ -453,7 +459,7 @@ class UFLiquidState(ThermoState):
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
-        with open(wdir + "lammps_input.in", "w") as f:
+        with open("lammps_input.in", "w") as f:
             f.write(input_string)
 
 # ========================================================================== #

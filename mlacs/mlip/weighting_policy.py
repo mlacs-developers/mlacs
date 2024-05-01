@@ -4,13 +4,14 @@
 """
 from pathlib import Path
 import numpy as np
-from ..utilities import subfolder
+
+from ..core.manager import Manager
 from ase.atoms import Atoms
 
 
 # ========================================================================== #
 # ========================================================================== #
-class WeightingPolicy:
+class WeightingPolicy(Manager):
     """
     Parent class to manage weight in MLACS. This class define the standard to
     be used by the MLIP.
@@ -40,7 +41,11 @@ class WeightingPolicy:
     """
 
     def __init__(self, energy_coefficient=1.0, forces_coefficient=1.0,
-                 stress_coefficient=1.0, database=None, weight=None):
+                 stress_coefficient=1.0, database=None, weight=None,
+                 **kwargs):
+
+        Manager.__init__(self, **kwargs)
+
         self.database = database
         self.matsize = None
         self.matsize = []
@@ -57,8 +62,8 @@ class WeightingPolicy:
             if isinstance(weight, str):
                 weight = np.loadtxt(weight)
             self.weight = weight
-        elif Path("MLIP.weight").exists():
-            weight = np.loadtxt("MLIP.weight")
+        elif (fname := self.subsubdir / 'MLIP.weight').exists():
+            weight = np.loadtxt(fname)
             self.weight = weight
         else:
             self.weight = np.array([])
@@ -74,7 +79,7 @@ class WeightingPolicy:
         return neff
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def compute_weight(self, coef, f_mlipE):
         """
         """
@@ -148,23 +153,24 @@ class UniformWeight(WeightingPolicy):
 
     def __init__(self, nthrow=0, energy_coefficient=1.0,
                  forces_coefficient=1.0, stress_coefficient=1.0,
-                 database=None, weight=None):
+                 database=None, weight=None, **kwargs):
         self.nthrow = nthrow
         WeightingPolicy.__init__(
                 self,
                 energy_coefficient=energy_coefficient,
                 forces_coefficient=forces_coefficient,
                 stress_coefficient=stress_coefficient,
-                database=database, weight=weight)
+                database=database, weight=weight, **kwargs)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def compute_weight(self, coef, f_mlipE):
         """
         Compute Uniform Weight taking into account nthrow :
         """
-        if Path("MLIP.weight").exists():
-            Path("MLIP.weight").unlink()
+        fname = "MLIP.weight"
+        if (filepath := Path(fname)).exists():
+            filepath.unlink()
 
         nconf = len(self.matsize)
         to_remove = 0
@@ -178,8 +184,8 @@ class UniformWeight(WeightingPolicy):
         self.weight = w
 
         header = "Using Uniform weighting\n"
-        np.savetxt("MLIP.weight", self.weight, header=header, fmt="%25.20f")
-        return header, "MLIP.weight"
+        np.savetxt(fname, self.weight, header=header, fmt="%25.20f")
+        return header, fname
 
 # ========================================================================== #
     def update_database(self, atoms):

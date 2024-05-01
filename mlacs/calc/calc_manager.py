@@ -3,13 +3,14 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
+from ..core.manager import Manager
+
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.calculator import CalculatorError
 
-
 # ========================================================================== #
 # ========================================================================== #
-class CalcManager:
+class CalcManager(Manager):
     """
     Parent Class managing the true potential being simulated.
     This Calc class can support any :class:`ase.calculator` calculators from
@@ -26,17 +27,20 @@ class CalcManager:
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
     """
+
     def __init__(self,
                  calc,
-                 magmoms=None):
+                 magmoms=None,
+                 folder = 'Calc',
+                 **kwargs):
+
+        Manager.__init__(self, folder=folder, **kwargs)
+
         self.calc = calc
         self.magmoms = magmoms
 
 # ========================================================================== #
-    def compute_true_potential(self,
-                               confs,
-                               state=None,
-                               step=None):
+    def compute_true_potential(self, confs, subfolder=None, step=None):
         """
         Compute the energy of given configurations with an ASE calculator.
         """

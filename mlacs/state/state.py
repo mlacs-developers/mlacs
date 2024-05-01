@@ -5,12 +5,14 @@
 from pathlib import Path
 from abc import ABC, abstractmethod
 
+from ..core import Manager
+
 import numpy as np
 
 
 # ========================================================================== #
 # ========================================================================== #
-class StateManager(ABC):
+class StateManager(ABC, Manager):
     """
     Parent Class managing the state being simulated
     """
@@ -20,17 +22,16 @@ class StateManager(ABC):
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 workdir=None):
+                 folder = 'MolecularDynamics',
+                 **kwargs):
+
+        Manager.__init__(self, folder=folder, **kwargs)
 
         self._nsteps = nsteps
         self._nsteps_eq = nsteps_eq
         self._logfile = logfile
         self._trajfile = trajfile
         self._loginterval = loginterval
-
-        if workdir is None:
-            workdir = "MolecularDynamics"
-        self.workdir = Path(workdir).absolute()
 
 # ========================================================================== #
     @abstractmethod
@@ -67,16 +68,6 @@ class StateManager(ABC):
 # ========================================================================== #
     def __repr__(self):
         return self.log_recap_state()
-
-# ========================================================================== #
-    @property
-    def workdir(self):
-        return self._workdir
-
-# ========================================================================== #
-    @workdir.setter
-    def workdir(self, workdir):
-        self._workdir = Path(workdir).absolute()
 
 # ========================================================================== #
     @property

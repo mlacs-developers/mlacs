@@ -4,32 +4,31 @@
 """
 
 from pathlib import Path
-
+from ..core.manager import Manager
 
 # ========================================================================== #
 # ========================================================================== #
-class PropertyManager:
+class PropertyManager(Manager):
     """
     Parent Class managing the calculation of differents properties
     """
     def __init__(self,
                  prop,
-                 workdir=None):
+                 folder = 'Properties',
+                 **kwargs):
 
-        if workdir is None:
-            workdir = "Properties"
-        self.workdir = Path(workdir).absolute()
+        Manager.__init__(self, folder=folder, **kwargs)
+
         if prop is None:
             self.check = [False]
             self.manager = None
+
         elif isinstance(prop, list):
             self.manager = prop
             self.check = [False for _ in range(len(prop))]
-            self.workdir.mkdir(exist_ok=True, parents=True)
         else:
             self.manager = [prop]
             self.check = [False]
-            self.workdir.mkdir(exist_ok=True, parents=True)
 
 # ========================================================================== #
     @property
@@ -43,7 +42,8 @@ class PropertyManager:
         return True
 
 # ========================================================================== #
-    def run(self, step, wdir):
+    @Manager.exec_from_workdir
+    def run(self, step):
         """
         Run property calculation.
         """
@@ -52,11 +52,11 @@ class PropertyManager:
             if step % prop.freq == 0:
                 dircheck = True
         if dircheck:
-            wdir.mkdir(exist_ok=True, parents=True)
+            self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, prop in enumerate(self.manager):
             if step % prop.freq == 0:
-                self.check[i] = prop._exec(wdir)
+                self.check[i] = prop._exec()
                 msg += repr(prop)
         return msg
 

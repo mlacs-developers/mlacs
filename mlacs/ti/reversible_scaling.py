@@ -7,6 +7,7 @@ import numpy as np
 from scipy.integrate import cumtrapz
 from ase.units import kB
 
+from ..core.manager import Manager
 from ..utilities.miscellanous import get_elements_Z_and_masses
 from .thermostate import ThermoState
 from .solids import EinsteinSolidState
@@ -102,12 +103,21 @@ class ReversibleScalingState(ThermoState):
                  nsteps_eq=5000,
                  gjf=True,
                  rng=None,
-                 suffixdir=None,
                  logfile=True,
                  trajfile=True,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50):
+                 trajinterval=50,
+                 **kwargs):
+
+        folder = kwargs.get('folder')
+        if folder is None:
+            folder = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
+            if self.pressure is None:
+                folder += "_NVT"
+            else:
+                folder += f"_{self.pressure}GPa"
+            kwargs['folder'] = folder
 
         self.atoms = atoms
         self.t_start = t_start
@@ -137,12 +147,13 @@ class ReversibleScalingState(ThermoState):
                                                 nsteps=nsteps,
                                                 nsteps_eq=nsteps_eq,
                                                 rng=rng,
-                                                suffixdir=suffixdir,
                                                 logfile=logfile,
                                                 trajfile=trajfile,
                                                 interval=interval,
                                                 loginterval=loginterval,
-                                                trajinterval=trajinterval)
+                                                trajinterval=trajinterval,
+                                                **kwargs)
+
             elif phase == 'liquid':
                 self.state = UFLiquidState(atoms,
                                            pair_style,
@@ -162,21 +173,25 @@ class ReversibleScalingState(ThermoState):
                                            trajfile=trajfile,
                                            interval=interval,
                                            loginterval=loginterval,
-                                           trajinterval=trajinterval)
+                                           trajinterval=trajinterval,
+                                           **kwargs)
+
             self.ti = ThermodynamicIntegration(self.state,
                                                ninstance,
-                                               logfile='FreeEnergy.log')
+                                               logfile='FreeEnergy.log',
+                                               **kwargs)
             self.ti.run()
             # Get Fe
             if self.ninstance == 1:
-                _, self.fe_init = self.state.postprocess(self.ti.get_fedir())
+                _, self.fe_init = self.state.postprocess()
             elif self.ninstance > 1:
                 tmp = []
                 for i in range(self.ninstance):
-                    _, tmp_fe_init = self.state.postprocess(
-                                     self.ti.get_fedir() + f"for_back_{i+1}/")
+                    self.state.subdir = f"for_back_{i+1}"
+                    _, tmp_fe_init = self.state.postprocess()
                     tmp.append(tmp_fe_init)
                 self.fe_init = np.mean(tmp)
+
         # reversible scaling
         ThermoState.__init__(self,
                              atoms,
@@ -190,33 +205,22 @@ class ReversibleScalingState(ThermoState):
                              trajfile=trajfile,
                              interval=interval,
                              loginterval=loginterval,
-                             trajinterval=trajinterval)
-
-        self.suffixdir = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
-        if self.pressure is None:
-            self.suffixdir += "_NVT"
-        else:
-            self.suffixdir += "_{0}GPa".format(self.pressure)
-        self.suffixdir += "/"
-        if suffixdir is not None:
-            self.suffixdir = suffixdir
-        if self.suffixdir[-1] != "/":
-            self.suffixdir += "/"
+                             trajinterval=trajinterval,
+                             **kwargs)
 
 # ========================================================================== #
-    def run(self, wdir):
+    @Manager.exec_from_path
+    def run(self):
         """
         """
-        if not os.path.exists(wdir):
-            os.makedirs(wdir)
+        self.run_dynamics()
 
-        self.run_dynamics(wdir)
-
-        with open(wdir + "MLMD.done", "w") as f:
+        with open("MLMD.done", "w") as f:
             f.write("Done")
 
 # ========================================================================== #
-    def write_lammps_input(self, wdir):
+    @Manager.exec_from_path
+    def write_lammps_input(self):
         """
         Write the LAMMPS input for the MLMD simulation
         """
@@ -353,11 +357,12 @@ class ReversibleScalingState(ThermoState):
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
-        with open(wdir + "lammps_input.in", "w") as f:
+        with open("lammps_input.in", "w") as f:
             f.write(input_string)
 
 # ========================================================================== #
-    def postprocess(self, wdir):
+    @Manager.exec_from_path
+    def postprocess(self):
         """
         Compute the free energy from the simulation
         """
@@ -367,8 +372,8 @@ class ReversibleScalingState(ThermoState):
         else:
             p = 0.0
         # Get data
-        v_f, fp, fvol, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
-        v_b, bp, bvol, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
+        v_f, fp, fvol, lambda_f = np.loadtxt("forward.dat", unpack=True)
+        v_b, bp, bvol, lambda_b = np.loadtxt("backward.dat", unpack=True)
 
         v_f /= lambda_f
         v_b /= lambda_b
@@ -392,7 +397,7 @@ class ReversibleScalingState(ThermoState):
         results = np.array([temperature, free_energy]).T
         header = "   T [K]    F [eV/at]"
         fmt = "%10.3f  %10.6f"
-        np.savetxt(wdir + "free_energy.dat", results, header=header, fmt=fmt)
+        np.savetxt("free_energy.dat", results, header=header, fmt=fmt)
         return ""
 
 # ========================================================================== #

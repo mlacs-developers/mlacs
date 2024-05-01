@@ -53,7 +53,7 @@ mlip = LinearPotential(descriptor=descriptor)
 state = RdfLammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq, rdffile='rdf.dat', dt=dt, damp=damp)
 
 # Creation of the OtfMLACS object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir='run_rdf_Cu')
 
 # Run the simulation ----------------------------------------------------------
 sampling.run(nconfs)

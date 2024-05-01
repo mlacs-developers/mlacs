@@ -9,6 +9,7 @@ import numpy as np
 
 from ase.atoms import Atoms
 
+from ..core.manager import Manager
 from ..utilities.io_lammps import LammpsBlockInput
 from ..utilities.miscellanous import read_distribution_files as read_df
 
@@ -23,7 +24,7 @@ ti_args = ['atoms',
 
 # ========================================================================== #
 # ========================================================================== #
-class CalcProperty:
+class CalcProperty(Manager):
     """
     Parent Class for on the fly property calculations.
 
@@ -48,7 +49,8 @@ class CalcProperty:
                  state=None,
                  method='max',
                  criterion=0.001,
-                 frequence=1):
+                 frequence=1,
+                 **kwargs):
 
         self.freq = frequence
         self.stop = criterion
@@ -139,15 +141,19 @@ class CalcPafi(CalcProperty):
                  state=None,
                  method='max',
                  criterion=0.001,
-                 frequence=1):
-        CalcProperty.__init__(self, args, state, method, criterion, frequence)
+                 frequence=1,
+                 **kwargs):
+        CalcProperty.__init__(self, args, state, method, criterion, frequence,
+                              **kwargs)
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_path
+    def _exec(self):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.state.workdir = wdir / 'PafiPath_Calculation'
+        self.state.workdir =  self.workdir
+        self.state.folder =  'PafiPath_Calculation'
         atoms = self.state.path.atoms[0]
         self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
         return self.isconverged

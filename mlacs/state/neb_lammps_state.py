@@ -8,6 +8,7 @@ from ase.io import write
 from ase.io.lammpsdata import write_lammps_data
 
 from .lammps_state import BaseLammpsState
+from ..core.manager import Manager
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput)
 
@@ -94,10 +95,6 @@ class NebLammpsState(BaseLammpsState):
     prt : :class:`Bool` (optional)
         Printing options. Default ``True``
 
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
-
     Examples
     --------
 
@@ -115,9 +112,10 @@ class NebLammpsState(BaseLammpsState):
                  dt=1.5, nimages=None, nprocs=None, mode="rdm_memory",
                  linear=False, prt=False,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 loginterval=50, blocks=None, **kwargs):
+
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir, blocks)
+                         blocks, **kwargs)
 
         self.dt = dt
         self.pressure = None
@@ -143,15 +141,16 @@ class NebLammpsState(BaseLammpsState):
         self.linear = linear
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_lammps_atoms(self, atoms, atom_style):
         """
 
         """
-        write_lammps_data(self.workdir / self.atomsfname,
+        write_lammps_data(self.atomsfname,
                           self.atoms[0],
                           velocities=False,
                           atom_style=atom_style)
-        write_lammps_NEB_ASCIIfile(self.workdir / "atoms-1.data",
+        write_lammps_NEB_ASCIIfile("atoms-1.data",
                                    self.atoms[1])
 
 # ========================================================================== #
@@ -228,11 +227,11 @@ class NebLammpsState(BaseLammpsState):
         true_coordinates = []
         Z = self.atoms[0].get_atomic_numbers()
         for rep in range(int(self.nreplica)):
-            nebfile = self.workdir / f'neb.{rep}'
+            nebfile = str(self.path / f'neb.{rep}')
             positions, cell = self._read_lammpsdata(nebfile)
             true_coordinates.append(positions)
             check = False
-            with open(self.workdir / f'log.lammps.{rep}') as r:
+            with open(self.path / f'log.lammps.{rep}') as r:
                 for _ in r:
                     if check:
                         etotal = _.split()[2]
@@ -249,7 +248,7 @@ class NebLammpsState(BaseLammpsState):
                                        for i in range(self.nreplica)])
         self.true_energies = self.true_energies.astype(float)
         if self.print:
-            write(self.workdir / 'pos_neb_path.xyz',
+            write(str(self.subsubdir / 'pos_neb_path.xyz'),
                   true_atoms, format='extxyz')
 
 # ========================================================================== #
@@ -319,7 +318,7 @@ class NebLammpsState(BaseLammpsState):
                     Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
                     self.atoms[0].get_cell(), self.spline_energies[rep]))
         if self.print:
-            write(self.workdir / 'pos_neb_spline.xyz',
+            write(str(self.path / 'pos_neb_spline.xyz'),
                   self.spline_atoms, format='extxyz')
         return xi
 
