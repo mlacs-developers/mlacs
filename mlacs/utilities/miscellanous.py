@@ -342,13 +342,13 @@ def subfolder(func):
     Decorator that executes a function from a subfolder
     Usage : self.func(subfolder=x, *args)
     """
-    def wrapper(self, *args, subfolder=None, **kwargs):
+    def wrapper(*args, subfolder=None, **kwargs):
         if subfolder is not None:
             if not Path(subfolder).exists():
                 os.makedirs(subfolder)
             initial_folder = os.getcwd()
             os.chdir(subfolder)
-        result = func(self, *args, **kwargs)
+        result = func(*args, **kwargs)
         if subfolder is not None:
             os.chdir(initial_folder)
         return result

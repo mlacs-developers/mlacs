@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import logging
 
-from . import MlipManager
+from . import MlipManager, UniformWeight
 from ..utilities import compute_correlation, create_link
 
 from ase.units import GPa
@@ -31,6 +31,10 @@ class TensorpotPotential(MlipManager):
                  descriptor,
                  folder="Tensorpot",
                  weight=None):
+        if weight is None:
+            weight = UniformWeight(energy_coefficient=1.0, 
+                                   forces_coefficient=1.0,
+                                   stress_coefficient=0.0)
 
         MlipManager.__init__(self,
                              descriptor=descriptor,

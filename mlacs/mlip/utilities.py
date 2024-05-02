@@ -1,5 +1,9 @@
+from pathlib import Path
 import numpy as np
 
+from ase import Atoms
+from . import TensorpotPotential, MbarManager
+from .weighting_policy import WeightingPolicy
 
 def split_dataset(confs, train_ratio=0.5, rng=None):
     """
@@ -24,28 +28,30 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
 
     return trainset, testset
 
-def fit_traj(traj, mlip, weight=None):
+def fit_traj(traj, mlip, weights=None):
     """
     Fit an MLIP according to the trajectory
     """
-    if not isinstance(traj, ase.Trajectory):
+    if isinstance(weights, list):
+        weights = np.array(weights)
+    if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
-    if not isinstance(mlip, Tensorpotential):
+    if not isinstance(mlip, TensorpotPotential):
         raise NotImplementedError("Only Tensorpotential are allowed for now")
     
     # Prepare the data
     atoms = [at for at in traj]
+
+    if len(atoms) == len(weights):
+        we, wf, ws = WeightingPolicy(database=atoms).build_W_efs(weights)
+        weights = np.append(np.append(we, wf), ws)
     mlip.update_matrices(atoms)
-    if weight is None:
+
+    if weights is None:
         if isinstance(mlip.weight, MbarManager):
             msg = "Use another WeightingPolicy in the mlip or give weight."
             raise ValueError(msg)
-        mlip.weight.update_database(atoms)
         mlip.weight.compute_weight()
-        weight = mlip.weight.get_weights()
-
-
-
-
-    
+        weights = mlip.weight.get_weights()
+    coef_fn = mlip.descriptor.fit(weights=weights, atoms=atoms, subfolder=mlip.folder)
 
