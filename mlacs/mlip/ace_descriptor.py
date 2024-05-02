@@ -68,10 +68,9 @@ except ImportError:
 
 # TODO : 1. ACE_fit(Tensorpotential, Traj)
 #        2. Vérifier poids
-#        3. Bug Weighted RMSE, MAE Energy
-#        4. Error if DeltaLearningPotential with ACE
-#        5. Drautz and TrainingConf weight
-#        6. Remove electronic contribution during the fitting
+#        3. Error if DeltaLearningPotential with ACE
+#        4. Drautz and TrainingConf weight
+#        5. Remove electronic contribution during the fitting
 # ========================================================================== #
 # ========================================================================== #
 class AceDescriptor(Descriptor):
@@ -242,9 +241,16 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     @subfolder
-    def fit(self, weights, atoms, name, natoms, energy, forces):
+    def fit(self, atoms, weights, name=None):
         """
         """
+        natoms = [len(at) for at in atoms]
+        energy = [at.get_potential_energy() - self.calc_free_e(at)\
+                for at in atoms]
+        forces = [at.get_forces() for at in atoms]
+        if name is None:
+            name = [f"config{i}" for i in range(len(atoms))]
+
         # Data preparation
         nconfs=len(natoms)
         we = weights[:nconfs].tolist()

@@ -48,11 +48,7 @@ class TensorpotPotential(MlipManager):
         if self.weight.stress_coefficient != 0:
             raise ValueError("Tensorpotential can't fit on stress")
 
-        self.new_ymat_e = []
-        self.new_ymat_f = []
-        self.new_atomic_env = []
         self.atoms = []
-        self.name = []
         self.coef = []
 
 # ========================================================================== #
@@ -62,14 +58,6 @@ class TensorpotPotential(MlipManager):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         self.weight.update_database(atoms)
-
-        for at in atoms:
-            free_e = self.descriptor.calc_free_e(at)
-            self.new_ymat_e.append(at.get_potential_energy() - free_e)
-            self.new_ymat_f.append(at.get_forces())
-
-        for i in range(self.nconfs, self.nconfs+len(atoms)):
-            self.name.append(f"config{i}")
         self.nconfs += len(atoms)
         self.natoms.extend([len(_) for _ in atoms])
         self.atoms.extend(atoms)
@@ -90,8 +78,8 @@ class TensorpotPotential(MlipManager):
         with open(fitting_log, "a") as f:
             sys.stdout = f
             coef_fn = self.descriptor.fit(
-                weights=W, atoms=self.atoms, name=self.name, natoms=self.natoms,
-                energy=self.new_ymat_e, forces=self.new_ymat_f, 
+                weights=W, atoms=self.atoms, #name=self.name, #natoms=self.natoms,
+                #energy=self.new_ymat_e, forces=self.new_ymat_f, 
                 subfolder=mlip_subfolder)
             self.coef = mlip_subfolder/coef_fn
             sys.stdout = sys.__stdout__

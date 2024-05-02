@@ -23,3 +23,29 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
         testset.append(confs[i])
 
     return trainset, testset
+
+def fit_traj(traj, mlip, weight=None):
+    """
+    Fit an MLIP according to the trajectory
+    """
+    if not isinstance(traj, ase.Trajectory):
+        raise ValueError("Traj must be an Ase.Trajectory")
+    if not isinstance(mlip, Tensorpotential):
+        raise NotImplementedError("Only Tensorpotential are allowed for now")
+    
+    # Prepare the data
+    atoms = [at for at in traj]
+    mlip.update_matrices(atoms)
+    if weight is None:
+        if isinstance(mlip.weight, MbarManager):
+            msg = "Use another WeightingPolicy in the mlip or give weight."
+            raise ValueError(msg)
+        mlip.weight.update_database(atoms)
+        mlip.weight.compute_weight()
+        weight = mlip.weight.get_weights()
+
+
+
+
+    
+

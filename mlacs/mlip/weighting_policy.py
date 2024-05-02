@@ -77,7 +77,7 @@ class WeightingPolicy:
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, coef, f_mlipE):
+    def compute_weight(self, coef=None, f_mlipE=None):
         """
         """
         raise NotImplementedError
@@ -161,7 +161,7 @@ class UniformWeight(WeightingPolicy):
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, coef, f_mlipE):
+    def compute_weight(self, coef=None, f_mlipE=None):
         """
         Compute Uniform Weight taking into account nthrow :
         """
