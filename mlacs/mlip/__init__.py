@@ -11,9 +11,9 @@ from .linear_potential import LinearPotential
 from .delta_learning import DeltaLearningPotential
 from .spin_potential import SpinLatticePotential
 from .mbar_manager import MbarManager
-from .weighting_policy import UniformWeight
 from .ace_descriptor import AceDescriptor
 from .tensorpotential import TensorpotPotential
+from .weights import UniformWeight, DrautzWeight
 
 __all__ = ['MlipManager',
            'Descriptor',
@@ -26,5 +26,6 @@ __all__ = ['MlipManager',
            'SpinLatticePotential',
            'MbarManager',
            'UniformWeight',
+           'DrautzWeight',
            'AceDescriptor',
            'TensorpotPotential']

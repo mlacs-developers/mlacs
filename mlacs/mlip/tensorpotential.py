@@ -4,7 +4,8 @@ import sys
 import numpy as np
 import logging
 
-from . import MlipManager, UniformWeight
+from . import MlipManager
+from .weights import UniformWeight
 from ..utilities import compute_correlation, create_link
 
 from ase.units import GPa

@@ -10,7 +10,7 @@ from ase.atoms import Atoms
 from ase.units import GPa
 
 from ..utilities import compute_correlation, create_link
-from .weighting_policy import UniformWeight
+from .weights import UniformWeight
 
 
 # ========================================================================== #
