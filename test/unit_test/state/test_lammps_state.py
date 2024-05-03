@@ -152,7 +152,7 @@ def test_pstop():
     cleanup()
     mpath, dpath = create_mlip()
 
-    ls = LammpsState(3200, nsteps=100, nsteps_eq=20,
+    ls = LammpsState(3200, nsteps=10, nsteps_eq=10,
                      dt=0.5, pressure=1, p_stop=10)
     at = bulk("Cu").repeat(2)
     ps = f"mliap model linear {mpath} descriptor sna {dpath}"

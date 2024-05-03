@@ -20,7 +20,6 @@ from .calc import CalcManager
 from .properties import PropertyManager
 from .state import StateManager
 from .utilities.log import MlacsLog
-from .utilities.miscellanous import compute_volume
 from .utilities import create_random_structures
 from .utilities.path_integral import compute_centroid_atoms
 
@@ -343,6 +342,7 @@ class OtfMlacs:
             return False
 
         # And now we can write the configurations in the trajectory files
+        attrue = self.add_traj_descriptors(atoms_true)
         for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
             if attrue is not None:
                 self.mlip.update_matrices(attrue)
@@ -372,20 +372,6 @@ class OtfMlacs:
                         f"{epot_mlip:20.15f}   " +
                         f"{ekin_mlip:20.15f}\n")
             self.nconfs[0] += 1
-
-        # RB need to clean that.
-        for istate in range(self.nstate):
-            if self.state[istate].pressure is not None:
-                msg = 'Computing the average volume\n'
-                confs = read(self.prefix_output[istate] + '.traj', index=':')
-                weights = None
-                if (self.mlip.folder / 'MLIP.weight').exists():
-                    weights = np.loadtxt(self.mlip.folder / 'MLIP.weight')
-                cell, volume = compute_volume(confs, weights)
-                msg += "Average structure:\n"
-                msg += f"- cell: {cell[0][0]:20.15f} angs\n"
-                msg += f"- vol/atom: {volume:20.15f} angs^3\n"
-                self.log.logger_log.info(msg)
 
         # Computing properties with ML potential.
         # Computing "on the fly" properties.
@@ -441,6 +427,7 @@ class OtfMlacs:
         uniq_at = self.calc.compute_true_potential(uniq_at,
                                                    tmp_state,
                                                    tmp_step)
+        uniq_at = self.add_traj_descriptors(uniq_at)
         msg = "Computation done, creating trajectories"
         self.log.logger_log.info(msg)
 
@@ -510,6 +497,8 @@ class OtfMlacs:
                                                       self.confs_init)
             elif isinstance(self.confs_init, list):
                 confs_init = self.confs_init
+
+            confs_init = self.add_traj_descriptors(confs_init)
 
             checkisfile = False
             if os.path.isfile("Training_configurations.traj"):
@@ -690,6 +679,20 @@ class OtfMlacs:
             return True
         else:
             return False
+
+# ========================================================================== #
+    def add_traj_descriptors(self, atoms):
+        """
+        Add descriptors in trajectory files.
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+
+        desc = self.mlip.descriptor.compute_descriptors(atoms)
+
+        for iat, at in enumerate(atoms):
+            at.info['descriptor'] = desc[iat]
+        return atoms
 
 # ========================================================================== #
     def restart_from_traj(self, nmax):

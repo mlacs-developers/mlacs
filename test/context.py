@@ -21,7 +21,7 @@ def has_lammps_nompi():
     lmp_info = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
     if b'REPLICA' not in lmp_info:
         return True
-    cmd = f"mpirun -2 {exe} -partition 2x1"
+    cmd = f"mpirun -n 2 {exe} -partition 2x1"
     lmp_info = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
     if error in lmp_info:
         return True
