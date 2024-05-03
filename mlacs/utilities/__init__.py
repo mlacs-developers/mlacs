@@ -19,7 +19,7 @@ from .miscellanous import (get_elements_Z_and_masses,
 from .io_abinit import (AbinitNC,
                         set_aseAtoms)
 
-from .io_pandas import (update_dataframe)
+from .io_pandas import (make_dataframe)
 
 __all__ = ['compute_pdf',
            'get_elements_Z_and_masses',
@@ -35,6 +35,5 @@ __all__ = ['compute_pdf',
            'set_aseAtoms',
            'subfolder',
            'create_link',
-           'create_dataframe',
-           'update_dataframe',
+           'make_dataframe',
            ]

@@ -9,7 +9,7 @@ import shlex
 
 import numpy as np
 from ase import Atoms
-from ..utilities import update_dataframe
+from ..utilities import make_dataframe
 from pyace.basis import BBasisConfiguration
 from pyace import ACEBBasisSet
 
@@ -260,7 +260,7 @@ class AceDescriptor(Descriptor):
 
         # Dataframe preparation
         df = self.get_df()
-        df = update_dataframe(
+        df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
         df.to_pickle(self.db_fn, compression="gzip")
@@ -516,17 +516,6 @@ class AceDescriptor(Descriptor):
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-
-# ========================================================================== #
-    def cleanup(self):
-        '''
-        Function to cleanup the LAMMPS files used
-        to extract the descriptor and gradient values
-        '''
-        #Path("lammps.out").unlink()
-        #Path("lammps.in").unlink()
-        #Path("atoms.lmp").unlink()
-        pass
 
 # ========================================================================== #
     def _write_mlip_params(self):

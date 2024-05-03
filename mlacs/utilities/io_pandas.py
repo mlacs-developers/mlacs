@@ -2,8 +2,8 @@ import pandas as pd
 import numpy as np 
 
 
-def update_dataframe(df, name, atoms, atomic_env, 
-                     energy=None, forces=None, we=None, wf=None):
+def make_dataframe(df, name, atoms, atomic_env,
+                   energy=None, forces=None, we=None, wf=None):
     """
     Append atoms information to the dataframe. 
     Return the dataframe WITHOUT writing in a file
@@ -35,9 +35,7 @@ def update_dataframe(df, name, atoms, atomic_env,
         The relative weight between e and f is given by alpha
     """
     add_ef = all(_ is not None for _ in (energy, forces, we, wf))
-
     nat = np.array([])
-
     for at in atoms:
         nat = np.append(nat, len(at))
 
@@ -51,15 +49,5 @@ def update_dataframe(df, name, atoms, atomic_env,
         to_add = dict(name=name, ase_atoms=atoms,
                       NUMBER_OF_ATOMS=nat, atomic_env=atomic_env)
 
-    new_data = pd.DataFrame(to_add)
-    if df is None:
-        return new_data
-
-    if not isinstance(df,pd.DataFrame):
-        if isinstance(df, str):
-            df = pd.read_pickle(df, compression="gzip")
-        else:
-            raise ValueError("Unrecognized type for the dataframe")
-
-    return pd.concat([df, new_data], ignore_index=True)
+    return pd.DataFrame(to_add)
 
