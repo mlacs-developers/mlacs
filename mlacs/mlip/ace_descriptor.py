@@ -256,7 +256,7 @@ class AceDescriptor(Descriptor):
         we = weights[:nconfs].tolist()
         wf = weights[nconfs:-(nconfs)*6]
         wf = self.prepare_wf(wf, natoms)
-        atomic_env = self.compute_descriptor(atoms)
+        atomic_env = self.compute_descriptors(atoms)
 
         # Dataframe preparation
         df = self.get_df()
@@ -491,8 +491,6 @@ class AceDescriptor(Descriptor):
         """
         Get the Pyace.catomic.AtomicEnvironemnt
         """
-        if stress:
-            raise ValueError("Stress are not implemented in ACE")
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
