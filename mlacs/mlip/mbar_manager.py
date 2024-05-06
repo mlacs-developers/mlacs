@@ -85,7 +85,6 @@ class MbarManager(WeightingPolicy):
         self.Nk = []
         self.train_mlip = False
         self.mlip_coef = []
-        self.mlip_ep = []
         self.ukn = []
 
         self._newddb = []
@@ -116,16 +115,8 @@ class MbarManager(WeightingPolicy):
             self.Nk = np.append(self.Nk, [len(self._newddb)])
         self._newddb = []
 
-        # Calculate the MLIP Energy and Pressure according to the new coef
-        mlip_E, mlip_F, mlip_S = predict(self.database, coef)
-        mlip_P = []
-        for s in mlip_S:
-            mlip_P.append(-np.sum(s[:3])/3)
-        self.mlip_ep.append([mlip_E, mlip_P])
-
         # Calculate ukn
-        assert len(self.mlip_ep[-1][0]) == self.nconfs
-        ukn = np.zeros([len(self.mlip_ep), len(self.mlip_ep[-1][0])])
+        ukn = np.zeros([len(self.mlip_coef), len(self.database)])
         for idx, mlip_coef in enumerate(self.mlip_coef):
             # Calculate the MLIP Energy and Pressure according to the new coef
             mlip_E, mlip_F, mlip_S = predict(self.database, mlip_coef)
@@ -158,7 +149,8 @@ class MbarManager(WeightingPolicy):
 
             header += "Number of uncorrelated snapshots for each k state:\n"
             header += np.array2string(np.array(self.Nk, 'int')) + "\n"
-
+        else:  # If there isn't enough coef, use UniformWeight
+            self.weight = np.ones(len(self.database))/len(self.database)
         return header, "MLIP.weight"
 
 # ========================================================================== #

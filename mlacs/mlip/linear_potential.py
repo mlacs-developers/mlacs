@@ -147,6 +147,7 @@ class LinearPotential(MlipManager):
         w = None
         if len(self.weight.weight) > 0:
             w = self.weight.weight
+        
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)
         res_S = compute_correlation(np.c_[ymat_s, s_mlip]/GPa, weight=w)

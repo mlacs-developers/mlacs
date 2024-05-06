@@ -12,7 +12,96 @@ from .weighting_policy import WeightingPolicy
 
 # ========================================================================== #
 # ========================================================================== #
-class DrautzWeight(WeightingPolicy):
+class FixedWeight(WeightingPolicy):
+    """
+    Class that gives a static weight to the first few configurations and then
+    use the given WeightingPolicy for the other configurations.
+    Can be used to give a fixed weight to the training configurations
+
+    Parameters
+    ----------
+    weighter: :class:`WeightingPolicy`
+        Weight of the configurations after
+        Default UniformWeight
+
+    static_weight: :class:`np.array`
+        Weights of the first configuration. The number of configuration is
+        given by the length of the array. The weight must be normalized
+        Default [0]
+    """
+    def __init__(self, static_weight=np.array([0]), weighter=None,
+                 energy_coefficient=1.0, forces_coefficient=1.0, 
+                 stress_coefficient=1.0):
+
+        assert np.sum(static_weight)<=1.0
+        self.weighter = weighter
+        self.static_weight = static_weight
+        self.nstatic = len(static_weight)
+        self.remaining = 1-np.sum(static_weight)
+
+        self.energy_coefficient=energy_coefficient
+        self.forces_coefficient=forces_coefficient
+        self.stress_coefficient=stress_coefficient
+        self.matsize = []
+        self.weight = np.array([])
+
+        if weighter is None:
+            self.weighter = UniformWeight(
+                energy_coefficient=energy_coefficient,
+                forces_coefficient=forces_coefficient,
+                stress_coefficient=stress_coefficient)
+
+# ========================================================================== #
+    @subfolder
+    def compute_weight(self, coef=None, predict=None):
+        """
+        Compute Uniform Weight taking into account nthrow :
+        """
+        weighter_name = type(self.weighter).__name__
+        header2 = ""
+
+        if len(self.matsize) == (self.nstatic+1):  # Exactly 1 conf not static
+            self.weight = np.append(self.static_weight, self.remaining)
+        elif len(self.matsize) > self.nstatic:
+            tmp, fn = self.weighter.compute_weight(coef=coef, predict=predict)
+            header2 += tmp
+            dynamic_w = self.remaining * self.weighter.weight
+            self.weight = np.append(self.static_weight, dynamic_w)
+        else:
+            curr_weight = self.static_weight[:len(self.matsize)]
+            if np.sum(curr_weight)==0:  # A niche bug
+                w = np.ones(len(self.matsize))
+            self.weight = curr_weight/np.sum(curr_weight)
+
+        header = f"Using Fixed weighting and {weighter_name}\n"
+        header += f"{header2}\n"
+        if Path("MLIP.weight").exists():
+            Path("MLIP.weight").unlink()
+        np.savetxt("MLIP.weight", self.weight, header=header, fmt="%25.20f")
+        return header, "MLIP.weight"
+
+# ========================================================================== #
+    def update_database(self, atoms):
+        """
+        Update the database.
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+
+        if len(self.matsize) > self.nstatic:
+            self.weighter.update_database(atoms)
+        elif len(self.matsize) + len(atoms) > self.nstatic:
+            idx = len(self.matsize) + len(atoms) - self.nstatic
+            self.weighter.update_database(atoms[-idx:])
+        else: # Static weights
+            pass
+
+        self.matsize.extend([len(a) for a in atoms])
+
+
+# ========================================================================== #
+# ========================================================================== #
+class EnergyBasedWeight(WeightingPolicy):
     """
     Class that gives weight according to w_n = C/[E_n - E_min + delta]**2
     where C is a normalization constant.
@@ -37,7 +126,7 @@ class DrautzWeight(WeightingPolicy):
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, coef=None, f_mlipE=None):
+    def compute_weight(self, coef=None, predict=None):
         """
         Compute Uniform Weight taking into account nthrow :
         """
@@ -47,7 +136,7 @@ class DrautzWeight(WeightingPolicy):
         w = np.array([1/(en - emin + self.delta)**2 for en in self.energies])
         self.weight = w / np.sum(w)
 
-        header = "Using Drautz weighting\n"
+        header = "Using EnergyBased weighting\n"
         np.savetxt("MLIP.weight", self.weight, header=header, fmt="%25.20f")
         return header, "MLIP.weight"
 
@@ -93,7 +182,7 @@ class UniformWeight(WeightingPolicy):
 
 # ========================================================================== #
     @subfolder
-    def compute_weight(self, coef=None, f_mlipE=None):
+    def compute_weight(self, coef=None, predict=None):
         """
         Compute Uniform Weight taking into account nthrow :
         """

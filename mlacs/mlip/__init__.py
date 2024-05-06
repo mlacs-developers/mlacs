@@ -13,7 +13,7 @@ from .spin_potential import SpinLatticePotential
 from .mbar_manager import MbarManager
 from .ace_descriptor import AceDescriptor
 from .tensorpotential import TensorpotPotential
-from .weights import UniformWeight, DrautzWeight
+from .weights import UniformWeight, EnergyBasedWeight, FixedWeight
 
 __all__ = ['MlipManager',
            'Descriptor',
@@ -26,6 +26,7 @@ __all__ = ['MlipManager',
            'SpinLatticePotential',
            'MbarManager',
            'UniformWeight',
-           'DrautzWeight',
+           'EnergyBasedWeight',
+           'FixedWeight',
            'AceDescriptor',
            'TensorpotPotential']

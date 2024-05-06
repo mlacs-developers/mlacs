@@ -43,7 +43,6 @@ class WeightingPolicy:
     def __init__(self, energy_coefficient=1.0, forces_coefficient=1.0,
                  stress_coefficient=1.0, database=None, weight=None):
         self.database = database
-        self.matsize = None
         self.matsize = []
 
         sum_efs = energy_coefficient + forces_coefficient + stress_coefficient
@@ -76,13 +75,6 @@ class WeightingPolicy:
         return neff
 
 # ========================================================================== #
-    @subfolder
-    def compute_weight(self, coef=None, f_mlipE=None):
-        """
-        """
-        raise NotImplementedError
-
-# ========================================================================== #
     def get_weights(self):
         """
         Return weighting matrices
@@ -93,12 +85,6 @@ class WeightingPolicy:
         wf = wf * self.forces_coefficient
         ws = ws * self.stress_coefficient
         return np.r_[we, wf, ws]
-
-# ========================================================================== #
-    def update_database(self, atoms):
-        """
-        """
-        raise NotImplementedError
 
 # ========================================================================== #
     def init_weight(self, scale=1):
@@ -128,4 +114,17 @@ class WeightingPolicy:
         w_f = np.r_[w_f] / np.sum(np.r_[w_f])
         w_s = np.r_[w_s] / np.sum(np.r_[w_s])
         return w_e, w_f, w_s
+
+# ========================================================================== #
+    def update_database(self, atoms):
+        """
+        """
+        raise NotImplementedError
+
+# ========================================================================== #
+    @subfolder
+    def compute_weight(self, coef=None, predict=None):
+        """
+        """
+        raise NotImplementedError
 
