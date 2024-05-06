@@ -143,7 +143,7 @@ def _create_ASE_object(Z, positions, cell, energy):
 
 
 # ========================================================================== #
-def compute_averaged(traj):
+def compute_averaged(traj, weights=None):
     """
     Function to compute the averaged Atoms configuration from a Trajectory.
 
@@ -160,33 +160,20 @@ def compute_averaged(traj):
     """
     if isinstance(traj, Atoms):
         traj = [traj]
+    if weights is None:
+        weights = np.ones(len(traj))
     Z = traj[-1].get_atomic_numbers()
-    cell = np.average([at.get_cell()[:] for at in traj], axis=0)
-    positions = np.average([at.get_positions() for at in traj], axis=0)
-    energy = np.average([at.get_potential_energy() for at in traj])
+    cell = np.average([at.get_cell()[:] for at in traj],
+                      axis=0, weights=weights)
+    positions = np.average([at.get_positions() for at in traj],
+                           axis=0, weights=weights)
+    energy = np.average([at.get_potential_energy() for at in traj],
+                        weights=weights)
     atoms = _create_ASE_object(Z=Z,
                                positions=positions,
                                cell=cell,
                                energy=energy)
     return atoms.copy()
-
-
-# ========================================================================== #
-def compute_volume(confs, weights=None):
-    nconfs = len(confs)
-    natoms = len(confs[0])
-    vol = []
-    cell = []
-    if weights is None:
-        weights = np.ones(nconfs) / nconfs
-    for i, at in enumerate(confs):
-        cell.append(at.get_cell() * weights[i])
-        vol.append(at.get_volume() * weights[i] / natoms)
-
-    cell = np.sum(cell, axis=0)
-    vol = np.sum(vol)
-
-    return cell, vol
 
 
 # ========================================================================== #

@@ -194,22 +194,22 @@ class LinearPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, desc, coef=None):
+    def predict(self, atoms, coef=None):
         """
         Predict energy (eV), forces (eV/ang) and stress (eV/ang**3) given
         desc which can be of type ase.Atoms or list of ase.Atoms.
         Can choose the coefficients to calculate with, or use the latest one
         """
-        if isinstance(desc, Atoms):
-            desc = [desc]
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
         if coef is None:
             coef = self.coefficients
         assert coef is not None, 'The model has not been trained'
 
-        if isinstance(desc[0], Atoms):
-            desc = self.descriptor.calculate(desc, subfolder=self.folder)
-        else:
+        if not isinstance(atoms[0], Atoms):
             raise NotImplementedError
+
+        desc = self.descriptor.compute_descriptors(atoms)
 
         amat_e = [d['desc_e'] for d in desc]
         amat_f = [d['desc_f'] for d in desc]

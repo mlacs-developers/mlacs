@@ -44,9 +44,12 @@ class Descriptor(ABC):
     def compute_descriptors(self, atoms, forces=True, stress=True):
         desc = []
         for at in atoms:
-            desc.append(self.compute_descriptor(atoms=at,
-                                                forces=forces,
-                                                stress=stress))
+            if "descriptor" in at.info:
+                desc.append(at.info['descriptor'])
+            else:
+                desc.append(self.compute_descriptor(atoms=at,
+                                                    forces=forces,
+                                                    stress=stress))
         return desc
 
 # ========================================================================== #
@@ -248,14 +251,12 @@ class BlankDescriptor(Descriptor):
 
 # ========================================================================== #
     def compute_descriptor(self, atoms, forces=True, stress=True):
-        msg = "BlankDescriptor can't give access to descriptor"
-        raise NotImplementedError(msg)
+        pass
 
 # ========================================================================== #
     @subfolder
     def write_mlip(self, mlip_coef):
         pass
-
 
 # ========================================================================== #
 def combine_reg(matrices):

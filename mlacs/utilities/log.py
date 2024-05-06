@@ -29,6 +29,7 @@ class MlacsLog:
 
         self.logger_log = logging.getLogger(__name__)
         self.logger_log.addHandler(logging.FileHandler(logfile, 'a'))
+        self.logger_log.setLevel(logging.INFO)
 
         if not restart:
             self.write_header()
