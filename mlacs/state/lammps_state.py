@@ -13,6 +13,7 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 
 from .state import StateManager
+from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
                                    EmptyLammpsBlockInput,
@@ -24,9 +25,10 @@ class BaseLammpsState(StateManager):
     Base class to perform simulations with LAMMPS.
     """
     def __init__(self, nsteps, nsteps_eq, logfile, trajfile, loginterval=50,
-                 workdir=None, blocks=None):
+                 blocks=None, **kwargs):
+
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir)
+                         **kwargs)
 
         self.ispimd = False
         self.isrestart = False
@@ -44,6 +46,7 @@ class BaseLammpsState(StateManager):
                     self._myblock.extend(block)
 
 # ========================================================================== #
+    @Manager.exec_from_subsubdir
     def run_dynamics(self,
                      supercell,
                      pair_style,
@@ -59,15 +62,13 @@ class BaseLammpsState(StateManager):
         initial_charges = atoms.get_initial_charges()
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        self.workdir.mkdir(exist_ok=True, parents=True)
-
         blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
                                         model_post, atom_style, eq)
         lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
         for block in blocks:
             lmp_input(block.name, block)
 
-        with open(self.workdir / self.lammpsfname, "w") as fd:
+        with open(self.lammpsfname, "w") as fd:
             fd.write(str(lmp_input))
 
         self._write_lammps_atoms(atoms, atom_style)
@@ -75,7 +76,7 @@ class BaseLammpsState(StateManager):
         lmp_cmd = self._get_lammps_command()
         lmp_handle = run(lmp_cmd,
                          shell=True,
-                         cwd=self.workdir,
+                         cwd=str(self.subsubdir),
                          stderr=PIPE)
 
         if lmp_handle.returncode != 0:
@@ -90,11 +91,12 @@ class BaseLammpsState(StateManager):
         return atoms.copy()
 
 # ========================================================================== #
+    @Manager.exec_from_subsubdir
     def _write_lammps_atoms(self, atoms, atom_style):
         """
 
         """
-        write_lammps_data(self.workdir / self.atomsfname,
+        write_lammps_data(self.atomsfname,
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
@@ -233,7 +235,7 @@ class BaseLammpsState(StateManager):
         """
 
         """
-        atoms = read(self.workdir / "configurations.out")
+        atoms = read(self.subsubdir / "configurations.out")
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
         return atoms
@@ -367,10 +369,6 @@ class LammpsState(BaseLammpsState):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
 
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
-
     blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
         Custom block input class. Can be a list of blocks.
         If ``None``, nothing is added in the input. Default ``None``.
@@ -384,14 +382,37 @@ class LammpsState(BaseLammpsState):
     >>> state = LammpsState(temperature=300, pressure=0)    #NPT
     >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
-    def __init__(self, temperature, pressure=None, t_stop=None,
-                 p_stop=None, damp=None, langevin=True, gjf="vhalf",
-                 qtb=False, fd=200, n_f=100, pdamp=None, ptype="iso",
-                 twodimensional=False, dt=1.5, fixcm=True, rng=None,
-                 init_momenta=None, nsteps=1000, nsteps_eq=100, logfile=None,
-                 trajfile=None, loginterval=50, workdir=None, blocks=None):
+    def __init__(self,
+                 temperature,
+                 pressure=None,
+                 t_stop=None,
+                 p_stop=None,
+                 damp=None,
+                 langevin=True,
+                 gjf="vhalf",
+                 qtb=False,
+                 fd=200,
+                 n_f=100,
+                 pdamp=None,
+                 ptype="iso",
+                 twodimensional=False,
+                 dt=1.5,
+                 fixcm=True,
+                 rng=None,
+                 init_momenta=None,
+                 nsteps=1000,
+                 nsteps_eq=100,
+                 logfile=None,
+                 trajfile=None,
+                 loginterval=50,
+                 blocks=None,
+                 folder = 'Trajectory',
+                 **kwargs):
+
+        kwargs.setdefault('prefix', folder)  # To keep previous behaviour
+
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir, blocks)
+                         blocks, **kwargs)
 
         self.temperature = temperature
         self.pressure = pressure

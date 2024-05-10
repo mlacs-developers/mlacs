@@ -5,7 +5,8 @@ from subprocess import run, PIPE
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from ..utilities import get_elements_Z_and_masses, subfolder
+from ..core.manager import Manager
+from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor, combine_reg
 from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
@@ -80,13 +81,14 @@ class MliapDescriptor(Descriptor):
     >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
-                 model="linear", style="snap", alpha=1.0):
+                 model="linear", style="snap", alpha=1.0,
+                 **kwargs):
         self.chemflag = parameters.pop("chemflag", False)
-        Descriptor.__init__(self, atoms, rcut, alpha)
+        Descriptor.__init__(self, atoms, rcut, alpha, **kwargs)
 
         self.model = model
         self.style = style
-        self.desc_name = "MLIAP"
+        self.prefix = "MLIAP"
 
         # Initialize the parameters for the descriptors
         self.radelems = parameters.pop("radelems", None)
@@ -127,6 +129,7 @@ class MliapDescriptor(Descriptor):
         self.cmd = cmd
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def compute_descriptor(self, atoms, forces=True, stress=True):
         """
         """
@@ -160,6 +163,7 @@ class MliapDescriptor(Descriptor):
         return res
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_lammps_input(self, masses, pbc):
         """
         """
@@ -195,7 +199,7 @@ class MliapDescriptor(Descriptor):
         elif self.style == "so3":
             style = "so3"
         txt = f"compute ml all mliap descriptor {style} " + \
-              f"{self.desc_name}.descriptor model {self.model}"
+              f"{self.prefix}.descriptor model {self.model}"
         block("compute", txt)
         block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
               "file descriptor.out mode vector")
@@ -206,6 +210,7 @@ class MliapDescriptor(Descriptor):
             fd.write(str(lmp_in))
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _run_lammps(self, lmp_atoms_fname):
         '''
         Function that call LAMMPS to extract the descriptor and gradient values
@@ -225,24 +230,24 @@ class MliapDescriptor(Descriptor):
             """
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def cleanup(self):
         '''
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        Path("lmp.out").unlink()
-        Path("descriptor.out").unlink()
-        Path("lammps_input.in").unlink()
-        Path("atoms.lmp").unlink()
+        Path("lmp.out").unlink(missing_ok=True)
+        Path("descriptor.out").unlink(missing_ok=True)
+        Path("lammps_input.in").unlink(missing_ok=True)
+        Path("atoms.lmp").unlink(missing_ok=True)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_path
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        self.mlip_desc = Path.cwd()
-        with open(f"{self.desc_name}.descriptor", "w") as f:
+        with open(f"{self.prefix}.descriptor", "w") as f:
             f.write(self.get_mlip_params())
 
 # ========================================================================== #
@@ -280,14 +285,16 @@ class MliapDescriptor(Descriptor):
         return s
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_path
     def write_mlip(self, coefficients):
         """
         """
-        if Path(f"{self.desc_name}.model").is_file():
-            Path(f"{self.desc_name}.model").unlink()
-        self.mlip_model = Path.cwd()
-        with open(f"{self.desc_name}.model", "w") as fd:
+        filepath = Path(self.get_filepath('.model'))
+        if filepath.is_file():
+            filepath.unlink()
+        fname = filepath.relative_to(self.path)
+
+        with open(filepath, "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -297,15 +304,15 @@ class MliapDescriptor(Descriptor):
             fd.write("# nelems   ncoefs\n")
             fd.write(f"{self.nel} {self.ndesc + 1}\n")
             np.savetxt(fd, coefficients, fmt="%35.30f")
-        return f"{self.desc_name}.model"
+        return fname
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_path
     def read_mlip(self):
         """
         Read MLIP parameters from a file.
         """
-        fn = Path(f"{self.desc_name}.model")
+        fn = Path(self.get_filepath('.model'))
         if not fn.is_file():
             raise FileNotFoundError(f"File {fn.absolute()} does not exist.")
 
@@ -333,24 +340,24 @@ class MliapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style(self, folder):
+    def get_pair_style(self):
         if self.style == "snap":
             style = "sna"
         elif self.style == "so3":
             style = "so3"
-        modelfile = folder / f"{self.desc_name}.model"
-        descfile = folder / f"{self.desc_name}.descriptor"
+        modelfile = self.get_filepath('.model')
+        descfile = self.get_filepath('.descriptor')
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self, folder=None):
+    def get_pair_coeff(self):
         return [f"* * {' '.join(self.elements)}"]
 
 # ========================================================================== #
-    def get_pair_style_coeff(self, folder):
-        return self.get_pair_style(folder), self.get_pair_coeff(folder)
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def __str__(self):

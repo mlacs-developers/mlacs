@@ -5,6 +5,7 @@
 import numpy as np
 
 from .lammps_state import BaseLammpsState
+from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    write_atoms_lammps_spin_style)
@@ -98,16 +99,13 @@ class SpinLammpsState(BaseLammpsState):
         the `initialize_momenta` function.
         If the default ``None`` is set, momenta are initialized with a
         Maxwell Boltzmann distribution.
-
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
     """
     def __init__(self, temperature, t_stop=None, damp=None, dt=1.5, fixcm=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 loginterval=50, blocks=None, **kwargs):
+
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir, blocks)
+                         blocks, **kwargs)
 
         self.temperature = temperature
         self.t_stop = t_stop
@@ -236,10 +234,11 @@ class SpinLammpsState(BaseLammpsState):
         return block
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_lammps_atoms(self, atoms, atom_style):
         """
 
         """
         spins = atoms.get_array("spins")
-        with open(self.workdir / "atoms.in", "w") as fd:
+        with open("atoms.in", "w") as fd:
             write_atoms_lammps_spin_style(fd, atoms, spins)

@@ -47,14 +47,13 @@ mlip = LinearPotential(descriptor)
 
 # Creation of the State Manager
 state = []
-prefix = []
 for t in temperature:
     state.append(LangevinState(t, nsteps=nsteps, nsteps_eq=nsteps_eq,
-                               dt=dt, friction=friction))
-    prefix.append(f"{t}K")
+                               dt=dt, friction=friction,
+                               subfolder = f"{t}K"))
 
 # Creation of the OtfMlacs object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, prefix_output=prefix)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
 
 # Run the simulation ----------------------------------------------------------
 sampling.run(nconfs)

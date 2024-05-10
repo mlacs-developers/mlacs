@@ -11,7 +11,7 @@ from .miscellanous import (get_elements_Z_and_masses,
                            compute_correlation,
                            integrate_points,
                            normalized_integration,
-                           subfolder,
+                           execute_from,
                            create_link,
                            )
 
@@ -29,6 +29,6 @@ __all__ = ['compute_pdf',
            'normalized_integration',
            'AbinitNC',
            'set_aseAtoms',
-           'subfolder',
+           'execute_from',
            'create_link',
            ]

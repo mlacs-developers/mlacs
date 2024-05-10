@@ -53,11 +53,12 @@ class LinearPotential(MlipManager):
                  descriptor,
                  parameters={},
                  weight=None,
-                 folder=Path("MLIP")):
+                 **kwargs):
+
         MlipManager.__init__(self,
                              descriptor,
                              weight,
-                             folder)
+                             **kwargs)
 
         self.parameters = default_parameters
         self.parameters.update(parameters)
@@ -74,13 +75,15 @@ class LinearPotential(MlipManager):
         self.can_use_weight = True
 
 # ========================================================================== #
-    def train_mlip(self, mlip_subfolder):
+    def train_mlip(self):
         """
         """
-        if mlip_subfolder is None:
-            mlip_subfolder = self.folder
-        else:
-            mlip_subfolder = self.folder / mlip_subfolder
+        self.weight.workdir = self.workdir
+        self.weight.folder = self.folder
+        self.weight.subfolder = self.subfolder
+        self.descriptor.workdir = self.workdir
+        self.descriptor.folder = self.folder
+        self.descriptor.subfolder = self.subfolder
 
         msg = ''
         idx_e, idx_f, idx_s = self._get_idx_fit()
@@ -129,17 +132,15 @@ class LinearPotential(MlipManager):
 
         tmp_msg, weight_fn = self.weight.compute_weight(
             self.coefficients,
-            self.predict,
-            subfolder=mlip_subfolder)
+            self.predict)
 
         msg += tmp_msg
         msg += self.compute_tests(amat_e, amat_f, amat_s,
                                   ymat_e, ymat_f, ymat_s)
 
-        mlip_fn = self.descriptor.write_mlip(self.coefficients,
-                                             subfolder=mlip_subfolder)
-        create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
-        create_link(mlip_subfolder/mlip_fn, self.folder/mlip_fn)
+        mlip_fn = self.descriptor.write_mlip(self.coefficients)
+        create_link(self.subsubdir / weight_fn, self.subdir / weight_fn)
+        create_link(self.subsubdir / mlip_fn, self.subdir / mlip_fn)
         return msg
 
 # ========================================================================== #
@@ -158,8 +159,7 @@ class LinearPotential(MlipManager):
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)
         res_S = compute_correlation(np.c_[ymat_s, s_mlip]/GPa, weight=w)
-        r = np.c_[res_E, res_F, res_S]
-        self.fit_res = r
+        self.fit_res = np.c_[res_E, res_F, res_S]
 
         # Information to MLIP-Energy_comparison.dat
         header = f"Weighted rmse: {self.fit_res[0, 0]:.6f} eV/at,    " + \

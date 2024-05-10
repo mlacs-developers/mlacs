@@ -5,7 +5,8 @@ from subprocess import run, PIPE
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
 
-from ..utilities import get_elements_Z_and_masses, subfolder
+from ..core.manager import Manager
+from ..utilities import get_elements_Z_and_masses
 from .mliap_descriptor import default_snap
 from .descriptor import Descriptor, combine_reg
 from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
@@ -63,12 +64,12 @@ class SnapDescriptor(Descriptor):
     >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
-                 model="linear", alpha=1.0, alpha_quad=1.0):
+                 model="linear", alpha=1.0, alpha_quad=1.0, **kwargs):
         self.chemflag = parameters.pop("chemflag", 0)
-        Descriptor.__init__(self, atoms, rcut, alpha)
+        Descriptor.__init__(self, atoms, rcut, alpha, **kwargs)
         self.alpha_quad = alpha_quad
         self.model = model
-        self.desc_name = "SNAP"
+        self.prefix = "SNAP"
 
         # Initialize the parameters for the descriptors
         self.radelems = parameters.pop("radelems", None)
@@ -208,13 +209,12 @@ class SnapDescriptor(Descriptor):
         Path("atoms.lmp").unlink()
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        self.mlip_desc = Path.cwd()
-        with open(f"{self.desc_name}.descriptor", "w") as f:
+        with open(self.get_filepath(".descriptor"), "w") as f:
             f.write(self.get_mlip_params())
 
 # ========================================================================== #
@@ -239,17 +239,18 @@ class SnapDescriptor(Descriptor):
         return s
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def write_mlip(self, coefficients):
         """
         """
-        if Path(f"{self.desc_name}.model").exists():
-            Path(f"{self.desc_name}.model").unlink()
+        filepath = Path(self.get_filepath('.model'))
+        if filepath.exists():
+            filepath.unlink()
+        fname = filepath.relative_to(self.subsubdir)
 
-        self.mlip_model = Path.cwd()
         intercepts = coefficients[:self.nel]
         coefs = coefficients[self.nel:]
-        with open(f"{self.desc_name}.model", "w") as fd:
+        with open(filepath, "w") as fd:
             fd.write("# ")
             fd.write(" ".join(self.elements))
             fd.write(" MLIP parameters\n")
@@ -266,15 +267,16 @@ class SnapDescriptor(Descriptor):
                 fd.write(f"{el} {rel} {wel}\n")
                 fd.write(f"{intercepts[iel]:35.30f}\n")
                 np.savetxt(fd, coefs[iidx:fidx], fmt="%35.30f")
-        return f"{self.desc_name}.model"
+
+        return fname
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def read_mlip(self):
         """
         Read MLIP parameters from a file.
         """
-        fn = Path(f"{self.desc_name}.model")
+        fn = Path(self.get_filepath('.model'))
         if not fn.is_file():
             raise FileNotFoundError(f"File {fn.absolute()} does not exist")
 
@@ -316,20 +318,20 @@ class SnapDescriptor(Descriptor):
         return combine_reg(d2)
 
 # ========================================================================== #
-    def get_pair_style(self, folder=None):
+    def get_pair_style(self):
         return "snap"
 
 # ========================================================================== #
-    def get_pair_coeff(self, folder=Path("")):
-        modelfile = folder / f"{self.desc_name}.model"
-        descfile = folder / f"{self.desc_name}.descriptor"
+    def get_pair_coeff(self):
+        modelfile = self.get_filepath('.model')
+        descfile = self.get_filepath('.descriptor')
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self, folder):
-        return self.get_pair_style(folder), self.get_pair_coeff(folder)
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def _snap_opt_str(self):

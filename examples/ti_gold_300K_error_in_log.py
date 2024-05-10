@@ -14,6 +14,7 @@ from mlacs.ti import EinsteinSolidState
 # Creation of the system of interest --------------------------------------------
 atoms=bulk('Au', cubic=True).repeat(8) #2048 atoms
 pair_style = "eam/alloy"
+# FIXME Should include potential file in local directory
 pair_coeff = "* * /home/richard/docs/test_calphy/potentials/Au.eam.alloy Au"
 
 # Parameters --------------------------------------------------------------------
@@ -42,12 +43,13 @@ state = EinsteinSolidState(atoms,
                            nsteps=nsteps,
                            nsteps_eq=nsteps_eq,
                            nsteps_msd=nsteps_msd,
-                           suffixdir=f"T_{temp}/")
+                           folder=f"T_{temp}/")
 
 # Creation of ti object --------------------------------------------------------
 ti = ThermodynamicIntegration(state,
                               ninstance = nrepeat,
-                              logfile= "state.log")
+                              logfile= "state.log",
+                              workdir='run_ti_gold_300K')
 
 # Run the simulation  ----------------------------------------------------------
 ti.run()

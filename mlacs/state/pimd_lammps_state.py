@@ -121,9 +121,6 @@ class PimdLammpsState(BaseLammpsState):
         If the default ``None`` is set, momenta are initialized with a
         Maxwell Boltzmann distribution.
 
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
     """
     def __init__(self, temperature, pressure=None, t_stop=None, p_stop=None,
                  damp=None, pdamp=None, ptype="iso", dt=1.0, fixcm=True,
@@ -131,9 +128,10 @@ class PimdLammpsState(BaseLammpsState):
                  fmmode="physical", fmass=None, scale=1.0, barostat="BZP",
                  nprocs=None, nbeads=1,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 loginterval=50, blocks=None, **kwargs):
+
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir, blocks)
+                         blocks, **kwargs)
 
         self.temperature = temperature
         self.pressure = pressure
@@ -254,7 +252,7 @@ class PimdLammpsState(BaseLammpsState):
         fname = "configurations.out"
         ndigit = len(str(self.nbeads))
         fname = f"{fname}_{1:0{ndigit}d}"
-        atoms = read(self.workdir / fname)
+        atoms = read(self.path / fname)
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
         return atoms
