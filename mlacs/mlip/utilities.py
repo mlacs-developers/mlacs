@@ -41,10 +41,6 @@ def fit_traj(traj, mlip, weights=None):
     
     # Prepare the data
     atoms = [at for at in traj]
-
-    if len(atoms) == len(weights):
-        we, wf, ws = WeightingPolicy(database=atoms).build_W_efs(weights)
-        weights = np.append(np.append(we, wf), ws)
     mlip.update_matrices(atoms)
 
     if weights is None:
@@ -53,5 +49,10 @@ def fit_traj(traj, mlip, weights=None):
             raise ValueError(msg)
         mlip.weight.compute_weight()
         weights = mlip.weight.get_weights()
+    else:
+        if len(atoms) == len(weights):
+            we, wf, ws = WeightingPolicy(database=atoms).build_W_efs(weights)
+            weights = np.append(np.append(we, wf), ws)
+
     coef_fn = mlip.descriptor.fit(weights=weights, atoms=atoms, subfolder=mlip.folder)
 
