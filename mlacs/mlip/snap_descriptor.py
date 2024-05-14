@@ -272,15 +272,20 @@ class SnapDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def read_mlip(self):
+    def read_mlip(self, filename=None):
         """
         Read MLIP parameters from a file.
         """
-        fn = Path(self.get_filepath('.model'))
-        if not fn.is_file():
-            raise FileNotFoundError(f"File {fn.absolute()} does not exist")
+        if filename:
+            filename = Path(filename)
+        else:
+            filename = Path(self.get_filepath('.model'))
 
-        with open(fn, "r") as fd:
+        if not filename.is_file():
+            filename = filename.absoluse()
+            raise FileNotFoundError(f"File {filename} does not exist")
+
+        with open(filename, "r") as fd:
             lines = fd.readlines()
 
         coefs = []

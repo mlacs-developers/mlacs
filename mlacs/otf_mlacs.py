@@ -719,6 +719,9 @@ class OtfMlacs(Manager):
         """
         train_traj, prev_traj = self.read_traj(nmax)
 
+        for i in range(nmax):
+            self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
+
         # Add the Configuration without a MLIP generating them
         if train_traj is not None:
             for i, conf in enumerate(train_traj):
@@ -729,6 +732,7 @@ class OtfMlacs(Manager):
         # Add all the configuration of trajectories traj
         msg = "Adding previous configuration iteratively"
         self.logger.info(msg)
+        # GA: TODO We dont actually need parent_list. Remove this variable.
         parent_list, mlip_coef = self.mlip.read_parent_mlip(prev_traj)
 
         # Directly adding initial conf to have it once even if multistate
@@ -770,7 +774,9 @@ class OtfMlacs(Manager):
         curr_step = 0
         for i in range(len(atoms_by_mlip)):
             curr_step += 1
-            self.mlip.subsubdir = Path(atoms_by_mlip[i][0].info['parent_mlip'])
+
+            # GA: Since we don't read
+            #self.mlip.subsubdir = Path(atoms_by_mlip[i][0].info['parent_mlip'])
             self.mlip.next_coefs(mlip_coef[i])
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)

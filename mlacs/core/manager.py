@@ -77,7 +77,13 @@ class Manager:
     def folder(self, x):
         x = x or ''
         if isinstance(x, Path):
-            self._folder = str(x.relative_to(self.workdir))
+            if x.is_absolute():
+                if x == self.subdir:
+                    return
+                else:
+                    self._folder = str(x.relative_to(self.workdir))
+            else:
+                self._folder = str(x)
         else:
             self._folder = x
 
@@ -90,7 +96,13 @@ class Manager:
     def subfolder(self, x):
         x = x or ''
         if isinstance(x, Path):
-            self._subfolder = str(x.relative_to(self.subdir))
+            if x.is_absolute():
+                if x == self.subsubdir:
+                    return
+                else:
+                    self._subfolder = str(x.relative_to(self.subdir))
+            else:
+                self._subfolder = str(x)
         else:
             self._subfolder = x
 
