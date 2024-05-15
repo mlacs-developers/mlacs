@@ -220,10 +220,10 @@ class DeltaLearningPotential(MlipManager):
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef):
+    def next_coefs(self, mlip_coef, *args, **kwargs):
         """
         """
-        msg = self.model.next_coefs(mlip_coef)
+        msg = self.model.next_coefs(mlip_coef, *args, **kwargs)
         return msg
 
 # ========================================================================== #
