@@ -1,6 +1,7 @@
-from pathlib import Path
+# from pathlib import Path
 import numpy as np
-from abc import ABC, abstractmethod
+# from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
@@ -76,7 +77,9 @@ class Descriptor(Manager):
             atoms = [atoms]
         res = []
         for at in atoms:
-            if self.need_neigh:
+            if "descriptor" in at.info:
+                res_iat = at.info['descriptor']
+            elif self.need_neigh:
                 iat, jat, vdist, iel = self._compute_rij(at)
                 res_iat = self.compute_descriptor(at, iat, jat, vdist, iel)
             else:
@@ -253,6 +256,7 @@ class BlankDescriptor(Descriptor):
     @Manager.exec_from_subsubdir
     def write_mlip(self, mlip_coef):
         pass
+
 
 # ========================================================================== #
 def combine_reg(matrices):
