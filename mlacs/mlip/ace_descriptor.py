@@ -468,9 +468,9 @@ class AceDescriptor(Descriptor):
             from packaging import version
             if version.parse(scipy.__version__) < version.parse("1.11"):
                 raise ImportError
-            except ImportError:
-                s += "Scipy and/or packaging.version error\n"
-                s += "Scipy must be 1.11 or greater\n\n"
+        except ImportError:
+            s += "Scipy and/or packaging.version error\n"
+            s += "Scipy must be 1.11 or greater\n\n"
 
         if not ispyace:  # Github name is python-ace. Pip name is pyace.
             s += "pyace package error.\n"
