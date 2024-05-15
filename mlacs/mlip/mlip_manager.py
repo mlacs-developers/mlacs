@@ -126,6 +126,7 @@ class MlipManager(Manager):
         parent_mlip = []
         mlip_coef = []
         prefix = self.descriptor.prefix
+        directory = self.descriptor.subdir
 
         # Check that this simulation and the previous one use the same mlip
         fn_descriptor = self.subdir / f"{prefix}.descriptor"
@@ -145,17 +146,28 @@ class MlipManager(Manager):
                 if "parent_mlip" not in conf.info:  # Initial or training
                     continue
                 else:  # A traj
+
                     model = conf.info['parent_mlip']  # GA: Not sure if this is absolute or relative
-                    if not Path(model).exists:
+                    directory = Path(model)
+                    if not directory.exists:
+                        # GA: If the files have been moved,
+                        #     it wont be possible to restart the calculation.
+                        #     However, one might want to restart a calculation
+                        #     on a different machine than the one it started on.
+                        #     TODO: Get directories by inspection instead.
+                        #
                         err = "Some parent MLIP are missing. "
                         err += "Rerun MLACS with DatabaseCalculator and "
                         err += "OtfMlacs.keep_tmp_files=True on your traj"
                         raise FileNotFoundError(err)
                     if model not in parent_mlip:  # New state
+
                         parent_mlip.append(model)
-                        self.descriptor.subfolder = model
-                        coef = self.descriptor.read_mlip()
+                        fn = directory / f"{prefix}.model"
+
+                        coef = self.descriptor.read_mlip(filename=fn)
                         mlip_coef.append(coef)
+
         return parent_mlip, np.array(mlip_coef)
 
 # ========================================================================== #
@@ -170,10 +182,12 @@ class MlipManager(Manager):
         self.coefficients = mlip_coef
         idx_e, idx_f, idx_s = self._get_idx_fit()
 
-        # TODO GA: Passing names like this is a bit shady. Should clean up.
+        # GA: Passing names like this is a bit shady. TODO: clean up.
         mlip_fn = self.descriptor.write_mlip(mlip_coef)
         _, weight_fn = self.weight.compute_weight(mlip_coef, self.predict)
         prefix = self.descriptor.prefix
+
+        # GA: Not sure why we need to create a link here.
         create_link(self.subsubdir/weight_fn, self.subdir/"MLIP.weight")
         create_link(self.subsubdir/mlip_fn, self.subdir/f"{prefix}.model")
 
