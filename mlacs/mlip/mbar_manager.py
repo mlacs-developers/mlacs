@@ -13,7 +13,7 @@ try:
     # I have to see how to handle this in a better way.
     # This might be an indication of needing to redo the logging
     logging.basicConfig(level=logging.INFO, format='%(message)s')
-    logger = logging.getLogger()
+    logger = logging.getLogger("pymbar")
     logger.setLevel(logging.ERROR)
     from pymbar import MBAR
     logger.setLevel(logging.INFO)
