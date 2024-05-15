@@ -273,9 +273,6 @@ class AceDescriptor(Descriptor):
             self.acefit.fit_config['fit_cycles'] += 1
         try:
             self.acefit.fit()
-        except StopIteration as e:  # Scipy >= 1.11 catch StopIteration
-            self.log.warning("Warning : You should upgrade to Scipy>=1.11.0.")
-            self.log.warning("Everything should still work")
         finally:
             fn_yaml = "interim_potential_best_cycle.yaml"
             yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
@@ -465,6 +462,15 @@ class AceDescriptor(Descriptor):
             s += "Tensorpotential package error.\n"
             s += "Please install Tensorpotential from:\n"
             s += "https://github.com/ICAMS/TensorPotential.\n\n"
+
+        try:
+            import scipy
+            from packaging import version
+            if version.parse(scipy.__version__) < version.parse("1.11"):
+                raise ImportError
+            except ImportError:
+                s += "Scipy and/or packaging.version error\n"
+                s += "Scipy must be 1.11 or greater\n\n"
 
         if not ispyace:  # Github name is python-ace. Pip name is pyace.
             s += "pyace package error.\n"
