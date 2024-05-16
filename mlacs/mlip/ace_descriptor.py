@@ -66,7 +66,6 @@ except ImportError:
     ispyace = False
 
 
-# TODO : 1. Error if DeltaLearningPotential with ACE
 # ========================================================================== #
 # ========================================================================== #
 class AceDescriptor(Descriptor):
@@ -269,23 +268,37 @@ class AceDescriptor(Descriptor):
         else:
             #self.acefit.target_bbasisconfig.set_all_coeffs(x0)
             self.acefit.fit_config['fit_cycles'] += 1
-        try:
-            self.acefit.fit()
-        finally:
-            fn_yaml = "interim_potential_best_cycle.yaml"
-            yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
-            self.mlip_model = Path.cwd() / "ACE.yace"
-            with open("/dev/null", "w") as null:
-                run(shlex.split(yace_cmd), stdout=sys.stdout, stderr=sys.stdout)
 
-            if not Path("ACE.yace").exists():
-                msg = "The ACE fitting wasn't successful\n"
-                msg += "If interim_potential_best_cycle.yaml doesn't exist "
-                msg += f"in {Path().cwd()} then the ACEfit went wrong.\n"
-                msg += f"Else, try this command '{yace_cmd}' inside "
-                msg += f"{Path().cwd()}"
-                raise RuntimeError(msg)
+        nattempt = 0
+        retry = True
+        while retry:
+            retry = self.actual_fit()
+            nattempt += 1
+            self.acefit.fit_config['fit_cycles'] += 1
+            if nattempt > 3:
+                retry = False
+
+        fn_yaml = "interim_potential_best_cycle.yaml"
+        yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
+        self.mlip_model = Path.cwd() / "ACE.yace"
+        with open("/dev/null", "w") as null:
+            run(shlex.split(yace_cmd), stdout=sys.stdout, stderr=sys.stdout)
+
+        if not Path("ACE.yace").exists():
+            msg = "The ACE fitting wasn't successful\n"
+            msg += "If interim_potential_best_cycle.yaml doesn't exist "
+            msg += f"in {Path().cwd()} then the ACEfit went wrong.\n"
+            msg += f"Else, try this command '{yace_cmd}' inside "
+            msg += f"{Path().cwd()}"
+            raise RuntimeError(msg)
         return "ACE.yace"#, "interim_best_cycle.yaml"
+
+# ========================================================================== #
+    def actual_fit(self):
+        self.acefit.fit()
+        fit_res = self.acefit.fit_backend.fitter.res_opt
+        retry = fit_res.status == 2 and not fit_res.success  # A "bug" on GPU
+        return retry
 
 # ========================================================================== #
     @subfolder
