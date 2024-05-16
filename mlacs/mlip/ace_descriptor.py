@@ -169,7 +169,9 @@ class AceDescriptor(Descriptor):
         self.fitting = def_fitting if fitting_dict is None else fitting_dict
         self.backend = def_backend if backend_dict is None else backend_dict
 
-        self.loss['kappa'] = tol_e / (tol_e + tol_f)
+        # Kappa such that loss(tol_e) = loss(tol_f)
+        self.loss['kappa'] = (tol_e)**2 / ((tol_e)**2 + 3*(tol_f)**2)
+
         self.fitting['loss'] = self.loss
         self.data = None  # Initialized during create_acefit to get the dir
 
@@ -275,6 +277,7 @@ class AceDescriptor(Descriptor):
         while retry:
             retry = self.actual_fit()
             nattempt += 1
+            # TODO: Substract the iteration done on i-1 from max_iter of i
             self.acefit.fit_config['fit_cycles'] += 1
             if nattempt > self.n_fit_attempt:
                 retry = False
@@ -333,7 +336,7 @@ class AceDescriptor(Descriptor):
             e = last_fit_metric_data["rmse_epa"] * 1e3
             f = last_fit_metric_data["rmse_f_comp"] * 1e3
             msg = f"Step: {last_fit_metric_data['iter_num']}   "
-            msg += f"Energy: {e:.4f} (meV/at), Forces: {f:.4f} (meV/ang)"
+            msg += f"RMSE Energy: {e:.4f} (meV/at), RMSE Forces: {f:.4f} (meV/ang)"
             self.log.info(msg)
             if iter_num > 0 and self.tol_e >= e and self.tol_f >= f:
                 s = "Convergence reached:\n"

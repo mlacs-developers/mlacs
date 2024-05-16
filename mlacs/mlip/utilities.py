@@ -34,6 +34,7 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
 
     initial_potential can be a filename (str) or a BBasisConfiguration
     """
+    from pyace.basis import BBasisConfiguration
     if isinstance(weights, list):
         weights = np.array(weights)
     if not isinstance(traj[0], Atoms):
