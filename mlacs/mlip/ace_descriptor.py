@@ -158,6 +158,7 @@ class AceDescriptor(Descriptor):
         Descriptor.__init__(self, atoms, rcut)
         self.db_fn = "ACE.pckl.gzip"  #  Becomes Path in TensorPotential.init
         self.desc_name = "ACE"
+        self.n_fit_attempt = 3
 
         self.rcut = rcut
         self.tol_e = tol_e
@@ -275,7 +276,7 @@ class AceDescriptor(Descriptor):
             retry = self.actual_fit()
             nattempt += 1
             self.acefit.fit_config['fit_cycles'] += 1
-            if nattempt > 3:
+            if nattempt > self.n_fit_attempt:
                 retry = False
 
         fn_yaml = "interim_potential_best_cycle.yaml"

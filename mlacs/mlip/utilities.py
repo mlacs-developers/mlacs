@@ -28,9 +28,11 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
 
     return trainset, testset
 
-def fit_traj(traj, mlip, weights=None):
+def acefit_traj(traj, mlip, weights=None, initial_potential=None):
     """
     Fit an MLIP according to the trajectory
+
+    initial_potential can be a filename (str) or a BBasisConfiguration
     """
     if isinstance(weights, list):
         weights = np.array(weights)
@@ -38,7 +40,7 @@ def fit_traj(traj, mlip, weights=None):
         raise ValueError("Traj must be an Ase.Trajectory")
     if not isinstance(mlip, TensorpotPotential):
         raise NotImplementedError("Only Tensorpotential are allowed for now")
-    
+
     # Prepare the data
     atoms = [at for at in traj]
     mlip.update_matrices(atoms)
@@ -54,5 +56,9 @@ def fit_traj(traj, mlip, weights=None):
             we, wf, ws = WeightingPolicy(database=atoms).build_W_efs(weights)
             weights = np.append(np.append(we, wf), ws)
 
-    coef_fn = mlip.descriptor.fit(weights=weights, atoms=atoms, subfolder=mlip.folder)
+    if initial_potential is not None:
+        if isinstance(initial_potential, str):
+            initial_potential = BBasisConfiguration(initial_potential)
+        mlip.descriptor.bconf.set_all_coeffs(initial_potential.get_all_coeffs())
 
+    mlip.descriptor.fit(weights=weights, atoms=atoms, subfolder=mlip.folder)
