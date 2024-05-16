@@ -66,11 +66,7 @@ except ImportError:
     ispyace = False
 
 
-# TODO : 1. ACE_fit(Tensorpotential, Traj)
-#        2. Vérifier poids
-#        3. Error if DeltaLearningPotential with ACE
-#        4. Drautz and TrainingConf weight
-#        5. Remove electronic contribution during the fitting
+# TODO : 1. Error if DeltaLearningPotential with ACE
 # ========================================================================== #
 # ========================================================================== #
 class AceDescriptor(Descriptor):
@@ -172,6 +168,8 @@ class AceDescriptor(Descriptor):
         self.loss = def_loss if loss_dict is None else loss_dict
         self.fitting = def_fitting if fitting_dict is None else fitting_dict
         self.backend = def_backend if backend_dict is None else backend_dict
+
+        self.loss['kappa'] = tol_e / (tol_e + tol_f)
         self.fitting['loss'] = self.loss
         self.data = None  # Initialized during create_acefit to get the dir
 
