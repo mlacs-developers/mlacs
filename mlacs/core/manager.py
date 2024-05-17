@@ -1,4 +1,3 @@
-#from abc import ABC, abstractmethod
 from pathlib import Path
 
 from ..utilities.miscellanous import execute_from

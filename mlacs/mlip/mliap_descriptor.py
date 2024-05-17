@@ -82,13 +82,13 @@ class MliapDescriptor(Descriptor):
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
                  model="linear", style="snap", alpha=1.0,
+                 prefix='MLIAP',
                  **kwargs):
         self.chemflag = parameters.pop("chemflag", False)
-        Descriptor.__init__(self, atoms, rcut, alpha, **kwargs)
+        Descriptor.__init__(self, atoms, rcut, alpha, prefix=prefix, **kwargs)
 
         self.model = model
         self.style = style
-        self.prefix = "MLIAP"
 
         # Initialize the parameters for the descriptors
         self.radelems = parameters.pop("radelems", None)
@@ -351,7 +351,7 @@ class MliapDescriptor(Descriptor):
         elif self.style == "so3":
             style = "so3"
         modelfile = self.get_filepath('.model')
-        descfile = self.get_filepath('.descriptor')
+        descfile = self.subdir / f"{self.prefix}.descriptor"
         pair_style = f"mliap model {self.model} {modelfile} " + \
                      f"descriptor {style} {descfile}"
         return pair_style

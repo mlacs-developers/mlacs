@@ -8,7 +8,7 @@ from ase.units import kB, J, kg, m
 from .lammps_state import LammpsState
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
+from ..utilities import get_elements_Z_and_masses, save_cwd
 from ..utilities import integrate_points as intgpts
 from ..utilities.io_lammps import LammpsBlockInput
 
@@ -181,7 +181,7 @@ class PafiLammpsState(LammpsState):
         self.isrestart = False
 
         # Run Pafi dynamics.
-        with ThreadPoolExecutor(max_workers=ncpus) as executor:
+        with save_cwd(), ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
                 worker = copy.deepcopy(self)
                 worker.replica = rep
@@ -193,6 +193,7 @@ class PafiLammpsState(LammpsState):
                 executor.submit(LammpsState.run_dynamics,
                                 *(worker, atoms, pair_style, pair_coeff,
                                   model_post, atom_style, False))
+            executor.shutdown(wait=True)
 
         # Reset some attributes.
         self.replica = None

@@ -31,7 +31,8 @@ def test_linear_potential():
     Here, we just test if everything runs alright
     """
     root = Path()
-    snapfold = root / "Snap"
+    folder = 'Snap'
+    snapfold = root / folder
     if snapfold.exists():
         shutil.rmtree(snapfold)
 
@@ -42,22 +43,24 @@ def test_linear_potential():
 
     # First we test if OLS functions
     print(snapfold.absolute())
-    mlip = LinearPotential(desc, folder=snapfold)
+    mlip = LinearPotential(
+        desc, workdir=root, folder=folder, subfolder='LeastSquare')
     fakeat = []
     for _ in range(5):
         fakeat.append(create_dum_data(at))
 
     mlip.update_matrices(fakeat)
-    mlip.train_mlip(mlip_subfolder="LeastSquare")
+    mlip.train_mlip()
 
     shutil.rmtree(snapfold)
 
     # And with ridge regression
     mlip_params = dict(method="ridge")
-    mlip = LinearPotential(desc, parameters=mlip_params, folder=snapfold)
+    mlip = LinearPotential(desc, parameters=mlip_params,
+                           workdir=root, folder=folder, subfolder='Ridge')
 
     mlip.update_matrices(fakeat)
-    mlip.train_mlip(mlip_subfolder="Ridge")
+    mlip.train_mlip()
 
     # Let's check that what we compute with the matrix is also what
     # we get with LAMMPS

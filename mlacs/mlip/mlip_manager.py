@@ -16,7 +16,7 @@ from .weighting_policy import UniformWeight
 
 # ========================================================================== #
 # ========================================================================== #
-class MlipManager(Manager):
+class MlipManager(Manager, ABC):
     """
     Parent Class for the management of Machine-Learning Interatomic Potential
     """
@@ -289,13 +289,11 @@ class MlipManager(Manager):
 # ========================================================================== #
     def _get_pair_style(self):
         self.descriptor.folder = self.folder
-        self.descriptor.subfolder = ''
         return self.descriptor.get_pair_style()
 
 # ========================================================================== #
     def _get_pair_coeff(self):
         self.descriptor.folder = self.folder
-        self.descriptor.subfolder = ''
         return self.descriptor.get_pair_coeff()
 
 
