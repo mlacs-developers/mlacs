@@ -1,2 +1,3 @@
 from .manager import Manager
-__all__ = ['Manager']
+from .path_atoms import PathAtoms
+__all__ = ['Manager', 'PathAtoms']

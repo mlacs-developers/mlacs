@@ -17,6 +17,7 @@ class PathAtoms:
                  xi=None,
                  mode="saddle",
                  fixcom=True,
+                 interval=None,
                  **kwargs):
 
         self.mode = mode
@@ -28,11 +29,13 @@ class PathAtoms:
         self.fixcom = fixcom
 
         self._xi = xi
-        self._memxi = None
+        self._tmp_xi = xi
+        self._memxi = interval
         self._splR = None
         self._splined = None
         if self._xi is None:
             self._splprec = 1001
+        if self._memxi is None:
             self._memxi = [0.0, 1.0]
 
     @property
@@ -61,6 +64,10 @@ class PathAtoms:
         return np.array([a.cell.array for a in self.images])
 
     @property
+    def nreplica(self):
+        return len(self.images)
+
+    @property
     def masses(self):
         """Get the effective masses of particles"""
         pos = np.transpose(self.imgR, (1, 0, 2))
@@ -69,11 +76,12 @@ class PathAtoms:
         return meff / np.max(meff)
 
     @property
-    def xi(self):
+    def _update(self):
         """
-        Get the reaction coordinate.
+        Update the reaction coordinate.
         """
         if self._xi is not None:
+            self._tmp_xi = self._xi
             return self._xi
 
         def find_dist(_l):
@@ -85,94 +93,121 @@ class PathAtoms:
             return _l[i+1], _l[i]
 
         mode = self.mode
-        if isinstance(mode, float):
+        if isinstance(mode, (float, list, np.ndarray)):
+            self._tmp_xi = mode
             return mode
         elif mode == 'saddle':
             x = np.linspace(0, 1, self._splprec)
             y = intpts(self.imgxi, self.imgE, x, 0, border=1)
             y = np.array(y)
-            xi = x[y.argmax()]
-            return xi
-        elif mode == 'rdm_spl':
-            xi = np.random.uniform(0, 1)
-            return xi
+            self._tmp_xi = x[y.argmax()]
+            return self._tmp_xi
+        elif mode == 'rdm':
+            i, f = tuple(self._memxi)
+            self._tmp_xi = np.random.uniform(i, f)
+            return self._tmp_xi
         elif mode == 'rdm_memory':
-            x, y = find_dist(self.finder)
-            xi = np.random.uniform(x, y)
-            self._memxi.append(xi)
-            return xi
+            i, f = find_dist(self._memxi)
+            self._tmp_xi = np.random.uniform(i, f)
+            self._memxi.append(self._tmp_xi)
+            return self._tmp_xi
         elif mode == 'rdm_true':
-            r = np.random.default_rng()
-            nrep = len(self.images)
-            xi = r.integers(nrep) / nrep
-            return xi
+            def cond(x, i, f): return x >= i and x <= f
+            i, f = tuple(self._memxi)
+            xiint = list(filter(lambda x: cond(x, i, f), self.imgxi))
+            self._tmp_xi = np.random.choice(xiint)
+            return self._tmp_xi
         else:
             msg = 'The reaction coordinate is not defined.'
             msg += 'You need to define `xi` or the `mode` to find it !'
             raise TypeError(msg)
 
     @property
+    def xi(self):
+        """
+        Get the reaction coordinate.
+        """
+        if self._xi is not None:
+            return self._xi
+        elif self._tmp_xi is None:
+            return self._update
+        else:
+            return self._tmp_xi
+
+    @xi.setter
+    def xi(self, xi):
+        self._xi = xi
+
+    @property
     def splined(self):
         """Get splined images"""
+        self._splined = self.get_splined_atoms(self.xi)
         return self._splined
-
-    @splined.setter
-    def splined(self, xi):
-        self._xi = xi or None
-        self._splined = self.get_splined_atoms()
 
     @property
     def splR(self):
-        if self._splR is None:
-            self.set_splined_matrices()
-        return self._splR[0:3]
+        self.set_splined_matrices(self.xi)
+        return self._splR[:, 0:3]
 
     @property
     def splDR(self):
-        if self._splR is None:
-            self.set_splined_matrices()
+        self.set_splined_matrices(self.xi)
         if self.fixcom:
-            return self._splR[9:12]
-        return self._splR[3:6]
+            return self._splR[:, 9:12]
+        return self._splR[:, 3:6]
 
     @property
     def splD2R(self):
-        if self._splR is None:
-            self.set_splined_matrices()
+        self.set_splined_matrices(self.xi)
         if self.fixcom:
-            return self._splR[12:15]
-        return self._splR[6:9]
+            return self._splR[:, 12:15]
+        return self._splR[:, 6:9]
 
     @property
     def splE(self):
-        return intpts(self.imgxi, self.imgE, self.xi, 0, border=1)
+        return np.r_[intpts(self.imgxi, self.imgE, self.xi, 0, border=1)]
 
     @property
     def splC(self):
-        return intpts(self.imgxi, self.imgC, self.xi, 0, border=1)
+        _imgC = self.imgC.reshape((self.nreplica, 9)).T
+        if isinstance(self.xi, (float, int)):
+            shape = (3, 3)
+            _splC = np.zeros(9)
+        else:
+            shape = (len(self.xi), 3, 3)
+            _splC = np.zeros((9, len(self.xi)))
+        for i in range(9):
+            _splC[i] = intpts(self.imgxi, _imgC[i], self.xi, 0, border=1)
+        return _splC.T.reshape(shape)
 
     def get_splined_atoms(self, xi=None):
         """
         Return splined Atoms objects at the xi coordinates.
         """
         if xi is None:
-            xi = self.xi
+            xi = self._update
+
+        def set_atoms(X, C, E, R, DR, D2R):
+            Z = self.images[0].get_atomic_numbers()
+            at = Atoms(numbers=Z, positions=R, cell=C)
+            calc = SPC(atoms=at, energy=E)
+            at.calc = calc
+            at.set_array('first_derivatives', DR)
+            at.set_array('second_derivatives', D2R)
+            at.info['reaction_coordinate'] = X
+            return at
 
         if isinstance(xi, float):
-            xi = [xi]
+            splat = set_atoms(xi, self.splC, self.splE,
+                              self.splR, self.splDR, self.splD2R)
+            return splat
 
-        splatoms = []
-        Z = self.images[0].get_atomic_numbers()
-        for x in xi:
-            self.set_splined_matrices(x)
-            at = Atoms(numbers=Z, positions=self.splR, cell=self.splC)
-            calc = SPC(atoms=at, energy=self.splE)
-            at.calc = calc
-            at.set_array('first_derivatives', self.splDR)
-            at.set_array('second_derivatives', self.splD2R)
-            at.info['reaction_coordinate'] = x
-            splatoms.append(at)
-        return splatoms
+        splat = []
+        for i, (x, c, e) in enumerate(zip(xi, self.splC, self.splE)):
+            at = set_atoms(x, c, e, self.splR[:, :, i], self.splDR[:, :, i],
+                           self.splD2R[:, :, i])
+            splat.append(at)
+        return splat
 
     def set_splined_matrices(self, xi=None):
         """
@@ -185,7 +220,7 @@ class PathAtoms:
                 reaction coordinate xi.
         """
         if xi is None:
-            xi = self.xi
+            xi = self._update
 
         N = len(self.images[0])
         if isinstance(xi, float):
@@ -207,21 +242,22 @@ class PathAtoms:
 
         if self.fixcom:
             self._com_corrections()
+        return self._splR
 
     def _com_corrections(self):
         """
         Correction of the path tangent to have zero center of mass
         """
         N = len(self.images[0])
-        n, d, r = self._splR.shape
-        spl = np.zeros((n, 6, r))
-        pos, der, der2 = np.hsplit(self._splR, 3)
+        der = self._splR[:, 3:6]
+        der2 = self._splR[:, 6:9]
         com = np.array([np.average(der[:, i]) for i in range(3)])
         n = 0
         for i in range(N):
             n += np.sum([(der[i, j] - com[j])**2 for j in range(3)])
         n = np.sqrt(n)
         for i in range(N):
-            spl[i, 9:12] = np.r_[[(der[i, j] - com[j]) / n for j in range(3)]]
-            spl[i, 12:15] = np.r_[[der2[i, j] / n / n for j in range(3)]]
-        return spl
+            self._splR[i, 9:12] = np.r_[[(der[i, j] - com[j]) / n
+                                        for j in range(3)]]
+            self._splR[i, 12:15] = np.r_[[der2[i, j] / n / n
+                                         for j in range(3)]]
