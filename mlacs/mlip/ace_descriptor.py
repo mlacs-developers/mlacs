@@ -299,9 +299,15 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     def actual_fit(self):
-        self.acefit.fit()
+        try:
+            self.acefit.fit()
+        except StopIteration as e:  # For Scipy < 1.11
+            pass
+
         fit_res = self.acefit.fit_backend.fitter.res_opt
-        retry = fit_res.status == 2 and not fit_res.success  # A "bug" on GPU
+
+        # Fit failed due to precision loss
+        retry = fit_res.status == 2 and not fit_res.success
         return retry
 
 # ========================================================================== #
@@ -473,24 +479,13 @@ class AceDescriptor(Descriptor):
 
         try:
             import tensorpotential  # noqa
+            gpus = tf.config.experimental.list_physical_devices('GPU')
+            if len(gpus) == 0:
+                s += "No GPUs found, will fit on CPUs\n"
         except ImportError:
             s += "Tensorpotential package error.\n"
             s += "Please install Tensorpotential from:\n"
             s += "https://github.com/ICAMS/TensorPotential.\n\n"
-
-        try:
-            import scipy
-            from packaging import version
-            if version.parse(scipy.__version__) < version.parse("1.11"):
-                raise ImportError
-        except ImportError:
-            s += "Scipy and/or packaging.version error\n"
-            s += "Scipy must be 1.11 or greater\n\n"
-
-        if not ispyace:  # Github name is python-ace. Pip name is pyace.
-            s += "pyace package error.\n"
-            s += "Please install it from:\n"
-            s += "https://github.com/ICAMS/python-ace\n\n"
 
         # Test that lammps-user-pace is installed by looking at lmp -help
         lmp_help = shlex.split(self.cmd + " -help")
