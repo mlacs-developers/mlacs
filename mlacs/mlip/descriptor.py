@@ -11,7 +11,7 @@ from ..utilities import get_elements_Z_and_masses
 
 # ========================================================================== #
 # ========================================================================== #
-class Descriptor(Manager):
+class Descriptor(Manager, ABC):
     """
     Base class for descriptors
 
@@ -24,9 +24,9 @@ class Descriptor(Manager):
         The cutoff for the descriptor
     """
 # ========================================================================== #
-    def __init__(self, atoms, rcut=5.0, alpha=1.0, **kwargs):
+    def __init__(self, atoms, rcut=5.0, alpha=1.0, prefix='MLIP', **kwargs):
 
-        Manager.__init__(self, **kwargs)
+        Manager.__init__(self, prefix=prefix, **kwargs)
 
         self.elements, self.Z, self.masses, self.charges = \
             get_elements_Z_and_masses(atoms)
@@ -35,7 +35,6 @@ class Descriptor(Manager):
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
-        self.prefix = "MLIP"
 
 # ========================================================================== #
     def compute_descriptors(self, atoms, forces=True, stress=True):

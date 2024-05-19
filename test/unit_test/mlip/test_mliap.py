@@ -151,19 +151,21 @@ model_ref = """# Si MLIP parameters
 
 def test_writing_model():
     root = Path()
-    mliapfold = root / "Mliap"
+    folder = 'Mliap'
+    mliapfold = root / folder
 
     at = bulk("Si")
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    mliap = MliapDescriptor(at, rcut, parameters=parameters)
+    mliap = MliapDescriptor(at, rcut, parameters=parameters,
+                            workdir=root, folder=folder)
     coeff = np.arange(0, 21)
 
     if mliapfold.exists():
         shutil.rmtree(mliapfold)
     mliapfold.mkdir()
-    mliap.write_mlip(coeff, subfolder=mliapfold)
+    mliap.write_mlip(coeff)
 
     mliapfile = mliapfold / "MLIAP.model"
     assert mliapfile.exists()
@@ -209,20 +211,22 @@ welems      1.0
 
 def test_writing_descriptor():
     root = Path()
-    mliapfold = root / "Mliap"
+    folder = 'Mliap'
+    mliapfold = root / folder
 
     at = bulk("Si")
 
     rcut = 3.5
     parameters = dict(twojmax=5)
     mliapfile = mliapfold / "MLIAP.descriptor"
-    mliap = MliapDescriptor(at, rcut, parameters=parameters)
+    mliap = MliapDescriptor(at, rcut, parameters=parameters,
+                            workdir=root, folder=folder)
 
     if mliapfold.exists():
         shutil.rmtree(mliapfold)
     mliapfold.mkdir()
 
-    mliap._write_mlip_params(subfolder=mliapfold)
+    mliap._write_mlip_params()
 
     allref = desc_ref.split("\n")
     allref = [line.rstrip() for line in allref]
@@ -263,20 +267,22 @@ welems      1.0
 
 def test_writing_descriptor_so3():
     root = Path()
-    mliapfold = root / "Mliap"
+    folder = 'Mliap'
+    mliapfold = root / folder
 
     at = bulk("Si")
 
     rcut = 3.5
     parameters = dict(nmax=3, lmax=2)
-    mliap = MliapDescriptor(at, rcut, parameters=parameters, style="so3")
+    mliap = MliapDescriptor(at, rcut, parameters=parameters, style="so3",
+                            workdir=root, folder=folder)
     mliapfile = mliapfold / "MLIAP.descriptor"
 
     if mliapfold.exists():
         shutil.rmtree(mliapfold)
     mliapfold.mkdir()
 
-    mliap._write_mlip_params(subfolder=mliapfold)
+    mliap._write_mlip_params()
 
     allref = desc_ref_so3.split("\n")
     allref = [line.rstrip() for line in allref]

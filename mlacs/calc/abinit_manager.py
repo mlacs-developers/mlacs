@@ -21,6 +21,7 @@ from ase.io.abinit import (write_abinit_in,
 
 from ..core.manager import Manager
 from .calc_manager import CalcManager
+from ..utilities import save_cwd
 from ..utilities.io_abinit import (AbinitNC,
                                    set_aseAtoms)
 
@@ -165,7 +166,7 @@ class AbinitManager(CalcManager):
         # Yeah for threading
         # GA: I would move the threading outside of this function
         # because the files naming depends on external objects.
-        with ThreadPoolExecutor(max_workers=ntask) as executor:
+        with save_cwd(), ThreadPoolExecutor(max_workers=ntask) as executor:
             for (path, pref) in path_prefix_l:
                 self.subsubdir = path
                 self.prefix = pref

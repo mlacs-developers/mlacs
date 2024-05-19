@@ -38,7 +38,7 @@ def test_mlacs_multistate(root, treelink):
 
     mlip_params = dict(twojmax=4)
     desc = SnapDescriptor(atoms, 4.2, mlip_params)
-    mlip = LinearPotential(desc, folder="Snap")
+    mlip = LinearPotential(desc, workdir=root, folder="Snap")
 
     atoms = []
     state = []
@@ -50,7 +50,7 @@ def test_mlacs_multistate(root, treelink):
         atoms.append(bulk("Cu", cubic=True, a=a).repeat(2))
     nstate = len(state)
 
-    sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)
+    sampling = OtfMlacs(atoms, state, calc, mlip, neq=5, workdir=root)
     sampling.run(nstep)
 
     for folder in treelink["folder"]:

@@ -21,7 +21,7 @@ from .calc import CalcManager
 from .properties import PropertyManager
 from .state import StateManager
 from .utilities.log import MlacsLog
-from .utilities import create_random_structures
+from .utilities import create_random_structures, save_cwd
 from .utilities.path_integral import compute_centroid_atoms
 
 
@@ -66,10 +66,6 @@ class OtfMlacs(Manager):
 
     workdir: :class:`str` (optional)
         The directory in which to run the calculation.
-
-    prefix: :class:`str` (optional)
-        Prefix for the output files of the simulation.
-        Default ``\"Trajectory\"``.
 
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
         If :class:`int`, Number of configurations used to train a preliminary
@@ -138,7 +134,8 @@ class OtfMlacs(Manager):
             self.mlip = mlip
 
         self.mlip.workdir = self.workdir
-        self.mlip.folder = 'MLIP'
+        if not self.mlip.folder:
+            self.mlip.folder = 'MLIP'
         self.mlip.descriptor.workdir = self.workdir
         self.mlip.descriptor.folder = self.mlip.folder
         self.mlip.weight.workdir = self.workdir
@@ -152,8 +149,10 @@ class OtfMlacs(Manager):
             self.prop = prop
         else:
             self.prop = PropertyManager(prop)
+
         self.prop.workdir = self.workdir
-        self.prop.folder = 'Properties'
+        if not self.prop.folder:
+            self.prop.folder = 'Properties'
     
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -308,9 +307,10 @@ class OtfMlacs(Manager):
                     self.logger.info(msg)
                     atoms_mlip[istate] = self.atoms_start[istate].copy()
                     self.state[istate].initialize_momenta(atoms_mlip[istate])
+
             # With those thread, we can execute all the states in parallell
             futures = []
-            with ThreadPoolExecutor() as executor:
+            with save_cwd(), ThreadPoolExecutor() as executor:
                 for istate in range(self.nstate):
                     exe = executor.submit(self.state[istate].run_dynamics,
                                           *(atoms_mlip[istate],
@@ -327,6 +327,7 @@ class OtfMlacs(Manager):
                     if self.keep_tmp_mlip:
                         mm = self.mlip.descriptor.subsubdir
                         atoms_mlip[istate].info['parent_mlip'] = str(mm)
+                executor.shutdown(wait=True)
 
         # Computing energy with true potential
         msg = "Computing energy with the True potential\n"
@@ -334,7 +335,7 @@ class OtfMlacs(Manager):
         atoms_true = []
         nerror = 0  # Handling of calculator error / non-convergence
 
-        # TODO GA: The threading should be done at this level,
+        # TODO GA: Might be better to do the threading at this level,
         #          up from calc.compute_true_potential.
         subfolder_l = [s.subfolder for s in self.state]
         step_l = [self.step] * self.nstate
@@ -561,8 +562,8 @@ class OtfMlacs(Manager):
                 istep = np.arange(nstate, dtype=int)
                 confs_init = self.calc.compute_true_potential(
                     confs_init,
-                    subfolder=subfolder_l,
-                    step=istep)
+                    subfolder_l,
+                    istep)
 
                 init_traj = Trajectory(conf_fname, mode="w")
                 for i, conf in enumerate(confs_init):
@@ -600,8 +601,10 @@ class OtfMlacs(Manager):
         for s in self.state:
             s.workdir = self.workdir
             s.folder = 'MolecularDynamics'
-            s.subfolder = prefix
-            s.prefix = prefix
+            if not s.subfolder:
+                s.subfolder = prefix
+            if not s.prefix:
+                s.prefix = prefix
 
         if self.nstate > 1:
             for i, s in enumerate(self.state):

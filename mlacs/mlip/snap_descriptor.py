@@ -64,12 +64,12 @@ class SnapDescriptor(Descriptor):
     >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters=dict(),
-                 model="linear", alpha=1.0, alpha_quad=1.0, **kwargs):
+                 model="linear", alpha=1.0, alpha_quad=1.0, prefix='SNAP',
+                 **kwargs):
         self.chemflag = parameters.pop("chemflag", 0)
-        Descriptor.__init__(self, atoms, rcut, alpha, **kwargs)
+        Descriptor.__init__(self, atoms, rcut, alpha, prefix=prefix, **kwargs)
         self.alpha_quad = alpha_quad
         self.model = model
-        self.prefix = "SNAP"
 
         # Initialize the parameters for the descriptors
         self.radelems = parameters.pop("radelems", None)
@@ -209,12 +209,13 @@ class SnapDescriptor(Descriptor):
         Path("atoms.lmp").unlink()
 
 # ========================================================================== #
-    @Manager.exec_from_subsubdir
+    @Manager.exec_from_subdir
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        with open(self.get_filepath(".descriptor"), "w") as f:
+        fname = f"{self.prefix}.descriptor" 
+        with open(fname, "w") as f:
             f.write(self.get_mlip_params())
 
 # ========================================================================== #
@@ -329,7 +330,7 @@ class SnapDescriptor(Descriptor):
 # ========================================================================== #
     def get_pair_coeff(self):
         modelfile = self.get_filepath('.model')
-        descfile = self.get_filepath('.descriptor')
+        descfile = self.subdir / f"{self.prefix}.descriptor"
         pair_coeff = [f"* * {modelfile}  {descfile} " +
                       ' '.join(self.elements)]
         return pair_coeff
