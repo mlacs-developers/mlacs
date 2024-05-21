@@ -187,25 +187,26 @@ class PathAtoms:
         if xi is None:
             xi = self._update
 
-        def set_atoms(X, C, E, R, DR, D2R):
+        def set_atoms(X, C, E, M, R, DR, D2R):
             Z = self.images[0].get_atomic_numbers()
             at = Atoms(numbers=Z, positions=R, cell=C)
             calc = SPC(atoms=at, energy=E)
             at.calc = calc
             at.set_array('first_derivatives', DR)
             at.set_array('second_derivatives', D2R)
+            at.set_array('effective_masses', M)
             at.info['reaction_coordinate'] = X
             return at
 
         if isinstance(xi, float):
-            splat = set_atoms(xi, self.splC, self.splE,
+            splat = set_atoms(xi, self.splC, self.splE, self.masses,
                               self.splR, self.splDR, self.splD2R)
             return splat
 
         splat = []
         for i, (x, c, e) in enumerate(zip(xi, self.splC, self.splE)):
-            at = set_atoms(x, c, e, self.splR[:, :, i], self.splDR[:, :, i],
-                           self.splD2R[:, :, i])
+            at = set_atoms(x, c, e, self.masses, self.splR[:, :, i],
+                           self.splDR[:, :, i], self.splD2R[:, :, i])
             splat.append(at)
         return splat
 
