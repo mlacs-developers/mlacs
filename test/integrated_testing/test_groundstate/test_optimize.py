@@ -26,7 +26,7 @@ def files_with_prefix():
 
 @pytest.fixture
 def expected_folder():
-    folder = ["MolecularDynamics", "Properties", "Snap"]
+    folder = ["MolecularDynamics", "Snap"]
     return folder
 
 
@@ -63,9 +63,9 @@ def test_mlacs_optimize(root, treelink):
     algo = ['cg', 'fire', 'cg', 'cg', 'cg']
     for t, p, a in zip(ptype, press, algo):
         prefix.append(f'{a}_{p}_{t}')
-        state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t)
-        sampling = OtfMlacs(atoms, state, calc, dmlip, func, neq=5,
-                            prefix_output=prefix[-1])
+        state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t,
+                                    prefix=prefix[-1])
+        sampling = OtfMlacs(atoms, state, calc, dmlip, func, neq=5)
         sampling.run(nstep)
 
     for folder in treelink["folder"]:

@@ -68,7 +68,7 @@ class BaseLammpsState(StateManager):
         for block in blocks:
             lmp_input(block.name, block)
 
-        with open(self.lammpsfname, "w") as fd:
+        with open(self.subsubdir / self.lammpsfname, "w") as fd:
             fd.write(str(lmp_input))
 
         self._write_lammps_atoms(atoms, atom_style)
@@ -96,7 +96,7 @@ class BaseLammpsState(StateManager):
         """
 
         """
-        write_lammps_data(self.atomsfname,
+        write_lammps_data(str(self.subsubdir / self.atomsfname),
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
