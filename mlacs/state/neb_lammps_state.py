@@ -2,22 +2,20 @@ import os
 
 import numpy as np
 
-from scipy.spatial import distance
-
+from ase.atoms import Atoms
 from ase.io import write
 from ase.io.lammpsdata import write_lammps_data
+from ase.calculators.singlepoint import SinglePointCalculator as SPC
 
 from .lammps_state import BaseLammpsState
+from ..core import PathAtoms
 from ..core.manager import Manager
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput)
 
-from ..utilities import (get_elements_Z_and_masses,
-                         _create_ASE_object)
+from ..utilities import get_elements_Z_and_masses
 
 from ..utilities.io_lammps import write_lammps_NEB_ASCIIfile
-
-from ..utilities import interpolate_points as intpts
 
 
 # ========================================================================== #
@@ -30,9 +28,9 @@ class NebLammpsState(BaseLammpsState):
 
     Parameters
     ----------
-    configurations: :class:`list`
-        List of ase.Atoms object, the list contain initial and final
-        configurations of the reaction path.
+    configurations: :class:`list` or `PathAtoms`
+        mlacs.PathAtoms or list of ase.Atoms object.
+        The list contain initial and final configurations of the reaction path.
 
     xi_coordinate: :class:`numpy.array` or `float`
         Value of the reaction coordinate for the constrained MD.
@@ -75,7 +73,7 @@ class NebLammpsState(BaseLammpsState):
         - ``rdm_spl`` randomly return the coordinate of a splined images.
         - ``rdm_memory`` homogeneously sample the splined reaction coordinate.
         - ``None`` return the saddle point.
-        Default ``rdm_memory``
+        Default ``saddle``
 
     linear : :class:`Bool` (optional)
         If true, the reaction coordinate is a linear interpolation.
@@ -107,9 +105,9 @@ class NebLammpsState(BaseLammpsState):
     >>> state.run_dynamics(None, mlip.pair_style, mlip.pair_coeff)
     """
 
-    def __init__(self, configurations, xi_coordinate=None,
+    def __init__(self, configurations, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
-                 dt=1.5, nimages=None, nprocs=None, mode="rdm_memory",
+                 dt=1.5, nimages=None, nprocs=None, mode=None,
                  linear=False, prt=False,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):
@@ -120,23 +118,20 @@ class NebLammpsState(BaseLammpsState):
         self.dt = dt
         self.pressure = None
 
-        self.xi = xi_coordinate
         self.style = min_style
         self.criterions = (etol, ftol)
-        self.finder = None
         self.nprocs = nprocs
         self.nreplica = nimages
         self.atomsfname = "atoms-0.data"
-        self.mode = mode
-        if self.xi is None:
-            self.splprec = 1001
-            self.finder = [0.0, 1.0]
         self.print = prt
         self.Kspring = Kspring
-        self.atoms = configurations
-        if len(self.atoms) != 2:
-            raise TypeError('First and last configurations are not defined')
-        self.masses = configurations[0].get_masses()
+        self.path = configurations
+        if not isinstance(self.path, PathAtoms):
+            self.path = PathAtoms(self.path)
+        if xi is not None:
+            self.path.xi = xi
+        if mode is not None:
+            self.path.mode = mode
 
         self.linear = linear
 
@@ -147,11 +142,11 @@ class NebLammpsState(BaseLammpsState):
 
         """
         write_lammps_data(self.atomsfname,
-                          self.atoms[0],
+                          self.path.images[0],
                           velocities=False,
                           atom_style=atom_style)
         write_lammps_NEB_ASCIIfile("atoms-1.data",
-                                   self.atoms[1])
+                                   self.path.images[-1])
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -188,14 +183,15 @@ class NebLammpsState(BaseLammpsState):
         """
 
         """
-        self.extract_NEB_configurations()
-        xi = self.compute_spline(self._xifinder(self.mode))
-        atoms = self.spline_atoms[-1].copy()
+        self.path.images = self.extract_NEB_configurations()
+        atoms = self.path.splined
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
         if self.print:
-            with open('Coordinate_sampling.dat', 'a') as a:
-                a.write(f'{xi}\n')
+            write(str(self.subsubdir / 'pos_neb_images.xyz'),
+                  self.path.images, format='extxyz')
+            write(str(self.subsubdir / 'pos_neb_splined.xyz'),
+                  self.path.splined, format='extxyz')
         return atoms
 
 # ========================================================================== #
@@ -223,13 +219,18 @@ class NebLammpsState(BaseLammpsState):
         Extract the positions and energies of a NEB calculation for all
         replicas.
         """
-        true_atoms = []
-        true_coordinates = []
-        Z = self.atoms[0].get_atomic_numbers()
+        img_at = []
+
+        def set_atoms(C, E, R):
+            Z = self.path.images[0].get_atomic_numbers()
+            at = Atoms(numbers=Z, positions=R, cell=C)
+            calc = SPC(atoms=at, energy=E)
+            at.calc = calc
+            return at
+
         for rep in range(int(self.nreplica)):
             nebfile = str(self.path / f'neb.{rep}')
             positions, cell = self._read_lammpsdata(nebfile)
-            true_coordinates.append(positions)
             check = False
             with open(self.path / f'log.lammps.{rep}') as r:
                 for _ in r:
@@ -238,145 +239,9 @@ class NebLammpsState(BaseLammpsState):
                         break
                     if 'initial, next-to-last, final =' in _:
                         check = True
-            atoms = _create_ASE_object(Z, positions, cell, etotal)
-            true_atoms.append(atoms)
-        self.true_atoms = true_atoms
-        self.path_coordinates = np.arange(self.nreplica)/(self.nreplica-1)
-        self.true_coordinates = np.array(true_coordinates)
-        self.eff_masses = np.sum(self._compute_weight_masses() * self.masses)
-        self.true_energies = np.array([true_atoms[i].get_potential_energy()
-                                       for i in range(self.nreplica)])
-        self.true_energies = self.true_energies.astype(float)
-        if self.print:
-            write(str(self.subsubdir / 'pos_neb_path.xyz'),
-                  true_atoms, format='extxyz')
-
-# ========================================================================== #
-    def compute_spline(self, xi=None):
-        """
-        Compute a 1D CubicSpline interpolation from a NEB calculation.
-        The function also set up the lammps data file for a constrained MD.
-            - Three first columns: atomic positons at reaction coordinate xi.
-            - Three next columns:  normalized atomic first derivatives at
-                reaction coordinate xi, with the corrections of the COM.
-            - Three last columns:  normalized atomic second derivatives at
-                reaction coordinate xi.
-        """
-        Z = self.atoms[0].get_atomic_numbers()
-        N = len(self.atoms[0])
-
-        if xi is None:
-            if self.xi is not None:
-                xi = self.xi
-            else:
-                x = np.linspace(0, 1, self.splprec)
-                y = intpts(self.path_coordinates, self.true_energies,
-                           x, 0, border=1)
-                y = np.array(y)
-                xi = x[y.argmax()]
-
-            if self.finder is not None:
-                self.finder.append(xi)
-
-        self.spline_energies = intpts(self.path_coordinates,
-                                      self.true_energies,
-                                      xi, 0, border=1)
-        spline_coordinates = []
-
-        # Spline interpolation of the referent path and calculation of
-        # the path tangent and path tangent derivate
-        for i in range(N):
-            coord = [intpts(self.path_coordinates,
-                            self.true_coordinates[:, i, j],
-                            xi, 0) for j in range(3)]
-            coord.extend([intpts(self.path_coordinates,
-                                 self.true_coordinates[:, i, j],
-                                 xi, 1) for j in range(3)])
-            coord.extend([intpts(self.path_coordinates,
-                                 self.true_coordinates[:, i, j],
-                                 xi, 2) for j in range(3)])
-            spline_coordinates.append(coord)
-        spline_coordinates = np.array(spline_coordinates)
-
-        self.spline_atoms = []
-        self.spline_coordinates = []
-        if isinstance(xi, float):
-            self.spline_coordinates.append(np.array(self._COM_corrections(
-                spline_coordinates.tolist())).round(8))
-            self.spline_coordinates = np.array(self.spline_coordinates)
-            self.spline_atoms.append(_create_ASE_object(
-                Z, np.hsplit(self.spline_coordinates[0], 5)[0],
-                self.atoms[0].get_cell(), self.spline_energies))
-        else:
-            for rep in range(len(xi)):
-                self.spline_coordinates.append(self._COM_corrections(
-                    spline_coordinates[:, :, rep].tolist()))
-            self.spline_coordinates = np.array(
-                    self.spline_coordinates).round(8)
-            for rep in range(len(xi)):
-                self.spline_atoms.append(_create_ASE_object(
-                    Z, np.hsplit(self.spline_coordinates[rep, :, :], 5)[0],
-                    self.atoms[0].get_cell(), self.spline_energies[rep]))
-        if self.print:
-            write(str(self.path / 'pos_neb_spline.xyz'),
-                  self.spline_atoms, format='extxyz')
-        return xi
-
-# ========================================================================== #
-    def _xifinder(self, mode):
-        """
-        Return the reaction coordinate xi(R).
-        """
-        def find_dist(_l):
-            m = []
-            _l.sort()
-            for i, val in enumerate(_l[1:]):
-                m.append(np.abs(_l[i+1] - _l[i]))
-            i = np.array(m).argmax()
-            return _l[i+1], _l[i]
-        if self.xi is not None:
-            return self.xi
-        if isinstance(mode, float):
-            return mode
-        elif mode == 'rdm_spl':
-            return np.random.uniform(0, 1)
-        elif mode == 'rdm_memory':
-            x, y = find_dist(self.finder)
-            return np.random.uniform(x, y)
-        elif mode == 'rdm_true':
-            r = np.random.default_rng()
-            x = r.integers(self.nreplica) / self.nreplica
-            return x
-        else:
-            return None
-
-# ========================================================================== #
-    def _compute_weight_masses(self):
-        """
-        Return weights for effective masse.
-        """
-        coordinates = np.transpose(self.true_coordinates, (1, 0, 2))
-        weight = np.array([np.max(distance.cdist(d, d, "euclidean"))
-                           for d in coordinates])
-        weight = weight / np.max(weight)
-        return weight
-
-# ========================================================================== #
-    def _COM_corrections(self, spline):
-        """
-        Correction of the path tangent to have zero center of mass
-        """
-        N = len(self.atoms[0])
-        pos, der, der2 = np.hsplit(np.array(spline), 3)
-        com = np.array([np.average(der[:, i]) for i in range(3)])
-        norm = 0
-        for i in range(N):
-            norm += np.sum([(der[i, j] - com[j])**2 for j in range(3)])
-        norm = np.sqrt(norm)
-        for i in range(N):
-            spline[i].extend([(der[i, j] - com[j]) / norm for j in range(3)])
-            spline[i].extend([der2[i, j] / norm / norm for j in range(3)])
-        return spline
+            atoms = set_atoms(cell, etotal, positions)
+            img_at.append(atoms)
+        return img_at
 
 # ========================================================================== #
     def _get_lammps_command(self):
@@ -500,6 +365,6 @@ class NebLammpsState(BaseLammpsState):
         msg = "NEB calculation as implemented in LAMMPS\n"
         msg += f"Number of replicas :                     {self.nreplica}\n"
         msg += f"String constant :                        {self.Kspring}\n"
-        msg += f"Sampling mode :                          {self.mode}\n"
+        msg += f"Sampling mode :                          {self.path.mode}\n"
         msg += "\n"
         return msg
