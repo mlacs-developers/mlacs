@@ -6,7 +6,7 @@ from pathlib import Path
 
 @pytest.fixture(autouse=True)
 def root():
-    return Path()
+    return Path().absolute()
 
 
 @pytest.fixture(autouse=True)

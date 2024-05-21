@@ -8,6 +8,7 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 
 from ..core import Manager
+from ..utilities import save_cwd
 from ..utilities.thermolog import ThermoLog
 from .thermostate import ThermoState
 
@@ -74,7 +75,7 @@ class ThermodynamicIntegration(Manager):
         Launch the simulation
         """
         tasks = (self.ninstance * self.nstate)
-        with ThreadPoolExecutor(max_workers=tasks) as executor:
+        with save_cwd(), ThreadPoolExecutor(max_workers=tasks) as executor:
             for istate in range(self.nstate):
                 if self.ninstance > 1:
                     for i in range(self.ninstance):
@@ -98,6 +99,7 @@ class ThermodynamicIntegration(Manager):
                     msg += "Working directory for this state " + \
                            f": \n{self.path}\n"
                     self.log.logger_log.info(msg)
+            executor.shutdown(wait=True)
 
         if self.ninstance > 1:
             for istate in range(self.nstate):

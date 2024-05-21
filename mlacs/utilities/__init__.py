@@ -12,6 +12,7 @@ from .miscellanous import (get_elements_Z_and_masses,
                            integrate_points,
                            normalized_integration,
                            execute_from,
+                           save_cwd,
                            create_link,
                            )
 
@@ -30,5 +31,6 @@ __all__ = ['compute_pdf',
            'AbinitNC',
            'set_aseAtoms',
            'execute_from',
+           'save_cwd',
            'create_link',
            ]

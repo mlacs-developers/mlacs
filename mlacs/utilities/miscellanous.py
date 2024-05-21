@@ -325,6 +325,10 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
 
 
 # ========================================================================== #
+
+# GA: This context manager might be problematic when used in parallel
+#     execution. We might not come back where we started!
+
 @contextmanager
 def execute_from(directory):
     """Context to work from a subfolder."""
@@ -340,6 +344,17 @@ def execute_from(directory):
         yield
     finally:
         if workdir != initial:
+            os.chdir(initial)
+
+@contextmanager
+def save_cwd():
+    """Context to move back to the current directory after execution."""
+    initial = Path.cwd().absolute()
+    try:
+        yield
+    finally:
+        cwd = Path.cwd().absolute()
+        if cwd != initial:
             os.chdir(initial)
 
 # ========================================================================== #
