@@ -105,7 +105,7 @@ class NebLammpsState(BaseLammpsState):
     >>> state.run_dynamics(None, mlip.pair_style, mlip.pair_coeff)
     """
 
-    def __init__(self, configurations, xi=None,
+    def __init__(self, images, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
                  dt=1.5, nimages=None, nprocs=None, mode=None,
                  linear=False, prt=False,
@@ -125,13 +125,13 @@ class NebLammpsState(BaseLammpsState):
         self.atomsfname = "atoms-0.data"
         self.print = prt
         self.Kspring = Kspring
-        self.path = configurations
-        if not isinstance(self.path, PathAtoms):
-            self.path = PathAtoms(self.path)
+        self.patoms = images
+        if not isinstance(self.patoms, PathAtoms):
+            self.patoms = PathAtoms(self.patoms)
         if xi is not None:
-            self.path.xi = xi
+            self.patoms.xi = xi
         if mode is not None:
-            self.path.mode = mode
+            self.patoms.mode = mode
 
         self.linear = linear
 
@@ -142,11 +142,11 @@ class NebLammpsState(BaseLammpsState):
 
         """
         write_lammps_data(self.atomsfname,
-                          self.path.images[0],
+                          self.patoms.images[0],
                           velocities=False,
                           atom_style=atom_style)
         write_lammps_NEB_ASCIIfile("atoms-1.data",
-                                   self.path.images[-1])
+                                   self.patoms.images[-1])
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -183,15 +183,15 @@ class NebLammpsState(BaseLammpsState):
         """
 
         """
-        self.path.images = self.extract_NEB_configurations()
-        atoms = self.path.splined
+        self.patoms.images = self.extract_NEB_configurations()
+        atoms = self.patoms.splined
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
         if self.print:
             write(str(self.subsubdir / 'pos_neb_images.xyz'),
-                  self.path.images, format='extxyz')
+                  self.patoms.images, format='extxyz')
             write(str(self.subsubdir / 'pos_neb_splined.xyz'),
-                  self.path.splined, format='extxyz')
+                  self.patoms.splined, format='extxyz')
         return atoms
 
 # ========================================================================== #
@@ -222,7 +222,7 @@ class NebLammpsState(BaseLammpsState):
         img_at = []
 
         def set_atoms(C, E, R):
-            Z = self.path.images[0].get_atomic_numbers()
+            Z = self.patoms.images[0].get_atomic_numbers()
             at = Atoms(numbers=Z, positions=R, cell=C)
             calc = SPC(atoms=at, energy=E)
             at.calc = calc
@@ -365,6 +365,6 @@ class NebLammpsState(BaseLammpsState):
         msg = "NEB calculation as implemented in LAMMPS\n"
         msg += f"Number of replicas :                     {self.nreplica}\n"
         msg += f"String constant :                        {self.Kspring}\n"
-        msg += f"Sampling mode :                          {self.path.mode}\n"
+        msg += f"Sampling mode :                          {self.patoms.mode}\n"
         msg += "\n"
         return msg

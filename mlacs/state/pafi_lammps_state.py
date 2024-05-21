@@ -25,8 +25,8 @@ class PafiLammpsState(LammpsState):
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
 
-    nebpath: :class:`NebLammpsState`
-        NebLammpsState object contain all informations on the transition path.
+    mep: :class:`NebLammpsState`
+        Object contain all informations on the MEP (Minimum Energy Path).
 
     maxjump: :class:`float`
         Maximum atomic jump authorized for the free energy calculations.
@@ -79,12 +79,12 @@ class PafiLammpsState(LammpsState):
     >>>
     >>> from mlacs.state import PafiLammpsState, NebLammpsState
     >>> neb = NebLammpsState([initial, final])
-    >>> state = PafiLammpsState(temperature=300, nebpath=neb)
+    >>> state = PafiLammpsState(temperature=300, mep=neb)
     >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
 
-    def __init__(self, temperature, nebpath=None, maxjump=0.4, dt=1.5, damp=None,
-                 prt=False, langevin=True,
+    def __init__(self, temperature, mep=None, maxjump=0.4,
+                 dt=1.5, damp=None, prt=False, langevin=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):
 
@@ -95,21 +95,21 @@ class PafiLammpsState(LammpsState):
                          blocks=blocks, **kwargs)
 
         self.temperature = temperature
-        self.nebpath = nebpath
-        if nebpath is None:
+        self.mep = mep
+        if mep is None:
             raise TypeError('A NebLammpsState must be given!')
-        self.nebpath.print = prt
-        if self.nebpath.xi is None:
-            self.nebpath.mode = None
+        self.mep.print = prt
+        if self.mep.xi is None:
+            self.mep.mode = None
         else:
-            self.nebpath.mode = self.nebpath.xi
+            self.mep.mode = self.mep.xi
 
-        self.nebpath.workdir = self.workdir
-        self.nebpath.folder = 'TransPath'
+        self.mep.workdir = self.workdir
+        self.mep.folder = 'TransPath'
         self.print = prt
         self.maxjump = maxjump
 
-        self.replica = None
+        self._replica = None
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -125,25 +125,15 @@ class PafiLammpsState(LammpsState):
         """
 
         # Run NEB calculation.
-        self.nebpath.run_dynamics(self.nebpath.atoms[0],
-                               pair_style,
-                               pair_coeff,
-                               model_post,
-                               atom_style)
-        self.nebpath.extract_NEB_configurations()
-        self.nebpath.compute_spline()
-        supercell = self.nebpath.spline_atoms[0].copy()
+        self.mep.run_dynamics(self.mep.patoms.images[0],
+                              pair_style, pair_coeff, model_post, atom_style)
+        supercell = self.mep.patoms.splined.copy()
         self.isrestart = False
 
         # Run Pafi dynamic at xi.
-        atoms = LammpsState.run_dynamics(self,
-                                         supercell,
-                                         pair_style,
-                                         pair_coeff,
-                                         model_post,
-                                         atom_style,
-                                         eq)
-
+        atoms = LammpsState.run_dynamics(self, supercell,
+                                         pair_style, pair_coeff, model_post,
+                                         atom_style, eq)
         return atoms.copy()
 
 # ========================================================================== #
@@ -171,31 +161,27 @@ class PafiLammpsState(LammpsState):
         lfname = self.lammpsfname
 
         # Run NEB calculation.
-        self.nebpath.run_dynamics(self.nebpath.atoms[0],
-                               pair_style,
-                               pair_coeff,
-                               model_post,
-                               atom_style)
-        self.nebpath.extract_NEB_configurations()
-        self.nebpath.compute_spline(xi)
+        self.mep.run_dynamics(self.mep.patoms.images[0],
+                              pair_style, pair_coeff, model_post, atom_style)
         self.isrestart = False
 
         # Run Pafi dynamics.
         with ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
                 worker = copy.deepcopy(self)
-                worker.replica = rep
+                worker._replica = rep
                 worker.atomsfname = afname + f'.{rep}'
                 worker.lammpsfname = lfname + f'.{rep}'
                 worker.subfolder = f'PafiPath_{rep}'
-                atoms = self.nebpath.spline_atoms[rep].copy()
+                self.mep.patoms.xi = xi[rep]
+                atoms = self.mep.patoms.splined.copy()
                 atoms.set_pbc([1, 1, 1])
                 executor.submit(LammpsState.run_dynamics,
                                 *(worker, atoms, pair_style, pair_coeff,
                                   model_post, atom_style, False))
 
         # Reset some attributes.
-        self.replica = None
+        self._replica = None
         self.atomsfname = afname
         self.lammpsfname = lfname
         return self.log_free_energy(xi, nthrow)
@@ -206,17 +192,37 @@ class PafiLammpsState(LammpsState):
         """
 
         """
-        rep = self.replica
-        afnames = self.path / self.atomsfname
+        filename = self.path / self.atomsfname
 
-        if rep is None:
-            splatoms = self.nebpath.spline_atoms[0]
-            splcoord = self.nebpath.spline_coordinates[0]
-        else:
-            splatoms = self.nebpath.spline_atoms[rep]
-            splcoord = self.nebpath.spline_coordinates[rep]
+        splat = self.mep.patoms.splined
+        splR = self.mep.patoms.splR
+        splDR = self.mep.patoms.splDR
+        splD2R = self.mep.patoms.splD2R
 
-        self._write_PafiPath_atoms(afnames, splatoms, splcoord)
+        from ase.calculators.lammps import Prism, convert
+        symbol = splat.get_chemical_symbols()
+        species = sorted(set(symbol))
+        p = Prism(splat.get_cell())
+        xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(),
+                                            'distance', 'ASE', 'metal')
+        instr = f'#{filename} (written by MLACS)\n\n'
+        instr += f'{len(symbol)} atoms\n'
+        instr += f'{len(species)} atom types\n'
+        instr += f'0 {xhi} xlo xhi\n'
+        instr += f'0 {yhi} ylo yhi\n'
+        instr += f'0 {zhi} zlo zhi\n'
+        if p.is_skewed():
+            instr += f'{xy} {xz} {yz}  xy xz yz\n'
+        instr += '\nAtoms\n\n'
+        for i, r in enumerate(splR):
+            strformat = '{:>6} ' + '{:>3} ' + ('{:12.8f} ' * 3) + '\n'
+            instr += strformat.format(i+1, species.index(symbol[i]) + 1, *r)
+        instr += '\nPafiPath\n\n'
+        for i, (r, dr, d2r) in enumerate(zip(splR, splDR, splD2R)):
+            strformat = '{:>6} ' + ('{:12.8f} ' * 9) + '\n'
+            instr += strformat.format(i+1, *r, *dr, *d2r)
+        with open(filename, 'w') as w:
+            w.write(instr)
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -286,8 +292,8 @@ class PafiLammpsState(LammpsState):
         """
 
         """
-        _rep = self.replica
-        if self.replica is None:
+        _rep = self._replica
+        if self._replica is None:
             _rep = 0
 
         block = LammpsBlockInput("pafilog", "Pafi log files")
@@ -305,43 +311,6 @@ class PafiLammpsState(LammpsState):
         return block
 
 # ========================================================================== #
-    def _write_PafiPath_atoms(self, filename, atoms, spline):
-        """
-        Write the lammps data file for a constrained MD, from an Atoms object.
-            - Three first columns: atomic positons at reaction coordinate xi.
-            - Three next columns:  normalized atomic first derivatives at
-                reaction coordinate xi, with the corrections of the COM.
-            - Three last columns:  normalized atomic second derivatives at
-                reaction coordinate xi.
-        """
-        from ase.calculators.lammps import Prism, convert
-        symbol = atoms.get_chemical_symbols()
-        species = sorted(set(symbol))
-        N = len(symbol)
-        p = Prism(atoms.get_cell())
-        xhi, yhi, zhi, xy, xz, yz = convert(p.get_lammps_prism(),
-                                            'distance', 'ASE', 'metal')
-        instr = f'#{filename} (written by MLACS)\n\n'
-        instr += f'{N} atoms\n'
-        instr += f'{len(species)} atom types\n'
-        instr += f'0 {xhi} xlo xhi\n'
-        instr += f'0 {yhi} ylo yhi\n'
-        instr += f'0 {zhi} zlo zhi\n'
-        if p.is_skewed():
-            instr += f'{xy} {xz} {yz}  xy xz yz\n'
-        instr += '\nAtoms\n\n'
-        for i in range(N):
-            strformat = '{:>6} ' + '{:>3} ' + ('{:12.8f} ' * 3) + '\n'
-            instr += strformat.format(i+1, species.index(symbol[i]) + 1,
-                                      *spline[i, :3])
-        instr += '\nPafiPath\n\n'
-        for i in range(N):
-            strformat = '{:>6} ' + ('{:12.8f} ' * 9) + '\n'
-            instr += strformat.format(i+1, *spline[i, :3], *spline[i, 9:])
-        with open(filename, 'w') as w:
-            w.write(instr)
-
-# ========================================================================== #
     @Manager.exec_from_workdir
     def log_free_energy(self, xi, nthrow=2000, _ref=0):
         """
@@ -349,7 +318,7 @@ class PafiLammpsState(LammpsState):
         Integrate the MFEP and compute the Free energy barrier.
         """
         temp = self.temperature
-        meff = self.nebpath.eff_masses
+        meff = self.mep.masses
 
         self.pafi = []
         for rep in range(len(xi)):
@@ -413,9 +382,9 @@ class PafiLammpsState(LammpsState):
         damp = self.damp
         if damp is None:
             damp = 10 * self.dt
-        xi = self.nebpath.xi
+        xi = self.mep.xi
 
-        msg = self.nebpath.log_recap_state()
+        msg = self.mep.log_recap_state()
         msg += "Constrained dynamics as implemented in LAMMPS with fix PAFI\n"
         msg += f"Temperature (in Kelvin) :                {self.temperature}\n"
         msg += f"Number of MLMD equilibration steps :     {self.nsteps_eq}\n"
