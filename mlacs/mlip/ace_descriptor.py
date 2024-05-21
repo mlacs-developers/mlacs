@@ -160,7 +160,6 @@ class AceDescriptor(Descriptor):
         self.desc_name = "ACE"
         self.n_fit_attempt = 3
 
-        self.rcut = rcut
         self.tol_e = tol_e
         self.tol_f = tol_f
         self.free_at_e = free_at_e
@@ -180,6 +179,18 @@ class AceDescriptor(Descriptor):
             self.backend['nworkers'] = nworkers
         if 'elements' not in self.loss:
             bconf['elements'] = np.unique(atoms.get_chemical_symbols())
+
+        # Set bconf['rcut'] according to rcut if rcut is given
+        if rcut is not None:
+            for bond_type, bond_info in bconf['bonds'].items():
+                bond_info['rcut'] = rcut
+        else:  # Set rcut according to bconf['rcut'] if rcut is not given
+            rcut = 0
+            for bond_type, bond_info in bconf['bonds'].items():
+                if bond_info['rcut'] > rcut:
+                    rcut = bond_info['rcut']
+        self.rcut = rcut
+
         self.bconf = create_multispecies_basis_config(bconf)
         self.acefit = None 
 
@@ -481,7 +492,9 @@ class AceDescriptor(Descriptor):
             import tensorpotential  # noqa
             gpus = tf.config.experimental.list_physical_devices('GPU')
             if len(gpus) == 0:
-                s += "No GPUs found, will fit on CPUs\n"
+                # Not great as MLACS logger hasn't been initialized
+                mlacs_log = logging.getLogger('mlacs')
+                mlacs_log.warn("No GPUs found, will fit on CPUs\n")
         except ImportError:
             s += "Tensorpotential package error.\n"
             s += "Please install Tensorpotential from:\n"
@@ -590,6 +603,7 @@ class AceDescriptor(Descriptor):
     def __repr__(self):
         txt = "ACE descriptor\n"
         txt += f"{(len(txt) - 1) * '-'}\n"
+        txt += f"Rcut: {self.rcut} ang\n"
         txt += f"Free atom energy (eV/at): {self.free_at_e}\n"
         txt += f"Dataframe : {self.db_fn}\n"
         txt += f"Tolerance on e : {self.tol_e} (meV/at)\n"
