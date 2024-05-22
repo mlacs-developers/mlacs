@@ -152,7 +152,7 @@ class MomentTensorPotential(SelfMlipManager):
         pass
 
 # ========================================================================== #
-    def get_pair_style(self, folder):
+    def get_pair_style(self, folder=None):
         if self.version == 3:
             return f"mlip load_from={self.subdir / 'pot.mtp'}"
         return f"mlip {self.subdir / 'mlip.ini'}"
@@ -404,7 +404,7 @@ class MomentTensorPotential(SelfMlipManager):
         if self.version == 3:
             mlp_command += f" calculate_efs {potfile} {trainfile}"
             mlp_command += f" --output_filename={outfile}"
-            outfile = subfolder / "out.cfg.0"
+            outfile = self.subsubdir / "out.cfg.0"
         else:
             mlp_command += f" calc-efs {potfile} {trainfile} {outfile}"
         mlp_handle = run(mlp_command.split(),
