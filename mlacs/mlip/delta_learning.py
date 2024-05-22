@@ -80,12 +80,24 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
 
+    def _set_directories(self):
+        self.model.workdir = self.workdir
+        self.model.folder = self.folder
+        self.model.subfolder = self.subfolder
+        self.model.descriptor.workdir = self.workdir
+        self.model.descriptor.folder = self.folder
+        self.model.descriptor.subfolder = self.subfolder
+        self.model.weight.workdir = self.workdir
+        self.model.weight.folder = self.folder
+        self.model.weight.subfolder = self.subfolder
+
 # ========================================================================== #
     def get_ref_pair_style(self, lmp=False):
         """
         Return self.ref_pair_style which is an array.
         If lmp=True, it returns it formatted as a lammps input.
         """
+        self._set_directories()
         if not lmp:
             return self.ref_pair_style
 
@@ -102,6 +114,7 @@ class DeltaLearningPotential(MlipManager):
         """
         Return the pair_coeff for the reference calculations
         """
+        self._set_directories()
         if len(self.ref_pair_style) == 1:
             return self.ref_pair_coeff
         else:
@@ -118,6 +131,7 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
     def _get_pair_style(self):
+        self._set_directories()
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
@@ -135,6 +149,7 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
     def _get_pair_coeff(self):
+        self._set_directories()
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
 
@@ -184,6 +199,7 @@ class DeltaLearningPotential(MlipManager):
     def update_matrices(self, atoms):
         """
         """
+
         # First compute reference energy/forces/stress
         if isinstance(atoms, Atoms):
             atoms = [atoms]
@@ -230,11 +246,8 @@ class DeltaLearningPotential(MlipManager):
     def train_mlip(self):
         """
         """
-        self.model.workdir = self.workdir
-        self.model.folder = self.folder
-        self.model.subfolder = self.subfolder
-        msg = self.model.train_mlip()
-        return msg
+        self._set_directories()
+        return self.model.train_mlip()
 
     # GA: Need to overwrite this abstract methods, but I'm not sure
     #     if it is used at all.
