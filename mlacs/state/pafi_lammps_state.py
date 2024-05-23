@@ -97,12 +97,8 @@ class PafiLammpsState(LammpsState):
         self.temperature = temperature
         self.mep = mep
         if mep is None:
-            raise TypeError('A NebLammpsState must be given!')
+            raise TypeError('A reaction path must be given!')
         self.mep.print = prt
-        if self.mep.xi is None:
-            self.mep.mode = None
-        else:
-            self.mep.mode = self.mep.xi
 
         self.mep.workdir = self.workdir
         self.mep.folder = 'TransPath'
@@ -383,7 +379,10 @@ class PafiLammpsState(LammpsState):
         damp = self.damp
         if damp is None:
             damp = 10 * self.dt
-        xi = self.mep.xi
+        if self.mep.patoms._xi is None and self.mep.patoms.mode == 'saddle':
+            xi = None
+        else:
+            xi = self.mep.patoms.xi
 
         msg = self.mep.log_recap_state()
         msg += "Constrained dynamics as implemented in LAMMPS with fix PAFI\n"
