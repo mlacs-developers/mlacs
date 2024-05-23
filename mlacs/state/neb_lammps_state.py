@@ -28,11 +28,11 @@ class NebLammpsState(BaseLammpsState):
 
     Parameters
     ----------
-    configurations: :class:`list` or `PathAtoms`
+    images: :class:`list` or `PathAtoms`
         mlacs.PathAtoms or list of ase.Atoms object.
         The list contain initial and final configurations of the reaction path.
 
-    xi_coordinate: :class:`numpy.array` or `float`
+    xi: :class:`numpy.array` or `float`
         Value of the reaction coordinate for the constrained MD.
         Default ``None``
 
@@ -108,7 +108,7 @@ class NebLammpsState(BaseLammpsState):
     def __init__(self, images, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
                  dt=1.5, nimages=None, nprocs=None, mode=None,
-                 linear=False, prt=False,
+                 linear=False, prt=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):
 
@@ -142,11 +142,11 @@ class NebLammpsState(BaseLammpsState):
 
         """
         write_lammps_data(self.atomsfname,
-                          self.patoms.images[0],
+                          self.patoms.initial,
                           velocities=False,
                           atom_style=atom_style)
         write_lammps_NEB_ASCIIfile("atoms-1.data",
-                                   self.patoms.images[-1])
+                                   self.patoms.final)
 
 # ========================================================================== #
     def _get_block_init(self, atoms, atom_style):
@@ -184,6 +184,7 @@ class NebLammpsState(BaseLammpsState):
 
         """
         self.patoms.images = self.extract_NEB_configurations()
+        self.patoms.update
         atoms = self.patoms.splined
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
@@ -221,11 +222,10 @@ class NebLammpsState(BaseLammpsState):
         """
         img_at = []
 
-        def set_atoms(C, E, R):
-            Z = self.patoms.images[0].get_atomic_numbers()
+        def set_atoms(C, R):
+            Z = self.patoms.initial.get_atomic_numbers()
             at = Atoms(numbers=Z, positions=R, cell=C)
-            calc = SPC(atoms=at, energy=E)
-            at.calc = calc
+            at.set_pbc(True)
             return at
 
         for rep in range(int(self.nreplica)):
@@ -239,7 +239,9 @@ class NebLammpsState(BaseLammpsState):
                         break
                     if 'initial, next-to-last, final =' in _:
                         check = True
-            atoms = set_atoms(cell, etotal, positions)
+            atoms = set_atoms(cell, positions)
+            calc = SPC(atoms=atoms, energy=etotal)
+            atoms.calc = calc
             img_at.append(atoms)
         return img_at
 

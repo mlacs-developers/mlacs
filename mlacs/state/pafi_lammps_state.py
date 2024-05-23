@@ -125,9 +125,9 @@ class PafiLammpsState(LammpsState):
         """
 
         # Run NEB calculation.
-        self.mep.run_dynamics(self.mep.patoms.images[0],
+        self.mep.run_dynamics(self.mep.patoms.initial,
                               pair_style, pair_coeff, model_post, atom_style)
-        supercell = self.mep.patoms.splined.copy()
+        supercell = self.mep.patoms.splined
         self.isrestart = False
 
         # Run Pafi dynamic at xi.
@@ -161,7 +161,7 @@ class PafiLammpsState(LammpsState):
         lfname = self.lammpsfname
 
         # Run NEB calculation.
-        self.mep.run_dynamics(self.mep.patoms.images[0],
+        self.mep.run_dynamics(self.mep.patoms.initial,
                               pair_style, pair_coeff, model_post, atom_style)
         self.isrestart = False
 

@@ -91,7 +91,6 @@ def test_path_atoms_mode(root):
             np.linspace(0, 1, 20), [0.0, 0.4, 0.8, 1.0]]
     for m in mode:
         neb = PathAtoms(at, mode=m)
-        print(neb.images)
         spl = neb.splined
 
         # Test on the only atom moving.

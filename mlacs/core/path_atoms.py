@@ -43,6 +43,16 @@ class PathAtoms:
         """Get true images"""
         return self._images
 
+    @property
+    def initial(self):
+        """Get first image"""
+        return self._images[0]
+
+    @property
+    def final(self):
+        """Get last image"""
+        return self._images[-1]
+
     @images.setter
     def images(self, img):
         self._images = img
@@ -76,7 +86,7 @@ class PathAtoms:
         return meff / np.max(meff)
 
     @property
-    def _update(self):
+    def update(self):
         """
         Update the reaction coordinate.
         """
@@ -98,8 +108,9 @@ class PathAtoms:
             return mode
         elif mode == 'saddle':
             x = np.linspace(0, 1, self._splprec)
-            y = intpts(self.imgxi, self.imgE, x, 0, border=1)
-            y = np.array(y)
+            # RB : The derivatives at xi=0 or 1 is not always null.
+            # y = np.r_[intpts(self.imgxi, self.imgE, x, 0, border=1)]
+            y = np.r_[intpts(self.imgxi, self.imgE, x, 0)]
             self._tmp_xi = x[y.argmax()]
             return self._tmp_xi
         elif mode == 'rdm':
@@ -130,7 +141,7 @@ class PathAtoms:
         if self._xi is not None:
             return self._xi
         elif self._tmp_xi is None:
-            return self._update
+            return self.update
         else:
             return self._tmp_xi
 
@@ -165,7 +176,9 @@ class PathAtoms:
 
     @property
     def splE(self):
-        return np.r_[intpts(self.imgxi, self.imgE, self.xi, 0, border=1)]
+        # RB : The derivatives at xi=0 or 1 is not always null.
+        # return np.r_[intpts(self.imgxi, self.imgE, self.xi, 0, border=1)]
+        return np.r_[intpts(self.imgxi, self.imgE, self.xi, 0)]
 
     @property
     def splC(self):
@@ -185,13 +198,12 @@ class PathAtoms:
         Return splined Atoms objects at the xi coordinates.
         """
         if xi is None:
-            xi = self._update
+            xi = self.update
 
-        def set_atoms(X, C, E, M, R, DR, D2R):
+        def set_atoms(X, C, M, R, DR, D2R):
             Z = self.images[0].get_atomic_numbers()
             at = Atoms(numbers=Z, positions=R, cell=C)
-            calc = SPC(atoms=at, energy=E)
-            at.calc = calc
+            at.set_pbc(True)
             at.set_array('first_derivatives', DR)
             at.set_array('second_derivatives', D2R)
             at.set_array('effective_masses', M)
@@ -199,14 +211,18 @@ class PathAtoms:
             return at
 
         if isinstance(xi, float):
-            splat = set_atoms(xi, self.splC, self.splE, self.masses,
+            splat = set_atoms(xi, self.splC, self.masses,
                               self.splR, self.splDR, self.splD2R)
+            calc = SPC(atoms=splat, energy=self.splE)
+            splat.calc = calc
             return splat
 
         splat = []
         for i, (x, c, e) in enumerate(zip(xi, self.splC, self.splE)):
-            at = set_atoms(x, c, e, self.masses, self.splR[:, :, i],
+            at = set_atoms(x, c, self.masses, self.splR[:, :, i],
                            self.splDR[:, :, i], self.splD2R[:, :, i])
+            calc = SPC(atoms=at, energy=e)
+            at.calc = calc
             splat.append(at)
         return splat
 
@@ -221,7 +237,7 @@ class PathAtoms:
                 reaction coordinate xi.
         """
         if xi is None:
-            xi = self._update
+            xi = self.update
 
         N = len(self.images[0])
         if isinstance(xi, float):
@@ -243,7 +259,7 @@ class PathAtoms:
 
         if self.fixcom:
             self._com_corrections()
-        return self._splR
+        return self._splR.round(8)
 
     def _com_corrections(self):
         """
