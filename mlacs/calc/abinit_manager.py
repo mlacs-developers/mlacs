@@ -162,6 +162,7 @@ class AbinitManager(CalcManager):
                 command = self._make_command(stateprefix, nproc)
                 # Get the directory but remove the prefix to abifile
                 cdir = '/'.join(stateprefix.split('/')[:-1])
+                print(f"Launching {command}")
                 executor.submit(submit_abinit_calc,
                                 command,
                                 stateprefix+self.logfile,
@@ -194,7 +195,6 @@ class AbinitManager(CalcManager):
 
         full_cmd = "{} {}".format(mpi_cmd, abinit_cmd)
         full_cmd = shlex.split(full_cmd, posix=(os.name == "posix"))
-
         return full_cmd
 
 # ========================================================================== #

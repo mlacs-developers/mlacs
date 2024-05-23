@@ -283,15 +283,19 @@ class AceDescriptor(Descriptor):
             #self.acefit.target_bbasisconfig.set_all_coeffs(x0)
             self.acefit.fit_config['fit_cycles'] += 1
 
+        # Note that self.fitting is the same object as self.acefit.fit_config
+        real_maxiter = self.fitting['maxiter']
         nattempt = 0
         retry = True
         while retry:
-            retry = self.actual_fit()
+            retry, niter_done = self.actual_fit()
             nattempt += 1
             # TODO: Substract the iteration done on i-1 from max_iter of i
             self.acefit.fit_config['fit_cycles'] += 1
-            if nattempt > self.n_fit_attempt:
+            self.fitting['maxiter'] -= niter_done
+            if nattempt > self.n_fit_attempt or self.fitting['maxiter'] < 1:
                 retry = False
+        self.fitting['maxiter'] = real_maxiter
 
         fn_yaml = "interim_potential_best_cycle.yaml"
         yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
@@ -319,7 +323,8 @@ class AceDescriptor(Descriptor):
 
         # Fit failed due to precision loss
         retry = fit_res.status == 2 and not fit_res.success
-        return retry
+        niter_done = self.acefit.current_fit_iteration
+        return retry, niter_done
 
 # ========================================================================== #
     @subfolder
