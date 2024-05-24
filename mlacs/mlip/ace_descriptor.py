@@ -413,13 +413,14 @@ class AceDescriptor(Descriptor):
 
             self._run_lammps(lmp_atfname)
             tmp_e, tmp_f, tmp_s = self._read_lammps_output(len(at))
-            e.append(tmp_e)
+            e.append(tmp_e + self.calc_free_e(at)/len(at))
             f.append(tmp_f)
             s.append(tmp_s)
             self.cleanup()
+
         if len(e) == 1:
             return e[0], f[0], s[0]
-
+        
         return e, f, s
 
 # ========================================================================== #
