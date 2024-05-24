@@ -4,6 +4,7 @@
 """
 import numpy as np
 
+from pathlib import Path
 from ase.io import Trajectory
 from ase.units import fs
 from ase.md.langevin import Langevin
@@ -11,6 +12,7 @@ from ase.md import MDLogger
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
 from ase.calculators.lammpsrun import LAMMPS
 
+from ..core.manager import Manager
 from .state import StateManager
 
 
@@ -71,14 +73,16 @@ class LangevinState(StateManager):
                  trajfile=None,
                  loginterval=50,
                  rng=None,
-                 init_momenta=None):
+                 init_momenta=None,
+                 **kwargs):
 
         StateManager.__init__(self,
                               nsteps=nsteps,
                               nsteps_eq=nsteps_eq,
                               logfile=logfile,
                               trajfile=trajfile,
-                              loginterval=loginterval)
+                              loginterval=loginterval,
+                              **kwargs)
         self.pressure = None
         self.dt = dt
         self.fixcm = fixcm
@@ -100,6 +104,7 @@ class LangevinState(StateManager):
         self.isneb = False
 
 # ========================================================================== #
+    @Manager.exec_from_subdir
     def run_dynamics(self,
                      supercell,
                      pair_style,
@@ -112,7 +117,11 @@ class LangevinState(StateManager):
         """
         atoms = supercell.copy()
         calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
-                      atom_style=atom_style)
+                      atom_style=atom_style,
+                      #keep_tmp_files=True, # DEBUG
+                      #tmp_dir=str(self.workdir/'tmp_lammps'),  # DEBUG
+                      )
+
         if model_post is not None:
             calc.set(model_post=model_post)
 
@@ -122,6 +131,7 @@ class LangevinState(StateManager):
             nsteps = self.nsteps_eq
         else:
             nsteps = self.nsteps
+
 
         dyn = Langevin(atoms,
                        self.dt*fs,

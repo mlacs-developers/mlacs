@@ -7,7 +7,8 @@ from ase.units import kB, J, kg, m
 
 from .lammps_state import LammpsState
 
-from ..utilities import get_elements_Z_and_masses
+from ..core.manager import Manager
+from ..utilities import get_elements_Z_and_masses, save_cwd
 from ..utilities import integrate_points as intgpts
 from ..utilities.io_lammps import LammpsBlockInput
 
@@ -24,7 +25,7 @@ class PafiLammpsState(LammpsState):
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
 
-    path: :class:`NebLammpsState`
+    nebpath: :class:`NebLammpsState`
         NebLammpsState object contain all informations on the transition path.
 
     maxjump: :class:`float`
@@ -69,10 +70,6 @@ class PafiLammpsState(LammpsState):
     prt : :class:`Bool` (optional)
         Printing options. Default ``True``
 
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
-
     Examples
     --------
 
@@ -82,57 +79,60 @@ class PafiLammpsState(LammpsState):
     >>>
     >>> from mlacs.state import PafiLammpsState, NebLammpsState
     >>> neb = NebLammpsState([initial, final])
-    >>> state = PafiLammpsState(temperature=300, path=neb)
+    >>> state = PafiLammpsState(temperature=300, nebpath=neb)
     >>> state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
     """
 
-    def __init__(self, temperature, path=None, maxjump=0.4, dt=1.5, damp=None,
+    def __init__(self, temperature, nebpath=None, maxjump=0.4, dt=1.5, damp=None,
                  prt=False, langevin=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 loginterval=50, blocks=None, **kwargs):
+
         super().__init__(temperature=temperature, dt=dt, damp=damp,
                          langevin=langevin,
                          nsteps=nsteps, nsteps_eq=nsteps_eq, logfile=logfile,
                          trajfile=trajfile, loginterval=loginterval,
-                         workdir=workdir, blocks=blocks)
+                         blocks=blocks, **kwargs)
 
         self.temperature = temperature
-        self.path = path
-        if path is None:
+        self.nebpath = nebpath
+        if nebpath is None:
             raise TypeError('A NebLammpsState must be given!')
-        self.path.print = prt
-        if self.path.xi is None:
-            self.path.mode = None
+        self.nebpath.print = prt
+        if self.nebpath.xi is None:
+            self.nebpath.mode = None
         else:
-            self.path.mode = self.path.xi
-        self.path.workdir = self.workdir / 'TransPath'
+            self.nebpath.mode = self.nebpath.xi
+
+        self.nebpath.workdir = self.workdir
+        self.nebpath.folder = 'TransPath'
         self.print = prt
         self.maxjump = maxjump
 
         self.replica = None
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def run_dynamics(self,
                      supercell,
                      pair_style,
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False,
-                     workdir=None):
+                     eq=False):
         """
         Run state function.
         """
 
         # Run NEB calculation.
-        self.path.run_dynamics(self.path.atoms[0],
+        self.nebpath.run_dynamics(self.nebpath.atoms[0],
                                pair_style,
                                pair_coeff,
                                model_post,
                                atom_style)
-        self.path.extract_NEB_configurations()
-        self.path.compute_spline()
-        supercell = self.path.spline_atoms[0].copy()
+        self.nebpath.extract_NEB_configurations()
+        self.nebpath.compute_spline()
+        supercell = self.nebpath.spline_atoms[0].copy()
         self.isrestart = False
 
         # Run Pafi dynamic at xi.
@@ -147,13 +147,13 @@ class PafiLammpsState(LammpsState):
         return atoms.copy()
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def run_pafipath_dynamics(self,
                               supercell,
                               pair_style,
                               pair_coeff,
                               model_post=None,
                               atom_style="atomic",
-                              workdir=None,
                               ncpus=1,
                               restart=0,
                               xi=None,
@@ -163,8 +163,6 @@ class PafiLammpsState(LammpsState):
         Run full Pafi path.
         """
 
-        if workdir is None:
-            workdir = self.workdir
         if xi is None:
             xi = np.arange(0, 1.01, 0.01)
         nrep = len(xi)
@@ -173,50 +171,51 @@ class PafiLammpsState(LammpsState):
         lfname = self.lammpsfname
 
         # Run NEB calculation.
-        self.path.run_dynamics(self.path.atoms[0],
+        self.nebpath.run_dynamics(self.nebpath.atoms[0],
                                pair_style,
                                pair_coeff,
                                model_post,
                                atom_style)
-        self.path.extract_NEB_configurations()
-        self.path.compute_spline(xi)
+        self.nebpath.extract_NEB_configurations()
+        self.nebpath.compute_spline(xi)
         self.isrestart = False
 
         # Run Pafi dynamics.
-        with ThreadPoolExecutor(max_workers=ncpus) as executor:
+        with save_cwd(), ThreadPoolExecutor(max_workers=ncpus) as executor:
             for rep in range(restart, nrep):
                 worker = copy.deepcopy(self)
                 worker.replica = rep
                 worker.atomsfname = afname + f'.{rep}'
                 worker.lammpsfname = lfname + f'.{rep}'
-                worker.workdir = workdir / f'PafiPath_{rep}'
-                atoms = self.path.spline_atoms[rep].copy()
+                worker.subfolder = f'PafiPath_{rep}'
+                atoms = self.nebpath.spline_atoms[rep].copy()
                 atoms.set_pbc([1, 1, 1])
                 executor.submit(LammpsState.run_dynamics,
                                 *(worker, atoms, pair_style, pair_coeff,
                                   model_post, atom_style, False))
+            executor.shutdown(wait=True)
 
         # Reset some attributes.
         self.replica = None
-        self.workdir = workdir
         self.atomsfname = afname
         self.lammpsfname = lfname
-        return self.log_free_energy(xi, workdir, nthrow)
+        return self.log_free_energy(xi, nthrow)
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_lammps_atoms(self, atoms, atom_style):
         """
 
         """
         rep = self.replica
-        afnames = self.workdir / self.atomsfname
+        afnames = self.path / self.atomsfname
 
         if rep is None:
-            splatoms = self.path.spline_atoms[0]
-            splcoord = self.path.spline_coordinates[0]
+            splatoms = self.nebpath.spline_atoms[0]
+            splcoord = self.nebpath.spline_coordinates[0]
         else:
-            splatoms = self.path.spline_atoms[rep]
-            splcoord = self.path.spline_coordinates[rep]
+            splatoms = self.nebpath.spline_atoms[rep]
+            splcoord = self.nebpath.spline_coordinates[rep]
 
         self._write_PafiPath_atoms(afnames, splatoms, splcoord)
 
@@ -302,7 +301,7 @@ class PafiLammpsState(LammpsState):
         block("v_maxjump", "variable maxjump equal sqrt(c_maxdisp)")
         txt = 'fix pafilog all print 1 ' + \
               '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" file ' + \
-              f'pafi.log.{_rep} title "# dU/dxi (dU/dxi)^2 psi err maxjump"'
+              f'pafi.{_rep}.log title "# dU/dxi (dU/dxi)^2 psi err maxjump"'
         block("pafilog", txt)
         return block
 
@@ -344,19 +343,20 @@ class PafiLammpsState(LammpsState):
             w.write(instr)
 
 # ========================================================================== #
-    def log_free_energy(self, xi, workdir, nthrow=2000, _ref=0):
+    @Manager.exec_from_workdir
+    def log_free_energy(self, xi, nthrow=2000, _ref=0):
         """
         Extract the MFEP gradient from log files.
-        Integrate the MFEP and compute the Free energy barier.
+        Integrate the MFEP and compute the Free energy barrier.
         """
-        if workdir is None:
-            workdir = self.workdir
         temp = self.temperature
-        meff = self.path.eff_masses
+        meff = self.nebpath.eff_masses
 
         self.pafi = []
         for rep in range(len(xi)):
-            logfile = workdir / f'PafiPath_{rep}' / f'pafi.log.{rep}'
+            self.subfolder = f'PafiPath_{rep}'
+            self.prefix = f'path.{rep}'
+            logfile = str(self.get_filepath('.log'))
             data = np.loadtxt(logfile).T[:, nthrow:].tolist()
             self.pafi.append(data)
         self.pafi = np.array(self.pafi)
@@ -414,9 +414,9 @@ class PafiLammpsState(LammpsState):
         damp = self.damp
         if damp is None:
             damp = 10 * self.dt
-        xi = self.path.xi
+        xi = self.nebpath.xi
 
-        msg = self.path.log_recap_state()
+        msg = self.nebpath.log_recap_state()
         msg += "Constrained dynamics as implemented in LAMMPS with fix PAFI\n"
         msg += f"Temperature (in Kelvin) :                {self.temperature}\n"
         msg += f"Number of MLMD equilibration steps :     {self.nsteps_eq}\n"

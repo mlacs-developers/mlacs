@@ -4,13 +4,14 @@
 """
 from pathlib import Path
 import numpy as np
-from ..utilities import subfolder
+
+from ..core.manager import Manager
 from ase.atoms import Atoms
 
 
 # ========================================================================== #
 # ========================================================================== #
-class WeightingPolicy:
+class WeightingPolicy(Manager):
     """
     Parent class to manage weight in MLACS. This class define the standard to
     be used by the MLIP.
@@ -41,7 +42,11 @@ class WeightingPolicy:
     """
 
     def __init__(self, energy_coefficient=1.0, forces_coefficient=1.0,
-                 stress_coefficient=1.0, database=None, weight=None):
+                 stress_coefficient=1.0, database=None, weight=None,
+                 **kwargs):
+
+        Manager.__init__(self, **kwargs)
+
         self.database = database
         self.matsize = []
 
@@ -58,8 +63,8 @@ class WeightingPolicy:
             if isinstance(weight, str):
                 weight = np.loadtxt(weight)
             self.weight = weight
-        elif Path("MLIP.weight").exists():
-            weight = np.loadtxt("MLIP.weight")
+        elif (fname := self.subsubdir / 'MLIP.weight').exists():
+            weight = np.loadtxt(fname)
             self.weight = weight
         else:
             self.weight = np.array([])
@@ -73,6 +78,13 @@ class WeightingPolicy:
             return 0
         neff = np.sum(self.weight)**2 / np.sum(self.weight**2)
         return neff
+
+# ========================================================================== #
+    @Manager.exec_from_subsubdir
+    def compute_weight(self, coef, f_mlipE):
+        """
+        """
+        raise NotImplementedError
 
 # ========================================================================== #
     def get_weights(self):
@@ -116,15 +128,61 @@ class WeightingPolicy:
         return w_e, w_f, w_s
 
 # ========================================================================== #
+# ========================================================================== #
+class UniformWeight(WeightingPolicy):
+    """
+    Class that gives uniform weight in MLACS.
+
+    Parameters
+    ----------
+    nthrow: :class:`int`
+        Number of configurations to ignore when doing the fit.
+        Three cases :
+
+        1. If nconf > 2*nthrow, remove the nthrow first configuration
+        2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
+        3. If nconf < nthrow, keep all conf
+
+    """
+
+    def __init__(self, nthrow=0, energy_coefficient=1.0,
+                 forces_coefficient=1.0, stress_coefficient=1.0,
+                 database=None, weight=None, **kwargs):
+        self.nthrow = nthrow
+        WeightingPolicy.__init__(
+                self,
+                energy_coefficient=energy_coefficient,
+                forces_coefficient=forces_coefficient,
+                stress_coefficient=stress_coefficient,
+                database=database, weight=weight, **kwargs)
+
+# ========================================================================== #
+    @Manager.exec_from_subsubdir
+    def compute_weight(self, coef, f_mlipE):
+        """
+        Compute Uniform Weight taking into account nthrow :
+        """
+        fname = "MLIP.weight"
+        if (filepath := Path(fname)).exists():
+            filepath.unlink()
+
+        nconf = len(self.matsize)
+        to_remove = 0
+        if nconf > 2*self.nthrow:
+            to_remove = self.nthrow
+        elif nconf > self.nthrow:
+            to_remove = nconf-self.nthrow
+
+        w = np.ones(nconf-to_remove) / (nconf-to_remove)
+        w = np.r_[np.zeros(to_remove), w]
+        self.weight = w
+
+        header = "Using Uniform weighting\n"
+        np.savetxt(fname, self.weight, header=header, fmt="%25.20f")
+        return header, fname
+
+# ========================================================================== #
     def update_database(self, atoms):
         """
         """
         raise NotImplementedError
-
-# ========================================================================== #
-    @subfolder
-    def compute_weight(self, coef=None, predict=None):
-        """
-        """
-        raise NotImplementedError
-

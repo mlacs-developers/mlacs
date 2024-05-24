@@ -5,7 +5,6 @@
 from pathlib import Path
 import logging
 import numpy as np
-from ..utilities import subfolder
 from ase.units import GPa
 try:
     # With the annoying mandatory warning from mbar, we have to initialize
@@ -23,6 +22,7 @@ except ModuleNotFoundError:
 
 from ase.atoms import Atoms
 from ase.units import kB
+from ..core.manager import Manager
 from .weighting_policy import WeightingPolicy
 
 
@@ -67,17 +67,17 @@ class MbarManager(WeightingPolicy):
 
     def __init__(self, parameters=dict(),  energy_coefficient=1.0,
                  forces_coefficient=1.0, stress_coefficient=1.0,
-                 database=None, weight=None):
+                 **kwargs):
+
         if not ispymbar:
             msg = "You need pymbar installed to use the MBAR manager"
             raise ModuleNotFoundError(msg)
 
-        WeightingPolicy.__init__(
-                self,
+        WeightingPolicy.__init__(self,
                 energy_coefficient=energy_coefficient,
                 forces_coefficient=forces_coefficient,
                 stress_coefficient=stress_coefficient,
-                database=database, weight=weight)
+                **kwargs)
 
         self.database = []
         self.parameters = default_parameters
@@ -95,7 +95,7 @@ class MbarManager(WeightingPolicy):
             raise ValueError(msg)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def compute_weight(self, coef, predict):
         """
         Save the MLIP coefficients and compute the Weight
@@ -133,6 +133,7 @@ class MbarManager(WeightingPolicy):
                 squared_ukn[i, j] = self.ukn[i][j]
 
         # Finally, calculate weight
+        fname = "MLIP.weight"
         header = ''
         if self._nstart <= len(self.mlip_coef):
             weight = self._compute_weight(squared_ukn)
@@ -142,13 +143,15 @@ class MbarManager(WeightingPolicy):
             header += "Using MBAR weighting\n"
             header += f"Effective number of configurations: {neff:10.5f}\n"
 
-            if Path("MLIP.weight").exists():
-                Path("MLIP.weight").unlink()
-            np.savetxt("MLIP.weight", self.weight,
+            filepath = Path(fname)
+            if filepath.exists():
+                filepath.unlink()
+            np.savetxt(fname, self.weight,
                        header=header, fmt="%25.20f")
 
             header += "Number of uncorrelated snapshots for each k state:\n"
             header += np.array2string(np.array(self.Nk, 'int')) + "\n"
+        
         else:  # If there isn't enough coef, use UniformWeight
             self.weight = np.ones(len(self.database))/len(self.database)
         return header, "MLIP.weight"

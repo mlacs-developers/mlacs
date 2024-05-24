@@ -4,6 +4,7 @@
 """
 from pathlib import Path
 import ase
+from ..core.manager import Manager
 from .calc_manager import CalcManager
 
 
@@ -35,8 +36,9 @@ class DatabaseCalc(CalcManager):
     def __init__(self,
                  trajfile,
                  trainfile,
-                 magmoms=None):
-        CalcManager.__init__(self, "dummy", magmoms)
+                 magmoms=None,
+                 **kwargs):
+        CalcManager.__init__(self, "dummy", magmoms, **kwargs)
         if isinstance(trajfile, str) or isinstance(trajfile, Path):
             self.traj = [ase.io.read(trajfile, index=":")]
         else:

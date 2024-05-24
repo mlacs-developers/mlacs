@@ -77,10 +77,6 @@ class OptimizeLammpsState(BaseLammpsState):
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
 
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
-
     blocks : :class:`LammpsBlockInput` or :class:`list` (optional)
         Custom block input class. Can be a list of blocks.
         If ``None``, nothing is added in the input. Default ``None``.
@@ -98,9 +94,9 @@ class OptimizeLammpsState(BaseLammpsState):
     def __init__(self, min_style="cg", etol=0.0, ftol=1e-6, dt=0.5,
                  pressure=None, ptype="iso", vmax=1e-3,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
-                 loginterval=50, workdir=None, blocks=None):
+                 loginterval=50, blocks=None, **kwargs):
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         workdir, blocks)
+                         blocks, **kwargs)
 
         self.min_style = min_style
         self.dt = dt

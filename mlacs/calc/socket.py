@@ -22,9 +22,9 @@ class SocketCalcManager(CalcManager):
                  magmoms=None,
                  socketlog=None,
                  unixsocket=None,
-                 port=None):
-        self.calc = calc
-        self.magmoms = magmoms
+                 port=None,
+                 **kwargs):
+        CalcManager.__init__(self, calc=calc, magmoms=magmoms **kwargs) 
 
         # This will launch the server
         SocketIOCalculator(unixsocket=unixsocket, port=port, log=socketlog)

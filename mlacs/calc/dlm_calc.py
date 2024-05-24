@@ -60,8 +60,9 @@ class DlmCalcManager(CalcManager):
                  magnetic_sites,
                  mu_b=1.0,
                  cutoffs=[6.0, 4.0],
-                 n_steps=3000):
-        CalcManager.__init__(self, calc,)
+                 n_steps=3000,
+                 **kwargs):
+        CalcManager.__init__(self, calc, **kwargs)
 
         if not isicet:
             msg = "You need the icet package installed to use a DLM calculator"

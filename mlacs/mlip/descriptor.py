@@ -5,12 +5,13 @@ from abc import ABC, abstractmethod
 from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
-from ..utilities import get_elements_Z_and_masses, subfolder
+from ..core import Manager
+from ..utilities import get_elements_Z_and_masses
 
 
 # ========================================================================== #
 # ========================================================================== #
-class Descriptor(ABC):
+class Descriptor(Manager, ABC):
     """
     Base class for descriptors
 
@@ -23,7 +24,10 @@ class Descriptor(ABC):
         The cutoff for the descriptor
     """
 # ========================================================================== #
-    def __init__(self, atoms, rcut=5.0, alpha=1.0):
+    def __init__(self, atoms, rcut=5.0, alpha=1.0, prefix='MLIP', **kwargs):
+
+        Manager.__init__(self, prefix=prefix, **kwargs)
+
         self.elements, self.Z, self.masses, self.charges = \
             get_elements_Z_and_masses(atoms)
         self.nel = len(self.elements)
@@ -31,14 +35,6 @@ class Descriptor(ABC):
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
-        self.mlip_model = None  # We need to set it them to Path.cwd()
-        self.mlip_desc = None  # but only when we call OtfMlacs.run
-        self.desc_name = "MLIP"
-
-# ========================================================================== #
-    def set_folders(self):
-        self.mlip_model = Path.cwd()
-        self.mlip_desc = Path.cwd()
 
 # ========================================================================== #
     def compute_descriptors(self, atoms, forces=True, stress=True):
@@ -68,7 +64,7 @@ class Descriptor(ABC):
         return iat, jat, vdist, iel
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subdir
     def calculate(self, atoms, forces=True, stress=True):
         """
         """
@@ -116,9 +112,8 @@ class SumDescriptor(Descriptor):
         self.ncolumns = np.sum([d.ncolumns for d in self.desc])
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def write_mlip(self, coefficients):
-        self.mlip_model = Path.cwd()
         icol = 0
         for d in self.desc:
             fcol = icol + d.ncolumns
@@ -126,7 +121,7 @@ class SumDescriptor(Descriptor):
             icol = fcol
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def calculate(self, atoms, forces=True, stress=True):
         """
         """
@@ -171,18 +166,18 @@ class SumDescriptor(Descriptor):
         return reg
 
 # ========================================================================== #
-    def get_pair_style(self, folder=None):
+    def get_pair_style(self):
         pair_style = "hybrid/overlay "
         for d in self.desc:
-            pair_style_d = d.get_pair_style(folder)
+            pair_style_d = d.get_pair_style()
             pair_style += f"{pair_style_d} "
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self, folder=None):
+    def get_pair_coeff(self):
         pair_coeff = []
         for d in self.desc:
-            pair_style_d, pair_coeff_d = d.get_pair_style_coeff(folder)
+            pair_style_d, pair_coeff_d = d.get_pair_style_coeff()
             for coeff in pair_coeff_d:
                 style = pair_style_d.split()[0]
                 co = coeff.split()
@@ -191,8 +186,8 @@ class SumDescriptor(Descriptor):
         return pair_coeff
 
 # ========================================================================== #
-    def get_pair_style_coeff(self, folder):
-        return self.get_pair_style(folder), self.get_pair_coeff(folder)
+    def get_pair_style_coeff(self):
+        return self.get_pair_style(), self.get_pair_coeff()
 
 # ========================================================================== #
     def to_dict(self):
@@ -254,7 +249,7 @@ class BlankDescriptor(Descriptor):
         pass
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def write_mlip(self, mlip_coef):
         pass
 

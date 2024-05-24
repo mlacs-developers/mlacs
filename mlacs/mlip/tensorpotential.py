@@ -7,6 +7,7 @@ import logging
 from . import MlipManager
 from .weights import UniformWeight
 from ..utilities import compute_correlation, create_link
+from ..core.manager import Manager
 
 from ase.units import GPa
 from ase import Atoms
@@ -30,8 +31,9 @@ class TensorpotPotential(MlipManager):
     """
     def __init__(self,
                  descriptor,
-                 folder="Tensorpot",
-                 weight=None):
+                 #folder="Tensorpot",
+                 weight=None,
+                 **kwargs):
         if weight is None:
             weight = UniformWeight(energy_coefficient=1.0, 
                                    forces_coefficient=1.0,
@@ -39,22 +41,16 @@ class TensorpotPotential(MlipManager):
 
         MlipManager.__init__(self,
                              descriptor=descriptor,
-                             folder=folder,
-                             weight=weight)
+                             weight=weight,
+                             **kwargs)
         self.natoms = []
         self.nconfs = 0
-        if not self.folder.exists():
-            self.folder.mkdir()
-        self.descriptor.set_parent_folder(self.folder)
-        ps, pc = self.descriptor.get_pair_style_coeff(self.folder)
-        self.pair_style = ps
-        self.pair_coeff = pc
-
+        
         if self.weight.stress_coefficient != 0:
             raise ValueError("Tensorpotential can't fit on stress")
 
         self.atoms = []
-        self.coef = []
+        self.coefficients = []
 
 # ========================================================================== #
     def update_matrices(self, atoms):
@@ -68,25 +64,27 @@ class TensorpotPotential(MlipManager):
         self.atoms.extend(atoms)
 
 # ========================================================================== #
-    def train_mlip(self, mlip_subfolder):
+    def train_mlip(self):
         """
         """
-        if mlip_subfolder is None:
-            mlip_subfolder = self.folder
-        else:
-            mlip_subfolder = self.folder / mlip_subfolder
+        if self.descriptor.log is None:
+            self.descriptor.redirect_logger()
+
+        self.weight.workdir = self.workdir
+        self.weight.folder = self.folder
+        self.weight.subfolder = self.subfolder
+        self.descriptor.workdir = self.workdir
+        self.descriptor.folder = self.folder
+        self.descriptor.subfolder = self.subfolder
 
         W = self.weight.get_weights()
 
-        # Also redirected stdout to pyace.log as there is some print in pyace
         fitting_log = self.descriptor.log.handlers[0].baseFilename
         with open(fitting_log, "a") as f:
             sys.stdout = f
-            coef_fn = self.descriptor.fit(
-                weights=W, atoms=self.atoms, #name=self.name, #natoms=self.natoms,
-                #energy=self.new_ymat_e, forces=self.new_ymat_f, 
-                subfolder=mlip_subfolder)
-            self.coef = mlip_subfolder/coef_fn
+            coef_fn = self.descriptor.fit(weights=W, atoms=self.atoms)
+            full_fn = self.workdir / self.folder / self.subfolder / coef_fn
+            self.coefficients = full_fn
             sys.stdout = sys.__stdout__
 
         msg = "Number of configurations for training: " + \
@@ -95,15 +93,14 @@ class TensorpotPotential(MlipManager):
                f"{sum(self.natoms)}\n"
 
         tmp_msg, weight_fn = self.weight.compute_weight(
-            self.coef,
-            self.predict,
-            subfolder=mlip_subfolder)
+            self.coefficients,
+            self.predict)
 
         msg += tmp_msg
         msg += self.compute_tests()
 
-        create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
-        create_link(mlip_subfolder/coef_fn, self.folder/coef_fn)
+        create_link(self.subsubdir / weight_fn, self.subdir/weight_fn)
+        create_link(self.subsubdir / coef_fn, self.subdir/coef_fn)
         return msg
 
 # ========================================================================== #
@@ -114,7 +111,8 @@ class TensorpotPotential(MlipManager):
         """
         parent_mlip = []
         mlip_coef = []
-        desc_name = self.descriptor.desc_name
+        prefix = self.descriptor.prefix
+        directory = self.descriptor.subdir
 
         # Make the MBAR variable Nk and mlip_coef
         for state in traj:
@@ -122,33 +120,36 @@ class TensorpotPotential(MlipManager):
                 if "parent_mlip" not in conf.info:  # Initial or training
                     continue
                 else:  # A traj
-                    yace_path = conf.info['parent_mlip']
-                    if not Path(yace_path).exists:
+                    model = conf.info['parent_mlip']
+                    directory = Path(model)
+                    if not directory.exists:
                         err = "Some parent MLIP are missing. "
                         err += "Rerun MLACS with DatabaseCalculator and "
                         err += "OtfMlacs.keep_tmp_files=True on your traj"
                         raise FileNotFoundError(err)
-                    if yace_path not in parent_mlip:  # New state
-                        parent_mlip.append(yace_path)
-                        mlip_coef.append(yace_path)
+                    if model not in parent_mlip:  # New state
+                        parent_mlip.append(model)
+                        coef = self.descriptor.get_mlip_file(folder=model)
+                        mlip_coef.append(coef)
         return parent_mlip, np.array(mlip_coef)
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef, mlip_subfolder):
+    def next_coefs(self, mlip_coef):
         """
         Update MLACS just like train_mlip, but without actually computing
         the coefficients
         """
-        sf = Path(mlip_coef).parent
-        self.coef = mlip_coef
+        self.weight.subfolder = self.subfolder
+        self.descriptor.subfolder = self.subfolder
 
-        self.descriptor.set_restart_coefficient(subfolder=sf)
-        _, weight_fn = self.weight.compute_weight(mlip_coef,
-                                                  self.predict,
-                                                  subfolder=sf)
+        self.coefficients = mlip_coef
 
-        create_link(mlip_subfolder/weight_fn, self.folder/weight_fn)
-        create_link(mlip_subfolder/mlip_coef, self.folder/mlip_coef)
+        self.descriptor.set_restart_coefficient(mlip_coef)
+        _, weight_fn = self.weight.compute_weight(mlip_coef, self.predict)
+        prefix = self.descriptor.prefix
+
+        create_link(mlip_coef + "/" + weight_fn, self.subdir/weight_fn)
+        create_link(mlip_coef + "/" + "ACE.yace", self.subdir/"ACE.yace")
 
 # ========================================================================== #
     def compute_tests(self):
@@ -221,10 +222,10 @@ class TensorpotPotential(MlipManager):
         Give the energy forces stress of atoms according to the potential.
         """
         if coef is None:
-            coef = self.coef
+            coef = self.coefficients
         if isinstance(coef, str):
             coef = Path(coef)
-        return self.descriptor.predict(desc, coef, subfolder=self.folder)
+        return self.descriptor.predict(desc, coef, folder=self.subdir)
 
 # ========================================================================== #
     def __str__(self):

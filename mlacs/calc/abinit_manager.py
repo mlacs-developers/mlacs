@@ -8,15 +8,20 @@ import numpy as np
 import shlex
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
+from pathlib import Path
 from subprocess import Popen
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
+from ase import Atom
 from ase.symbols import symbols2numbers
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 from ase.io.abinit import (write_abinit_in,
                            read_abinit_out)
+
+from ..core.manager import Manager
 from .calc_manager import CalcManager
+from ..utilities import save_cwd
 from ..utilities.io_abinit import (AbinitNC,
                                    set_aseAtoms)
 
@@ -84,12 +89,12 @@ class AbinitManager(CalcManager):
                  abinit_cmd="abinit",
                  mpi_runner="mpirun",
                  magmoms=None,
-                 workdir=None,
-                 logfile="abinit.log",
-                 errfile="abinit.err",
-                 nproc=1):
+                 folder='DFT',
+                 nproc=1,
+                **kwargs):
 
-        CalcManager.__init__(self, "dummy", magmoms)
+        CalcManager.__init__(self, "dummy", magmoms,
+                             folder=folder, **kwargs)
         self.parameters = parameters
         if 'IXC' in self.parameters.keys():
             self.parameters['ixc'] = self.parameters['IXC']
@@ -104,89 +109,98 @@ class AbinitManager(CalcManager):
         self.mpi_runner = mpi_runner
         self.nproc = nproc
 
-        self.logfile = logfile
-        self.errfile = errfile
+        self.log_suffix = "abinit.log"
+        self.err_suffix = "abinit.eff"
         self.ncfile = AbinitNC()
-        self.workdir = workdir
-        if self.workdir is None:
-            self.workdir = os.getcwd() + "/DFT/"
-        if self.workdir[-1] != "/":
-            self.workdir += "/"
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
+
+    @staticmethod
+    def submit_abinit_calc(cmd, logfile, errfile, cdir):
+        with open(logfile, 'w') as lfile, \
+             open(errfile, 'w') as efile:
+            try:
+                process = Popen(cmd,
+                                cwd=cdir,
+                                stderr=efile,
+                                stdout=lfile,
+                                shell=False)
+                process.wait()
+            except Exception as e:
+                msg = f"This command {' '.join(cmd)}\n"
+                msg += f"raised this exception {e}"
+                efile.write(msg)
 
 # ========================================================================== #
-    def compute_true_potential(self,
-                               confs,
-                               state,
-                               step):
+    @Manager.exec_from_subdir
+    def compute_true_potential(self, confs: [Atom],
+                                     subfolder: [str],
+                                     step:[int]):
         """
         Compute the energy of given configurations with Abinit.
         """
-        # First we need to prepare every calculation
+        assert len(confs) == len(subfolder) == len(step)
+        ntask = len(confs)
+
+        # Prepare all calculations
         confs = [at.copy() for at in confs]
 
-        prefix = []
-        for i, at in enumerate(confs):
+
+        folder = self.folder
+
+        path_prefix_l = []
+        for at, sf, istep in zip(confs, subfolder, step):
+
+            # First set the prefix
+            self.subfolder = sf
+            self.prefix = str(self.subfolder) + '_'
+
+            # Then append a level to subsubdir
+            self.subsubdir = self.subsubdir / f"Step{istep}"
+
+            # Save this list for parallel execution
+            path_prefix_l.append((self.subsubdir, self.prefix))
+
+            # Initialize objects
             at.set_initial_magnetic_moments(self.magmoms)
-            stateprefix = self.workdir \
-                + state[i] \
-                + f"/Step{step[i]}/{state[i]}_"
-
-            prefix.append(stateprefix)
-            self._write_input(at, stateprefix)
-
-        def submit_abinit_calc(cmd, logfile, errfile, cdir):
-            with open(logfile, 'w') as lfile, \
-                 open(errfile, 'w') as efile:
-                try:
-                    process = Popen(cmd,
-                                    cwd=cdir,
-                                    stderr=efile,
-                                    stdout=lfile,
-                                    shell=False)
-                    process.wait()
-                except Exception as e:
-                    msg = f"This command {' '.join(cmd)}\n"
-                    msg += f"raised this exception {e}"
-                    efile.write(msg)
-
-        # Calculate the number of processor assigned to each task
-        # Divide them equally between each calculation.
-        ntask = len(prefix)
-        nproc = self.nproc
+            self._write_input(at)
 
         # Yeah for threading
-        with ThreadPoolExecutor(max_workers=ntask) as executor:
-            for stateprefix in prefix:
-                command = self._make_command(stateprefix, nproc)
-                # Get the directory but remove the prefix to abifile
-                cdir = '/'.join(stateprefix.split('/')[:-1])
-                print(f"Launching {command}")
-                executor.submit(submit_abinit_calc,
+        # GA: I would move the threading outside of this function
+        # because the files naming depends on external objects.
+        with save_cwd(), ThreadPoolExecutor(max_workers=ntask) as executor:
+            for (path, pref) in path_prefix_l:
+                self.subsubdir = path
+                self.prefix = pref
+                command = self._make_command(self.nproc)
+                executor.submit(self.submit_abinit_calc,
                                 command,
-                                stateprefix+self.logfile,
-                                stateprefix+self.errfile,
-                                cdir=cdir)
+                                self.get_filepath('abinit.log'),
+                                self.get_filepath('abinit.err'),
+                                cdir=str(self.subsubdir))
             executor.shutdown(wait=True)
 
         # Now we can read everything
         results_confs = []
-        for (stateprefix, at) in zip(prefix, confs):
-            results_confs.append(self._read_output(stateprefix, at))
+        for ((path, pref), at) in zip(path_prefix_l, confs):
+            self.subsubdir = path
+            self.prefix = pref
+            results_confs.append(self._read_output(at))
 
         for i in range(len(results_confs)):
             results_confs[i].info = confs[i].info
+
+        # Reset values for good measure...
+        self.prefix = ''
+        self.subfolder = ''
 
         # Tada !
         return results_confs
 
 # ========================================================================== #
-    def _make_command(self, stateprefix, nproc):
+    def _make_command(self, nproc):
         """
         Make the command to call Abinit including MPI :
         """
-        abinit_cmd = self.abinit_cmd + " " + stateprefix + "abinit.abi"
+        abinit_cmd = self.abinit_cmd + " " + self.get_filepath("abinit.abi")
 
         if nproc > 1:
             mpi_cmd = "{} -n {}".format(self.mpi_runner, nproc)
@@ -198,21 +212,21 @@ class AbinitManager(CalcManager):
         return full_cmd
 
 # ========================================================================== #
-    def _write_input(self, atoms, stateprefix):
+    @Manager.exec_from_subdir
+    def _write_input(self, atoms):
         """
         Write the input for the current atoms
         """
-        cdir = '/'.join(stateprefix.split('/')[:-1])
-        if os.path.exists(cdir):
-            self._remove_previous_run(cdir)
-        else:  # Get the directory but remove the prefix to abifile
-            os.makedirs(cdir)
+        if self.subsubdir.exists():
+            self._remove_previous_run(str(self.subsubdir))
+        else:
+            self.subsubdir.mkdir(parents=True)
 
         # First we need to prepare some stuff
         original_pseudos = self.pseudos.copy()
         species = sorted(set(atoms.numbers))
-        self._create_unique_file(stateprefix)
-        with open(stateprefix + "abinit.abi", "w") as fd:
+        self._copy_pseudos()
+        with open(self.get_filepath("abinit.abi"), "w") as fd:
             write_abinit_in(fd,
                             atoms,
                             self.parameters,
@@ -221,7 +235,7 @@ class AbinitManager(CalcManager):
         self.pseudos = original_pseudos
 
 # ========================================================================== #
-    def _create_unique_file(self, stateprefix):
+    def _copy_pseudos(self):
         """
         Create a unique file for each read/write operation
         to prevent netCDF4 error.
@@ -244,25 +258,26 @@ class AbinitManager(CalcManager):
         for psp in pseudos:
             fn = psp.split('/')[-1]
             source = pp_dirpath+psp
-            dest = stateprefix+fn
+            #dest = stateprefix+fn
+            dest = self.get_filepath(fn)
             _create_copy(source, dest)
             new_psp.append(dest)
         self.pseudos = new_psp
         self.parameters.pop('pspdir', None)
 
 # ========================================================================== #
-    def _read_output(self, stateprefix, at):
+    def _read_output(self, at):
         """
         """
         results = {}
         if self.ncfile is not None:
-            dct = self.ncfile.read(stateprefix + "abinito_GSR.nc")
+            dct = self.ncfile.read(self.get_filepath("abinito_GSR.nc"))
             results.update(dct)
             atoms = set_aseAtoms(results)
             atoms.set_velocities(at.get_velocities())
             return atoms
 
-        with open(stateprefix + "abinit.abo") as fd:
+        with open(self.get_filepath("abinit.abo")) as fd:
             dct = read_abinit_out(fd)
             results.update(dct)
         atoms = results.pop("atoms")

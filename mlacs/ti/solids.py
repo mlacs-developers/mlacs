@@ -9,6 +9,7 @@ import numpy as np
 from ase.units import kB
 from ase.io.lammpsdata import write_lammps_data
 
+from ..core.manager import Manager
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                 free_energy_com_harmonic_oscillator)
 from .thermostate import ThermoState
@@ -71,10 +72,6 @@ class EinsteinSolidState(ThermoState):
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
-    suffixdir: :class:`str`
-        Suffix for the directory in which the computation will be run.
-        If ``None``, a directory ``\"Solid_TXK\"`` is created,
-        where X is the temperature. Default ``None``.
     logfile : :class:`Bool` (optional)
         Activate file for logging the MLMD trajectory.
         If ``False``, no log file is created. Default ``True``.
@@ -107,12 +104,13 @@ class EinsteinSolidState(ThermoState):
                  nsteps_averaging=10000,
                  rng=None,
                  langevin=False,
-                 suffixdir=None,
                  logfile=True,
                  trajfile=True,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50):
+                 trajinterval=50,
+                 folder=None,
+                 **kwargs):
 
         self.atoms = atoms
         self.temperature = temperature
@@ -129,6 +127,9 @@ class EinsteinSolidState(ThermoState):
         else:
             self.equilibrate = False
 
+        if folder is None:
+            folder = f"Solid_T{self.temperature}K"
+
         ThermoState.__init__(self,
                              atoms,
                              pair_style,
@@ -143,13 +144,9 @@ class EinsteinSolidState(ThermoState):
                              trajfile,
                              interval,
                              loginterval,
-                             trajinterval)
-
-        self.suffixdir = f"Solid_T{self.temperature}K/"
-        if suffixdir is not None:
-            self.suffixdir = suffixdir
-        if self.suffixdir[-1] != "/":
-            self.suffixdir += "/"
+                             trajinterval,
+                             folder=folder,
+                             **kwargs)
 
         self.k = k
         if self.k is not None:
@@ -168,67 +165,67 @@ class EinsteinSolidState(ThermoState):
                 raise ValueError(msg)
 
 # ========================================================================== #
-    def run(self, wdir):
+    @Manager.exec_from_path
+    def run(self):
         """
         """
-        if not os.path.exists(wdir):
-            os.makedirs(wdir)
-
         if self.equilibrate:
-            self.run_averaging(wdir)
+            self.run_averaging()
             
         if self.k is None:
             # First get optimal spring constant
-            self.compute_msd(wdir)
+            self.compute_msd()
 
-        self.run_dynamics(wdir)
+        self.run_dynamics()
 
-        with open(wdir + "MLMD.done", "w") as f:
+        with open(self.path / "MLMD.done", "w") as f:
             f.write("Done")
 
 # ========================================================================== #
-    def run_dynamics(self, wdir):
+    @Manager.exec_from_path
+    def run_dynamics(self):
         """
         """
         if self.equilibrate:
             # red last_dump_atoms
-            eq_structure = read(wdir + 'dump_averaging')
-            atomsfname = wdir + "eq_atoms.in"
+            eq_structure = read('dump_averaging')
+            atomsfname = str(self.path / "eq_atoms.in")
             write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
-            atomsfname = wdir + "atoms.in"
+            atomsfname = self.path / "atoms.in"
             write_lammps_data(atomsfname, self.atoms)
-        lammpsfname = wdir + "lammps_input.in"
+        lammpsfname = self.path / "lammps_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-        self.write_lammps_input(wdir, atomsfname)
-        call(lammps_command, shell=True, cwd=wdir)
+        self.write_lammps_input(atomsfname)
+        call(lammps_command, shell=True, cwd=str(self.path))
 
 # ========================================================================== #
-    def compute_msd(self, wdir):
+    @Manager.exec_from_path
+    def compute_msd(self):
         """
         """
 
         if self.equilibrate:
             # red last_dump_atoms
-            eq_structure = read(wdir + 'dump_averaging')
-            atomsfname = wdir + "eq_atoms.in"
+            eq_structure = read('dump_averaging')
+            atomsfname =  "eq_atoms.in"
             write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
-            atomsfname = wdir + "atoms.in"
+            atomsfname = self.path / "atoms.in"
             write_lammps_data(atomsfname, self.atoms)
-        lammpsfname = wdir + "lammps_msd_input.in"
+        lammpsfname = self.path / "lammps_msd_input.in"
         lammps_command = self.cmd + "< " + lammpsfname + "> log"
 
-        self.write_lammps_input_msd(wdir, atomsfname)
-        call(lammps_command, shell=True, cwd=wdir)
+        self.write_lammps_input_msd(atomsfname)
+        call(lammps_command, shell=True, cwd=str(self.path))
 
         kall = []
-        with open(wdir + "msd.dat", "w") as f:
+        with open("msd.dat", "w") as f:
             for e in self.elem:
-                data = np.loadtxt(wdir + f"msd{e}.dat")
+                data = np.loadtxt(f"msd{e}.dat")
                 nat = np.count_nonzero([a == e for a in
                                         self.atoms.get_chemical_symbols()])
                 k = 3 * kB * self.temperature / data.mean()
@@ -237,13 +234,14 @@ class EinsteinSolidState(ThermoState):
         self.k = kall
 
 # ========================================================================== #
-    def postprocess(self, wdir):
+    @Manager.exec_from_path
+    def postprocess(self):
         """
         Compute the free energy from the simulation
         """
         # Get needed value/constants
         if self.equilibrate:
-            eq_structure = read(wdir + 'dump_averaging')
+            eq_structure = read('dump_averaging')
             vol = eq_structure.get_volume()
         else:
             vol = self.atoms.get_volume()
@@ -271,8 +269,8 @@ class EinsteinSolidState(ThermoState):
                                                    self.masses)  # eV/at
 
         # Compute the work between einstein crystal and the MLIP
-        dE_f, lambda_f = np.loadtxt(wdir+"forward.dat", unpack=True)
-        dE_b, lambda_b = np.loadtxt(wdir+"backward.dat", unpack=True)
+        dE_f, lambda_f = np.loadtxt("forward.dat", unpack=True)
+        dE_b, lambda_b = np.loadtxt("backward.dat", unpack=True)
         int_f = np.trapz(dE_f, lambda_f)
         int_b = np.trapz(dE_b, lambda_b)
 
@@ -289,7 +287,7 @@ class EinsteinSolidState(ThermoState):
             pv = self.pressure/(160.21766208)*vol/nat_tot
         else:
             pv = 0.0
-        with open(wdir+"free_energy.dat", "w") as f:
+        with open("free_energy.dat", "w") as f:
             header = "#   T [K]     Fe tot [eV/at]     " + \
                      "Fe harm [eV/at]      Work [eV/at]     " + \
                      "Fe com [eV/at]      PV [eV/at]"
@@ -348,7 +346,8 @@ class EinsteinSolidState(ThermoState):
                 return msg, free_energy + pv
 
 # ========================================================================== #
-    def write_lammps_input(self, wdir, atomsfname):
+    @Manager.exec_from_path
+    def write_lammps_input(self, atomsfname):
         """
         Write the LAMMPS input for the MLMD simulation
         """
@@ -431,11 +430,12 @@ class EinsteinSolidState(ThermoState):
         input_string += "run          ${nsteps}\n"
         input_string += "#####################################\n"
 
-        with open(wdir + "lammps_input.in", "w") as f:
+        with open("lammps_input.in", "w") as f:
             f.write(input_string)
 
 # ========================================================================== #
-    def write_lammps_input_msd(self, wdir, atomsfname):
+    @Manager.exec_from_path
+    def write_lammps_input_msd(self, atomsfname):
         """
         Write the LAMMPS input for msd computation
         during the MLMD simulation
@@ -506,7 +506,7 @@ class EinsteinSolidState(ThermoState):
                             f"\"${{msd{el}}}\" screen no append msd{el}.dat\n"
         input_string += "run         ${nsteps}\n"
         input_string += "#####################################\n"
-        with open(wdir + "lammps_msd_input.in", "w") as f:
+        with open("lammps_msd_input.in", "w") as f:
             f.write(input_string)
 
 # ========================================================================== #

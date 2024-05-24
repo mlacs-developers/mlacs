@@ -4,6 +4,7 @@
 """
 import os
 from pathlib import Path
+from contextlib import contextmanager
 import numpy as np
 
 from scipy import interpolate
@@ -324,23 +325,36 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
 
 
 # ========================================================================== #
-def subfolder(func):
-    """
-    Decorator that executes a function from a subfolder
-    Usage : self.func(subfolder=x, *args)
-    """
-    def wrapper(*args, subfolder=None, **kwargs):
-        if subfolder is not None:
-            if not Path(subfolder).exists():
-                os.makedirs(subfolder)
-            initial_folder = os.getcwd()
-            os.chdir(subfolder)
-        result = func(*args, **kwargs)
-        if subfolder is not None:
-            os.chdir(initial_folder)
-        return result
-    return wrapper
 
+# GA: This context manager might be problematic when used in parallel
+#     execution. We might not come back where we started!
+@contextmanager
+def execute_from(directory):
+    """Context to work from a subfolder."""
+    workdir =  Path(directory)
+    initial = Path.cwd().absolute()
+
+    if not workdir.exists():   
+        workdir.mkdir(exist_ok=True, parents=True)
+
+    if workdir != initial:
+        os.chdir(workdir)
+    try:
+        yield
+    finally:
+        if workdir != initial:
+            os.chdir(initial)
+
+@contextmanager
+def save_cwd():
+    """Context to move back to the current directory after execution."""
+    initial = Path.cwd().absolute()
+    try:
+        yield
+    finally:
+        cwd = Path.cwd().absolute()
+        if cwd != initial:
+            os.chdir(initial)
 
 # ========================================================================== #
 def create_link(fn, lk):
@@ -348,6 +362,8 @@ def create_link(fn, lk):
     Creates a symbolic link lk pointing to fn
     If lk already exists, replace it
     """
+    fn = Path(fn)
+    lk = Path(lk)
     if os.path.isfile(lk):
         if os.path.islink(lk):  # lk is already a link
             os.remove(lk)
@@ -355,7 +371,9 @@ def create_link(fn, lk):
             return
     if not os.path.exists(fn):
         return
-    os.symlink(fn, lk)
+    src = fn.relative_to(lk.parent)
+    dst = lk
+    os.symlink(src,dst)
 
 
 # ========================================================================== #

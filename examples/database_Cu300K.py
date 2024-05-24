@@ -60,14 +60,14 @@ state = []
 nstate = 1
 for i in range(nstate):
     state.append(LammpsState(temperature, nsteps=nsteps,
-                             nsteps_eq=nsteps_eq, dt=dt, damp=damp))
+                             nsteps_eq=nsteps_eq, dt=dt, damp=damp,
+                             folder = 'Database'))
 
 # Create the database ---------------------------------------------------------
 os.mkdir("Creator")
 os.chdir("Creator")
 calc_emt = EMT()
-creator = OtfMlacs(atoms, state, calc_emt, mlip1, neq=neq,
-                   keep_tmp_mlip=False, prefix_output="Database")
+creator = OtfMlacs(atoms, state, calc_emt, mlip1, neq=neq, keep_tmp_mlip=False)
 creator.run(nconfs)
 
 # Train the MLIP again using the database -------------------------------------

@@ -48,7 +48,9 @@ class DeltaLearningPotential(MlipManager):
                  pair_coeff,
                  model_post=None,
                  atom_style="atomic",
-                 folder=None):
+                 folder=None,
+                 **kwargs):
+
         if folder != model.folder:
             if folder is not None:
                 model.folder = folder
@@ -69,7 +71,8 @@ class DeltaLearningPotential(MlipManager):
         self.ref_atom_style = atom_style
         self.atom_style = atom_style
 
-        MlipManager.__init__(self, self.model.descriptor, weight, folder)
+        MlipManager.__init__(self, self.model.descriptor, weight,
+                             folder=folder, **kwargs)
 
         self._ref_e = None
         self._ref_f = None
@@ -77,12 +80,24 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
 
+    def _set_directories(self):
+        self.model.workdir = self.workdir
+        self.model.folder = self.folder
+        self.model.subfolder = self.subfolder
+        self.model.descriptor.workdir = self.workdir
+        self.model.descriptor.folder = self.folder
+        self.model.descriptor.subfolder = self.subfolder
+        self.model.weight.workdir = self.workdir
+        self.model.weight.folder = self.folder
+        self.model.weight.subfolder = self.subfolder
+
 # ========================================================================== #
     def get_ref_pair_style(self, lmp=False):
         """
         Return self.ref_pair_style which is an array.
         If lmp=True, it returns it formatted as a lammps input.
         """
+        self._set_directories()
         if not lmp:
             return self.ref_pair_style
 
@@ -99,6 +114,7 @@ class DeltaLearningPotential(MlipManager):
         """
         Return the pair_coeff for the reference calculations
         """
+        self._set_directories()
         if len(self.ref_pair_style) == 1:
             return self.ref_pair_coeff
         else:
@@ -115,6 +131,7 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
     def _get_pair_style(self):
+        self._set_directories()
         # We need to create the hybrid/overlay format of LAMMPS
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
@@ -132,6 +149,7 @@ class DeltaLearningPotential(MlipManager):
 
 # ========================================================================== #
     def _get_pair_coeff(self):
+        self._set_directories()
         if not isinstance(self.ref_pair_style, list):
             self.ref_pair_style = [self.ref_pair_style]
 
@@ -181,6 +199,7 @@ class DeltaLearningPotential(MlipManager):
     def update_matrices(self, atoms):
         """
         """
+
         # First compute reference energy/forces/stress
         if isinstance(atoms, Atoms):
             atoms = [atoms]
@@ -217,18 +236,18 @@ class DeltaLearningPotential(MlipManager):
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef, mlip_subfolder):
+    def next_coefs(self, mlip_coef, *args, **kwargs):
         """
         """
-        msg = self.model.next_coefs(mlip_coef, mlip_subfolder)
+        msg = self.model.next_coefs(mlip_coef, *args, **kwargs)
         return msg
 
 # ========================================================================== #
-    def train_mlip(self, mlip_subfolder):
+    def train_mlip(self):
         """
         """
-        msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
-        return msg
+        self._set_directories()
+        return self.model.train_mlip()
 
     # GA: Need to overwrite this abstract methods, but I'm not sure
     #     if it is used at all.

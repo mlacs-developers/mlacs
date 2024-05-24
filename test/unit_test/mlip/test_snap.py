@@ -100,7 +100,8 @@ Si 0.5 1.0
 
 def test_writing_model():
     root = Path()
-    snapfold = root / "Snap"
+    folder = 'Snap'
+    snapfold = root / folder
     if snapfold.exists():
         shutil.rmtree(snapfold)
     snapfold.mkdir()
@@ -109,10 +110,10 @@ def test_writing_model():
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    snap = SnapDescriptor(at, rcut, parameters=parameters)
+    snap = SnapDescriptor(at, rcut, parameters=parameters, workdir=root, folder=folder)
     coeff = np.arange(0, 21)
 
-    snap.write_mlip(coeff, subfolder=snapfold)
+    snap.write_mlip(coeff)
 
     snapfile = snapfold / "SNAP.model"
     assert snapfile.exists()
@@ -156,20 +157,22 @@ bnormflag       1
 
 def test_writing_descriptor():
     root = Path()
-    snapfold = root / "Snap"
+    folder = 'Snap'
+    snapfold = root / folder
 
     at = bulk("Si")
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    snap = SnapDescriptor(at, rcut, parameters=parameters)
+    snap = SnapDescriptor(at, rcut, parameters=parameters,
+                          workdir=root, folder=folder)
     snapfile = snapfold / "SNAP.descriptor"
 
     if snapfold.exists():
         shutil.rmtree(snapfold)
     snapfold.mkdir()
 
-    snap._write_mlip_params(subfolder=snapfold)
+    snap._write_mlip_params()
 
     allref = desc_ref.split("\n")
     allref = [line.rstrip() for line in allref]
@@ -192,19 +195,20 @@ def test_writing_descriptor():
 
 def test_get_pair_style_coeff():
     root = Path().absolute()
+    folder = "Snap"
+
     at = bulk("Si")
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    f = "Snap"
 
     snap = SnapDescriptor(at, rcut, parameters=parameters)
-    mlip = LinearPotential(descriptor=snap, folder=f)
+    mlip = LinearPotential(descriptor=snap, workdir=root, folder=folder)
 
     pred_st, pred_co = mlip.pair_style, mlip.pair_coeff
 
-    model_file = (root / "Snap/SNAP.model").as_posix()
-    desc_file = (root / "Snap/SNAP.descriptor").as_posix()
+    model_file = (root / folder / "SNAP.model").as_posix()
+    desc_file = (root / folder / "SNAP.descriptor").as_posix()
     assert pred_st == "snap"
     ref_co = [f"* * {model_file}  {desc_file} Si"]
     assert pred_co[0] == ref_co[0]

@@ -58,7 +58,7 @@ state = LangevinState(temperature,
 calc = EMT()
 
 # Creation of the OtfMLACS object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir='run_Langevin_Cu300K')
 
 # Run the simulation ----------------------------------------------------------
 sampling.run(nconfs)

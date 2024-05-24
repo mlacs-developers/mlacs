@@ -62,4 +62,4 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
             initial_potential = BBasisConfiguration(initial_potential)
         mlip.descriptor.bconf.set_all_coeffs(initial_potential.get_all_coeffs())
 
-    mlip.descriptor.fit(weights=weights, atoms=atoms, subfolder=mlip.folder)
+    mlip.descriptor.fit(weights=weights, atoms=atoms)

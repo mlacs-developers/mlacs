@@ -17,6 +17,7 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
 from . import LammpsState
+from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import LammpsInput
 
@@ -145,7 +146,7 @@ class IpiState(LammpsState):
                  printcentroid=True,
                  rng=None,
                  init_momenta=None,
-                 workdir=None):
+                 **kwargs):
 
         LammpsState.__init__(self,
                              temperature,
@@ -157,7 +158,8 @@ class IpiState(LammpsState):
                              loginterval=loginterval,
                              rng=rng,
                              init_momenta=init_momenta,
-                             workdir=workdir)
+                             prefix=prefix,
+                             **kwargs)
 
         self.socketname = socketname
         self.hostname = None
@@ -188,7 +190,6 @@ class IpiState(LammpsState):
         self.paralbeads = paralbeads
         if self.paralbeads is None:
             self.paralbeads = 1
-        self.prefix = prefix
 
         self.ipiatomsfname = "ipi_atoms.xyz"
         self.ipifname = "ipi_input.xml"
@@ -228,6 +229,7 @@ class IpiState(LammpsState):
         return lammps_command
 
 # ========================================================================== #
+    @Manager.exec_from_subsubdir
     def run_dynamics(self,
                      supercell,
                      pair_style,
@@ -238,14 +240,11 @@ class IpiState(LammpsState):
                      nbeads=1):
         """
         """
-        if not os.path.exists(self.workdir):
-            os.makedirs(self.workdir)
-
         atoms = supercell.copy()
 
         el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
-        write_lammps_data(os.path.join(self.workdir, self.atomsfname),
+        write_lammps_data(str(self.path / self.atomsfname),
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
@@ -260,7 +259,7 @@ class IpiState(LammpsState):
 
         atomswrite = atoms.copy()
         atomswrite.positions = atoms.get_positions() / Bohr
-        write(os.path.join(self.workdir, self.ipiatomsfname),
+        write(str(self.subsubdir / self.ipiatomsfname),
               atomswrite, format='xyz')
 
         # Write Lammps input
@@ -270,14 +269,14 @@ class IpiState(LammpsState):
         for block in blocks:
             lmp_input(block.name, block)
 
-        with open(os.path.join(self.workdir, self.lammpsfname), "w") as fd:
+        with open(self.subsubdir / self.lammpsfname, "w") as fd:
             fd.write(str(lmp_input))
 
         # Write i-pi input
         self.write_ipi_input(atoms, nsteps)
         ipi_command = f"{self.cmdipi} {self.ipifname} > ipi.log"
         # We start by running ipi alone
-        ipi_handle = Popen(ipi_command, shell=True, cwd=self.workdir,
+        ipi_handle = Popen(ipi_command, shell=True, cwd=str(self.subsubdir),
                            stderr=PIPE)
         time.sleep(5)  # We need to wait a bit for i-pi ready the socket
         # We get all LAMMPS run in an array
@@ -286,7 +285,7 @@ class IpiState(LammpsState):
             alllammps.append(self._build_lammps_command(str(i)))
         # And we run all LAMMPS instance
         [Popen(shlex.split(i, posix=(os.name == "posix")),
-               cwd=self.workdir) for i in alllammps]
+               cwd=str(self.subsubdir)) for i in alllammps]
         ipi_handle.wait()
         if ipi_handle.returncode != 0:
             msg = "i-pi stopped prematurely"
@@ -558,42 +557,43 @@ class IpiState(LammpsState):
         tree = ET.ElementTree(simulation)
         if sys.version_info.major >= 3 and sys.version_info.minor >= 9:
             ET.indent(tree)
-        tree.write(os.path.join(self.workdir, self.ipifname),
+        tree.write(str(self.subsubdir / self.ipifname),
                    encoding='unicode', xml_declaration=True)
 
 # ========================================================================== #
     def create_ase_atom(self, pbc, nbeads_return):
         """
         """
-        pref = os.path.join(self.workdir, self.prefix)
         nmax = len(str(self.nbeads))
         if self.nbeads == 1:
             image = 0
-            atoms = self._get_one_atoms(image, pref, pbc, nmax)
+            atoms = self._get_one_atoms(image, pbc, nmax)
         elif nbeads_return == 1:
             image = self.rngint(0, self.nbeads-1)
-            atoms = self._get_one_atoms(image, pref, pbc, nmax)
+            atoms = self._get_one_atoms(image, pbc, nmax)
         else:
             allidx = np.linspace(0, self.nbeads,
                                  nbeads_return, dtype=int,
                                  endpoint=False)
             atoms = []
             for idx in allidx:
-                atoms.append(self._get_one_atoms(idx, pref, pbc, nmax))
+                atoms.append(self._get_one_atoms(idx, pbc, nmax))
         return atoms
 
 # ========================================================================== #
     def _get_one_atoms(self, idx, pref, pbc, nmax):
         """
         """
-        file = pref + '.outpos_{i:0{j}d}.xyz'.format(i=idx, j=nmax)
-        Z = read(file, index=-1).get_atomic_numbers()
-        cell = self._read_cells(file)
-        positions = read(file, index=-1).positions
-        file = pref + '.outfor_{i:0{j}d}.xyz'.format(i=idx, j=nmax)
-        forces = read(file, index=-1).positions
-        file = pref + '.outvel_{i:0{j}d}.xyz'.format(i=idx, j=nmax)
-        velocities = read(file, index=-1).positions
+        fname = self.get_filepath('.outpos_{i:0{j}d}.xyz'.format(i=idx,j=nmax))
+        Z = read(fname, index=-1).get_atomic_numbers()
+        cell = self._read_cells(fname)
+        positions = read(fname, index=-1).positions
+
+        fname = self.get_filepath('.outfor_{i:0{j}d}.xyz'.format(i=idx,j=nmax))
+        forces = read(fname, index=-1).positions
+
+        fname = self.get_filepath('.outvel_{i:0{j}d}.xyz'.format(i=idx,j=nmax))
+        velocities = read(fname, index=-1).positions
         velocities *= 1e-5 / fs  # To get back to ASE units
 
         atoms = Atoms(numbers=Z, cell=cell, positions=positions, pbc=pbc)

@@ -10,9 +10,9 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from ase.units import GPa
 
 from .delta_learning import DeltaLearningPotential
+from ..core.manager import Manager
 from ..utilities import (get_elements_Z_and_masses,
-                         compute_correlation,
-                         subfolder)
+                         compute_correlation)
 from ..utilities.io_lammps import (write_atoms_lammps_spin_style,
                                    get_interaction_input,
                                    get_last_dump_input,
@@ -43,7 +43,8 @@ class SpinLatticePotential(DeltaLearningPotential):
                  model,
                  pair_style,
                  pair_coeff,
-                 model_post=None):
+                 model_post=None,
+                 **kwargs):
 
         # We need to add a zero pair_style for cases with non-magnetic atoms
         if isinstance(pair_style, str):
@@ -56,7 +57,7 @@ class SpinLatticePotential(DeltaLearningPotential):
             pair_coeff.append(["* *"])
 
         DeltaLearningPotential.__init__(self, model, pair_style,
-                                        pair_coeff, model_post)
+                                        pair_coeff, model_post, **kwargs)
 
         envvar = "ASE_LAMMPSRUN_COMMAND"
         cmd = os.environ.get(envvar)
@@ -100,10 +101,13 @@ class SpinLatticePotential(DeltaLearningPotential):
         self.nconfs = self.model.nconfs
 
 # ========================================================================== #
-    def train_mlip(self, mlip_subfolder):
+    def train_mlip(self):
         """
         """
-        msg = self.model.train_mlip(mlip_subfolder=mlip_subfolder)
+        self.model.workdir = self.workdir
+        self.model.folder = self.folder
+        self.model.subfolder = self.subfolder
+        msg = self.model.train_mlip()
         return msg
 
 # ========================================================================== #
@@ -117,7 +121,8 @@ class SpinLatticePotential(DeltaLearningPotential):
         return calc
 
 # ========================================================================== #
-    def test_mlip(self, testset, mlip_subfolder=""):
+    @Manager.exec_from_workdir
+    def test_mlip(self, testset):
         """
         """
         # TODO this is way too copypasta from mlip_manager.py
@@ -136,9 +141,7 @@ class SpinLatticePotential(DeltaLearningPotential):
             at0sp = at.copy()
             spin = at.get_array("spins")
 
-            at0sp = self._compute_spin_properties(at0sp,
-                                                  spin,
-                                                  subfolder=mlip_subfolder)
+            at0sp = self._compute_spin_properties(at0sp, spin)
             spe = at0sp.get_potential_energy()
             spf = at0sp.get_forces()
             sps = at0sp.get_stress()
@@ -208,7 +211,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         return msg
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_path
     def _compute_spin_properties(self, atoms, spin):
         # First we delete old stuff to be sure everything is right
         filenames = ["atoms.in", "logfile.out", "configurations.out",
@@ -229,6 +232,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         return at
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _read_out_log(self):
         at = read("configurations.out")
         forces = at.get_forces()
@@ -239,6 +243,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         return at, energy, forces, stress
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_lammps_input(self, elem, masses, pbc):
         input_string = "# LAMMPS input file for compute spin potential\n"
         input_string += "clear\n"
@@ -277,6 +282,7 @@ class SpinLatticePotential(DeltaLearningPotential):
             fd.write(input_string)
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _run_lammps(self):
         lammps_cmd = self.cmd + ' -in lammps_input.in -log none -sc lmp.out'
         lammps_cmd = lammps_cmd.split()

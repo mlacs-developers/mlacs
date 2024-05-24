@@ -5,8 +5,8 @@
 from pathlib import Path
 import numpy as np
 from ase.atoms import Atoms
+from ..core.manager import Manager
 
-from ..utilities import subfolder
 from .weighting_policy import WeightingPolicy
 
 
@@ -20,7 +20,7 @@ class FixedWeight(WeightingPolicy):
 
     Parameters
     ----------
-    weighter: :class:`WeightingPolicy`
+    subweight: :class:`WeightingPolicy`
         Weight of the configurations after
         Default UniformWeight
 
@@ -29,12 +29,12 @@ class FixedWeight(WeightingPolicy):
         given by the length of the array. The weight must be normalized
         Default [0]
     """
-    def __init__(self, static_weight=np.array([0]), weighter=None,
+    def __init__(self, static_weight=np.array([0]), subweight=None,
                  energy_coefficient=1.0, forces_coefficient=1.0, 
                  stress_coefficient=1.0):
 
         assert np.sum(static_weight)<=1.0
-        self.weighter = weighter
+        self.subweight = subweight
         self.static_weight = static_weight
         self.nstatic = len(static_weight)
         self.remaining = 1-np.sum(static_weight)
@@ -45,27 +45,31 @@ class FixedWeight(WeightingPolicy):
         self.matsize = []
         self.weight = np.array([])
 
-        if weighter is None:
-            self.weighter = UniformWeight(
+        if subweight is None:
+            self.subweight = UniformWeight(
                 energy_coefficient=energy_coefficient,
                 forces_coefficient=forces_coefficient,
                 stress_coefficient=stress_coefficient)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def compute_weight(self, coef=None, predict=None):
         """
         Compute Uniform Weight taking into account nthrow :
         """
-        weighter_name = type(self.weighter).__name__
+        self.subweight.workdir = self.workdir
+        self.subweight.folder = self.folder
+        self.subweight.subfolder = self.subfolder
+
+        subweight_name = type(self.subweight).__name__
         header2 = ""
 
         if len(self.matsize) == (self.nstatic+1):  # Exactly 1 conf not static
             self.weight = np.append(self.static_weight, self.remaining)
         elif len(self.matsize) > self.nstatic:
-            tmp, fn = self.weighter.compute_weight(coef=coef, predict=predict)
+            tmp, fn = self.subweight.compute_weight(coef=coef, predict=predict)
             header2 += tmp
-            dynamic_w = self.remaining * self.weighter.weight
+            dynamic_w = self.remaining * self.subweight.weight
             self.weight = np.append(self.static_weight, dynamic_w)
         else:
             curr_weight = self.static_weight[:len(self.matsize)]
@@ -73,7 +77,7 @@ class FixedWeight(WeightingPolicy):
                 w = np.ones(len(self.matsize))
             self.weight = curr_weight/np.sum(curr_weight)
 
-        header = f"Using Fixed weighting and {weighter_name}\n"
+        header = f"Using Fixed weighting and {subweight_name}\n"
         header += f"{header2}\n"
         if Path("MLIP.weight").exists():
             Path("MLIP.weight").unlink()
@@ -89,10 +93,10 @@ class FixedWeight(WeightingPolicy):
             atoms = [atoms]
 
         if len(self.matsize) > self.nstatic:
-            self.weighter.update_database(atoms)
+            self.subweight.update_database(atoms)
         elif len(self.matsize) + len(atoms) > self.nstatic:
             idx = len(self.matsize) + len(atoms) - self.nstatic
-            self.weighter.update_database(atoms[-idx:])
+            self.subweight.update_database(atoms[-idx:])
         else: # Static weights
             pass
 
@@ -125,7 +129,7 @@ class EnergyBasedWeight(WeightingPolicy):
                 database=database, weight=weight)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def compute_weight(self, coef=None, predict=None):
         """
         Compute Uniform Weight taking into account nthrow :
@@ -181,7 +185,7 @@ class UniformWeight(WeightingPolicy):
                 database=database, weight=weight)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def compute_weight(self, coef=None, predict=None):
         """
         Compute Uniform Weight taking into account nthrow :

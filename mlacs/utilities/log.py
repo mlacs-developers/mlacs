@@ -10,7 +10,7 @@ import numpy as np
 
 from ..version import __version__
 
-logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.basicConfig(level=logging.INFO, format='%(message)s', force=True)
 
 
 # ========================================================================== #

@@ -17,55 +17,62 @@ To run this example, you need to have :
 OpenMP thread can be used by setting the variable OMP_NUM_THREADS
 in your environment before calling this python script.
 """
+import os
 from ase.build import bulk
 
+from ase.units import Hartree as Ha2eV
 from mlacs.calc import AbinitManager
 from mlacs.mlip import MliapDescriptor, LinearPotential, MbarManager
 from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
+MPI_RUNNER = "mpirun"
+ABI_PSPDIR = os.environ['ABI_PSPDIR']
 
+nproc = 4  # Each Abinit will run on 4 processors
+
+# ---------------------------------
 # The 2x2x2 supercell of Cu
 cell_size = 2
 atoms = bulk('Cu').repeat(cell_size)
 
 # MLACS Parameters -----------------------------------------------------------
 temp = 300  # K
-nconfs = 10
-nsteps = 150
+nconfs = 5
+neq = 2
+nsteps = 50
 nsteps_eq = 15
-neq = 5
 cell_size = 2
 rcut = 4.2  # ang
-dt = 0.25  # fs
+dt = 0.025  # fs
 damp = 100 * dt
 mlip_params = {"twojmax": 4}
 
 # Abinit Manager  ----------------------------------------------------------
-ha2ev = 27.2114  # ase takes eV as the unit of energy
-
-nproc = 4  # Each Abinit will run on 4 processors
 
 # Dictionnary of Abinit Input
 variables = dict(
     ixc=11,  # Important to explicitly state ixc
-    ecut=20*ha2ev,
-    tsmear=0.01*ha2ev,
+    ecut=8*Ha2eV,   #  Testing only
+    tsmear=0.01*Ha2eV,
     occopt=3,
     nband=82,
-    ngkpt=[2, 2, 2],
+    ngkpt=[1, 1, 1],   #  Testing only
     shiftk=[0, 0, 0],
-    toldfe=1e-7,
+    istwfk=1,
+    toldfe=1e-4,   #  Testing only
     autoparal=1,
     nsym=1)
 
 pseudos = {"Cu": "Cu.psp8"}
+for key, val in pseudos.items():
+    pseudos[key] = os.path.join(ABI_PSPDIR, val)
 
 # Creation of the Abinit Calc Manager
 calc = AbinitManager(parameters=variables,
                      pseudos=pseudos,
                      abinit_cmd="abinit",
-                     mpi_runner="ccc_mprun",
+                     mpi_runner=MPI_RUNNER,
                      logfile="abinit.log",
                      errfile="abinit.err",
                      nproc=nproc)
@@ -85,19 +92,18 @@ mlip = LinearPotential(descriptor=snap_descriptor,
                        weight=mbar)
 
 # Creation of the State Manager
-nsim = 5
+nsim = 1
 state = []
-prefix = []
 for i in range(nsim):
-    prefix.append("Traj{j}".format(j=len(prefix)+1))
     state.append(LammpsState(temperature=temp,
                              dt=dt,
                              damp=damp,
                              nsteps=nsteps,
-                             nsteps_eq=nsteps_eq))
+                             nsteps_eq=nsteps_eq,
+                             folder='Traj'))
 
 # Creation of the OtfMlacs object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, prefix_output=prefix)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir='run_Cu')
 
 # Run the simulation
 sampling.run(nconfs)

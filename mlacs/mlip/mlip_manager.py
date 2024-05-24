@@ -9,25 +9,28 @@ from abc import ABC, abstractmethod
 from ase.atoms import Atoms
 from ase.units import GPa
 
+from ..core import Manager
 from ..utilities import compute_correlation, create_link
 from .weights import UniformWeight
 
 
 # ========================================================================== #
 # ========================================================================== #
-class MlipManager(ABC):
+class MlipManager(Manager, ABC):
     """
     Parent Class for the management of Machine-Learning Interatomic Potential
     """
     def __init__(self,
                  descriptor,
                  weight=None,
-                 folder=Path("MLIP")):
-        if isinstance(folder, str):
-            folder = Path(folder)
-        self.folder = folder.absolute()
+                 folder='MLIP',
+                 **kwargs):
+
+        Manager.__init__(self, folder=folder, **kwargs)
 
         self.descriptor = descriptor
+        self.descriptor.workdir = self.workdir
+        self.descriptor.folder = self.folder
 
         self.amat_e = None
         self.amat_f = None
@@ -44,14 +47,16 @@ class MlipManager(ABC):
         self.weight = weight
         if self.weight is None:
             self.weight = UniformWeight()
+
+        self.weight.workdir = self.workdir
+        self.weight.folder = self.folder
+        self.weight.subfolder = self.subfolder
+
         self.nconfs = 0
 
         # Some initialization for sampling interface
         self.model_post = None
         self.atom_style = "atomic"
-
-        self.pair_style = self._get_pair_style()
-        self.pair_coeff = self._get_pair_coeff()
 
         self.can_use_weight = False
 
@@ -63,7 +68,9 @@ class MlipManager(ABC):
             atoms = [atoms]
         self.weight.update_database(atoms)
 
-        amat_all = self.descriptor.calculate(atoms, subfolder=self.folder)
+        self.descriptor.workdir = self.workdir
+        self.descriptor.folder = self.folder
+        amat_all = self.descriptor.calculate(atoms)
 
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
@@ -118,10 +125,11 @@ class MlipManager(ABC):
         """
         parent_mlip = []
         mlip_coef = []
-        desc_name = self.descriptor.desc_name
+        prefix = self.descriptor.prefix
+        directory = self.descriptor.subdir
 
         # Check that this simulation and the previous one use the same mlip
-        fn_descriptor = self.folder / f"{desc_name}.descriptor"
+        fn_descriptor = self.subdir / f"{prefix}.descriptor"
         with open(fn_descriptor, "r") as f:
             previous_mlip = f.read()
 
@@ -138,36 +146,49 @@ class MlipManager(ABC):
                 if "parent_mlip" not in conf.info:  # Initial or training
                     continue
                 else:  # A traj
-                    model = conf.info['parent_mlip']
-                    if not Path(model).exists:
+
+                    model = conf.info['parent_mlip']  # GA: Not sure if this is absolute or relative
+                    directory = Path(model)
+                    if not directory.exists:
+                        # GA: If the files have been moved,
+                        #     it wont be possible to restart the calculation.
+                        #     However, one might want to restart a calculation
+                        #     on a different machine than the one it started on.
+                        #     TODO: Get directories by inspection instead.
+                        #
                         err = "Some parent MLIP are missing. "
                         err += "Rerun MLACS with DatabaseCalculator and "
                         err += "OtfMlacs.keep_tmp_files=True on your traj"
                         raise FileNotFoundError(err)
                     if model not in parent_mlip:  # New state
                         parent_mlip.append(model)
-                        coef = self.descriptor.get_coef(subfolder=model)
+                        fn = directory / f"{prefix}.model"
+                        coef = self.descriptor.get_coef(filename=fn)
                         mlip_coef.append(coef)
         return parent_mlip, np.array(mlip_coef)
 
 # ========================================================================== #
-    def next_coefs(self, mlip_coef, mlip_subfolder):
+    def next_coefs(self, mlip_coef):
         """
         Update MLACS just like train_mlip, but without actually computing
         the coefficients
         """
-        sf = self.folder/mlip_subfolder
+        self.weight.subfolder = self.subfolder
+        self.descriptor.subfolder = self.subfolder
+
         self.coefficients = mlip_coef
 
-        mlip_fn = self.descriptor.write_mlip(mlip_coef, subfolder=sf)
-        _, weight_fn = self.weight.compute_weight(mlip_coef,
-                                                  self.predict,
-                                                  subfolder=sf)
-        desc_name = self.descriptor.desc_name
-        create_link(sf/weight_fn, self.folder/"MLIP.weight")
-        create_link(sf/mlip_fn, self.folder/f"{desc_name}.model")
+        # GA: Passing names like this is a bit shady. TODO: clean up.
+        mlip_fn = self.descriptor.write_mlip(mlip_coef)
+        _, weight_fn = self.weight.compute_weight(mlip_coef, self.predict)
+        prefix = self.descriptor.prefix
+
+        # GA: Not sure why we need to create a link here.
+        create_link(self.subsubdir/weight_fn, self.subdir/"MLIP.weight")
+        create_link(self.subsubdir/mlip_fn, self.subdir/f"{prefix}.model")
 
 # ========================================================================== #
+    @Manager.exec_from_workdir
     def test_mlip(self, testset):
         """
         """
@@ -253,13 +274,23 @@ class MlipManager(ABC):
         idx_s = idx_e * 6
         return idx_e, idx_f, idx_s
 
+    @property
+    def pair_style(self):
+        return self._get_pair_style()
+
+    @property
+    def pair_coeff(self):
+        return self._get_pair_coeff()
+
 # ========================================================================== #
     def _get_pair_style(self):
-        return self.descriptor.get_pair_style(self.folder)
+        self.descriptor.folder = self.folder
+        return self.descriptor.get_pair_style()
 
 # ========================================================================== #
     def _get_pair_coeff(self):
-        return self.descriptor.get_pair_coeff(self.folder)
+        self.descriptor.folder = self.folder
+        return self.descriptor.get_pair_coeff()
 
 
 # ========================================================================== #
@@ -272,8 +303,8 @@ class SelfMlipManager(MlipManager):
     def __init__(self,
                  descriptor,
                  weight=None,
-                 folder=Path("MLIP").absolute()):
-        MlipManager.__init__(self, descriptor, weight=weight, folder=folder)
+                 **kwargs):
+        MlipManager.__init__(self, descriptor, weight=weight, **kwargs)
         self.configurations = []
         self.natoms = []
 

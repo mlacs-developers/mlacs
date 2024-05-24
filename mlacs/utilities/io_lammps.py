@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+from ase import Atom
 from ase.io import read
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.lammps import Prism, convert

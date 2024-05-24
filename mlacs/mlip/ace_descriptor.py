@@ -15,7 +15,9 @@ from pyace import ACEBBasisSet
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
-from ..utilities import get_elements_Z_and_masses, subfolder
+
+from ..core.manager import Manager
+from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor
 from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
 
@@ -156,10 +158,11 @@ class AceDescriptor(Descriptor):
         self._verify_dependency()
 
         Descriptor.__init__(self, atoms, rcut)
-        self.db_fn = "ACE.pckl.gzip"  #  Becomes Path in TensorPotential.init
+        
+        self.prefix = "ACE"
         self.desc_name = "ACE"
         self.n_fit_attempt = 3
-
+        self.db_fn = "ACE.pckl.gzip"
         self.tol_e = tol_e
         self.tol_f = tol_f
         self.free_at_e = free_at_e
@@ -170,9 +173,8 @@ class AceDescriptor(Descriptor):
 
         # Kappa such that loss(tol_e) = loss(tol_f)
         self.loss['kappa'] = (tol_e)**2 / ((tol_e)**2 + 3*(tol_f)**2)
-
         self.fitting['loss'] = self.loss
-        self.data = None  # Initialized during create_acefit to get the dir
+        self.data = None
 
         if 'nworkers' not in self.backend and nworkers is not None:
             self.backend['parallel_mode'] = "process"
@@ -193,22 +195,15 @@ class AceDescriptor(Descriptor):
 
         self.bconf = create_multispecies_basis_config(bconf)
         self.acefit = None 
+        self.log = None
 
 # ========================================================================== #
-    def set_parent_folder(self, parent_folder):
-        """
-        Set the MLIP folder to finalize the creation of the Descriptor
-        """
-        self.db_fn = Path(parent_folder / self.db_fn).absolute()
-        self.redirect_logger(parent_folder)
-
-# ========================================================================== #
-    def redirect_logger(self, parent_folder):
+    @Manager.exec_from_subdir
+    def redirect_logger(self):
         """
         Redirect python used by pyace to pyace.log
         """
-        file_handler = logging.FileHandler(parent_folder / 'pyace.log')
-        
+        file_handler = logging.FileHandler(self.subdir / 'pyace.log')
         # A lot of loggers are involved with pyace
         loggers = [
             __name__,
@@ -221,21 +216,34 @@ class AceDescriptor(Descriptor):
         ]
         logging.getLogger('numexpr.utils').setLevel(logging.CRITICAL)
 
-        # Loop through the loggers and set the file handler for each
+        # Loop through the loggers and reset the file handler for each
         for logger_name in loggers:
             logger = logging.getLogger(logger_name)
+            while logger.handlers: logger.removeHandler(logger.handlers[0])
             logger.addHandler(file_handler)
             logger.propagate = False
         self.log = logging.getLogger(__name__)
 
 # ========================================================================== #
-    @subfolder
     def get_mlip_params(self):
         """
         Returns a string containing the ACE.yace file which uniquely defines
         a ACE.yace file
         """
         raise NotImplementedError
+
+# ========================================================================== #
+    @Manager.exec_from_path
+    def get_mlip_file(self, folder):
+        """
+        Read MLIP coefficients from a file.
+        """
+        filename = Path(folder) / "ACE.yace"
+
+        if not filename.is_file():
+            filename = filename.absoluse()
+            raise FileNotFoundError(f"File {filename} does not exist")
+        return str(filename)
 
 # ========================================================================== #        
     def prepare_wf(self, wf, natoms):
@@ -251,7 +259,7 @@ class AceDescriptor(Descriptor):
         return new_wf
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subsubdir
     def fit(self, atoms, weights, name=None):
         """
         """
@@ -274,7 +282,7 @@ class AceDescriptor(Descriptor):
         df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
-        df.to_pickle(self.db_fn, compression="gzip")
+        df.to_pickle(self.workdir / self.subdir / self.db_fn, compression="gzip")
 
         # Do the fitting
         if self.acefit is None:
@@ -310,6 +318,7 @@ class AceDescriptor(Descriptor):
             msg += f"Else, try this command '{yace_cmd}' inside "
             msg += f"{Path().cwd()}"
             raise RuntimeError(msg)
+
         return "ACE.yace"#, "interim_best_cycle.yaml"
 
 # ========================================================================== #
@@ -327,19 +336,18 @@ class AceDescriptor(Descriptor):
         return retry, niter_done
 
 # ========================================================================== #
-    @subfolder
-    def set_restart_coefficient(self):
+    @Manager.exec_from_subdir
+    def set_restart_coefficient(self, mlip_subfolder):
         """
         Restart the calculation with the coefficient from this folder.
         This is because we cannot get back the coefficients from ACE.yace
         """
-        if self.acefit is None:
-            self.create_acefit()
-        fn = "interim_potential_best_cycle.yaml"
+        fn = str(Path(mlip_subfolder).parent / \
+                "interim_potential_best_cycle.yaml")
         test = self.bconf.set_all_coeffs(ACEBBasisSet(fn).all_coeffs)
 
 # ========================================================================== #
-    @subfolder
+    @Manager.exec_from_subdir
     def create_acefit(self):
         """
         Creates the ACEFit Object. We need at least 1 conf.
@@ -388,8 +396,8 @@ class AceDescriptor(Descriptor):
         return e
 
 # ========================================================================== #
-    @subfolder
-    def predict(self, atoms, coef):
+    @Manager.exec_from_path
+    def predict(self, atoms, coef, folder):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
 
@@ -415,6 +423,7 @@ class AceDescriptor(Descriptor):
         return e, f, s
 
 # ========================================================================== #
+    @Manager.exec_from_path    
     def _read_lammps_output(self, natoms):
         with open("lammps.out", "r") as f:
             lines = f.readlines()
@@ -434,6 +443,7 @@ class AceDescriptor(Descriptor):
         return e, f, s
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def cleanup(self):
         '''
         Function to cleanup the LAMMPS files used
@@ -446,6 +456,7 @@ class AceDescriptor(Descriptor):
         Path("atoms.lmp").unlink()
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_lammps_input(self, masses, pbc, coef, el):
         """
         """
@@ -497,7 +508,7 @@ class AceDescriptor(Descriptor):
             import tensorpotential  # noqa
             gpus = tf.config.experimental.list_physical_devices('GPU')
             if len(gpus) == 0:
-                # Not great as MLACS logger hasn't been initialized
+                # ON: Not great as MLACS logger hasn't been initialized
                 mlacs_log = logging.getLogger('mlacs')
                 mlacs_log.warn("No GPUs found, will fit on CPUs\n")
         except ImportError:
@@ -535,6 +546,7 @@ class AceDescriptor(Descriptor):
         return atomic_env
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _run_lammps(self, lmp_atoms_fname):
         '''
         Function that call LAMMPS to extract the descriptor and gradient values
@@ -550,33 +562,32 @@ class AceDescriptor(Descriptor):
             raise RuntimeError(msg)
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def _write_mlip_params(self):
         """
         """
         raise NotImplementedError("No params for ACE... yet")
 
 # ========================================================================== #
-    def get_pair_style_coeff(self, folder):
+    def get_pair_style_coeff(self):
         """
         """
-        acefile = folder / "ACE.yace"
-        pair_style = "pace"
-        pair_coeff = [f"* * {acefile} " +
-                      ' '.join(self.elements)]
+        pair_style = self.get_pair_style()
+        pair_coeff = self.get_pair_coeff(folder=folder)
         return pair_style, pair_coeff
 
 # ========================================================================== #
-    def get_pair_style(self, folder=None):
+    def get_pair_style(self):
         """
         """
         pair_style = "pace"
         return pair_style
 
 # ========================================================================== #
-    def get_pair_coeff(self, folder):
+    def get_pair_coeff(self):
         """
         """
-        acefile = folder / "ACE.yace"
+        acefile = self.get_filepath('.yace')
         pair_coeff = [f"* * {acefile} " +
                       ''.join(self.elements)]
         return pair_coeff
@@ -587,11 +598,13 @@ class AceDescriptor(Descriptor):
         return ""
 
 # ========================================================================== #
+    @Manager.exec_from_path
     def get_df(self):
         """
         Return the pandas.DataFrame object associated to this AceDescriptor
         """
-        if Path.exists(self.db_fn):
+        db_fn = Path(self.get_filepath(".pckl.gzip"))
+        if db_fn.exists():
             df = pd.read_pickle(self.db_fn, compression="gzip")
         else:
             df = None

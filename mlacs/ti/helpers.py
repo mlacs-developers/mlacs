@@ -33,7 +33,8 @@ def prepare_ti(trajprefix,
                trajfile=True,
                interval=500,
                loginterval=500,
-               trajinterval=500):
+               trajinterval=500,
+               **kwargs):
 
     traj = read(trajprefix + ".traj", index=":")
     ntraj = len(traj)
@@ -87,7 +88,8 @@ def prepare_ti(trajprefix,
                                    trajfile,
                                    interval,
                                    loginterval,
-                                   trajinterval)
+                                   trajinterval,
+                                   **kwargs)
 
     elif state == "liquid":
         state = UFLiquidState(atoms_start,
@@ -108,7 +110,8 @@ def prepare_ti(trajprefix,
                               trajfile,
                               interval,
                               loginterval,
-                              trajinterval)
+                              trajinterval,
+                              **kwargs)
     else:
         msg = "state should be either \"solid\" or \"liquid\""
         raise ValueError(msg)

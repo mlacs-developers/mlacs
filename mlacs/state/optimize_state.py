@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from ..core.manager import Manager
 from ..mlip.calculator import MlipCalculator
 
 default_parameters = {}
@@ -7,7 +8,7 @@ default_parameters = {}
 
 # ========================================================================== #
 # ========================================================================== #
-class OptimizerState:
+class OptimizerState(Manager):
     """
     Class to manage Structure optimization with ASE Optimizers.
     (not in production)
@@ -25,29 +26,26 @@ class OptimizerState:
     parameters: :class:`dict` (optional)
         Stoping criterion for the optimization run.
 
-    workdir : :class:`str` (optional)
-        Working directory for the LAMMPS MLMD simulations.
-        If ``None``, a LammpsMLMD directory is created
     """
     def __init__(self,
                  model=None,
                  optimizer=None,
                  parameters={},
-                 folder=None):
+                 **kwargs):
+
+        Manager.__init__(self, **kwargs)
 
         self.model = model
         self.opt = optimizer
         self.parameters = default_parameters
         self.parameters.update(parameters)
-        self.folder = Path(folder).absolute()
         if optimizer is None:
             from ase.optimize import BFGS
             self.opt = BFGS
 
 # ========================================================================== #
     def run_optimize(self,
-                     atoms,
-                     folder=None):
+                     atoms):
         """
         Run state function.
         """
