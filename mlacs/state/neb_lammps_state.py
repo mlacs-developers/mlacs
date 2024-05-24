@@ -107,7 +107,7 @@ class NebLammpsState(BaseLammpsState):
 
     def __init__(self, images, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
-                 dt=1.5, nimages=None, nprocs=None, mode=None,
+                 dt=1.5, nimages=4, nprocs=None, mode=None,
                  linear=False, prt=True,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):

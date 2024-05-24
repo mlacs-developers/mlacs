@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from ..core.manager import Manager
 from ..mlip.calculator import MlipCalculator
 
@@ -8,7 +6,7 @@ default_parameters = {}
 
 # ========================================================================== #
 # ========================================================================== #
-class OptimizerState(Manager):
+class OptimizeAseState(Manager):
     """
     Class to manage Structure optimization with ASE Optimizers.
     (not in production)
