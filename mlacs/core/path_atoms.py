@@ -107,6 +107,10 @@ class PathAtoms:
             self._tmp_xi = mode
             return mode
         elif mode == 'saddle':
+            # RB : We can't evaluate the energy at the initialisation.
+            if self._tmp_xi is None:
+                self._tmp_xi = 0.5
+                return self._tmp_xi
             x = np.linspace(0, 1, self._splprec)
             # RB : The derivatives at xi=0 or 1 is not always null.
             # y = np.r_[intpts(self.imgxi, self.imgE, x, 0, border=1)]

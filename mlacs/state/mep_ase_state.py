@@ -2,6 +2,7 @@ from ase.io import write
 
 from .state import StateManager
 from ..core import PathAtoms
+from ..core.manager import Manager
 from ..mlip.calculator import MlipCalculator
 
 default_parameters = {}
@@ -61,37 +62,36 @@ class BaseMepState(StateManager):
         Parameters for ase.neb.NEB class.
 
     """
-    def __init__(self, images, xi=None, nimages=4, Kspring=0.1, mode=None,
-                 model=None, optimizer=None, etol=0.0, ftol=1.0e-3,
-                 interpolate='linear', parameters={}, **kwargs):
+    def __init__(self, images, xi=None, nimages=4, mode=None, model=None,
+                 interpolate='linear', parameters={}, print=False, **kwargs):
 
-        super().__init__(self, **kwargs)
+        super().__init__(**kwargs)
 
         self.model = model
         self.interpolate = interpolate
-        if self.model is None:
-            raise TypeError('No Calculator defined !')
-        self.opt = optimizer
-        self.criterions = (etol, ftol)
         self.parameters = default_parameters
         self.parameters.update(parameters)
+        self.print = print
         self.patoms = images
         self.nreplica = nimages
-        self.Kspring = Kspring
         if not isinstance(self.patoms, PathAtoms):
+            self.patoms = PathAtoms(images)
             img = [self.patoms.initial]
             img += [self.patoms.initial.copy() for i in range(self.nreplica)]
             img += [self.patoms.final]
-            self.patoms = PathAtoms(img)
+            self.patoms.images = img
+        if self.model is None:
+            raise TypeError('No Calculator defined !')
         if xi is not None:
             self.patoms.xi = xi
         if mode is not None:
             self.patoms.mode = mode
-        if optimizer is None:
-            from ase.optimize import BFGS
-            self.opt = BFGS
+
+        self.ispimd = False
+        self.isrestart = False
 
 # ========================================================================== #
+    @Manager.exec_from_subsubdir
     def run_dynamics(self,
                      supercell,
                      pair_style,
@@ -121,6 +121,13 @@ class BaseMepState(StateManager):
         pass
 
 # ========================================================================== #
+    def _set_calculator(self, images):
+        """
+        Set Calculator for Forces evaluation.
+        """
+        pass
+
+# ========================================================================== #
     def _get_atoms_results(self, initial_charges):
         """
         """
@@ -129,9 +136,9 @@ class BaseMepState(StateManager):
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
         if self.print:
-            write(str(self.subsubdir / 'pos_neb_images.xyz'),
+            write(str(self.folder / 'pos_neb_images.xyz'),
                   self.patoms.images, format='extxyz')
-            write(str(self.subsubdir / 'pos_neb_splined.xyz'),
+            write(str(self.folder / 'pos_neb_splined.xyz'),
                   self.patoms.splined, format='extxyz')
         return atoms
 
@@ -150,12 +157,12 @@ class LinearInterpolation(BaseMepState):
     Class to do a simple Linear interpolation of positions with ASE.
     Can be used with the Image dependent pair potential method.
     """
-    def __init__(self, images, xi=None, nimages=4, Kspring=0.1, mode='saddle',
-                 model=None, optimizer=None, etol=0.0, ftol=1.0e-3,
-                 interpolate=None, parameters={}, **kwargs):
+    def __init__(self, images, xi=None, nimages=4, mode=None,
+                 model=None, interpolate='linear',
+                 parameters={}, print=False, **kwargs):
 
-        super().__init__(self, images, xi, nimages, mode, model, optimizer,
-                         etol, ftol, parameters, **kwargs)
+        super(). __init__(images, xi, nimages, mode, model, interpolate,
+                          parameters, print, **kwargs)
 
 # ========================================================================== #
     def _run_optimize(self, images):
@@ -163,7 +170,7 @@ class LinearInterpolation(BaseMepState):
         Interpolate images and run the optimization.
         """
 
-        from ase.mep import NEB
+        from ase.neb import NEB
         neb = NEB(images, **self.parameters)
 
         if self.interpolate == 'idpp':
@@ -171,9 +178,17 @@ class LinearInterpolation(BaseMepState):
         else:
             neb.interpolate()
 
+        images = self._set_calculator(images)
+
+        return images
+
+# ========================================================================== #
+    def _set_calculator(self, images):
+        """
+        Interpolate images and run the optimization.
+        """
         for img in images:
             img.calc = MlipCalculator(self.model)
-
         return images
 
 # ========================================================================== #
@@ -182,10 +197,10 @@ class LinearInterpolation(BaseMepState):
         Function to return a string describing the state for the log
         """
         msg = "Linear interpolation\n"
-        msg += f"Number of replicas:                     {self.nreplica}\n"
-        msg += f"Interpolation method:                   {self.interpolate}\n"
-        msg += f"Sampling mode:                          {self.patoms.mode}\n"
-        msg += f"Sampled coordinate:                     {self.patoms.xi}\n"
+        msg += f"Number of replicas:                 {self.patoms.nreplica}\n"
+        msg += f"Interpolation method:               {self.interpolate}\n"
+        msg += f"Sampling mode:                      {self.patoms.mode}\n"
+        msg += f"Sampled coordinate:                 {self.patoms.xi}\n"
         msg += "\n"
         return msg
 
@@ -196,16 +211,20 @@ class NebAseState(BaseMepState):
     """
     Class to run the Nudged Elastic Band method with ASE Optimizers.
     """
-    def __init__(self, images, xi=None, nimages=4, Kspring=0.1, mode='saddle',
-                 model=None, optimizer=None, etol=0.0, ftol=1.0e-3,
-                 interpolate=None, parameters={}, **kwargs):
+    def __init__(self, images, xi=None, nimages=4, mode=None,
+                 model=None, interpolate='linear',
+                 Kspring=0.1, optimizer=None, ftol=5.0e-2,
+                 parameters={}, print=False, **kwargs):
 
-        super().__init__(self, images, xi, nimages, mode, model, optimizer,
-                         etol, ftol, parameters, **kwargs)
+        super(). __init__(images, xi, nimages, mode, model, interpolate,
+                          parameters, print, **kwargs)
 
-        if self.optimizer is None:
-            from ase.optimize import BFGS
-            self.optimizer = BFGS
+        self.opt = optimizer
+        self.criterions = ftol
+        self.Kspring = Kspring
+        if self.opt is None:
+            from ase.optimize import MDMin
+            self.opt = MDMin
 
 # ========================================================================== #
     def _run_optimize(self, images):
@@ -213,23 +232,31 @@ class NebAseState(BaseMepState):
         Interpolate images and run the optimization.
         """
 
-        for img in images[1:-2]:
-            img.calc = MlipCalculator(self.model)
+        images = self._set_calculator(images)
 
-        from ase.mep import NEB
-        neb = NEB(images, **self.parameters)
+        from ase.neb import NEB
+        neb = NEB(images, k=self.Kspring, **self.parameters)
 
         if self.interpolate == 'idpp':
             neb.interpolate(method='idpp')
         else:
             neb.interpolate()
 
-        self.opt(neb)
-        self.opt.run()
+        opt = self.opt(neb)
+        opt.run(fmax=self.criterions, steps=self.nsteps)
 
         images[0].calc = MlipCalculator(self.model)
         images[-1].calc = MlipCalculator(self.model)
 
+        return images
+
+# ========================================================================== #
+    def _set_calculator(self, images):
+        """
+        Interpolate images and run the optimization.
+        """
+        for img in images[1:-1]:
+            img.calc = MlipCalculator(self.model)
         return images
 
 # ========================================================================== #
@@ -238,10 +265,10 @@ class NebAseState(BaseMepState):
         Function to return a string describing the state for the log
         """
         msg = "NEB calculation as implemented in ASE\n"
-        msg += f"Number of replicas:                     {self.nreplica}\n"
-        msg += f"Interpolation method:                   {self.interpolate}\n"
-        msg += f"Sampling mode:                          {self.patoms.mode}\n"
-        msg += f"Sampled coordinate:                     {self.patoms.xi}\n"
+        msg += f"Number of replicas:                 {self.patoms.nreplica}\n"
+        msg += f"Interpolation method:               {self.interpolate}\n"
+        msg += f"Sampling mode:                      {self.patoms.mode}\n"
+        msg += f"Sampled coordinate:                 {self.patoms.xi}\n"
         msg += "\n"
         return msg
 
@@ -253,12 +280,14 @@ class CiNebAseState(NebAseState):
     Class to run the Climbing Image Nudged Elastic Band method
     with ASE Optimizers.
     """
-    def __init__(self, images, xi=None, nimages=4, Kspring=0.1, mode='saddle',
-                 model=None, optimizer=None, etol=0.0, ftol=1.0e-3,
-                 interpolate=None, parameters={}, **kwargs):
+    def __init__(self, images, xi=None, nimages=3, mode=None,
+                 model=None, interpolate='linear',
+                 Kspring=0.1, optimizer=None, ftol=5.0e-2,
+                 parameters={}, print=False, **kwargs):
 
-        super().__init__(self, images, xi, nimages, mode, model, optimizer,
-                         etol, ftol, parameters, **kwargs)
+        super(). __init__(images, xi, nimages, mode, model, interpolate,
+                          Kspring, optimizer, ftol,
+                          parameters, print, **kwargs)
 
         self.parameters.update(dict(climb=True))
 
@@ -282,14 +311,25 @@ class StringMethodAseState(NebAseState):
     """
     Class to run the String Method with ASE Optimizers.
     """
-    def __init__(self, images, xi=None, nimages=4, Kspring=0.1, mode=None,
-                 model=None, optimizer=None, etol=0.0, ftol=1.0e-3,
-                 interpolate=None, parameters={}, **kwargs):
+    def __init__(self, images, xi=None, nimages=4, mode=None,
+                 model=None, interpolate='linear',
+                 Kspring=0.1, optimizer=None, ftol=5.0e-2,
+                 parameters={}, print=False, **kwargs):
 
-        super().__init__(self, images, xi, nimages, mode, model, optimizer,
-                         etol, ftol, parameters, **kwargs)
+        super(). __init__(images, xi, nimages, mode, model, interpolate,
+                          Kspring, optimizer, ftol,
+                          parameters, print, **kwargs)
 
         self.parameters.update(dict(method='string'))
+
+# ========================================================================== #
+    def _set_calculator(self, images):
+        """
+        Interpolate images and run the optimization.
+        """
+        for img in images:
+            img.calc = MlipCalculator(self.model)
+        return images
 
 # ========================================================================== #
     def log_recap_state(self):
@@ -297,9 +337,9 @@ class StringMethodAseState(NebAseState):
         Function to return a string describing the state for the log
         """
         msg = "String method calculation as implemented in ASE\n"
-        msg += f"Number of replicas:                     {self.nreplica}\n"
-        msg += f"Interpolation method:                   {self.interpolate}\n"
-        msg += f"Sampling mode:                          {self.patoms.mode}\n"
-        msg += f"Sampled coordinate:                     {self.patoms.xi}\n"
+        msg += f"Number of replicas:                 {self.patoms.nreplica}\n"
+        msg += f"Interpolation method:               {self.interpolate}\n"
+        msg += f"Sampling mode:                      {self.patoms.mode}\n"
+        msg += f"Sampled coordinate:                 {self.patoms.xi}\n"
         msg += "\n"
         return msg

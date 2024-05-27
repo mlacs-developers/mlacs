@@ -2,7 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-from pathlib import Path
 from abc import ABC, abstractmethod
 
 from ..core import Manager
@@ -22,7 +21,7 @@ class StateManager(ABC, Manager):
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
-                 folder = 'MolecularDynamics',
+                 folder='MolecularDynamics',
                  **kwargs):
 
         Manager.__init__(self, folder=folder, **kwargs)

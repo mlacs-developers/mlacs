@@ -108,7 +108,7 @@ class NebLammpsState(BaseLammpsState):
     def __init__(self, images, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
                  dt=1.5, nimages=4, nprocs=None, mode=None,
-                 linear=False, prt=True,
+                 linear=False, print=False,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):
 
@@ -123,7 +123,7 @@ class NebLammpsState(BaseLammpsState):
         self.nprocs = nprocs
         self.nreplica = nimages
         self.atomsfname = "atoms-0.data"
-        self.print = prt
+        self.print = print
         self.Kspring = Kspring
         self.patoms = images
         if not isinstance(self.patoms, PathAtoms):
