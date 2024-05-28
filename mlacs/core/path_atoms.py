@@ -10,7 +10,27 @@ from ..utilities import interpolate_points as intpts
 
 class PathAtoms:
     """
-    Base class for managing for transiton state.
+    Base class for managing transiton state.
+
+    Parameters
+    ----------
+    images: :class:`list` or `PathAtoms`
+        mlacs.PathAtoms or list of ase.Atoms object.
+        The list contain initial and final configurations of the reaction path.
+
+    xi: :class:`numpy.array` or `float`
+        Value of the reaction coordinate for the constrained MD.
+        Default ``None``
+
+    mode: :class:`float` or :class:`string`
+        Value of the reaction coordinate or sampling mode:
+        - ``float`` sampling at a precise coordinate.
+        - ``rdm_true`` randomly return the coordinate of an images.
+        - ``rdm_spl`` randomly return the coordinate of a splined images.
+        - ``rdm_memory`` homogeneously sample the splined reaction coordinate.
+        - ``None`` return the saddle point.
+        Default ``saddle``
+
     """
     def __init__(self,
                  images,

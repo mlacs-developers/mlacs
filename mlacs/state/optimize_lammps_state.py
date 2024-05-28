@@ -134,6 +134,7 @@ class OptimizeLammpsState(BaseLammpsState):
         """
         Function to return a string describing the state for the log
         """
-        msg = "Geometry optimization as implemented in LAMMPS\n"
+        msg = "Geometry optimization as implemented in LAMMPS,\n"
+        msg += f"using the {self.min_style} method.\n"
         msg += "\n"
         return msg

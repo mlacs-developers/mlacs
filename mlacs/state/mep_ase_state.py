@@ -45,13 +45,9 @@ class BaseMepState(StateManager):
         Optimizer from ase.optimize.
         Default :class:`BFGS`
 
-    etol: :class:`float`
-        Stopping tolerance for energy
-        Default ``0.0``
-
     ftol: :class:`float`
         Stopping tolerance for energy
-        Default ``1.0e-3``
+        Default ``5.0e-2``
 
     interpolate: :class:`str`
         Method for position interpolation,
@@ -107,14 +103,14 @@ class BaseMepState(StateManager):
 
         images = self.patoms.images
 
-        images = self._run_optimize(images)
+        images = self.run_optimize(images)
 
         self.patoms.images = images
         atoms = self._get_atoms_results(initial_charges)
         return atoms.copy()
 
 # ========================================================================== #
-    def _run_optimize(self, images):
+    def run_optimize(self, images):
         """
         Interpolate images and run the optimization.
         """
@@ -165,7 +161,7 @@ class LinearInterpolation(BaseMepState):
                           parameters, print, **kwargs)
 
 # ========================================================================== #
-    def _run_optimize(self, images):
+    def run_optimize(self, images):
         """
         Interpolate images and run the optimization.
         """
@@ -227,7 +223,7 @@ class NebAseState(BaseMepState):
             self.opt = MDMin
 
 # ========================================================================== #
-    def _run_optimize(self, images):
+    def run_optimize(self, images):
         """
         Interpolate images and run the optimization.
         """
