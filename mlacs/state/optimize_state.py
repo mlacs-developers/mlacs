@@ -64,9 +64,11 @@ class OptimizerState(Manager):
         """
         Function to return a string describing the state for the log
         """
-        msg = "NEB calculation as implemented in LAMMPS\n"
-        msg += f"Number of replicas :                     {self.nreplica}\n"
-        msg += f"String constant :                        {self.Kspring}\n"
-        msg += f"Sampling mode :                          {self.mode}\n"
+        msg = "Geometry optimization as implemented in LAMMPS\n"
+        if self.pressure is not None:
+            msg += f"   target pressure: {self.pressure}\n"
+        msg += f"   min_style: {self.min_style}\n"
+        msg += f"   energy tolerance: {self.criterions[0]}\n"
+        msg += f"   forces tolerance: {self.criterions[1]}\n"
         msg += "\n"
         return msg
