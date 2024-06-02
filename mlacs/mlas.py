@@ -696,9 +696,6 @@ class Mlas(Manager):
 # ========================================================================== #
     @property
     def _nmax(self):
-        """
-        Break the self consistent procedure.
-        """
         return self.nstate
 
 # ========================================================================== #
