@@ -4,8 +4,10 @@
 """
 import os
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 import numpy as np
+import logging
 
 from ase.atoms import Atoms
 from ase.io import read, Trajectory
@@ -20,11 +22,12 @@ from .properties import PropertyManager
 from .state import StateManager
 from .utilities.log import MlacsLog
 from .utilities import create_random_structures, save_cwd
+from .utilities.path_integral import compute_centroid_atoms
 
 
 # ========================================================================== #
 # ========================================================================== #
-class Mlas(Manager):
+class OldOtfMlacs(Manager):
     """
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
@@ -72,9 +75,9 @@ class Mlas(Manager):
         Default ``1``.
 
     std_init: :class:`float` (optional)
-        Variance (in :math:`Ang^2`) of the displacement
+        Variance (in :math:`\mathring{a}^2`) of the displacement
         when creating initial configurations.
-        Default :math:`0.05 Ang^2`
+        Default :math:`0.05 \mathring{a}^2`
 
     keep_tmp_mlip: :class:`bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
@@ -93,6 +96,7 @@ class Mlas(Manager):
                  mlip=None,
                  prop=None,
                  neq=10,
+                 nbeads=1,
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
@@ -108,22 +112,64 @@ class Mlas(Manager):
         # Check inputs
         ##############
         self.keep_tmp_mlip = keep_tmp_mlip
-        self._initialize_state(state, atoms, neq)
-        self._initialize_calc(calc)
-        self._initialize_mlip(mlip)
-        self._initialize_property(prop)
+        self._initialize_state(state, atoms, neq, nbeads)
 
+        # Create calculator object
+        if isinstance(calc, Calculator):
+            self.calc = CalcManager(calc)
+        elif isinstance(calc, CalcManager):
+            self.calc = calc
+        else:
+            msg = "calc should be a ase Calculator object or " + \
+                  "a CalcManager object"
+            raise TypeError(msg)
+
+        self.calc.workdir = self.workdir
+
+        # Create mlip object
+        if mlip is None:
+            descriptor = MliapDescriptor(self.atoms[0], 5.0)
+            self.mlip = LinearPotential(descriptor)
+        else:
+            self.mlip = mlip
+
+        self.mlip.workdir = self.workdir
+        if not self.mlip.folder:
+            self.mlip.folder = 'MLIP'
+        self.mlip.descriptor.workdir = self.workdir
+        self.mlip.descriptor.folder = self.mlip.folder
+        self.mlip.weight.workdir = self.workdir
+        self.mlip.weight.folder = self.mlip.folder
+        self.mlip.subdir.mkdir(exist_ok=True, parents=True)
+
+        # Create property object
+        if prop is None:
+            self.prop = PropertyManager(None)
+        elif isinstance(prop, PropertyManager):
+            self.prop = prop
+        else:
+            self.prop = PropertyManager(prop)
+
+        self.prop.workdir = self.workdir
+        if not self.prop.folder:
+            self.prop.folder = 'Properties'
+    
         # Miscellanous initialization
         self.rng = np.random.default_rng()
         self.ntrymax = ntrymax
-
+    
         #######################
         # Initialize everything
         #######################
-
+    
+        if self.pimd:
+            nmax = self.nbeads
+        else:
+            nmax = self.nstate
+    
         # Check if trajectory files already exists
-        self.launched = self._check_if_launched()
-
+        self.launched = self._check_if_launched(nmax)
+    
         self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
         self.logger = self.log.logger_log
         msg = ""
@@ -134,18 +180,34 @@ class Mlas(Manager):
         msg = self.calc.log_recap_state()
         self.logger.info(msg)
         self.logger.info(repr(self.mlip))
-
+    
         # We initialize momenta and parameters for training configurations
         if not self.launched:
-            self._initialize_momenta()
+            for i in range(nmax):
+                if self.pimd:
+                    self.state[0].initialize_momenta(self.atoms[i])
+                else:
+                    self.state[i].initialize_momenta(self.atoms[i])
+                prefix = self.state[i].prefix
+                pot_fname = self.workdir / (prefix + "_potential.dat")
+                with open(pot_fname, "w") as f:
+                    f.write("# True epot [eV]          MLIP epot [eV]\n")
+            self.prefix = ''
+            if self.pimd:
+                pot_fname = self.get_filepath("_potential.dat")
+                with open(pot_fname, "w") as f:
+                    f.write("# True epot [eV]           True ekin [eV]   " +
+                            "   MLIP epot [eV]            MLIP ekin [eV]\n")
+
             self.confs_init = confs_init
             self.std_init = std_init
             self.nconfs = [0] * self.nstate
+    
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
         else:
-            self.restart_from_traj()
-
+            self.restart_from_traj(nmax)
+    
         self.step = 0
         self.ntrymax = ntrymax
         self.logger.info("")
@@ -157,7 +219,7 @@ class Mlas(Manager):
         Run the algorithm for nsteps
         """
         while self.step < nsteps:
-            if self._check_early_stop():
+            if self.prop.check_criterion:
                 break
             self.log.init_new_step(self.step)
             if not self.launched:
@@ -181,6 +243,10 @@ class Mlas(Manager):
            true potential computation
         """
         # Check if this is an equilibration or normal step for the mlmd
+        if self.pimd:
+            nmax = self.nbeads
+        else:
+            nmax = self.nstate
         self.logger.info("")
         eq = []
         for istate in range(self.nstate):
@@ -194,6 +260,7 @@ class Mlas(Manager):
             msg += f"configurations {trajstep} for this state"
             self.logger.info(msg)
         self.logger.info("\n")
+
 
         # Training MLIP
         msg = "Training new MLIP\n"
@@ -210,8 +277,10 @@ class Mlas(Manager):
 
         # Create MLIP atoms object
         atoms_mlip = []
-        for i in range(self._nmax):
+        for i in range(nmax):
             at = self.atoms[i].copy()
+            if self.pimd:
+                at.set_masses(self.masses)
             atoms_mlip.append(at)
 
         # SinglePointCalculator to bypass the calc attach to atoms thing of ase
@@ -221,33 +290,44 @@ class Mlas(Manager):
         msg = "Running MLMD"
         self.logger.info(msg)
 
-        for istate in range(self.nstate):
-            if self.state[istate].isrestart or eq[istate]:
-                msg = " -> Starting from first atomic configuration"
-                self.logger.info(msg)
-                atoms_mlip[istate] = self.atoms_start[istate].copy()
-                self.state[istate].initialize_momenta(atoms_mlip[istate])
-
-        # With those thread, we can execute all the states in parallell
-        futures = []
-        with save_cwd(), ThreadPoolExecutor() as executor:
+        # For PIMD, i-pi state manager is handling the parallel stuff
+        if self.pimd:
+            atoms_mlip = self.state[istate].run_dynamics(
+                               atoms_mlip[istate],
+                               self.mlip.pair_style,
+                               self.mlip.pair_coeff,
+                               self.mlip.model_post,
+                               self.mlip.atom_style,
+                               eq[istate],
+                               self.nbeads)
+        else:
             for istate in range(self.nstate):
-                exe = executor.submit(self.state[istate].run_dynamics,
-                                      *(atoms_mlip[istate],
-                                        self.mlip.pair_style,
-                                        self.mlip.pair_coeff,
-                                        self.mlip.model_post,
-                                        self.mlip.atom_style,
-                                        eq[istate]))
-                futures.append(exe)
-                msg = f"State {istate+1}/{self.nstate} has been launched"
-                self.logger.info(msg)
-            for istate, exe in enumerate(futures):
-                atoms_mlip[istate] = exe.result()
-                if self.keep_tmp_mlip:
-                    mm = self.mlip.descriptor.subsubdir
-                    atoms_mlip[istate].info['parent_mlip'] = str(mm)
-            executor.shutdown(wait=True)
+                if self.state[istate].isrestart or eq[istate]:
+                    msg = " -> Starting from first atomic configuration"
+                    self.logger.info(msg)
+                    atoms_mlip[istate] = self.atoms_start[istate].copy()
+                    self.state[istate].initialize_momenta(atoms_mlip[istate])
+
+            # With those thread, we can execute all the states in parallell
+            futures = []
+            with save_cwd(), ThreadPoolExecutor() as executor:
+                for istate in range(self.nstate):
+                    exe = executor.submit(self.state[istate].run_dynamics,
+                                          *(atoms_mlip[istate],
+                                            self.mlip.pair_style,
+                                            self.mlip.pair_coeff,
+                                            self.mlip.model_post,
+                                            self.mlip.atom_style,
+                                            eq[istate]))
+                    futures.append(exe)
+                    msg = f"State {istate+1}/{self.nstate} has been launched"
+                    self.logger.info(msg)
+                for istate, exe in enumerate(futures):
+                    atoms_mlip[istate] = exe.result()
+                    if self.keep_tmp_mlip:
+                        mm = self.mlip.descriptor.subsubdir
+                        atoms_mlip[istate].info['parent_mlip'] = str(mm)
+                executor.shutdown(wait=True)
 
         # Computing energy with true potential
         msg = "Computing energy with the True potential\n"
@@ -274,11 +354,17 @@ class Mlas(Manager):
 
         for i, at in enumerate(atoms_true):
             if at is None:
-                msg = f"For state {i+1}/{self._nmax} calculation with " + \
-                       "the true potential resulted in error " + \
-                       "or didn't converge"
-                self.logger.info(msg)
-                nerror += 1
+                if self.pimd:
+                    msg = "One of the true potential calculation failed, " + \
+                          "restarting the step\n"
+                    self.logger.info(msg)
+                    return False
+                else:
+                    msg = f"For state {i+1}/{nmax} calculation with " + \
+                           "the true potential resulted in error " + \
+                           "or didn't converge"
+                    self.logger.info(msg)
+                    nerror += 1
 
         # True potential error handling
         if nerror == self.nstate:
@@ -301,11 +387,38 @@ class Mlas(Manager):
                     f.write("{:20.15f}   {:20.15f}\n".format(
                              attrue.get_potential_energy(),
                              atmlip.get_potential_energy()))
-                self.nconfs[i] += 1
+                if not self.pimd:
+                    self.nconfs[i] += 1
 
-        self._compute_properties()
-        self._execute_post_step()
+        if self.pimd:
+            atoms_centroid = compute_centroid_atoms(atoms_true,
+                                                    self.temperature)
+            atoms_centroid_mlip = compute_centroid_atoms(atoms_mlip,
+                                                         self.temperature)
+            self.traj_centroid.write(atoms_centroid)
+            epot = atoms_centroid.get_potential_energy()
+            ekin = atoms_centroid.get_kinetic_energy()
+            epot_mlip = atoms_centroid_mlip.get_potential_energy()
+            ekin_mlip = atoms_centroid_mlip.get_kinetic_energy()
 
+            with open(self.prefix_centroid + "_potential.dat", "a") as f:
+                f.write(f"{epot:20.15f}   " +
+                        f"{ekin:20.15f}   " +
+                        f"{epot_mlip:20.15f}   " +
+                        f"{ekin_mlip:20.15f}\n")
+            self.nconfs[0] += 1
+
+        # Computing properties with ML potential.
+        # Computing "on the fly" properties.
+        if self.prop.manager is not None:
+            self.prop.calc_initialize(atoms=self.atoms)
+            self.prop.subdir = f"Step{self.step}"
+            msg = self.prop.run(self.step)
+            self.logger.info(msg)
+            if self.prop.check_criterion:
+                msg = "All property calculations are converged, " + \
+                      "stopping MLACS ...\n"
+                self.logger.info(msg)
         return True
 
 # ========================================================================== #
@@ -349,6 +462,7 @@ class Mlas(Manager):
         subfolder_l = ["Initial"] * nstate
         istep = np.arange(nstate, dtype=int)
         uniq_at = self.calc.compute_true_potential(uniq_at, subfolder_l, istep)
+        uniq_at = self.add_traj_descriptors(uniq_at)
 
         msg = "Computation done, creating trajectories"
         self.logger.info(msg)
@@ -371,11 +485,35 @@ class Mlas(Manager):
                 newat.calc = calc
                 self.atoms[icop] = newat
 
-        self.atoms = self.add_traj_descriptors(self.atoms)
         for istate in range(self.nstate):
-            prefix = self.state[istate].prefix
-            self.traj.append(Trajectory(prefix + ".traj", mode="w"))
-            self.traj[istate].write(self.atoms[istate])
+            if self.pimd:
+                atoms = uniq_at[0]
+                for ibead in range(self.nbeads):
+                    energy = atoms.get_potential_energy()
+                    forces = atoms.get_forces()
+                    stress = atoms.get_stress()
+                    calc = SinglePointCalculator(self.atoms[ibead],
+                                                 energy=energy,
+                                                 forces=forces,
+                                                 stress=stress)
+                    at = self.atoms[ibead].copy()
+                    at.set_masses(self.masses)
+                    at.calc = calc
+                    prefix = self.state[ibead].prefix
+                    self.traj.append(Trajectory(prefix + ".traj", mode="w"))
+                    self.traj[ibead].write(at)
+
+                # Create centroid traj
+                self.traj_centroid = Trajectory(self.prefix_centroid + ".traj",
+                                                mode="w")
+                self.traj_centroid.write(compute_centroid_atoms(
+                                         [at] * self.nbeads,
+                                         self.temperature))
+            else:
+                prefix = self.state[istate].prefix
+                self.traj.append(Trajectory(prefix + ".traj", mode="w"))
+                self.traj[istate].write(self.atoms[istate])
+
             self.nconfs[istate] += 1
 
         # If there is no configurations in the database,
@@ -396,6 +534,7 @@ class Mlas(Manager):
             elif isinstance(self.confs_init, list):
                 confs_init = self.confs_init
 
+            confs_init = self.add_traj_descriptors(confs_init)
             conf_fname = str(self.workdir / "Training_configurations.traj")
             checkisfile = False
             if os.path.isfile(conf_fname):
@@ -413,7 +552,6 @@ class Mlas(Manager):
                 self.logger.info(msg)
 
                 confs_init = read(conf_fname, index=":")
-                confs_init = self.add_traj_descriptors(confs_init)
                 for conf in confs_init:
                     self.mlip.update_matrices(conf)
             else:
@@ -426,7 +564,7 @@ class Mlas(Manager):
                     confs_init,
                     subfolder_l,
                     istep)
-                confs_init = self.add_traj_descriptors(confs_init)
+
                 init_traj = Trajectory(conf_fname, mode="w")
                 for i, conf in enumerate(confs_init):
                     if conf is None:
@@ -449,54 +587,7 @@ class Mlas(Manager):
         self.launched = True
 
 # ========================================================================== #
-    def _initialize_calc(self, calc):
-        """Create calculator object"""
-        if isinstance(calc, Calculator):
-            self.calc = CalcManager(calc)
-        elif isinstance(calc, CalcManager):
-            self.calc = calc
-        else:
-            msg = "calc should be a ase Calculator object or " + \
-                  "a CalcManager object"
-            raise TypeError(msg)
-        self.calc.workdir = self.workdir
-
-# ========================================================================== #
-    def _initialize_mlip(self, mlip):
-        """Create mlip object"""
-        if mlip is None:
-            descriptor = MliapDescriptor(self.atoms[0], 5.0)
-            self.mlip = LinearPotential(descriptor)
-        else:
-            self.mlip = mlip
-
-        self.mlip.workdir = self.workdir
-        if not self.mlip.folder:
-            self.mlip.folder = 'MLIP'
-        self.mlip.descriptor.workdir = self.workdir
-        self.mlip.descriptor.folder = self.mlip.folder
-        self.mlip.weight.workdir = self.workdir
-        self.mlip.weight.folder = self.mlip.folder
-        self.mlip.subdir.mkdir(exist_ok=True, parents=True)
-
-# ========================================================================== #
-    def _initialize_property(self, prop):
-        """Create property object"""
-        self.prop = PropertyManager(prop)
-
-# ========================================================================== #
-    def _initialize_momenta(self):
-        """Create property object"""
-        for i in range(self._nmax):
-            self.state[i].initialize_momenta(self.atoms[i])
-            prefix = self.state[i].prefix
-            pot_fname = self.workdir / (prefix + "_potential.dat")
-            with open(pot_fname, "w") as f:
-                f.write("# True epot [eV]          MLIP epot [eV]\n")
-        self.prefix = ''
-
-# ========================================================================== #
-    def _initialize_state(self, state, atoms, neq, prefix='Trajectory'):
+    def _initialize_state(self, state, atoms, neq, nbeads, prefix='Trajectory'):
         """
         Function to initialize the state
         """
@@ -520,40 +611,75 @@ class Mlas(Manager):
                 s.subfolder = s.subfolder + f"_{i+1}"
                 s.prefix = s.prefix + f"_{i+1}"
 
-        self.atoms = []
-        # Create list of atoms
-        if isinstance(atoms, Atoms):
-            for istate in range(self.nstate):
-                self.atoms.append(atoms.copy())
-        elif isinstance(atoms, list):
-            assert len(atoms) == self.nstate
-            self.atoms = [at.copy() for at in atoms]
+        npimd = 0
+        for s in self.state:
+            if s.ispimd and nbeads > 1:
+                npimd += 1
+        if npimd == 0:
+            self.pimd = False
+        elif npimd == 1:
+            self.pimd = True
         else:
-            msg = "atoms should be a ASE Atoms object or " + \
-                  "a list of ASE atoms objects"
-            raise TypeError(msg)
-        self.atoms_start = [at.copy() for at in self.atoms]
+            msg = "PIMD simulation is available only for one state at a time"
+            raise ValueError(msg)
 
-        # Create list of neq -> number of equilibration
-        # mlmd runs for each state
-        if isinstance(neq, int):
-            self.neq = [neq] * self.nstate
-        elif isinstance(neq, list):
-            assert len(neq) == self.nstate
-            self.neq = self.nstate
+        self.atoms = []
+        if self.pimd:
+            # We get the number of beads here
+            self.nbeads = nbeads
+            assert self.nstate >= nbeads, (
+                'nbeads should be smaller than number of states')
+
+            # We need to store the masses for isotope purposes
+            self.masses = atoms.get_masses()
+            # We need the temperature for centroid computation purposes
+            self.temperature = self.state[0].get_temperature()
+            # Now we add the atoms
+            for ibead in range(self.nbeads):
+                at = atoms.copy()
+                at.set_masses(self.masses)
+                self.atoms.append(at)
+            # Create list of neq
+            self.neq = [neq]
+
+            # Create prefix of output files
+            self.prefix = prefix + "_centroid"
+
         else:
-            msg = "neq should be an integer or a list of integers"
-            raise TypeError(msg)
+            # Create list of atoms
+            if isinstance(atoms, Atoms):
+                for istate in range(self.nstate):
+                    self.atoms.append(atoms.copy())
+            elif isinstance(atoms, list):
+                assert len(atoms) == self.nstate
+                self.atoms = [at.copy() for at in atoms]
+            else:
+                msg = "atoms should be a ASE Atoms object or " + \
+                      "a list of ASE atoms objects"
+                raise TypeError(msg)
+            self.atoms_start = [at.copy() for at in self.atoms]
+
+            # Create list of neq -> number of equilibration
+            # mlmd runs for each state
+            if isinstance(neq, int):
+                self.neq = [neq] * self.nstate
+            elif isinstance(neq, list):
+                assert len(neq) == self.nstate
+                self.neq = self.nstate
+            else:
+                msg = "neq should be an integer or a list of integers"
+                raise TypeError(msg)
+
 
 # ========================================================================== #
-    def _check_if_launched(self):
+    def _check_if_launched(self, nmax):
         """
         Function to check simulation restarts:
          - Check if trajectory files exist and are not empty.
          - Check if the number of configuration found is at least two.
         """
         _nat_init = 0
-        for i in range(self._nmax):
+        for i in range(nmax):
             traj_fname = str(self.workdir / (self.state[i].prefix + ".traj"))
             if os.path.isfile(traj_fname):
                 try:
@@ -580,20 +706,23 @@ class Mlas(Manager):
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
+
         desc = self.mlip.descriptor.compute_descriptors(atoms)
+
         for iat, at in enumerate(atoms):
             at.info['descriptor'] = desc[iat]
         return atoms
 
 # ========================================================================== #
+
     @Manager.exec_from_workdir
-    def restart_from_traj(self):
+    def restart_from_traj(self, nmax):
         """
         Restart a calculation from previous trajectory files
         """
-        train_traj, prev_traj = self.read_traj()
+        train_traj, prev_traj = self.read_traj(nmax)
 
-        for i in range(self._nmax):
+        for i in range(nmax):
             self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
 
         # Add the Configuration without a MLIP generating them
@@ -650,7 +779,7 @@ class Mlas(Manager):
             curr_step += 1
 
             # GA: Since we don't read
-#           self.mlip.subsubdir = Path(atoms_by_mlip[i][0].info['parent_mlip'])
+            #self.mlip.subsubdir = Path(atoms_by_mlip[i][0].info['parent_mlip'])
             self.mlip.next_coefs(mlip_coef[i])
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
@@ -660,14 +789,18 @@ class Mlas(Manager):
         self.traj = []
         self.atoms = []
 
-        for i in range(self._nmax):
+        for i in range(nmax):
             self.traj.append(Trajectory(self.state[i].get_filepath(".traj"),
                                         mode="a"))
             self.atoms.append(prev_traj[i][-1])
+
+        if self.pimd:
+            self.traj_centroid = Trajectory(self.get_filepath(".traj"),
+                                            mode="a")
         del prev_traj
 
 # ========================================================================== #
-    def read_traj(self):
+    def read_traj(self, nmax):
         """
         Read Trajectory files from previous simulations
         """
@@ -684,46 +817,21 @@ class Mlas(Manager):
 
         prev_traj = []
         lgth = []
-        for i in range(self._nmax):
+        for i in range(nmax):
             traj_fname = str(self.workdir / (self.state[i].prefix + ".traj"))
             prev_traj.append(Trajectory(traj_fname, mode="r"))
             lgth.append(len(prev_traj[i]))
-        self.nconfs = lgth
+        if self.pimd:
+            self.nconfs = [lgth[0]]
+            if not np.all([a == lgth[0] for a in lgth]):
+                msg = "Not all trajectories have the same number " + \
+                      "of configurations"
+                raise ValueError(msg)
+        else:
+            self.nconfs = lgth
         msg = f"{np.sum(lgth)} configuration from trajectories\n"
         self.logger.info(msg)
         return train_traj, prev_traj
-
-# ========================================================================== #
-    @property
-    def _nmax(self):
-        """
-        Break the self consistent procedure.
-        """
-        return self.nstate
-
-# ========================================================================== #
-    def _check_early_stop(self):
-        """
-        Break the self consistent procedure.
-        """
-        return self.prop.check_criterion
-
-# ========================================================================== #
-    def _execute_post_step(self):
-        """
-        Function to execute some things that might be needed for a specific
-        mlas object.
-        For example, computing properties
-        """
-        pass
-
-# ========================================================================== #
-    def _compute_properties(self):
-        """
-        Function to execute and converge on specific Properties.
-        For example, CalcRdf, CalcTI ...
-        """
-        pass
 
 
 class TruePotentialError(Exception):
