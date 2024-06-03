@@ -104,7 +104,9 @@ class PiMlacs(Mlas, Manager):
         # Check inputs
         ##############
         self.keep_tmp_mlip = keep_tmp_mlip
-        Mlas.__init__(self, workdir=workdir)
+        Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
+                      confs_init=confs_init, std_init=std_init,
+                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
         self.traj_centroid = Trajectory(self.get_filepath(".traj"), mode="a")
 
         # Miscellanous initialization

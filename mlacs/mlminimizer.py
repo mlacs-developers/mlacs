@@ -1,5 +1,3 @@
-import numpy as np
-
 from ase.units import GPa
 
 from .mlas import Mlas
@@ -81,13 +79,11 @@ class MlMinimizer(Mlas):
         Default ``0``.
     """
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
-                 stol=1e-3, neq=10, prefix_output="Trajectory",
-                 confs_init=None, std_init=0.05, keep_tmp_mlip=False,
-                 ntrymax=0):
+                 stol=1e-3, neq=10, confs_init=None, std_init=0.05,
+                 keep_tmp_mlip=False, ntrymax=0):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
-                      prefix_output=prefix_output, confs_init=confs_init,
-                      std_init=std_init, ntrymax=ntrymax,
-                      keep_tmp_mlip=keep_tmp_mlip)
+                      confs_init=confs_init, std_init=std_init,
+                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
 
         prop = []
         if etol is None:
