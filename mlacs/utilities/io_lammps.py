@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-from ase import Atom
 from ase.io import read
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.lammps import Prism, convert
@@ -164,9 +163,11 @@ class LammpsBlockInput:
         return txt
 
     def pop(self, name):
+        '''Remove block line'''
         return self.vardict.pop(name)
 
     def extend(self, block):
+        '''Concatenate Blocks'''
         for key, val in block.vardict.items():
             self.__call__(key, val['line'])
 

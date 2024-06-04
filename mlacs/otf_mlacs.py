@@ -2,8 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import numpy as np
-
 from .mlas import Mlas
 from .core import Manager
 from .properties import PropertyManager
@@ -90,10 +88,6 @@ class OtfMlacs(Mlas, Manager):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
-
-        # Miscellanous initialization
-        self.rng = np.random.default_rng()
-        self.ntrymax = ntrymax
 
         # Check if trajectory files already exists
         self.launched = self._check_if_launched()

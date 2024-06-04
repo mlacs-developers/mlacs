@@ -152,8 +152,8 @@ class CalcPafi(CalcProperty):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.state.workdir =  self.workdir
-        self.state.folder =  'PafiPath_Calculation'
+        self.state.workdir = self.workdir
+        self.state.folder = 'PafiPath_Calculation'
         atoms = self.state.path.atoms[0]
         self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
         return self.isconverged
@@ -220,20 +220,6 @@ class CalcNeb(CalcProperty):
 class CalcRdf(CalcProperty):
     """
     Class to set a radial distribution function calculation.
-    See RdfLammpsState and RdfLammpsState.run_dynamics parameters.
-
-    Parameters
-    ----------
-    method: :class:`str`
-        Type of criterion :
-            - max, maximum difference between to consecutive step < criterion
-            - ave, average difference between to consecutive step < criterion
-        Default ``max``
-    criterion: :class:`float`
-        Stopping criterion value. Default ``0.05``
-    frequence : :class:`int`
-        Interval of Mlacs step to compute the property. Default ``20``
-
     """
 
     def __init__(self,
