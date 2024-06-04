@@ -7,7 +7,7 @@ from ase.calculators.emt import EMT
 
 from ... import context  # noqa
 from mlacs.mlip import SnapDescriptor, LinearPotential
-from mlacs.state import NebLammpsState, PafiLammpsState
+from mlacs.state import LinearInterpolation, NebLammpsState, PafiLammpsState
 from mlacs import OtfMlacs
 
 
@@ -72,11 +72,11 @@ def test_mlacs_pafi_vanilla(root, treelink):
     assert ml_stress.shape == (nconfs * 6, 2)
 
     # Check that spline is working well
-    assert state.path.spline_coordinates[0].shape == (natoms, 15)
+    assert state.mep.patoms.splR.shape == (natoms, 3)
+    assert state.mep.patoms.splDR.shape == (natoms, 3)
+    assert state.mep.patoms.splD2R.shape == (natoms, 3)
 
 
-@pytest.mark.skipif(context.has_lammps_nompi(),
-                    reason="Lammps needs mpi to run PAFI")
 def test_mlacs_pafi_linear(root, treelink):
 
     atoms = bulk("Ag", cubic=True).repeat(3)
@@ -97,7 +97,7 @@ def test_mlacs_pafi_linear(root, treelink):
 
     nimages = 6
     # This is the setup to do BlueMoon Sampling
-    neb = NebLammpsState(nebat, nimages=nimages, linear=True)
+    neb = LinearInterpolation(nebat, xi=0.3, nimages=nimages)
     state = PafiLammpsState(300, neb, nsteps_eq=2, nsteps=100)
 
     sampling = OtfMlacs(nebat[0], state, calc, mlip, neq=5)
@@ -126,5 +126,8 @@ def test_mlacs_pafi_linear(root, treelink):
     assert ml_stress.shape == (nconfs * 6, 2)
 
     # Check that spline is working well
-    assert state.path.spline_coordinates[0].shape == (natoms, 15)
-    assert not np.any(state.path.spline_coordinates[0, :, -3:])
+    assert state.mep.patoms.xi == 0.3
+    assert state.mep.patoms.splR.shape == (natoms, 3)
+    assert state.mep.patoms.splDR.shape == (natoms, 3)
+    assert state.mep.patoms.splD2R.shape == (natoms, 3)
+    assert np.all(state.mep.patoms.splD2R < 1e-8)

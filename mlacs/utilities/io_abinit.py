@@ -71,7 +71,7 @@ class AbinitNC:
     Parameters
     ----------
     workdir: :class:`str` (optional)
-        The root for the directory in which the computation are to be done
+        The root for the directory.
         Default 'DFT'
     """
     def __init__(self, workdir=None, prefix='abinit'):

@@ -38,12 +38,49 @@ PafiLammpsState
 Ground states
 *************
 
-These States are used to determine/relax atomic positions at 0K. In this case, the `initialize_momenta` should not be. 
+These States are used to determine/relax atomic positions at 0K.
 
 OptimizeLammpsState
 ~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: OptimizeLammpsState
+
+OptimizeAseState
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: OptimizeAseState
+
+Minimum Energy Path
+*******************
+
+These States are used to sample Minimum energy path.
+
+BaseMepState
+~~~~~~~~~~~~
+
+Main class for ASE method.
+
+.. autoclass:: mlacs.state.mep_ase_state.BaseMepState
+
+LinearInterpolation
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: LinearInterpolation
+
+NebAseState
+~~~~~~~~~~~
+
+.. autoclass:: NebAseState
+
+CiNebAseState
+~~~~~~~~~~~~~
+
+.. autoclass:: CiNebAseState
+
+StringMethodAseState
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: StringMethodAseState
 
 NebLammpsState
 ~~~~~~~~~~~~~~

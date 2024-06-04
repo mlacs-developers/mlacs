@@ -4,10 +4,8 @@
 """
 import os
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 
 import numpy as np
-import logging
 
 from ase.atoms import Atoms
 from ase.io import read, Trajectory
@@ -153,23 +151,23 @@ class OtfMlacs(Manager):
         self.prop.workdir = self.workdir
         if not self.prop.folder:
             self.prop.folder = 'Properties'
-    
+
         # Miscellanous initialization
         self.rng = np.random.default_rng()
         self.ntrymax = ntrymax
-    
+
         #######################
         # Initialize everything
         #######################
-    
+
         if self.pimd:
             nmax = self.nbeads
         else:
             nmax = self.nstate
-    
+
         # Check if trajectory files already exists
         self.launched = self._check_if_launched(nmax)
-    
+
         self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
         self.logger = self.log.logger_log
         msg = ""
@@ -180,7 +178,7 @@ class OtfMlacs(Manager):
         msg = self.calc.log_recap_state()
         self.logger.info(msg)
         self.logger.info(repr(self.mlip))
-    
+
         # We initialize momenta and parameters for training configurations
         if not self.launched:
             for i in range(nmax):
@@ -202,12 +200,12 @@ class OtfMlacs(Manager):
             self.confs_init = confs_init
             self.std_init = std_init
             self.nconfs = [0] * self.nstate
-    
+
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
         else:
             self.restart_from_traj(nmax)
-    
+
         self.step = 0
         self.ntrymax = ntrymax
         self.logger.info("")
@@ -260,7 +258,6 @@ class OtfMlacs(Manager):
             msg += f"configurations {trajstep} for this state"
             self.logger.info(msg)
         self.logger.info("\n")
-
 
         # Training MLIP
         msg = "Training new MLIP\n"
@@ -587,7 +584,8 @@ class OtfMlacs(Manager):
         self.launched = True
 
 # ========================================================================== #
-    def _initialize_state(self, state, atoms, neq, nbeads, prefix='Trajectory'):
+    def _initialize_state(self, state, atoms, neq, nbeads,
+                          prefix='Trajectory'):
         """
         Function to initialize the state
         """
@@ -669,7 +667,6 @@ class OtfMlacs(Manager):
             else:
                 msg = "neq should be an integer or a list of integers"
                 raise TypeError(msg)
-
 
 # ========================================================================== #
     def _check_if_launched(self, nmax):
@@ -779,7 +776,8 @@ class OtfMlacs(Manager):
             curr_step += 1
 
             # GA: Since we don't read
-            #self.mlip.subsubdir = Path(atoms_by_mlip[i][0].info['parent_mlip'])
+            # self.mlip.subsubdir = Path(
+            #     atoms_by_mlip[i][0].info['parent_mlip'])
             self.mlip.next_coefs(mlip_coef[i])
             for at in atoms_by_mlip[i]:
                 self.mlip.update_matrices(at)
