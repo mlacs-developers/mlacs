@@ -97,7 +97,7 @@ def test_mlacs_pafi_linear(root, treelink):
 
     nimages = 6
     # This is the setup to do BlueMoon Sampling
-    neb = LinearInterpolation(nebat, xi=0.3, nimages=nimages)
+    neb = LinearInterpolation(nebat, xi=0.3, nimages=nimages, model=mlip)
     state = PafiLammpsState(300, neb, nsteps_eq=2, nsteps=100)
 
     sampling = OtfMlacs(nebat[0], state, calc, mlip, neq=5)
