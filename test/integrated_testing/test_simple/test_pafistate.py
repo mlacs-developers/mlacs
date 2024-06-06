@@ -13,6 +13,7 @@ from mlacs import OtfMlacs
 
 @pytest.fixture
 def expected_folder(expected_folder_base):
+    expected_folder_base.append('TransPath')
     return expected_folder_base
 
 
