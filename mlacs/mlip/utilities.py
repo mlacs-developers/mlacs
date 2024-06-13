@@ -2,7 +2,8 @@ from pathlib import Path
 import numpy as np
 
 from ase import Atoms
-from . import TensorpotPotential, MbarManager
+from . import TensorpotPotential, MomentTensorPotential, MbarManager
+from . import LinearPotential, DeltaLearningPotential
 from .weighting_policy import WeightingPolicy
 
 def split_dataset(confs, train_ratio=0.5, rng=None):
@@ -28,11 +29,57 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
 
     return trainset, testset
 
+def linfit_traj(traj, mlip):
+    """
+    Fit an MLIP according to the trajectory
+    TODO: Implement a weight to this function
+    """
+    if not isinstance(traj[0], Atoms):
+        raise ValueError("Traj must be an Ase.Trajectory")
+    if not (isinstance(mlip, LinearPotential) \
+            or isinstance(mlip, DeltaLearningPotential)):
+        msg = "Only LinearPotential or DeltaLearningPotential " + \
+              "are allowed for linfit_traj"
+        raise NotImplementedError(msg)
+    atoms = [at for at in traj]
+    if mlip.subfolder:
+        if mlip.subsubdir.exists():
+            shutil.rmtree(self.subsubdir)
+    mlip.subsubdir.mkdir(parents=True, exist_ok=True)
+
+    mlip.update_matrices(atoms)
+    mlip.train_mlip()
+
+def mtpfit_traj(traj, mlip):
+    """
+    Fit an MLIP according to the trajectory
+    TODO: Implement a weight to this function
+    """
+    if not isinstance(traj[0], Atoms):
+        raise ValueError("Traj must be an Ase.Trajectory")
+    if not isinstance(mlip, MomentTensorPotential):
+        msg = "Only MomentTensorPotential are allowed for mtpfit_traj"
+        raise NotImplementedError(msg)
+    atoms = [at for at in traj]
+    if mlip.subfolder:
+        if mlip.subsubdir.exists():
+            shutil.rmtree(self.subsubdir)
+    mlip.subsubdir.mkdir(parents=True, exist_ok=True)
+
+    mlip.update_matrices(atoms)
+    mlip._write_configurations()
+    mlip._write_input()
+    mlip._write_mtpfile()
+    mlip._run_mlp()
+
+
 def acefit_traj(traj, mlip, weights=None, initial_potential=None):
     """
     Fit an MLIP according to the trajectory
-
-    initial_potential can be a filename (str) or a BBasisConfiguration
+    initial_potential : 
+        Potential to start the fitting from. 
+        Useful to reconverge with a better precision on a parameter. 
+        Can be a filename (str) or a BBasisConfiguration
     """
     from pyace.basis import BBasisConfiguration
     if isinstance(weights, list):
@@ -40,7 +87,8 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
     if not isinstance(mlip, TensorpotPotential):
-        raise NotImplementedError("Only Tensorpotential are allowed for now")
+        msg = "Only Tensorpotential are allowed for acefit_traj"
+        raise NotImplementedError(msg)
 
     # Prepare the data
     atoms = [at for at in traj]
