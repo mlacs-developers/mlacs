@@ -8,6 +8,7 @@ from ..core.manager import Manager
 from ase.calculators.singlepoint import SinglePointCalculator
 from ase.calculators.calculator import CalculatorError
 
+
 # ========================================================================== #
 # ========================================================================== #
 class CalcManager(Manager):
@@ -31,7 +32,7 @@ class CalcManager(Manager):
     def __init__(self,
                  calc,
                  magmoms=None,
-                 folder = 'Calc',
+                 folder='Calc',
                  **kwargs):
 
         Manager.__init__(self, folder=folder, **kwargs)

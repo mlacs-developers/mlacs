@@ -4,7 +4,6 @@
 """
 import numpy as np
 
-from pathlib import Path
 from ase.io import Trajectory
 from ase.units import fs
 from ase.md.langevin import Langevin
@@ -118,8 +117,8 @@ class LangevinState(StateManager):
         atoms = supercell.copy()
         calc = LAMMPS(pair_style=pair_style, pair_coeff=pair_coeff,
                       atom_style=atom_style,
-                      #keep_tmp_files=True, # DEBUG
-                      #tmp_dir=str(self.workdir/'tmp_lammps'),  # DEBUG
+                      # keep_tmp_files=True, # DEBUG
+                      # tmp_dir=str(self.workdir/'tmp_lammps'),  # DEBUG
                       )
 
         if model_post is not None:
@@ -131,7 +130,6 @@ class LangevinState(StateManager):
             nsteps = self.nsteps_eq
         else:
             nsteps = self.nsteps
-
 
         dyn = Langevin(atoms,
                        self.dt*fs,

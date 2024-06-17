@@ -74,10 +74,10 @@ class MbarManager(WeightingPolicy):
             raise ModuleNotFoundError(msg)
 
         WeightingPolicy.__init__(self,
-                energy_coefficient=energy_coefficient,
-                forces_coefficient=forces_coefficient,
-                stress_coefficient=stress_coefficient,
-                **kwargs)
+                                 energy_coefficient=energy_coefficient,
+                                 forces_coefficient=forces_coefficient,
+                                 stress_coefficient=stress_coefficient,
+                                 **kwargs)
 
         self.database = []
         self.parameters = default_parameters

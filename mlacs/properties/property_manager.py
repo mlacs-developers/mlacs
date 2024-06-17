@@ -3,8 +3,8 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
-from pathlib import Path
 from ..core.manager import Manager
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -14,7 +14,7 @@ class PropertyManager(Manager):
     """
     def __init__(self,
                  prop,
-                 folder = 'Properties',
+                 folder='Properties',
                  **kwargs):
 
         Manager.__init__(self, folder=folder, **kwargs)

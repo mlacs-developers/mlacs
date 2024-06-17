@@ -1,6 +1,5 @@
 '''
 '''
-from pathlib import Path
 import numpy as np
 from ase.units import GPa
 from ase import Atoms
