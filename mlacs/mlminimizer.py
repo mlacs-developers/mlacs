@@ -91,7 +91,7 @@ class MlMinimizer(Mlas):
             etol = 1e8
         prop.append(CalcExecFunction("get_potential_energy",
                                      criterion=etol, frequence=1,
-                                     gradient=True, peratoms=True))
+                                     gradient=True))
         if ftol is None:
             # We set to stupidly high number so that it's still computed
             ftol = 1e8
@@ -125,8 +125,7 @@ class MlMinimizer(Mlas):
 
         """
         self.prop.calc_initialize(atoms=self.atoms)
-        msg = self.prop.run(self.step,
-                            self.prop.workdir / f"Step{self.step}")
+        msg = self.prop.run(self.step)
         msg = ""
         ediff = self.prop.manager[0].maxf
         msg += f"Energy difference : {ediff:6.5} eV/at\n"

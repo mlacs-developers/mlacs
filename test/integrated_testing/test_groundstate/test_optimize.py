@@ -10,6 +10,7 @@ from mlacs.state import OptimizeLammpsState
 from mlacs.properties import CalcExecFunction
 from mlacs.mlip import SnapDescriptor, LinearPotential, DeltaLearningPotential
 from mlacs import OtfMlacs
+from mlacs import MlMinimizer
 
 
 @pytest.fixture
@@ -54,8 +55,9 @@ def test_mlacs_optimize(root, treelink):
     ps, cs = 'zbl 1.0 2.0', ['* * 29 29']
     dmlip = DeltaLearningPotential(mlip, pair_style=ps, pair_coeff=cs)
 
+    etol = 0.01
     ftol = 0.01
-    func = CalcExecFunction('get_forces', criterion=ftol, frequence=1)
+    stol = 0.01
 
     prefix = []
     ptype = ['iso', 'iso', 'iso', 'aniso', 'aniso']
@@ -65,7 +67,7 @@ def test_mlacs_optimize(root, treelink):
         prefix.append(f'{a}_{p}_{t}')
         state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t,
                                     prefix=prefix[-1])
-        sampling = OtfMlacs(atoms, state, calc, dmlip, func, neq=5)
+        sampling = MlMinimizer(atoms, state, calc, dmlip, etol, ftol, stol)
         sampling.run(nstep)
 
     for folder in treelink["folder"]:
