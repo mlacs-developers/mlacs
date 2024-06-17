@@ -1,27 +1,33 @@
+import re
 import pytest
 
 import numpy as np
 from ase.build import bulk
 from ase.io import read
 from ase.calculators.emt import EMT
+from ase.optimize import BFGS, BFGSLineSearch
+from ase.filters import UnitCellFilter
+from ase.units import GPa
 
 from ... import context  # noqa
-from mlacs.state import OptimizeLammpsState
-from mlacs.properties import CalcExecFunction
+from mlacs.state import OptimizeAseState
 from mlacs.mlip import SnapDescriptor, LinearPotential, DeltaLearningPotential
-from mlacs import OtfMlacs
 from mlacs import MlMinimizer
 
 
 @pytest.fixture
 def files_with_prefix():
     files = []
-    ptype = ['iso', 'iso', 'iso', 'aniso', 'aniso']
-    press = [None, None, 0.0, 0.0, 5.0]
-    algo = ['cg', 'fire', 'cg', 'cg', 'cg']
-    for t, p, a in zip(ptype, press, algo):
-        files.append(f'{a}_{p}_{t}.traj')
-        files.append(f'{a}_{p}_{t}_potential.dat')
+    cstr = [None, UnitCellFilter, UnitCellFilter]
+    press = [None, 0.0, 5.0]
+    algo = [None, BFGS, BFGSLineSearch]
+    for c, p, a in zip(cstr, press, algo):
+        if a is None:
+            name = "None"
+        else:
+            name = a.__name__
+        files.append(f'{name}_{p}_{c}.traj')
+        files.append(f'{name}_{p}_{c}_potential.dat')
     return files
 
 
@@ -33,8 +39,8 @@ def expected_folder():
 
 @pytest.fixture
 def expected_files(files_with_prefix):
-    files = ["MLACS.log", "MLACS.log0001", "MLACS.log0002", "MLACS.log0003",
-             "MLACS.log0004", "Training_configurations.traj",
+    files = ["MLACS.log", "MLACS.log0001", "MLACS.log0002",
+             "Training_configurations.traj",
              "MLIP-Energy_comparison.dat", "MLIP-Forces_comparison.dat",
              "MLIP-Stress_comparison.dat"]
     files.extend(files_with_prefix)
@@ -46,7 +52,7 @@ def test_mlacs_optimize(root, treelink):
     atoms = bulk("Cu", cubic=True).repeat(2)
     atoms.pop(0)
     natoms = len(atoms)
-    nstep = 10
+    nstep = 20
     calc = EMT()
 
     mlip_params = dict(twojmax=4)
@@ -60,13 +66,21 @@ def test_mlacs_optimize(root, treelink):
     stol = 0.01
 
     prefix = []
-    ptype = ['iso', 'iso', 'iso', 'aniso', 'aniso']
-    press = [None, None, 0.0, 0.0, 5.0]
-    algo = ['cg', 'fire', 'cg', 'cg', 'cg']
-    for t, p, a in zip(ptype, press, algo):
-        prefix.append(f'{a}_{p}_{t}')
-        state = OptimizeLammpsState(min_style=a, pressure=p, ptype=t,
-                                    prefix=prefix[-1])
+    cstr = [None, UnitCellFilter, UnitCellFilter]
+    press = [None, 0.0, 5.0]
+    algo = [None, BFGS, BFGSLineSearch]
+    for c, p, a in zip(cstr, press, algo):
+        if a is None:
+            name = "None"
+        else:
+            name = a.__name__
+        prefix.append(f'{name}_{p}_{c}')
+        if p is not None:
+            press = p * GPa
+        state = OptimizeAseState(optimizer=a, constraints=c,
+                                 cstr_parameters=dict(scalar_pressure=press,
+                                                      cell_factor=10),
+                                 prefix=prefix[-1])
         sampling = MlMinimizer(atoms, state, calc, dmlip, etol, ftol, stol)
         sampling.run(nstep)
 
@@ -88,3 +102,8 @@ def test_mlacs_optimize(root, treelink):
         # Check that volume is constant
         if 'None' in p:
             assert traj[-1].get_volume() == atoms.get_volume()
+        # Check that the pressure is consistent with the target
+        else:
+            pres = -traj[-1].get_stress()[:3].mean() / GPa
+            ptarg = float(re.findall("[0-9]", p)[0])
+            assert np.isclose(pres, ptarg, atol=1e-1)
