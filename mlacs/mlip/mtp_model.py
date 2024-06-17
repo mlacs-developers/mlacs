@@ -195,9 +195,11 @@ class MomentTensorPotential(SelfMlipManager):
         # Symlink new MTP in the main folder
         if self.subfolder:
             src = self.subsubdir / "pot.mtp"
+            if mtpfile.exists():
+                mtpfile.unlink()
             symlink(src, mtpfile)
 
-        with open(self.path / "mlip.ini", "w") as fd:
+        with open(self.subdir / "mlip.ini", "w") as fd:
             fd.write(f"mtp-filename    {mtpfile}\n")
             fd.write("select           FALSE")
 
@@ -298,7 +300,6 @@ class MomentTensorPotential(SelfMlipManager):
             mlp_command = self._get_cmd_mlip3()
         else:
             mlp_command = self._get_cmd_mlip2()
-        print(mlp_command)
         with open(self.subsubdir / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,
