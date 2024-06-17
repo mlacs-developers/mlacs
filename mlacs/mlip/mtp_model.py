@@ -195,6 +195,8 @@ class MomentTensorPotential(SelfMlipManager):
         # Symlink new MTP in the main folder
         if self.subfolder:
             src = self.subsubdir / "pot.mtp"
+            if mtpfile.exists():
+                mtpfile.unlink()
             symlink(src, mtpfile)
 
         with open(self.subdir / "mlip.ini", "w") as fd:
