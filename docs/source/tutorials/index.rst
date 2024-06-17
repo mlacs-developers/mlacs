@@ -24,8 +24,8 @@ Machine-Learning Interatomic Potential
     mlip_snap
     mlip_mtp
 
-Machine-Learning Assisted Samping
-*********************************
+Machine-Learning Assisted Sampling
+**********************************
 
 .. toctree::
     :maxdepth: 2
@@ -33,6 +33,7 @@ Machine-Learning Assisted Samping
     mlacs_tuto1
     mlacs_tuto2
 
+    mlminimizer_tuto1
 
 Thermodynamic integration
 *************************

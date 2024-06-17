@@ -34,7 +34,7 @@ class OptimizeLammpsState(BaseLammpsState):
         Default ``0.0``
 
     ftol: :class:`float`
-        Stopping tolerance for energy
+        Stopping tolerance for forces
         Default ``1.0e-6``
 
     dt : :class:`float` (optional)
@@ -134,7 +134,11 @@ class OptimizeLammpsState(BaseLammpsState):
         """
         Function to return a string describing the state for the log
         """
-        msg = "Geometry optimization as implemented in LAMMPS,\n"
-        msg += f"using the {self.min_style} method.\n"
+        msg = "Geometry optimization as implemented in LAMMPS\n"
+        if self.pressure is not None:
+            msg += f"   target pressure: {self.pressure}\n"
+        msg += f"   min_style: {self.min_style}\n"
+        msg += f"   energy tolerance: {self.criterions[0]}\n"
+        msg += f"   forces tolerance: {self.criterions[1]}\n"
         msg += "\n"
         return msg

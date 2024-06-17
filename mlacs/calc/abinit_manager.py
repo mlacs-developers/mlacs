@@ -8,7 +8,6 @@ import numpy as np
 import shlex
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
-from pathlib import Path
 from subprocess import Popen
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -91,7 +90,7 @@ class AbinitManager(CalcManager):
                  magmoms=None,
                  folder='DFT',
                  nproc=1,
-                **kwargs):
+                 **kwargs):
 
         CalcManager.__init__(self, "dummy", magmoms,
                              folder=folder, **kwargs)
@@ -102,6 +101,7 @@ class AbinitManager(CalcManager):
         if 'ixc' not in self.parameters.keys():
             msg = 'WARNING AbinitManager:\n'
             msg += 'You should specify an ixc value or ASE will set 7 (LDA) !'
+            msg += '\n(Does not apply if using a PAW xml format)'
             logging.warning(msg)
 
         self._organize_pseudos(pseudos)
@@ -132,8 +132,8 @@ class AbinitManager(CalcManager):
 # ========================================================================== #
     @Manager.exec_from_subdir
     def compute_true_potential(self, confs: [Atom],
-                                     subfolder: [str],
-                                     step:[int]):
+                               subfolder: [str],
+                               step: [int]):
         """
         Compute the energy of given configurations with Abinit.
         """
@@ -142,9 +142,6 @@ class AbinitManager(CalcManager):
 
         # Prepare all calculations
         confs = [at.copy() for at in confs]
-
-
-        folder = self.folder
 
         path_prefix_l = []
         for at, sf, istep in zip(confs, subfolder, step):
@@ -259,7 +256,7 @@ class AbinitManager(CalcManager):
         for psp in pseudos:
             fn = psp.split('/')[-1]
             source = pp_dirpath+psp
-            #dest = stateprefix+fn
+            # dest = stateprefix+fn
             dest = self.get_filepath(fn)
             _create_copy(source, dest)
             new_psp.append(dest)

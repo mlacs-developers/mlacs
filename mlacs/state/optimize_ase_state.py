@@ -84,7 +84,11 @@ class OptimizeAseState(StateManager):
         """
         Function to return a string describing the state for the log
         """
-        msg = "Geometry optimization as implemented in ASE,\n"
-        msg += f"using the {self.opt.__name__} method.\n"
+        msg = "Geometry optimization as implemented in LAMMPS\n"
+        # RB not implemented yet.
+        # if self.pressure is not None:
+        #    msg += f"   target pressure: {self.pressure}\n"
+        msg += f"   min_style: {self.opt.__name__}\n"
+        msg += f"   forces tolerance: {self.criterions}\n"
         msg += "\n"
         return msg

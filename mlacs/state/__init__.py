@@ -9,8 +9,6 @@ from .pafi_lammps_state import PafiLammpsState
 from .neb_lammps_state import NebLammpsState
 from .optimize_lammps_state import OptimizeLammpsState
 from .optimize_ase_state import OptimizeAseState
-from .ipi_state import IpiState
-from .pimd_lammps_state import PimdLammpsState
 from .mep_ase_state import (LinearInterpolation, NebAseState,
                             CiNebAseState, StringMethodAseState)
 
@@ -20,8 +18,6 @@ __all__ = ['StateManager',
            'PafiLammpsState',
            'NebLammpsState',
            'OptimizeLammpsState',
-           'IpiState',
-           'PimdLammpsState',
            'OptimizeAseState',
            'LinearInterpolation',
            'NebAseState',

@@ -332,10 +332,10 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
 @contextmanager
 def execute_from(directory):
     """Context to work from a subfolder."""
-    workdir =  Path(directory)
+    workdir = Path(directory)
     initial = Path.cwd().absolute()
 
-    if not workdir.exists():   
+    if not workdir.exists():
         workdir.mkdir(exist_ok=True, parents=True)
 
     if workdir != initial:
@@ -345,6 +345,7 @@ def execute_from(directory):
     finally:
         if workdir != initial:
             os.chdir(initial)
+
 
 @contextmanager
 def save_cwd():
@@ -356,6 +357,7 @@ def save_cwd():
         cwd = Path.cwd().absolute()
         if cwd != initial:
             os.chdir(initial)
+
 
 # ========================================================================== #
 def create_link(fn, lk):
@@ -374,7 +376,7 @@ def create_link(fn, lk):
         return
     src = fn.relative_to(lk.parent)
     dst = lk
-    os.symlink(src,dst)
+    os.symlink(src, dst)
 
 
 # ========================================================================== #
