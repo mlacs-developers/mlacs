@@ -30,18 +30,18 @@ class FixedWeight(WeightingPolicy):
         Default [0]
     """
     def __init__(self, static_weight=np.array([0]), subweight=None,
-                 energy_coefficient=1.0, forces_coefficient=1.0, 
+                 energy_coefficient=1.0, forces_coefficient=1.0,
                  stress_coefficient=1.0):
 
-        assert np.sum(static_weight)<=1.0
+        assert np.sum(static_weight) <= 1.0
         self.subweight = subweight
         self.static_weight = static_weight
         self.nstatic = len(static_weight)
         self.remaining = 1-np.sum(static_weight)
 
-        self.energy_coefficient=energy_coefficient
-        self.forces_coefficient=forces_coefficient
-        self.stress_coefficient=stress_coefficient
+        self.energy_coefficient = energy_coefficient
+        self.forces_coefficient = forces_coefficient
+        self.stress_coefficient = stress_coefficient
         self.matsize = []
         self.weight = np.array([])
 
@@ -73,8 +73,8 @@ class FixedWeight(WeightingPolicy):
             self.weight = np.append(self.static_weight, dynamic_w)
         else:
             curr_weight = self.static_weight[:len(self.matsize)]
-            if np.sum(curr_weight)==0:  # A niche bug
-                w = np.ones(len(self.matsize))
+            if np.sum(curr_weight) == 0:  # A niche bug
+                curr_weight = np.ones(len(self.matsize))
             self.weight = curr_weight/np.sum(curr_weight)
 
         header = f"Using Fixed weighting and {subweight_name}\n"
@@ -97,7 +97,7 @@ class FixedWeight(WeightingPolicy):
         elif len(self.matsize) + len(atoms) > self.nstatic:
             idx = len(self.matsize) + len(atoms) - self.nstatic
             self.subweight.update_database(atoms[-idx:])
-        else: # Static weights
+        else:  # Static weights
             pass
 
         self.matsize.extend([len(a) for a in atoms])

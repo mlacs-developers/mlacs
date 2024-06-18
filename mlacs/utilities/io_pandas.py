@@ -1,11 +1,11 @@
 import pandas as pd
-import numpy as np 
+import numpy as np
 
 
 def make_dataframe(df, name, atoms, atomic_env,
                    energy=None, forces=None, we=None, wf=None):
     """
-    Append atoms information to the dataframe. 
+    Append atoms information to the dataframe.
     Return the dataframe WITHOUT writing in a file
 
     2 modes : 1. We don't yet know energy, forces, we, wf
@@ -31,7 +31,7 @@ def make_dataframe(df, name, atoms, atomic_env,
 
     wf: :class:`list` :shape:`[nconfs][natoms]`
         list of np.array containing the weight for the forces on each atom
-        The sum must be equal to 1. 
+        The sum must be equal to 1.
         The relative weight between e and f is given by alpha
     """
     add_ef = all(_ is not None for _ in (energy, forces, we, wf))
@@ -50,4 +50,3 @@ def make_dataframe(df, name, atoms, atomic_env,
                       NUMBER_OF_ATOMS=nat, atomic_env=atomic_env)
 
     return pd.DataFrame(to_add)
-

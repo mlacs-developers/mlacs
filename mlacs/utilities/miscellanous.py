@@ -115,10 +115,9 @@ def compute_correlation(data, weight=None):
         weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
-
     assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
     weight = np.repeat(weight, len(datatrue)//len(weight))
-
+    
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
     rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
@@ -331,10 +330,10 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
 @contextmanager
 def execute_from(directory):
     """Context to work from a subfolder."""
-    workdir =  Path(directory)
+    workdir = Path(directory)
     initial = Path.cwd().absolute()
 
-    if not workdir.exists():   
+    if not workdir.exists():
         workdir.mkdir(exist_ok=True, parents=True)
 
     if workdir != initial:
@@ -344,6 +343,7 @@ def execute_from(directory):
     finally:
         if workdir != initial:
             os.chdir(initial)
+
 
 @contextmanager
 def save_cwd():
@@ -355,6 +355,7 @@ def save_cwd():
         cwd = Path.cwd().absolute()
         if cwd != initial:
             os.chdir(initial)
+
 
 # ========================================================================== #
 def create_link(fn, lk):
@@ -373,7 +374,7 @@ def create_link(fn, lk):
         return
     src = fn.relative_to(lk.parent)
     dst = lk
-    os.symlink(src,dst)
+    os.symlink(src, dst)
 
 
 # ========================================================================== #

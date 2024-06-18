@@ -1,10 +1,10 @@
-from pathlib import Path
+import shutil
 import numpy as np
-
 from ase import Atoms
 from . import TensorpotPotential, MomentTensorPotential, MbarManager
 from . import LinearPotential, DeltaLearningPotential
 from .weighting_policy import WeightingPolicy
+
 
 def split_dataset(confs, train_ratio=0.5, rng=None):
     """
@@ -29,6 +29,7 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
 
     return trainset, testset
 
+
 def linfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
@@ -36,7 +37,7 @@ def linfit_traj(traj, mlip):
     """
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
-    if not (isinstance(mlip, LinearPotential) \
+    if not (isinstance(mlip, LinearPotential)
             or isinstance(mlip, DeltaLearningPotential)):
         msg = "Only LinearPotential or DeltaLearningPotential " + \
               "are allowed for linfit_traj"
@@ -44,11 +45,12 @@ def linfit_traj(traj, mlip):
     atoms = [at for at in traj]
     if mlip.subfolder:
         if mlip.subsubdir.exists():
-            shutil.rmtree(self.subsubdir)
+            shutil.rmtree(mlip.subsubdir)
     mlip.subsubdir.mkdir(parents=True, exist_ok=True)
 
     mlip.update_matrices(atoms)
     mlip.train_mlip()
+
 
 def mtpfit_traj(traj, mlip):
     """
@@ -63,7 +65,7 @@ def mtpfit_traj(traj, mlip):
     atoms = [at for at in traj]
     if mlip.subfolder:
         if mlip.subsubdir.exists():
-            shutil.rmtree(self.subsubdir)
+            shutil.rmtree(mlip.subsubdir)
     mlip.subsubdir.mkdir(parents=True, exist_ok=True)
 
     mlip.update_matrices(atoms)
@@ -76,9 +78,9 @@ def mtpfit_traj(traj, mlip):
 def acefit_traj(traj, mlip, weights=None, initial_potential=None):
     """
     Fit an MLIP according to the trajectory
-    initial_potential : 
-        Potential to start the fitting from. 
-        Useful to reconverge with a better precision on a parameter. 
+    initial_potential :
+        Potential to start the fitting from.
+        Useful to reconverge with a better precision on a parameter.
         Can be a filename (str) or a BBasisConfiguration
     """
     from pyace.basis import BBasisConfiguration
@@ -108,7 +110,8 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
     if initial_potential is not None:
         if isinstance(initial_potential, str):
             initial_potential = BBasisConfiguration(initial_potential)
-        mlip.descriptor.bconf.set_all_coeffs(initial_potential.get_all_coeffs())
+        mlip.descriptor.bconf.set_all_coeffs(
+                initial_potential.get_all_coeffs())
     mlip.descriptor.redirect_logger()
 
     mlip.descriptor.fit(weights=weights, atoms=atoms)

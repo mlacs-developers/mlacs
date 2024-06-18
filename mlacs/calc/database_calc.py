@@ -4,7 +4,6 @@
 """
 from pathlib import Path
 import ase
-from ..core.manager import Manager
 from .calc_manager import CalcManager
 
 

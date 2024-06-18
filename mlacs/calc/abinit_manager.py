@@ -8,7 +8,6 @@ import numpy as np
 import shlex
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
-from pathlib import Path
 from subprocess import Popen
 import logging
 from concurrent.futures import ThreadPoolExecutor
@@ -70,7 +69,7 @@ class AbinitManager(CalcManager):
 
     nproc: :class:`int` (optional)
         Number of processor available for all Abinit.
-    
+
     nproc_per_task: :class:`int` (optional)
         Number of processor available for all Abinit.
         Default nproc
@@ -95,7 +94,7 @@ class AbinitManager(CalcManager):
                  folder='DFT',
                  nproc=1,
                  nproc_per_task=None,
-                **kwargs):
+                 **kwargs):
 
         CalcManager.__init__(self, "dummy", magmoms,
                              folder=folder, **kwargs)
@@ -139,19 +138,18 @@ class AbinitManager(CalcManager):
 
 # ========================================================================== #
     @Manager.exec_from_subdir
-    def compute_true_potential(self, confs: [Atom],
-                                     subfolder: [str],
-                                     step:[int]):
+    def compute_true_potential(self,
+                               confs: [Atom],
+                               subfolder: [str],
+                               step: [int]):
         """
         Compute the energy of given configurations with Abinit.
         """
         assert len(confs) == len(subfolder) == len(step)
-        ntask = len(confs)
         nparal = self.nproc // self.nproc_per_task
-        
+
         # Prepare all calculations
         confs = [at.copy() for at in confs]
-        folder = self.folder
         path_prefix_l = []
         for at, sf, istep in zip(confs, subfolder, step):
             # First set the prefix
@@ -261,7 +259,6 @@ class AbinitManager(CalcManager):
         for psp in pseudos:
             fn = psp.split('/')[-1]
             source = pp_dirpath+psp
-            #dest = stateprefix+fn
             dest = self.get_filepath(fn)
             _create_copy(source, dest)
             new_psp.append(dest)

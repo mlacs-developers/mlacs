@@ -98,7 +98,6 @@ class LinearPotential(MlipManager):
         W = self.weight.get_weights()
         amat = amat * W[:, np.newaxis]
         ymat = ymat * W
-
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
                                                 ymat,
@@ -148,9 +147,15 @@ class LinearPotential(MlipManager):
         w = None
         if len(self.weight.weight) > 0:
             w = self.weight.weight
+
+        # Quickfix for variable number of atoms
+        wf = np.array([])
+        for i in range(len(w)):
+            wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
+        # End of Quickfix
         
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
-        res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)
+        res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=wf)
         res_S = compute_correlation(np.c_[ymat_s, s_mlip]/GPa, weight=w)
         self.fit_res = np.c_[res_E, res_F, res_S]
 
