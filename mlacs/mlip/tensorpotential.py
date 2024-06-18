@@ -49,6 +49,11 @@ class TensorpotPotential(MlipManager):
         self.atoms = []
         self.coefficients = []
 
+        # Remove the old pckl.gzip file to avoid having configuration twice
+        old_df = self.descriptor.subsubdir / self.descriptor.db_fn
+        if old_df.exists():
+            old_df.unlink()
+
 # ========================================================================== #
     def update_matrices(self, atoms):
         """
