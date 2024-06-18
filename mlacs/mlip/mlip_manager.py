@@ -146,14 +146,14 @@ class MlipManager(Manager, ABC):
                 if "parent_mlip" not in conf.info:  # Initial or training
                     continue
                 else:  # A traj
-
-                    model = conf.info['parent_mlip']  # GA: Not sure if this is absolute or relative
+                    # GA: Not sure if this is absolute or relative
+                    model = conf.info['parent_mlip']
                     directory = Path(model)
                     if not directory.exists:
                         # GA: If the files have been moved,
                         #     it wont be possible to restart the calculation.
                         #     However, one might want to restart a calculation
-                        #     on a different machine than the one it started on.
+                        #     on a different machine than the one it started on
                         #     TODO: Get directories by inspection instead.
                         #
                         err = "Some parent MLIP are missing. "

@@ -214,7 +214,7 @@ class SnapDescriptor(Descriptor):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
         """
-        fname = f"{self.prefix}.descriptor" 
+        fname = f"{self.prefix}.descriptor"
         with open(fname, "w") as f:
             f.write(self.get_mlip_params())
 

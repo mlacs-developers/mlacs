@@ -1,6 +1,5 @@
 '''
 '''
-from pathlib import Path
 import numpy as np
 from ase.units import GPa
 from ase import Atoms
@@ -153,7 +152,7 @@ class LinearPotential(MlipManager):
         for i in range(len(w)):
             wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
         # End of Quickfix
-        
+
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=wf)
         res_S = compute_correlation(np.c_[ymat_s, s_mlip]/GPa, weight=w)

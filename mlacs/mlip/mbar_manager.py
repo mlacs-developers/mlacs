@@ -74,10 +74,10 @@ class MbarManager(WeightingPolicy):
             raise ModuleNotFoundError(msg)
 
         WeightingPolicy.__init__(self,
-                energy_coefficient=energy_coefficient,
-                forces_coefficient=forces_coefficient,
-                stress_coefficient=stress_coefficient,
-                **kwargs)
+                                 energy_coefficient=energy_coefficient,
+                                 forces_coefficient=forces_coefficient,
+                                 stress_coefficient=stress_coefficient,
+                                 **kwargs)
 
         self.database = []
         self.parameters = default_parameters
@@ -151,7 +151,7 @@ class MbarManager(WeightingPolicy):
 
             header += "Number of uncorrelated snapshots for each k state:\n"
             header += np.array2string(np.array(self.Nk, 'int')) + "\n"
-        
+
         else:  # If there isn't enough coef, use UniformWeight
             self.weight = np.ones(len(self.database))/len(self.database)
         return header, "MLIP.weight"

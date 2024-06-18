@@ -10,7 +10,6 @@ import shlex
 import numpy as np
 from ase import Atoms
 from ..utilities import make_dataframe
-from pyace.basis import BBasisConfiguration
 from pyace import ACEBBasisSet
 
 from ase.io import read
@@ -32,7 +31,7 @@ warnings.filterwarnings("ignore", category=Warning, module="tensorflow")
 try:
     os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Remove GPU warning for tf
     import tensorflow as tf  # noqa
-    tf.get_logger().setLevel(logging.ERROR) # Remove a warning
+    tf.get_logger().setLevel(logging.ERROR)  # Remove a warning
     istf = True
 except ImportError:
     istf = False
@@ -158,7 +157,7 @@ class AceDescriptor(Descriptor):
         self._verify_dependency()
 
         Descriptor.__init__(self, atoms, rcut)
-        
+
         self.prefix = "ACE"
         self.desc_name = "ACE"
         self.n_fit_attempt = 3
@@ -194,7 +193,7 @@ class AceDescriptor(Descriptor):
         self.rcut = rcut
 
         self.bconf = create_multispecies_basis_config(bconf)
-        self.acefit = None 
+        self.acefit = None
         self.log = None
 
 # ========================================================================== #
@@ -219,7 +218,8 @@ class AceDescriptor(Descriptor):
         # Loop through the loggers and reset the file handler for each
         for logger_name in loggers:
             logger = logging.getLogger(logger_name)
-            while logger.handlers: logger.removeHandler(logger.handlers[0])
+            while logger.handlers:
+                logger.removeHandler(logger.handlers[0])
             logger.addHandler(file_handler)
             logger.propagate = False
         self.log = logging.getLogger(__name__)
@@ -245,7 +245,7 @@ class AceDescriptor(Descriptor):
             raise FileNotFoundError(f"File {filename} does not exist")
         return str(filename)
 
-# ========================================================================== #        
+# ========================================================================== #
     def prepare_wf(self, wf, natoms):
         """
         Reshape wf from a flat array to a list of np.array where each
@@ -264,14 +264,14 @@ class AceDescriptor(Descriptor):
         """
         """
         natoms = [len(at) for at in atoms]
-        energy = [at.get_potential_energy() - self.calc_free_e(at)\
-                for at in atoms]
+        energy = [at.get_potential_energy() - self.calc_free_e(at)
+                  for at in atoms]
         forces = [at.get_forces() for at in atoms]
         if name is None:
             name = [f"config{i}" for i in range(len(atoms))]
 
         # Data preparation
-        nconfs=len(natoms)
+        nconfs = len(natoms)
         we = weights[:nconfs].tolist()
         wf = weights[nconfs:-(nconfs)*6]
         wf = self.prepare_wf(wf, natoms)
@@ -282,13 +282,13 @@ class AceDescriptor(Descriptor):
         df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
-        df.to_pickle(self.workdir / self.subdir / self.db_fn, compression="gzip")
+        df.to_pickle(self.workdir / self.subdir / self.db_fn,
+                     compression="gzip")
 
         # Do the fitting
         if self.acefit is None:
             self.create_acefit()
         else:
-            #self.acefit.target_bbasisconfig.set_all_coeffs(x0)
             self.acefit.fit_config['fit_cycles'] += 1
 
         # Note that self.fitting is the same object as self.acefit.fit_config
@@ -308,8 +308,7 @@ class AceDescriptor(Descriptor):
         fn_yaml = "interim_potential_best_cycle.yaml"
         yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
         self.mlip_model = Path.cwd() / "ACE.yace"
-        with open("/dev/null", "w") as null:
-            run(shlex.split(yace_cmd), stdout=sys.stdout, stderr=sys.stdout)
+        run(shlex.split(yace_cmd), stdout=sys.stdout, stderr=sys.stdout)
 
         if not Path("ACE.yace").exists():
             msg = "The ACE fitting wasn't successful\n"
@@ -319,13 +318,13 @@ class AceDescriptor(Descriptor):
             msg += f"{Path().cwd()}"
             raise RuntimeError(msg)
 
-        return "ACE.yace"#, "interim_best_cycle.yaml"
+        return "ACE.yace"
 
 # ========================================================================== #
     def actual_fit(self):
         try:
             self.acefit.fit()
-        except StopIteration as e:  # For Scipy < 1.11
+        except StopIteration:  # For Scipy < 1.11
             pass
 
         fit_res = self.acefit.fit_backend.fitter.res_opt
@@ -342,9 +341,9 @@ class AceDescriptor(Descriptor):
         Restart the calculation with the coefficient from this folder.
         This is because we cannot get back the coefficients from ACE.yace
         """
-        fn = str(Path(mlip_subfolder).parent / \
-                "interim_potential_best_cycle.yaml")
-        test = self.bconf.set_all_coeffs(ACEBBasisSet(fn).all_coeffs)
+        fn = str(Path(mlip_subfolder).parent /
+                 "interim_potential_best_cycle.yaml")
+        self.bconf.set_all_coeffs(ACEBBasisSet(fn).all_coeffs)
 
 # ========================================================================== #
     @Manager.exec_from_subdir
@@ -366,7 +365,8 @@ class AceDescriptor(Descriptor):
             e = last_fit_metric_data["rmse_epa"] * 1e3
             f = last_fit_metric_data["rmse_f_comp"] * 1e3
             msg = f"Step: {last_fit_metric_data['iter_num']}   "
-            msg += f"RMSE Energy: {e:.4f} (meV/at), RMSE Forces: {f:.4f} (meV/ang)"
+            msg += f"RMSE Energy: {e:.4f} (meV/at), "
+            msg += f"RMSE Forces: {f:.4f} (meV/ang)"
             self.log.info(msg)
             if iter_num > 0 and self.tol_e >= e and self.tol_f >= f:
                 s = "Convergence reached:\n"
@@ -386,7 +386,7 @@ class AceDescriptor(Descriptor):
 # ========================================================================== #
     def calc_free_e(self, atoms):
         """
-        Calculate the contribution which isn't the binding energy 
+        Calculate the contribution which isn't the binding energy
         for this particular configuration
         """
         e = 0
@@ -403,7 +403,7 @@ class AceDescriptor(Descriptor):
 
         e, f, s = [], [], []
         for at in atoms:
-            lmp_atfname="atoms.lmp"
+            lmp_atfname = "atoms.lmp"
             el, z, masses, charges = get_elements_Z_and_masses(at)
 
             self._write_lammps_input(masses, at.get_pbc(), coef, el)
@@ -420,27 +420,27 @@ class AceDescriptor(Descriptor):
 
         if len(e) == 1:
             return e[0], f[0], s[0]
-        
+
         return e, f, s
 
 # ========================================================================== #
-    @Manager.exec_from_path    
+    @Manager.exec_from_path
     def _read_lammps_output(self, natoms):
         with open("lammps.out", "r") as f:
             lines = f.readlines()
-    
-        l = None
+
+        toparse = None
         tofind = "Step          Temp          E_pair         Press"
         for idx, line in enumerate(lines):
             if tofind in line:
-                l = lines[idx+1].split()
-        if l is None:
+                toparse = lines[idx+1].split()
+        if toparse is None:
             raise ValueError("lammps.out didnt have the expected format")
-    
+
         bar2GPa = 1e-4
-        e = float(l[2])/natoms
+        e = float(toparse[2])/natoms
         f = read('forces.out', format='lammps-dump-text').get_forces()
-        s = np.loadtxt('stress.out', skiprows=4)[:,1]*bar2GPa
+        s = np.loadtxt('stress.out', skiprows=4)[:, 1]*bar2GPa
         return e, f, s
 
 # ========================================================================== #
@@ -476,7 +476,7 @@ class AceDescriptor(Descriptor):
         lmp_in("init", block)
 
         block = LammpsBlockInput("interaction", "Interactions")
-        block("pair_style", f"pair_style pace")
+        block("pair_style", "pair_style pace")
         pc = f"pair_coeff * * {coef} {' '.join(self.elements)}"
         block("pair_coeff", pc)
         lmp_in("interaction", block)
@@ -484,8 +484,10 @@ class AceDescriptor(Descriptor):
         block = LammpsBlockInput("compute", "Compute")
         block("thermo_style", "thermo_style custom step temp epair press")
         block("cp", "compute svirial all pressure NULL virial")
-        block("fs", "fix svirial all ave/time 1 1 1 c_svirial file stress.out mode vector")
-        block("dump", "dump dump_force all custom 1 forces.out id type x y z fx fy fz")
+        block("fs", "fix svirial all ave/time 1 1 1 c_svirial" +
+              " file stress.out mode vector")
+        block("dump", "dump dump_force all custom 1 forces.out" +
+              " id type x y z fx fy fz")
         block("run", "run 0")
         lmp_in("compute", block)
 
@@ -519,11 +521,11 @@ class AceDescriptor(Descriptor):
 
         # Test that lammps-user-pace is installed by looking at lmp -help
         lmp_help = shlex.split(self.cmd + " -help")
-        grep_pace = shlex.split("grep '\Wpace'")
+        grep_pace = shlex.split(r"grep '\Wpace'")
         res = run(lmp_help, stdout=PIPE)
         out = run(grep_pace, input=res.stdout, stdout=PIPE)
         if out.returncode:  # There was no mention of pace in pair_style
-            s += f"Pace style not found : {lmp_pace}\n"
+            s += "Pace style not found.\n"
             s += "Lammps exe is given by the environment variable :"
             s += "ASE_LAMMPSRUN_COMMAND\n"
             s += "You can install Pace for Lammps from:\n"
@@ -574,7 +576,7 @@ class AceDescriptor(Descriptor):
         """
         """
         pair_style = self.get_pair_style()
-        pair_coeff = self.get_pair_coeff(folder=folder)
+        pair_coeff = self.get_pair_coeff()
         return pair_style, pair_coeff
 
 # ========================================================================== #

@@ -2,12 +2,10 @@
 '''
 import sys
 import numpy as np
-import logging
 
 from . import MlipManager
 from .weights import UniformWeight
 from ..utilities import compute_correlation, create_link
-from ..core.manager import Manager
 
 from ase.units import GPa
 from ase import Atoms
@@ -31,11 +29,10 @@ class TensorpotPotential(MlipManager):
     """
     def __init__(self,
                  descriptor,
-                 #folder="Tensorpot",
                  weight=None,
                  **kwargs):
         if weight is None:
-            weight = UniformWeight(energy_coefficient=1.0, 
+            weight = UniformWeight(energy_coefficient=1.0,
                                    forces_coefficient=1.0,
                                    stress_coefficient=0.0)
 
@@ -45,7 +42,7 @@ class TensorpotPotential(MlipManager):
                              **kwargs)
         self.natoms = []
         self.nconfs = 0
-        
+
         if self.weight.stress_coefficient != 0:
             raise ValueError("Tensorpotential can't fit on stress")
 
@@ -111,7 +108,6 @@ class TensorpotPotential(MlipManager):
         """
         parent_mlip = []
         mlip_coef = []
-        prefix = self.descriptor.prefix
         directory = self.descriptor.subdir
 
         # Make the MBAR variable Nk and mlip_coef
@@ -146,7 +142,6 @@ class TensorpotPotential(MlipManager):
 
         self.descriptor.set_restart_coefficient(mlip_coef)
         _, weight_fn = self.weight.compute_weight(mlip_coef, self.predict)
-        prefix = self.descriptor.prefix
 
         create_link(mlip_coef + "/" + weight_fn, self.subdir/weight_fn)
         create_link(mlip_coef + "/" + "ACE.yace", self.subdir/"ACE.yace")
@@ -157,16 +152,16 @@ class TensorpotPotential(MlipManager):
         Compute the weighted RMSE and MAE
         """
         mlip_e, mlip_f, mlip_s = self.predict(desc=self.atoms)
-        true_e = np.array([at.get_potential_energy()/len(at) \
-                for at in self.atoms])
+        true_e = np.array([at.get_potential_energy()/len(at)
+                          for at in self.atoms])
         true_f = [at.get_forces() for at in self.atoms]
         true_s = [at.get_stress() for at in self.atoms]
- 
+
         mlip_f = np.reshape(mlip_f, [-1])
         mlip_s = np.reshape(mlip_s, [-1])
         true_f = np.reshape(true_f, [-1])
         true_s = np.reshape(true_s, [-1])
-        
+
         w = None
         if len(self.weight.weight) > 0:
             w = self.weight.weight

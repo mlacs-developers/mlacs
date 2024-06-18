@@ -4,9 +4,7 @@
 """
 from pathlib import Path
 import numpy as np
-
 from ..core.manager import Manager
-from ase.atoms import Atoms
 
 
 # ========================================================================== #
@@ -126,6 +124,7 @@ class WeightingPolicy(Manager):
         w_f = np.r_[w_f] / np.sum(np.r_[w_f])
         w_s = np.r_[w_s] / np.sum(np.r_[w_s])
         return w_e, w_f, w_s
+
 
 # ========================================================================== #
 # ========================================================================== #

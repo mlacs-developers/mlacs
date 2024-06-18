@@ -1,4 +1,3 @@
-from pathlib import Path
 import numpy as np
 from abc import ABC, abstractmethod
 
@@ -252,6 +251,7 @@ class BlankDescriptor(Descriptor):
     @Manager.exec_from_subsubdir
     def write_mlip(self, mlip_coef):
         pass
+
 
 # ========================================================================== #
 def combine_reg(matrices):
