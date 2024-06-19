@@ -117,7 +117,7 @@ def compute_correlation(data, weight=None):
     datatest = data[:, 1]
     assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
     weight = np.repeat(weight, len(datatrue)//len(weight))
-    
+
     mae = np.average(np.abs(datatrue - datatest), weights=weight)
     rmse = np.sqrt(np.average((datatrue - datatest)**2, weights=weight))
     mae = np.average(np.abs(datatrue - datatest), weights=weight)

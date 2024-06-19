@@ -5,7 +5,7 @@
 from pathlib import Path
 import numpy as np
 from ..core.manager import Manager
-
+from ase import Atoms
 
 # ========================================================================== #
 # ========================================================================== #
