@@ -2,7 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
 from subprocess import call
 
 import numpy as np
@@ -171,7 +170,7 @@ class EinsteinSolidState(ThermoState):
         """
         if self.equilibrate:
             self.run_averaging()
-            
+
         if self.k is None:
             # First get optimal spring constant
             self.compute_msd()
@@ -210,7 +209,7 @@ class EinsteinSolidState(ThermoState):
         if self.equilibrate:
             # red last_dump_atoms
             eq_structure = read('dump_averaging')
-            atomsfname =  "eq_atoms.in"
+            atomsfname = "eq_atoms.in"
             write_lammps_data(atomsfname, eq_structure)
             atomsfname = "eq_atoms.in"
         else:
@@ -472,7 +471,7 @@ class EinsteinSolidState(ThermoState):
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
         input_string += "fix           f2  all nve\n"
-        input_string += f"fix           f1  all langevin " + \
+        input_string += "fix           f1  all langevin " + \
                         f"{self.temperature} {self.temperature} {damp} " + \
                         f"{self.rng.integers(99999)} zero yes\n"
         # if self.pressure is None

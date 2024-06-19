@@ -1,5 +1,4 @@
-from pathlib import Path
-
+from .state import StateManager
 from ..core.manager import Manager
 from ..mlip.calculator import MlipCalculator
 
@@ -8,10 +7,9 @@ default_parameters = {}
 
 # ========================================================================== #
 # ========================================================================== #
-class OptimizerState(Manager):
+class OptimizeAseState(StateManager):
     """
     Class to manage Structure optimization with ASE Optimizers.
-    (not in production)
 
     Parameters
     ----------
@@ -23,25 +21,46 @@ class OptimizerState(Manager):
         Optimizer from ase.optimize.
         Default :class:`BFGS`
 
+    ftol: :class:`float`
+        Stopping tolerance for energy
+        Default ``5.0e-2``
+
     parameters: :class:`dict` (optional)
         Stoping criterion for the optimization run.
 
     """
-    def __init__(self,
-                 model=None,
-                 optimizer=None,
-                 parameters={},
-                 **kwargs):
+    def __init__(self, model=None, optimizer=None, ftol=5.0e-2,
+                 parameters={}, **kwargs):
 
-        Manager.__init__(self, **kwargs)
+        super().__init__(self, **kwargs)
 
         self.model = model
         self.opt = optimizer
+        self.criterions = ftol
         self.parameters = default_parameters
         self.parameters.update(parameters)
         if optimizer is None:
             from ase.optimize import BFGS
             self.opt = BFGS
+
+        self.ispimd = False
+        self.isrestart = False
+
+# ========================================================================== #
+    @Manager.exec_from_subsubdir
+    def run_dynamics(self,
+                     supercell,
+                     pair_style,
+                     pair_coeff,
+                     model_post,
+                     atom_style="atomic",
+                     eq=False):
+        """
+        Run state function.
+        """
+        atoms = supercell.copy()
+        atoms = self.run_optimize(atoms)
+        return atoms.copy()
 
 # ========================================================================== #
     def run_optimize(self,
@@ -52,11 +71,12 @@ class OptimizerState(Manager):
 
         if self.model is not None:
             atoms.calc = MlipCalculator(self.model)
-        if self.atoms.calc is None:
+        if atoms.calc is None:
             raise TypeError('No Calculator defined !')
 
-        self.opt(atoms)
-        self.opt.run()
+        opt = self.opt(atoms)
+        opt.run(fmax=self.criterions)
+
         return atoms.copy()
 
 # ========================================================================== #
@@ -64,9 +84,11 @@ class OptimizerState(Manager):
         """
         Function to return a string describing the state for the log
         """
-        msg = "NEB calculation as implemented in LAMMPS\n"
-        msg += f"Number of replicas :                     {self.nreplica}\n"
-        msg += f"String constant :                        {self.Kspring}\n"
-        msg += f"Sampling mode :                          {self.mode}\n"
+        msg = "Geometry optimization as implemented in LAMMPS\n"
+        # RB not implemented yet.
+        # if self.pressure is not None:
+        #    msg += f"   target pressure: {self.pressure}\n"
+        msg += f"   min_style: {self.opt.__name__}\n"
+        msg += f"   forces tolerance: {self.criterions}\n"
         msg += "\n"
         return msg

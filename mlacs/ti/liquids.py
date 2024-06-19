@@ -2,7 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
 from subprocess import call
 
 import numpy as np
@@ -130,7 +129,7 @@ class UFLiquidState(ThermoState):
             self.equilibrate = True
         else:
             self.equilibrate = False
-            
+
         if self.p not in p_tabled:
             msg = "The p value of the UF potential has to be one for " + \
                   "which the free energy of the Uhlenbeck-Ford potential " + \
@@ -156,11 +155,11 @@ class UFLiquidState(ThermoState):
                              **kwargs)
 
         self.subfolder = kwargs.get('subfolder', None)
-        if not str(self.subfolder): 
+        if not str(self.subfolder):
             self.subfolder = f"LiquidUF_T{self.temperature}K"
 
         # GA: suffixdir is replaced with subfolder
-        #self.suffixdir = self.subfolder
+        # self.suffixdir = self.subfolder
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -395,7 +394,7 @@ class UFLiquidState(ThermoState):
         if len(self.pair_coeff) == 1:
             input_string += "pair_style          hybrid/scaled " + \
                             f"v_lambda_true {pair_style[0]} " + \
-                            f"v_lambda_ufm ufm ${{rc}}\n"
+                            "v_lambda_ufm ufm ${{rc}}\n"
             input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
             input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
             input_string += "\n"
@@ -441,7 +440,7 @@ class UFLiquidState(ThermoState):
         if len(self.pair_coeff) == 1:
             input_string += "pair_style          hybrid/scaled " + \
                             f"v_lambda_true {pair_style[0]} " + \
-                            f"v_lambda_ufm ufm ${{rc}}\n"
+                            "v_lambda_ufm ufm ${{rc}}\n"
             input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
             input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
             input_string += "\n"

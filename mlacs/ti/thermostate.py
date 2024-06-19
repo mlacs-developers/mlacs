@@ -170,7 +170,7 @@ class ThermoState(Manager):
         input_string += "#####################################\n"
         input_string += "#        Initialize variables\n"
         input_string += "#####################################\n"
-        input_string += f"variable      nsteps_averaging equal " + \
+        input_string += "variable      nsteps_averaging equal " + \
                         f"{self.nsteps_averaging}\n"
         input_string += f"timestep      {self.dt/1000}\n"
         input_string += "\n\n\n"
@@ -183,14 +183,14 @@ class ThermoState(Manager):
         input_string += f"velocity      all create {self.temperature} " + \
                         f"{self.rng.integers(99999)} dist gaussian\n"
         if self.langevin:
-            input_string += f"fix           f1  all langevin " + \
+            input_string += "fix           f1  all langevin " + \
                             f"{self.temperature} {self.temperature} {damp}" + \
                             f" {self.rng.integers(99999)} zero yes\n"
             input_string += "fix           f2  all nph iso " + \
                             f"{self.pressure*10000} {self.pressure*10000} " + \
                             f"{pdamp}\n"
         else:
-            input_string += f"fix           f1  all npt temp " + \
+            input_string += "fix           f1  all npt temp " + \
                             f"{self.temperature} {self.temperature} {damp}" + \
                             f" iso {self.pressure*10000} " + \
                             f"{self.pressure*10000} {pdamp} \n"
@@ -202,7 +202,7 @@ class ThermoState(Manager):
             f.write(input_string)
 
 # ========================================================================== #
-    #def get_workdir(self):
+    # def get_workdir(self):
     #    """
     #    """
     #    return self.suffixdir

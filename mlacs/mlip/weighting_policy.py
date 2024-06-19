@@ -184,4 +184,70 @@ class UniformWeight(WeightingPolicy):
     def update_database(self, atoms):
         """
         """
-        raise NotImplementedError
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+        self.matsize.extend([len(a) for a in atoms])
+
+
+# ========================================================================== #
+# ========================================================================== #
+class IncreasingWeight(WeightingPolicy):
+    """
+    Class that gives increasing weight with the index of a configuration
+    in MLACS.
+    This weighting policy has been though for structural optimization.
+
+    nthrow: :class: int
+        Number of configurations to ignore when doing the fit.
+        Three cases :
+         1. If nconf > 2*nthrow, remove the nthrow first configuration
+         2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
+         3. If nconf < nthrow, keep all conf
+    """
+
+    def __init__(self, nthrow=0, power=1, energy_coefficient=1.0,
+                 forces_coefficient=1.0, stress_coefficient=1.0,
+                 database=None, weight=None):
+        self.nthrow = nthrow
+        self.power = power
+        WeightingPolicy.__init__(
+                self,
+                energy_coefficient=energy_coefficient,
+                forces_coefficient=forces_coefficient,
+                stress_coefficient=stress_coefficient,
+                database=database, weight=weight)
+
+# ========================================================================== #
+    @Manager.exec_from_subsubdir
+    def compute_weight(self, coef, f_mlipE):
+        """
+        Compute Increasing Weight taking into account nthrow :
+        """
+        fname = "MLIP.weight"
+        if (filepath := Path(fname)).exists():
+            filepath.unlink()
+
+        nconf = len(self.matsize)
+        to_remove = 0
+        if nconf > 2*self.nthrow:
+            to_remove = self.nthrow
+        elif nconf > self.nthrow:
+            to_remove = nconf-self.nthrow
+
+        w = (np.arange(nconf-to_remove, dtype=float) + 1)**self.power
+        w /= w.sum()
+        w = np.r_[np.zeros(to_remove), w]
+        self.weight = w
+
+        header = "Using Increasing weighting\n"
+        np.savetxt(fname, self.weight, header=header, fmt="%25.20f")
+        return header, fname
+
+# ========================================================================== #
+    def update_database(self, atoms):
+        """
+        Update the database.
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+        self.matsize.extend([len(a) for a in atoms])

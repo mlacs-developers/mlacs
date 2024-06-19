@@ -15,6 +15,7 @@ from .ace_descriptor import AceDescriptor
 from .tensorpotential import TensorpotPotential
 from .weights import UniformWeight, EnergyBasedWeight, FixedWeight
 
+from .weighting_policy import UniformWeight, IncreasingWeight
 __all__ = ['MlipManager',
            'Descriptor',
            'SumDescriptor',
@@ -29,4 +30,5 @@ __all__ = ['MlipManager',
            'EnergyBasedWeight',
            'FixedWeight',
            'AceDescriptor',
-           'TensorpotPotential']
+           'TensorpotPotential',
+           'IncreasingWeight',]

@@ -105,6 +105,7 @@ class AbinitManager(CalcManager):
         if 'ixc' not in self.parameters.keys():
             msg = 'WARNING AbinitManager:\n'
             msg += 'You should specify an ixc value or ASE will set 7 (LDA) !'
+            msg += '\n(Does not apply if using a PAW xml format)'
             logging.warning(msg)
 
         self._organize_pseudos(pseudos)
@@ -138,8 +139,7 @@ class AbinitManager(CalcManager):
 
 # ========================================================================== #
     @Manager.exec_from_subdir
-    def compute_true_potential(self,
-                               confs: [Atom],
+    def compute_true_potential(self, confs: [Atom],
                                subfolder: [str],
                                step: [int]):
         """

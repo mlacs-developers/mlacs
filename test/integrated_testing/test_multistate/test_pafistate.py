@@ -49,8 +49,8 @@ def test_mlacs_pafi_multi(root, treelink):
     xi = [0.01, 0.6, 1.1]
     temp = [100, 200, 300]
     for x, t in zip(xi, temp):
-        neb = NebLammpsState(nebat, nimages=nimages, xi_coordinate=x)
-        state.append(PafiLammpsState(t, neb, nsteps_eq=2, nsteps=100))
+        neb = NebLammpsState(nebat, nimages=nimages, xi=x)
+        state.append(PafiLammpsState(t, mep=neb, nsteps_eq=2, nsteps=100))
         atoms.append(nebat[0])
 
     sampling = OtfMlacs(atoms, state, calc, mlip, neq=5)

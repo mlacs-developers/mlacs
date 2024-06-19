@@ -1,4 +1,5 @@
 import numpy as np
+
 from abc import ABC, abstractmethod
 
 from ase.atoms import Atoms
@@ -74,6 +75,10 @@ class Descriptor(Manager, ABC):
             atoms = [atoms]
         res = []
         for at in atoms:
+            # RB : seems this doesn't work.
+            # if "descriptor" in at.info:
+            #     res_iat = at.info['descriptor']
+            # elif self.need_neigh:
             if self.need_neigh:
                 iat, jat, vdist, iel = self._compute_rij(at)
                 res_iat = self.compute_descriptor(at, iat, jat, vdist, iel)

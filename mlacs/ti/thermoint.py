@@ -2,7 +2,6 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
-import os
 
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
@@ -85,7 +84,7 @@ class ThermodynamicIntegration(Manager):
 
                         self.subfolder = "for_back_{i+1}/"
 
-                        #stateworkdir = os.path.join(self.workdir,
+                        # stateworkdir = os.path.join(self.workdir,
                         #    self.state[istate].get_workdir(),
                         #    f"for_back_{i+1}/")
 

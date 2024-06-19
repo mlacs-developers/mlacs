@@ -406,7 +406,7 @@ class LammpsState(BaseLammpsState):
                  trajfile=None,
                  loginterval=50,
                  blocks=None,
-                 folder = 'Trajectory',
+                 folder='Trajectory',
                  **kwargs):
 
         kwargs.setdefault('prefix', folder)  # To keep previous behaviour

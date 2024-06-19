@@ -2,6 +2,7 @@ from pathlib import Path
 
 from ..utilities.miscellanous import execute_from
 
+
 class Manager:
     """
     Base class for managing computation files and logs,
@@ -31,7 +32,7 @@ class Manager:
                  folder='',
                  subfolder='',
                  prefix='',
-                 logger = None,
+                 logger=None,
                  **kwargs):
 
         self.workdir = workdir
@@ -164,8 +165,8 @@ class Manager:
             return str(self.subsubdir / (self.prefix + suffix))
         return str(self.subsubdir / suffix)
 
-    def  iter_subsubdir(self, nmax=None, rootname=''):
+    def iter_subsubdir(self, nmax=None, rootname=''):
         pass
 
-    def  iter_prefix(self, prefix=None, nmax=None, rootname=''):
+    def iter_prefix(self, prefix=None, nmax=None, rootname=''):
         pass

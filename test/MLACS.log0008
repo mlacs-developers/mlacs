@@ -1,0 +1,3243 @@
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:16
+
+
+State 1/1 :
+Geometry optimization as implemented in LAMMPS
+   target pressure: 0.0
+   min_style: cg
+   energy tolerance: 0.0
+   forces tolerance: 1e-06
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+There are already 31 configurations in the database, no need to start training computations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 32
+Number of atomic environments for training: 992
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0044 eV/angs
+Weighted MAE Forces     0.0011 eV/angs
+Weighted RMSE Stress    0.0896 GPa
+Weighted MAE Stress     0.0260 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 33
+Number of atomic environments for training: 1023
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0044 eV/angs
+Weighted MAE Forces     0.0011 eV/angs
+Weighted RMSE Stress    0.0881 GPa
+Weighted MAE Stress     0.0252 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 3
+
+Equilibration step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 34
+Number of atomic environments for training: 1054
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0043 eV/angs
+Weighted MAE Forces     0.0011 eV/angs
+Weighted RMSE Stress    0.0866 GPa
+Weighted MAE Stress     0.0246 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 4
+
+Equilibration step for state 1, configurations 4 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 35
+Number of atomic environments for training: 1085
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0043 eV/angs
+Weighted MAE Forces     0.0011 eV/angs
+Weighted RMSE Stress    0.0853 GPa
+Weighted MAE Stress     0.0239 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 5
+
+Production step for state 1, configurations 5 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 36
+Number of atomic environments for training: 1116
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0042 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0839 GPa
+Weighted MAE Stress     0.0233 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 6
+
+Production step for state 1, configurations 6 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 37
+Number of atomic environments for training: 1147
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0042 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0827 GPa
+Weighted MAE Stress     0.0227 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 7
+
+Production step for state 1, configurations 7 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 38
+Number of atomic environments for training: 1178
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0815 GPa
+Weighted MAE Stress     0.0221 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 8
+
+Production step for state 1, configurations 8 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 39
+Number of atomic environments for training: 1209
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0001 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0804 GPa
+Weighted MAE Stress     0.0216 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 9
+
+Production step for state 1, configurations 9 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 40
+Number of atomic environments for training: 1240
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0001 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0040 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0793 GPa
+Weighted MAE Stress     0.0211 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:17
+
+
+State 1/1 :
+Geometry optimization as implemented in LAMMPS
+   target pressure: 5.0
+   min_style: cg
+   energy tolerance: 0.0
+   forces tolerance: 1e-06
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:17
+
+
+State 1/1 :
+Geometry optimization as implemented in LAMMPS
+   target pressure: 5.0
+   min_style: cg
+   energy tolerance: 0.0
+   forces tolerance: 1e-06
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+There are already 41 configurations in the database, no need to start training computations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 42
+Number of atomic environments for training: 1302
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0001 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0039 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0775 GPa
+Weighted MAE Stress     0.0202 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 43
+Number of atomic environments for training: 1333
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0009 eV/angs
+Weighted RMSE Stress    0.0804 GPa
+Weighted MAE Stress     0.0228 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 3
+
+Equilibration step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 44
+Number of atomic environments for training: 1364
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0795 GPa
+Weighted MAE Stress     0.0243 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 4
+
+Equilibration step for state 1, configurations 4 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 45
+Number of atomic environments for training: 1395
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0784 GPa
+Weighted MAE Stress     0.0249 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 5
+
+Production step for state 1, configurations 5 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 46
+Number of atomic environments for training: 1426
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0774 GPa
+Weighted MAE Stress     0.0256 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 6
+
+Production step for state 1, configurations 6 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 47
+Number of atomic environments for training: 1457
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0764 GPa
+Weighted MAE Stress     0.0264 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 7
+
+Production step for state 1, configurations 7 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 48
+Number of atomic environments for training: 1488
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0041 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0755 GPa
+Weighted MAE Stress     0.0268 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 8
+
+Production step for state 1, configurations 8 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 49
+Number of atomic environments for training: 1519
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0040 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0746 GPa
+Weighted MAE Stress     0.0270 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 9
+
+Production step for state 1, configurations 9 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 50
+Number of atomic environments for training: 1550
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0040 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0738 GPa
+Weighted MAE Stress     0.0271 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:18
+
+
+State 1/1 :
+Linear interpolation
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      rdm_memory
+Sampled coordinate:                 0.03160532856189935
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 47 47
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+so3 MLIAP descriptor
+--------------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            False
+nmax                4
+lmax                4
+alpha               1.0
+dimension           51
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:18
+
+
+State 1/1 :
+Linear interpolation
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      rdm_memory
+Sampled coordinate:                 0.03160532856189935
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 47 47
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+so3 MLIAP descriptor
+--------------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            False
+nmax                4
+lmax                4
+alpha               1.0
+dimension           51
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 214
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0000 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0017 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0021 GPa
+Weighted MAE Stress     0.0012 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 321
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0001 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0022 eV/angs
+Weighted MAE Forces     0.0013 eV/angs
+Weighted RMSE Stress    0.0059 GPa
+Weighted MAE Stress     0.0041 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:19
+
+
+State 1/1 :
+NEB calculation as implemented in ASE
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      saddle
+Sampled coordinate:                 0.5
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 47 47
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+so3 MLIAP descriptor
+--------------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            False
+nmax                4
+lmax                4
+alpha               1.0
+dimension           51
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:19
+
+
+State 1/1 :
+NEB calculation as implemented in ASE
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      saddle
+Sampled coordinate:                 0.5
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 47 47
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+so3 MLIAP descriptor
+--------------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            False
+nmax                4
+lmax                4
+alpha               1.0
+dimension           51
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 214
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0000 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0023 eV/angs
+Weighted MAE Forces     0.0014 eV/angs
+Weighted RMSE Stress    0.0013 GPa
+Weighted MAE Stress     0.0009 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 321
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0000 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0028 eV/angs
+Weighted MAE Forces     0.0018 eV/angs
+Weighted RMSE Stress    0.0073 GPa
+Weighted MAE Stress     0.0045 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:25
+
+
+State 1/1 :
+String method calculation as implemented in ASE
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      rdm_memory
+Sampled coordinate:                 0.6386653700643817
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 47 47
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+so3 MLIAP descriptor
+--------------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            False
+nmax                4
+lmax                4
+alpha               1.0
+dimension           51
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:25
+
+
+State 1/1 :
+String method calculation as implemented in ASE
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      rdm_memory
+Sampled coordinate:                 0.6386653700643817
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 1.0 2.0']
+pair_coeff * * 47 47
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+so3 MLIAP descriptor
+--------------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            False
+nmax                4
+lmax                4
+alpha               1.0
+dimension           51
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 214
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0000 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0017 eV/angs
+Weighted MAE Forces     0.0010 eV/angs
+Weighted RMSE Stress    0.0022 GPa
+Weighted MAE Stress     0.0012 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 321
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0000 eV/at
+Weighted MAE Energy     0.0000 eV/at
+Weighted RMSE Forces    0.0014 eV/angs
+Weighted MAE Forces     0.0008 eV/angs
+Weighted RMSE Stress    0.0021 GPa
+Weighted MAE Stress     0.0014 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:30
+
+
+State 1/3 :
+NPT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 100
+A Langevin thermostat is used
+Pressure (GPa)                          -1
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+Barostat damping parameter (in fs) :    $(1000*dt)
+
+State 2/3 :
+NPT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 200
+A Langevin thermostat is used
+Pressure (GPa)                          0
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+Barostat damping parameter (in fs) :    $(1000*dt)
+
+State 3/3 :
+NPT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Pressure (GPa)                          1
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+Barostat damping parameter (in fs) :    $(1000*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:30
+
+
+State 1/3 :
+NPT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 100
+A Langevin thermostat is used
+Pressure (GPa)                          -1
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+Barostat damping parameter (in fs) :    $(1000*dt)
+
+State 2/3 :
+NPT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 200
+A Langevin thermostat is used
+Pressure (GPa)                          0
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+Barostat damping parameter (in fs) :    $(1000*dt)
+
+State 3/3 :
+NPT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Pressure (GPa)                          1
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+Barostat damping parameter (in fs) :    $(1000*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 3 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+Equilibration step for state 2, configurations 1 for this state
+Equilibration step for state 3, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 6
+Number of atomic environments for training: 192
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0056 eV/at
+Weighted MAE Energy     0.0050 eV/at
+Weighted RMSE Forces    0.0823 eV/angs
+Weighted MAE Forces     0.0460 eV/angs
+Weighted RMSE Stress    1.3194 GPa
+Weighted MAE Stress     0.9004 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+ -> Starting from first atomic configuration
+ -> Starting from first atomic configuration
+State 1/3 has been launched
+State 2/3 has been launched
+State 3/3 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+Equilibration step for state 2, configurations 2 for this state
+Equilibration step for state 3, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 9
+Number of atomic environments for training: 288
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0057 eV/at
+Weighted MAE Energy     0.0051 eV/at
+Weighted RMSE Forces    0.0675 eV/angs
+Weighted MAE Forces     0.0333 eV/angs
+Weighted RMSE Stress    1.3102 GPa
+Weighted MAE Stress     0.8908 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+ -> Starting from first atomic configuration
+ -> Starting from first atomic configuration
+State 1/3 has been launched
+State 2/3 has been launched
+State 3/3 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 3
+
+Equilibration step for state 1, configurations 3 for this state
+Equilibration step for state 2, configurations 3 for this state
+Equilibration step for state 3, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 12
+Number of atomic environments for training: 384
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0057 eV/at
+Weighted MAE Energy     0.0051 eV/at
+Weighted RMSE Forces    0.0588 eV/angs
+Weighted MAE Forces     0.0270 eV/angs
+Weighted RMSE Stress    1.2953 GPa
+Weighted MAE Stress     0.8754 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+ -> Starting from first atomic configuration
+ -> Starting from first atomic configuration
+State 1/3 has been launched
+State 2/3 has been launched
+State 3/3 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:31
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Tensorpotential
+Parameters:
+-----------
+Weight : EnergyBasedWeight
+Descriptor used in the potential:
+ACE descriptor
+--------------
+Rcut: 6 ang
+Free atom energy (eV/at): {'Cu': 0}
+Dataframe : ACE.pckl.gzip
+Tolerance on e : 10.0 (meV/at)
+Tolerance on f : 500.0 (meV/ang)
+Fitting: {'maxiter': 200, 'fit_cycles': 1, 'repulsion': 'auto', 'optimizer': 'BFGS', 'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}, 'loss': {'kappa': 0.0001333155579256099, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12, 'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}}
+Backend: {'evaluator': 'tensorpot', 'parallel_mode': 'process', 'batch_size': 100, 'display_step': 50, 'nworkers': 4}
+BBasisConfiguration: BBasisConfiguration(deltaSplineBins=0.001, funcspecs_blocks=['Cu', ])
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:28:31
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Tensorpotential
+Parameters:
+-----------
+Weight : EnergyBasedWeight
+Descriptor used in the potential:
+ACE descriptor
+--------------
+Rcut: 6 ang
+Free atom energy (eV/at): {'Cu': 0}
+Dataframe : ACE.pckl.gzip
+Tolerance on e : 10.0 (meV/at)
+Tolerance on f : 500.0 (meV/ang)
+Fitting: {'maxiter': 200, 'fit_cycles': 1, 'repulsion': 'auto', 'optimizer': 'BFGS', 'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}, 'loss': {'kappa': 0.0001333155579256099, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12, 'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}}
+Backend: {'evaluator': 'tensorpot', 'parallel_mode': 'process', 'batch_size': 100, 'display_step': 50, 'nworkers': 4}
+BBasisConfiguration: BBasisConfiguration(deltaSplineBins=0.001, funcspecs_blocks=['Cu', ])
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+Number of configurations for training: 2
+Number of atomic environments for training: 64
+Using EnergyBased weighting
+Weighted RMSE Energy    0.0091 eV/at
+Weighted MAE Energy     0.0091 eV/at
+Weighted RMSE Forces    0.1523 eV/angs
+Weighted MAE Forces     0.0574 eV/angs
+Weighted RMSE Stress    362.8008 GPa
+Weighted MAE Stress     256.6702 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:28:43
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Tensorpotential
+Parameters:
+-----------
+Weight : EnergyBasedWeight
+Descriptor used in the potential:
+ACE descriptor
+--------------
+Rcut: 6 ang
+Free atom energy (eV/at): {'Cu': 0}
+Dataframe : ACE.pckl.gzip
+Tolerance on e : 10.0 (meV/at)
+Tolerance on f : 500.0 (meV/ang)
+Fitting: {'maxiter': 200, 'fit_cycles': 2, 'repulsion': 'auto', 'optimizer': 'BFGS', 'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}, 'loss': {'kappa': 0.0001333155579256099, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12, 'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}}
+Backend: {'evaluator': 'tensorpot', 'parallel_mode': 'process', 'batch_size': 100, 'display_step': 50, 'nworkers': 4}
+BBasisConfiguration: BBasisConfiguration(deltaSplineBins=0.001, funcspecs_blocks=['Cu', ])
+
+Adding previous configurations to the training data
+1 training configurations
+
+2 configuration from trajectories
+
+Configuration 1 / 1
+Adding previous configuration iteratively
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:28:43
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Tensorpotential
+Parameters:
+-----------
+Weight : EnergyBasedWeight
+Descriptor used in the potential:
+ACE descriptor
+--------------
+Rcut: 6 ang
+Free atom energy (eV/at): {'Cu': 0}
+Dataframe : ACE.pckl.gzip
+Tolerance on e : 10.0 (meV/at)
+Tolerance on f : 500.0 (meV/ang)
+Fitting: {'maxiter': 200, 'fit_cycles': 2, 'repulsion': 'auto', 'optimizer': 'BFGS', 'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}, 'loss': {'kappa': 0.0001333155579256099, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12, 'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}}
+Backend: {'evaluator': 'tensorpot', 'parallel_mode': 'process', 'batch_size': 100, 'display_step': 50, 'nworkers': 4}
+BBasisConfiguration: BBasisConfiguration(deltaSplineBins=0.001, funcspecs_blocks=['Cu', ])
+
+============================================================
+Step 0
+
+Production step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+Number of configurations for training: 3
+Number of atomic environments for training: 96
+Using EnergyBased weighting
+Weighted RMSE Energy    0.0067 eV/at
+Weighted MAE Energy     0.0060 eV/at
+Weighted RMSE Forces    0.1798 eV/angs
+Weighted MAE Forces     0.0940 eV/angs
+Weighted RMSE Stress    346.8329 GPa
+Weighted MAE Stress     245.4177 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+Number of configurations for training: 4
+Number of atomic environments for training: 128
+Using EnergyBased weighting
+Weighted RMSE Energy    0.0101 eV/at
+Weighted MAE Energy     0.0077 eV/at
+Weighted RMSE Forces    0.2202 eV/angs
+Weighted MAE Forces     0.1170 eV/angs
+Weighted RMSE Stress    348.1811 GPa
+Weighted MAE Stress     246.4129 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:19
+
+
+State 1/1 :
+NVT Langevin dynamics as implemented in ASE
+Temperature (in Kelvin)                300
+Number of MLMD equilibration steps :   10
+Number of MLMD production steps :      10
+Timestep (in fs) :                     1.5
+Friction (in fs) :                     0.10180505671156725
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:19
+
+
+State 1/1 :
+NVT Langevin dynamics as implemented in ASE
+Temperature (in Kelvin)                300
+Number of MLMD equilibration steps :   10
+Number of MLMD production steps :      10
+Timestep (in fs) :                     1.5
+Friction (in fs) :                     0.10180505671156725
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 64
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0005 eV/at
+Weighted MAE Energy     0.0005 eV/at
+Weighted RMSE Forces    0.0142 eV/angs
+Weighted MAE Forces     0.0081 eV/angs
+Weighted RMSE Stress    0.3282 GPa
+Weighted MAE Stress     0.2445 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:19
+
+
+State 1/1 :
+NVT Langevin dynamics as implemented in ASE
+Temperature (in Kelvin)                300
+Number of MLMD equilibration steps :   10
+Number of MLMD production steps :      10
+Timestep (in fs) :                     1.5
+Friction (in fs) :                     0.10180505671156725
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+Adding previous configurations to the training data
+1 training configurations
+
+2 configuration from trajectories
+
+Configuration 1 / 1
+Adding previous configuration iteratively
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:19
+
+
+State 1/1 :
+NVT Langevin dynamics as implemented in ASE
+Temperature (in Kelvin)                300
+Number of MLMD equilibration steps :   10
+Number of MLMD production steps :      10
+Timestep (in fs) :                     1.5
+Friction (in fs) :                     0.10180505671156725
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+
+Production step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 96
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0003 eV/at
+Weighted MAE Energy     0.0002 eV/at
+Weighted RMSE Forces    0.0132 eV/angs
+Weighted MAE Forces     0.0080 eV/angs
+Weighted RMSE Stress    0.2718 GPa
+Weighted MAE Stress     0.1834 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 4
+Number of atomic environments for training: 128
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0003 eV/at
+Weighted MAE Energy     0.0003 eV/at
+Weighted RMSE Forces    0.0144 eV/angs
+Weighted MAE Forces     0.0095 eV/angs
+Weighted RMSE Stress    0.2419 GPa
+Weighted MAE Stress     0.1708 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:19
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Moment Tensor Potential
+Parameters:
+-----------
+Descriptor:
+-----------
+level :                 8
+radial basis function : RBChebyshev
+Radial basis size :     8
+Minimum distance :      1.0
+Cutoff :                5.0
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:19
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Moment Tensor Potential
+Parameters:
+-----------
+Descriptor:
+-----------
+level :                 8
+radial basis function : RBChebyshev
+Radial basis size :     8
+Minimum distance :      1.0
+Cutoff :                5.0
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+number of configurations for training: 2
+number of atomic environments for training: 64
+number of configurations for training: 2
+number of atomic environments for training: 64
+RMSE Energy    0.0000 eV/at
+MAE Energy     0.0000 eV/at
+RMSE Forces    0.0017 eV/angs
+MAE Forces     0.0009 eV/angs
+RMSE Stress    0.0052 GPa
+MAE Stress     0.0026 GPa
+
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:21
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Moment Tensor Potential
+Parameters:
+-----------
+Descriptor:
+-----------
+level :                 8
+radial basis function : RBChebyshev
+Radial basis size :     8
+Minimum distance :      1.0
+Cutoff :                5.0
+
+Adding previous configurations to the training data
+1 training configurations
+
+2 configuration from trajectories
+
+Configuration 1 / 1
+Adding previous configuration iteratively
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:21
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Moment Tensor Potential
+Parameters:
+-----------
+Descriptor:
+-----------
+level :                 8
+radial basis function : RBChebyshev
+Radial basis size :     8
+Minimum distance :      1.0
+Cutoff :                5.0
+
+============================================================
+Step 0
+
+Production step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+number of configurations for training: 3
+number of atomic environments for training: 96
+number of configurations for training: 3
+number of atomic environments for training: 96
+RMSE Energy    0.0000 eV/at
+MAE Energy     0.0000 eV/at
+RMSE Forces    0.0014 eV/angs
+MAE Forces     0.0009 eV/angs
+RMSE Stress    0.0052 GPa
+MAE Stress     0.0027 GPa
+
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+number of configurations for training: 4
+number of atomic environments for training: 128
+number of configurations for training: 4
+number of atomic environments for training: 128
+RMSE Energy    0.0000 eV/at
+MAE Energy     0.0000 eV/at
+RMSE Forces    0.0017 eV/angs
+MAE Forces     0.0011 eV/angs
+RMSE Stress    0.0051 GPa
+MAE Stress     0.0033 GPa
+
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:23
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:23
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 64
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0008 eV/at
+Weighted MAE Energy     0.0008 eV/at
+Weighted RMSE Forces    0.0171 eV/angs
+Weighted MAE Forces     0.0093 eV/angs
+Weighted RMSE Stress    0.3126 GPa
+Weighted MAE Stress     0.2328 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:23
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+Adding previous configurations to the training data
+1 training configurations
+
+2 configuration from trajectories
+
+Configuration 1 / 1
+Adding previous configuration iteratively
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:23
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+
+Production step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 96
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0004 eV/at
+Weighted MAE Energy     0.0004 eV/at
+Weighted RMSE Forces    0.0166 eV/angs
+Weighted MAE Forces     0.0103 eV/angs
+Weighted RMSE Stress    0.2783 GPa
+Weighted MAE Stress     0.1915 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 4
+Number of atomic environments for training: 128
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0004 eV/at
+Weighted MAE Energy     0.0004 eV/at
+Weighted RMSE Forces    0.0174 eV/angs
+Weighted MAE Forces     0.0114 eV/angs
+Weighted RMSE Stress    0.2644 GPa
+Weighted MAE Stress     0.1851 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:24
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 0.9 2.0']
+pair_coeff 1 1 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:24
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 0.9 2.0']
+pair_coeff 1 1 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 64
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0006 eV/at
+Weighted MAE Energy     0.0006 eV/at
+Weighted RMSE Forces    0.0112 eV/angs
+Weighted MAE Forces     0.0062 eV/angs
+Weighted RMSE Stress    0.2575 GPa
+Weighted MAE Stress     0.1811 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:24
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 0.9 2.0']
+pair_coeff 1 1 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+Adding previous configurations to the training data
+1 training configurations
+
+2 configuration from trajectories
+
+Configuration 1 / 1
+Adding previous configuration iteratively
+
+
+
+============================================================
+                 Restarting simulation
+============================================================
+date: 19-06-2024  12:29:24
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Delta learning potential
+------------------------
+Reference potential :
+pair_style ['zbl 0.9 2.0']
+pair_coeff 1 1 29 29
+
+MLIP potential :
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+
+Production step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 96
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0004 eV/at
+Weighted MAE Energy     0.0003 eV/at
+Weighted RMSE Forces    0.0112 eV/angs
+Weighted MAE Forces     0.0071 eV/angs
+Weighted RMSE Stress    0.2169 GPa
+Weighted MAE Stress     0.1371 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 4
+Number of atomic environments for training: 128
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0005 eV/at
+Weighted MAE Energy     0.0004 eV/at
+Weighted RMSE Forces    0.0197 eV/angs
+Weighted MAE Forces     0.0117 eV/angs
+Weighted RMSE Stress    0.2216 GPa
+Weighted MAE Stress     0.1604 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:24
+
+
+State 1/1 :
+Linear interpolation
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      saddle
+Sampled coordinate:                 0.3
+
+Constrained dynamics as implemented in LAMMPS with fix PAFI
+Temperature (in Kelvin) :                300
+Number of MLMD equilibration steps :     2
+Number of MLMD production steps :        100
+Timestep (in fs) :                       1.5
+Themostat damping parameter (in fs) :    $(100*dt)
+Path coordinate :                        0.3
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:24
+
+
+State 1/1 :
+Linear interpolation
+Number of replicas:                 8
+Interpolation method:               linear
+Sampling mode:                      saddle
+Sampled coordinate:                 0.3
+
+Constrained dynamics as implemented in LAMMPS with fix PAFI
+Temperature (in Kelvin) :                300
+Number of MLMD equilibration steps :     2
+Number of MLMD production steps :        100
+Timestep (in fs) :                       1.5
+Themostat damping parameter (in fs) :    $(100*dt)
+Path coordinate :                        0.3
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Ag
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 214
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0002 eV/at
+Weighted RMSE Forces    0.0070 eV/angs
+Weighted MAE Forces     0.0041 eV/angs
+Weighted RMSE Stress    0.0104 GPa
+Weighted MAE Stress     0.0068 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 321
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0083 eV/angs
+Weighted MAE Forces     0.0046 eV/angs
+Weighted RMSE Stress    0.0268 GPa
+Weighted MAE Stress     0.0185 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 3
+
+Equilibration step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 4
+Number of atomic environments for training: 428
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0001 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0082 eV/angs
+Weighted MAE Forces     0.0045 eV/angs
+Weighted RMSE Stress    0.0367 GPa
+Weighted MAE Stress     0.0237 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 4
+
+Equilibration step for state 1, configurations 4 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 5
+Number of atomic environments for training: 535
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0001 eV/at
+Weighted MAE Energy     0.0001 eV/at
+Weighted RMSE Forces    0.0079 eV/angs
+Weighted MAE Forces     0.0044 eV/angs
+Weighted RMSE Stress    0.0413 GPa
+Weighted MAE Stress     0.0249 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:29
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:29
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    2
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 64
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0003 eV/at
+Weighted MAE Energy     0.0003 eV/at
+Weighted RMSE Forces    0.0078 eV/angs
+Weighted MAE Forces     0.0044 eV/angs
+Weighted RMSE Stress    0.1665 GPa
+Weighted MAE Stress     0.1187 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Equilibration step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 96
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0003 eV/at
+Weighted MAE Energy     0.0002 eV/at
+Weighted RMSE Forces    0.0066 eV/angs
+Weighted MAE Forces     0.0037 eV/angs
+Weighted RMSE Stress    0.1513 GPa
+Weighted MAE Stress     0.1010 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 3
+
+Equilibration step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 4
+Number of atomic environments for training: 128
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0002 eV/at
+Weighted RMSE Forces    0.0058 eV/angs
+Weighted MAE Forces     0.0032 eV/angs
+Weighted RMSE Stress    0.1378 GPa
+Weighted MAE Stress     0.0841 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 4
+
+Equilibration step for state 1, configurations 4 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 5
+Number of atomic environments for training: 160
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0002 eV/at
+Weighted MAE Energy     0.0002 eV/at
+Weighted RMSE Forces    0.0053 eV/angs
+Weighted MAE Forces     0.0029 eV/angs
+Weighted RMSE Stress    0.1269 GPa
+Weighted MAE Stress     0.0712 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:29
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:29
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       100
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+Calculator : emt
+parameters :
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+SNAP descriptor
+---------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            0
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Equilibration step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 6
+Number of atomic environments for training: 192
+
+Using Uniform weighting
+Weighted RMSE Energy    0.0005 eV/at
+Weighted MAE Energy     0.0003 eV/at
+Weighted RMSE Forces    0.0218 eV/angs
+Weighted MAE Forces     0.0154 eV/angs
+Weighted RMSE Stress    0.2318 GPa
+Weighted MAE Stress     0.1463 GPa
+
+Running MLMD
+ -> Starting from first atomic configuration
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:30
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+
+============================================================
+    On-the-fly Machine-Learning Assisted Canonical Sampling
+======================= version  0.0.13 =====================
+date: 19-06-2024  12:29:30
+
+
+State 1/1 :
+NVT dynamics as implemented in LAMMPS
+Temperature (in Kelvin)                 300
+A Langevin thermostat is used
+Number of MLMD equilibration steps :    10
+Number of MLMD production steps :       10
+Timestep (in fs) :                      1.5
+Themostat damping parameter (in fs) :   $(100*dt)
+
+
+True potential parameters:
+
+
+Linear potential
+Parameters:
+-----------
+Fit method :            ols
+
+Descriptor used in the potential:
+snap MLIAP descriptor
+---------------------
+Elements :
+Cu
+Parameters :
+rcut                4.2
+chemflag            False
+twojmax             4
+rfac0               0.99363
+rmin0               0.0
+switchflag          1
+bzeroflag           1
+wselfallflag        0
+dimension           15
+
+============================================================
+Step 0
+Running initial step
+There are 1 unique configuration in the states 
+Computation done, creating trajectories
+
+Computing energy with true potential on training configurations
+
+============================================================
+Step 1
+
+Production step for state 1, configurations 1 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 2
+Number of atomic environments for training: 64
+
+Weighted RMSE Energy    0.0006 eV/at
+Weighted MAE Energy     0.0006 eV/at
+Weighted RMSE Forces    0.0176 eV/angs
+Weighted MAE Forces     0.0094 eV/angs
+Weighted RMSE Stress    0.2209 GPa
+Weighted MAE Stress     0.1630 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 2
+
+Production step for state 1, configurations 2 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 3
+Number of atomic environments for training: 96
+
+Using MBAR weighting
+Effective number of configurations:    2.88879
+Number of uncorrelated snapshots for each k state:
+[2 1]
+Weighted RMSE Energy    0.0003 eV/at
+Weighted MAE Energy     0.0003 eV/at
+Weighted RMSE Forces    0.0183 eV/angs
+Weighted MAE Forces     0.0115 eV/angs
+Weighted RMSE Stress    0.2141 GPa
+Weighted MAE Stress     0.1388 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 3
+
+Production step for state 1, configurations 3 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 4
+Number of atomic environments for training: 128
+
+Using MBAR weighting
+Effective number of configurations:    3.81760
+Number of uncorrelated snapshots for each k state:
+[2 1 1]
+Weighted RMSE Energy    0.0003 eV/at
+Weighted MAE Energy     0.0003 eV/at
+Weighted RMSE Forces    0.0211 eV/angs
+Weighted MAE Forces     0.0142 eV/angs
+Weighted RMSE Stress    0.2319 GPa
+Weighted MAE Stress     0.1626 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+
+============================================================
+Step 4
+
+Production step for state 1, configurations 4 for this state
+
+
+Training new MLIP
+
+
+Number of configurations for training: 5
+Number of atomic environments for training: 160
+
+Using MBAR weighting
+Effective number of configurations:    4.73502
+Number of uncorrelated snapshots for each k state:
+[2 1 1 1]
+Weighted RMSE Energy    0.0004 eV/at
+Weighted MAE Energy     0.0004 eV/at
+Weighted RMSE Forces    0.0238 eV/angs
+Weighted MAE Forces     0.0164 eV/angs
+Weighted RMSE Stress    0.2876 GPa
+Weighted MAE Stress     0.1818 GPa
+
+Running MLMD
+State 1/1 has been launched
+Computing energy with the True potential
+

@@ -25,7 +25,7 @@ Install
 Python Environment
 ------------------
 
-It is recommended to use a relatively recent version of python (>3.7) for optimal package operation. It is also a good idea to use python virtual environments, which makes it easier to manage python packages and their versions.
+It is recommended to use a relatively recent version of python (>3.8) for optimal package operation. It is also a good idea to use python virtual environments, which makes it easier to manage python packages and their versions.
 The creation of the environment is done with the python ``virtualenv`` module (or for recent versions of python, ``venv``).
 
 .. code:: bash
