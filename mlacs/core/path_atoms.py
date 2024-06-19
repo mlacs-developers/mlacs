@@ -24,11 +24,11 @@ class PathAtoms:
 
     mode: :class:`float` or :class:`string`
         Value of the reaction coordinate or sampling mode:
+        - ``saddle`` return the saddle point.
         - ``float`` sampling at a precise coordinate.
+        - ``rdm`` randomly return the coordinate of a splined images.
         - ``rdm_true`` randomly return the coordinate of an images.
-        - ``rdm_spl`` randomly return the coordinate of a splined images.
         - ``rdm_memory`` homogeneously sample the splined reaction coordinate.
-        - ``None`` return the saddle point.
         Default ``saddle``
 
     """
@@ -53,10 +53,10 @@ class PathAtoms:
         self._memxi = interval
         self._splR = None
         self._splined = None
-        if self._xi is None:
-            self._splprec = 1001
+        self._splprec = 1001
         if self._memxi is None:
             self._memxi = [0.0, 1.0]
+        self._gpi = None
 
     @property
     def images(self):
@@ -87,7 +87,8 @@ class PathAtoms:
 
     @property
     def imgE(self):
-        return np.array([a.get_potential_energy() for a in self.images])
+        _imgE = [a.get_potential_energy() for a in self.images]
+        return np.array(_imgE, dtype=float)
 
     @property
     def imgC(self):
@@ -131,11 +132,7 @@ class PathAtoms:
             if self._tmp_xi is None:
                 self._tmp_xi = 0.5
                 return self._tmp_xi
-            x = np.linspace(0, 1, self._splprec)
-            # RB : The derivatives at xi=0 or 1 is not always null.
-            # y = np.r_[intpts(self.imgxi, self.imgE, x, 0, border=1)]
-            y = np.r_[intpts(self.imgxi, self.imgE, x, 0)]
-            self._tmp_xi = x[y.argmax()]
+            self._tmp_xi, _ = self.saddle_point
             return self._tmp_xi
         elif mode == 'rdm':
             i, f = tuple(self._memxi)
@@ -151,6 +148,9 @@ class PathAtoms:
             i, f = tuple(self._memxi)
             xiint = list(filter(lambda x: cond(x, i, f), self.imgxi))
             self._tmp_xi = np.random.choice(xiint)
+            return self._tmp_xi
+        elif mode == 'gaussian':
+            self._tmp_xi = self._gaussian_process()
             return self._tmp_xi
         else:
             msg = 'The reaction coordinate is not defined.'
@@ -202,7 +202,25 @@ class PathAtoms:
     def splE(self):
         # RB : The derivatives at xi=0 or 1 is not always null.
         # return np.r_[intpts(self.imgxi, self.imgE, self.xi, 0, border=1)]
-        return np.r_[intpts(self.imgxi, self.imgE, self.xi, 0)]
+        _splE = self.set_splined_energy(self.xi)
+        return _splE
+
+    @property
+    def saddle_point(self):
+        x = np.linspace(0, 1, self._splprec)
+        # RB : The derivatives at xi=0 or 1 is not always null.
+        # y = np.r_[intpts(self.imgxi, self.imgE, x, 0, border=1)]
+        y = self.set_splined_energy(x)
+        return x[y.argmax()], max(y)
+
+    @property
+    def saddle(self):
+        """Get the saddle point image"""
+        _xi = self._xi
+        xi, _ = self.saddle_point
+        self._saddle = self.get_splined_atoms(xi)
+        self._xi = _xi
+        return self._saddle
 
     @property
     def splC(self):
@@ -249,6 +267,14 @@ class PathAtoms:
             at.calc = calc
             splat.append(at)
         return splat
+
+    def set_splined_energy(self, xi=None):
+        if xi is None:
+            xi = np.linspace(0, 1, self._splprec)
+        # RB : The derivatives at xi=0 or 1 is not always null.
+        # y = np.r_[intpts(self.imgxi, self.imgE, x, 0, border=1)]
+        y = np.r_[intpts(self.imgxi, self.imgE, xi, 0)]
+        return np.array(y, dtype=float)
 
     def set_splined_matrices(self, xi=None):
         """
@@ -302,3 +328,56 @@ class PathAtoms:
                                         for j in range(3)]]
             self._splR[i, 12:15] = np.r_[[der2[i, j] / n / n
                                          for j in range(3)]]
+
+    def _gaussian_process(self):
+        """
+        Run Gaussian process regressor to do Bahesian inference.
+        """
+        from mlacs.core import GaussianProcessInterface as GPI
+        from sklearn.gaussian_process.kernels import (RBF,
+                                                      ConstantKernel as C)
+
+        # RB : We can't evaluate the energy at the initialisation.
+        if self._tmp_xi is None:
+            x = np.r_[[self.imgxi[0], self.imgxi[-1]]]
+            y = np.r_[[self.imgE[0], self.imgE[-1]]]
+
+            self._gpi = GPI(kernel=RBF()*C(),
+                            gp_parameters=dict(normalize_y=False))
+            self._gpi.add_new_data(x, y)
+
+            self._gp_minE = self.set_splined_energy()
+            self._gp_maxE = self.set_splined_energy()
+            self._gp_error = self._gp_maxE - self._gp_minE
+            self._gp_error_max = max(np.abs(self._gp_error))
+
+            i, f = tuple(self._memxi)
+            return np.random.uniform(i, f)
+
+        error = self.set_splined_energy() - self._gp_minE
+        if max(np.abs(error)) > self._gp_error_max:
+            self._gp_maxE = self.set_splined_energy()
+        error = self._gp_maxE - self.set_splined_energy()
+        if max(np.abs(error)) > self._gp_error_max:
+            self._gp_minE = self.set_splined_energy()
+        self._gp_error = self._gp_maxE - self._gp_minE
+        self._gp_error_max = max(np.abs(self._gp_error))
+
+        if len(self._gpi.y) <= 3:
+            self._gpi.add_new_data(np.r_[[self.xi]], self.splE)
+
+            i, f = tuple(self._memxi)
+            return np.random.uniform(i, f)
+        else:
+            self._gpi.add_new_data(np.r_[[self.xi]], self.splE)
+
+        x = np.linspace(0, 1, self._splprec)
+        xi = self._gpi.x.reshape(1, -1)[0]
+        alpha = np.array(intpts(x, self._gp_error, xi, 0), dtype=float)
+
+        self._gpi.alpha_ = alpha
+        self._gpi.train()
+        mean, std = self._gpi.predict(x, True)
+
+        std = np.max(std, axis=0) - np.min(std, axis=0)
+        return x[np.argmax(std)]
