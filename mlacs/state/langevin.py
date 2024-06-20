@@ -103,7 +103,7 @@ class LangevinState(StateManager):
         self.isneb = False
 
 # ========================================================================== #
-    @Manager.exec_from_subdir
+    @Manager.exec_from_subsubdir
     def run_dynamics(self,
                      supercell,
                      pair_style,
