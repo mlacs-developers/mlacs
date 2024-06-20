@@ -331,7 +331,7 @@ class PathAtoms:
 
     def _gaussian_process(self):
         """
-        Run Gaussian process regressor to do Bahesian inference.
+        Run Gaussian process regressor to do Bayesian inference.
         """
         from mlacs.core import GaussianProcessInterface as GPI
         from sklearn.gaussian_process.kernels import (RBF,

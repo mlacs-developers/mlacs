@@ -1,7 +1,5 @@
 import pytest
 
-import os
-
 from ase.build import bulk
 from ase.calculators.emt import EMT
 from mlacs.mlip import DeltaLearningPotential, LinearPotential
