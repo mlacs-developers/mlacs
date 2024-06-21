@@ -1,4 +1,3 @@
-import shutil
 from unittest.mock import patch
 
 import numpy as np
@@ -64,7 +63,7 @@ def test_update_matrices():
     assert manager.ymat_f.shape == (nf,)
     assert manager.ymat_s.shape == (ns,)
 
-    #if manager.folder.exists():
+    # if manager.folder.exists():
     #    shutil.rmtree(manager.folder)
 
 
@@ -150,5 +149,5 @@ def test_update_matrices_delta():
     assert manager.model.ymat_f.shape == (nf,)
     assert manager.model.ymat_s.shape == (ns,)
 
-    #if manager.folder.exists():
+    # if manager.folder.exists():
     #    shutil.rmtree(manager.folder)
