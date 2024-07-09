@@ -12,6 +12,12 @@ from ..core.manager import Manager
 from ..utilities.thermo import (free_energy_uhlenbeck_ford,
                                 free_energy_ideal_gas)
 from ase.io import read
+from ..utilities import get_elements_Z_and_masses
+
+from ..state.lammps_state import BaseLammpsState       
+from ..utilities.io_lammps import (LammpsInput,
+                                   EmptyLammpsBlockInput,
+                                   LammpsBlockInput)
 
 p_tabled = [1, 25, 50, 75, 100]
 
@@ -27,65 +33,80 @@ class UFLiquidState(ThermoState):
     ----------
     atoms: :class:`ase.Atoms`
         ASE atoms object on which the simulation will be performed
+
     pair_style: :class:`str`
         pair_style for the LAMMPS input
+
     pair_coeff: :class:`str` or :class:`list` of :class:`str`
         pair_coeff for the LAMMPS input
+
     temperature: :class:`float`
         Temperature of the simulation
+
     pressure: :class:float
         Pressure. None default value
+
     fcorr1: :class:`float` or ``None``
         First order cumulant correction to the free energy, in eV/at,
         to be added to the results.
         If ``None``, no value is added. Default ``None``.
+
     fcorr2: :class:`float` or ``None``
         Second order cumulant correction to the free energy, in eV/at,
         to be added to the results.
         If ``None``, no value is added. Default ``None``.
+
     equilibrate: :class:`Bool` (optional)
         Equilibrate the ideal strucutre at zero or finite pressure.
         Default ``True``
+
     p: :class:`int`
         p parameter of the Uhlenbeck-Ford potential.
         Should be ``1``, ``25``, ``50``, ``75`` or ``100``. Default ``50``
-    p: :class:`float`
+
+    sigma: :class:`float`
         sigma parameter of the Uhlenbeck-Ford potential. Default ``2.0``.
+
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1``
+
     damp : :class:`float` (optional)
         Damping parameter.
         If ``None``, a damping parameter of 100 x dt is used.
+
     nsteps: :class:`int` (optional)
         Number of production steps. Default ``10000``.
+
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
+
     nsteps_averaging: :class:`int` (optional)
         Number of step for equilibrate ideal structure
         at zero or finite pressure. Default ``10000``.
+
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
+
     langevin: :class:`Bool`
         Settle or not a langevin thermostat to equilibrate
-        an ideal structure at zero or finite pressure. Default ``False``
-    suffixdir: :class:`str`
-        Suffix for the directory in which the computation will be run.
-        If ``None``, a directory ``\"Liquid_TXK\"`` is created,
-        where X is the temperature. Default ``None``.
-    logfile : :class:`Bool` (optional)
-        Activate file for logging the MLMD trajectory.
-        If ``False``, no log file is created. Default ``True``.
-    trajfile : :class:`Bool` (optional)
-        Activate Name of the file for saving the MLMD trajectory dump.
-        If ``False``, no dump file is created. Default ``True``.
+        an ideal structure at zero or finite pressure. Default ``True``
+
+    logfile : :class:`str` (optional)
+        Name of the file for logging the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+
+    trajfile : :class:`str` (optional)
+        Name of the file for saving the MLMD trajectory.
+        If ``None``, no log file is created. Default ``None``.
+
     interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default ``50``.
+        loginterval. Default ``50``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-    trajinterval : :class:`int` (optional)
-        Number of steps between MLMD traj writing. Default ``50``.
+
     """
     def __init__(self,
                  atoms,
@@ -104,14 +125,29 @@ class UFLiquidState(ThermoState):
                  nsteps_eq=5000,
                  nsteps_averaging=10000,
                  rng=None,
-                 langevin=False,
-                 suffixdir=None,
-                 logfile=True,
-                 trajfile=True,
+                 langevin=True,
+                 logfile=None,
+                 trajfile=None,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50,
                  **kwargs):
+
+        kwargs.setdefault('folder', f"LiquidUF_T{temperature}K")
+
+        super().__init__(atoms,
+                         pair_style,
+                         pair_coeff,
+                         dt=dt,
+                         nsteps=nsteps,
+                         nsteps_eq=nsteps_eq,
+                         nsteps_averaging=nsteps_averaging,
+                         rng=rng,
+                         langevin=langevin,
+                         logfile=logfile,
+                         trajfile=trajfile,
+                         interval=interval,
+                         loginterval=loginterval,
+                         **kwargs)
 
         self.atoms = atoms
         self.temperature = temperature
@@ -124,42 +160,26 @@ class UFLiquidState(ThermoState):
 
         self.p = p
         self.sigma = sigma
-
+        self.dt = dt
+        self.rng = rng
+        if self.rng is None:
+            self.rng = np.random.default_rng()
+        self.langevin = langevin
+       
         if self.pressure is not None:
             self.equilibrate = True
         else:
             self.equilibrate = False
 
+        self.nsteps= nsteps
+        self.nsteps_eq = nsteps_eq
+            
         if self.p not in p_tabled:
             msg = "The p value of the UF potential has to be one for " + \
                   "which the free energy of the Uhlenbeck-Ford potential " + \
                   "is tabulated\n" + \
                   "Those value are : 1, 25, 50, 75 and 100"
             raise ValueError(msg)
-
-        ThermoState.__init__(self,
-                             atoms,
-                             pair_style,
-                             pair_coeff,
-                             dt,
-                             nsteps,
-                             nsteps_eq,
-                             nsteps_averaging,
-                             rng,
-                             langevin,
-                             logfile,
-                             trajfile,
-                             interval,
-                             loginterval,
-                             trajinterval,
-                             **kwargs)
-
-        self.subfolder = kwargs.get('subfolder', None)
-        if not str(self.subfolder):
-            self.subfolder = f"LiquidUF_T{self.temperature}K"
-
-        # GA: suffixdir is replaced with subfolder
-        # self.suffixdir = self.subfolder
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -170,31 +190,10 @@ class UFLiquidState(ThermoState):
         if self.equilibrate:
             self.run_averaging()
 
-        self.run_dynamics()
+        self.run_dynamics(self.atoms, self.pair_style, self.pair_coeff)
 
         with open("MLMD.done", "w") as f:
             f.write("Done")
-
-# ========================================================================== #
-    @Manager.exec_from_path
-    def run_dynamics(self):
-        """
-        """
-        if self.equilibrate:
-            # red last_dump_atoms
-            eq_structure = read('dump_averaging')
-            atomsfname = str(self.path / "eq_atoms.in")
-            write_lammps_data(atomsfname, eq_structure)
-            atomsfname = "eq_atoms.in"
-        else:
-            atomsfname = str(self.path / "atoms.in")
-            write_lammps_data(atomsfname, self.atoms)
-            atomsfname = "atoms.in"
-        lammpsfname = str(self.path / "lammps_input.in")
-        lammps_command = self.cmd + "< " + lammpsfname + "> log"
-
-        self.write_lammps_input(atomsfname)
-        call(lammps_command, shell=True, cwd=str(self.path))
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -204,11 +203,7 @@ class UFLiquidState(ThermoState):
         """
         pass
         # Get needed value/constants
-        if self.equilibrate:
-            eq_structure = read('dump_averaging')
-            vol = eq_structure.get_volume()
-        else:
-            vol = self.atoms.get_volume()  # angs**3
+        vol = self.atoms.get_volume()  # angs**3
         nat_tot = len(self.atoms)
 
         nat = []
@@ -303,16 +298,58 @@ class UFLiquidState(ThermoState):
                 return msg, free_energy + pv
 
 # ========================================================================== #
-    @Manager.exec_from_path
-    def write_lammps_input(self, atomsfname):
+    def _get_block_thermostat(self, eq):
         """
-        Write the LAMMPS input for the MLMD simulation
         """
+        if self.damp is None:
+             self.damp = "$(100*dt)"
 
-        damp = self.damp
-        if damp is None:
-            damp = "$(100*dt)"
+        temp = self.temperature
+        self.info_dynamics["temperature"] = temp
+        if self.langevin:
+            langevinseed = self.rng.integers(1, 9999999)
 
+        block = LammpsBlockInput("thermostat", "Integrators")
+        block("timestep", f"timestep {self.dt / 1000}")
+        block("momenta", f"velocity all create " +\
+              f"{temp} {langevinseed} dist gaussian")
+        # If we are using Langevin, we want to remove the random part
+        # of the forces
+        if self.langevin:
+            block("rmv_langevin", "fix ff all store/force")
+            txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+                  f"{langevinseed} zero yes"
+            block("langevin", txt)
+            block("nve", "fix f2 all nve")
+        else:
+            block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
+        block("compute temp without cm", "compute c1 all temp/com")
+        block("fix cm", "fix_modify f1 temp c1")
+        return block
+    
+# ========================================================================== #
+    def _get_block_traj(self, atoms):
+        """
+        """
+        if self.trajfile:
+            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+            block = LammpsBlockInput("dump", "Dumping")
+            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
+                  "id type xu yu zu vx vy vz fx fy fz "
+            txt += "element"
+            block("dump", txt)
+            block("dump_modify1", "dump_modify dum1 append yes")
+            txt = "dump_modify dum1 element " + " ".join([p for p in el])
+            block("dump_modify2", txt)
+            return block
+        else:
+            pass
+
+# ========================================================================== #
+    def _get_neti(self):
+        """
+        """
+        blocks = []
         pair_style = self.pair_style.split()
         if len(self.pair_coeff) == 1:
             pair_coeff = self.pair_coeff[0].split()
@@ -326,140 +363,99 @@ class UFLiquidState(ThermoState):
                 hpc_ = " ".join([*pc_[:2], *pc_[2:]])
                 hybrid_pair_coeff.append(hpc_)
 
-        input_string = self.get_general_input(atomsfname)
-
-        input_string += "#####################################\n"
-        input_string += "#        Initialize variables\n"
-        input_string += "#####################################\n"
-        input_string += f"variable      nsteps equal {self.nsteps}\n"
-        input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
-        input_string += f"variable      T equal {self.temperature}\n"
-        input_string += f"timestep      {self.dt / 1000}\n"
-        input_string += "#####################################\n"
-
-        input_string += "\n\n\n"
-
-        input_string += self.get_interaction_input()
-
-        input_string += "#####################################\n"
-        input_string += "#       UF potential parameters\n"
-        input_string += "#####################################\n"
-        input_string += f"variable      p    equal  {self.p}\n"
-        input_string += "variable      kB   equal  8.6173303e-5\n"
-        input_string += "variable      eps  equal  ${T}*${p}*${kB}\n"
-        input_string += f"variable      sig  equal  {self.sigma}\n"
-        input_string += "variable      rc   equal  5.0*${sig}\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n\n"
-
-        input_string += "#####################################\n"
-        input_string += "# Integrators\n"
-        input_string += "#####################################\n"
-        input_string += f"velocity      all create {self.temperature} " + \
-                        f"{self.rng.integers(99999)} dist gaussian\n"
-        input_string += "fix           f2  all nve\n"
-        input_string += "fix           f1  all langevin " + \
-                        f"{self.temperature} {self.temperature}  " + \
-                        f"{damp}  {self.rng.integers(99999)} zero yes\n\n"
-        input_string += "# Fix center of mass\n"
-        input_string += "compute       c1 all temp/com\n"
-        input_string += "fix_modify    f1 temp c1\n"
-        input_string += "#####################################\n"
-
-        input_string += "\n\n"
-
-        if self.logfile:
-            input_string += self.get_log_input()
-        if self.trajfile:
-            input_string += self.get_traj_input()
-
-        input_string += "\n"
-
-        input_string += "#####################################\n"
-        input_string += "#         Equilibration\n"
-        input_string += "#####################################\n"
-        input_string += "# Equilibration without UF potential\n"
-        input_string += "run          ${nstepseq}\n"
-        input_string += "\n\n"
-
-        input_string += "#####################################\n"
-        input_string += "#       Forward integration\n"
-        input_string += "#####################################\n"
-        input_string += "variable     tau equal ramp(1,0)\n"
-        input_string += "variable     lambda_true equal " + \
-            "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
-        input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
-        input_string += "\n"
+        block0 = LammpsBlockInput("ufm params", "UF potential parameters")
+        block0("p", f"variable p equal {self.p}")
+        block0("temp", f"variable T equal {self.temperature}")
+        block0("kB", "variable kB equal 8.6173303e-5")
+        block0("eps", "variable eps equal ${T}*${p}*${kB}")
+        block0("sigma", f"variable sig equal {self.sigma}")
+        block0("rc", "variable rc equal 5.0*${sig}")
+        blocks.append(block0)
+        
+        block1 = LammpsBlockInput("eq fwd", "Equilibration without UF potential")
+        block1("run eq fwd", f"run {self.nsteps_eq}")
+        blocks.append(block1)
+        
+        block2 = LammpsBlockInput("fwd", "Forward Integration")
+        block2("tau", "variable tau equal ramp(1,0)")
+        txt = "variable lambda_true equal " + \
+              "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)"
+        block2("lambda_true", txt)
+        block2("lambda_ufm", "variable lambda_ufm equal 1-v_lambda_true")
+        if len(self.pair_coeff) == 1:
+            txt = "pair_style hybrid/scaled " + \
+                  f"v_lambda_true {pair_style[0]} " + \
+                  f"v_lambda_ufm ufm ${{rc}}\n"
+            block2("scaling pair_style", txt)
+            txt = "pair_coeff " + hybrid_pair_coeff
+            block2("true_pair_coeff", txt)
+            block2("ufm_pair_coeff", "pair_coeff * * ufm ${eps} ${sig}")
+        else:
+            # pair_style comd compatible only with one zbl, To be fixed
+            txt = "pair_style hybrid/scaled " + \
+                  f"{pair_style[1]} {pair_style[2]} " + \
+                  f"{pair_style[3]} v_lambda_true " + \
+                  f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
+            block2("scaling pair_style", txt)
+            txt = "pair_coeff" + hybrid_pair_coeff[0]
+            block2("true_pair_coeff_1", txt)
+            txt = "pair_coeff" + hybrid_pair_coeff[1]
+            block2("true_pair_coeff_1", txt)
+            block2("ufm_pair_coeff", "pair_coeff * * ufm ${eps} ${sig}")
 
         if len(self.pair_coeff) == 1:
-            input_string += "pair_style          hybrid/scaled " + \
-                            f"v_lambda_true {pair_style[0]} " + \
-                            "v_lambda_ufm ufm ${{rc}}\n"
-            input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
-            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
-            input_string += "\n"
-        # pair_style comd compatible only with one zbl, To be fixed
+            block2("compute pair true", f"compute c2 all pair {pair_style[0]}")
+            block2("compute pair ufm", "compute c3 all pair ufm")
+            block2("dU", "variable dU equal (c_c2-c_c3)/atoms")
         else:
-            input_string += "pair_style   hybrid/scaled v_lambda_true " + \
-                            f"{pair_style[1]} {pair_style[2]} " + \
-                            f"{pair_style[3]} v_lambda_true " + \
-                            f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
-            input_string += "pair_coeff   " + hybrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff   " + hybrid_pair_coeff[1] + "\n"
-            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
-            input_string += "\n"
-        if len(self.pair_coeff) == 1:
-            input_string += f"compute      c2 all pair {pair_style[0]}\n"
-            input_string += "compute      c3 all pair ufm\n"
-            input_string += "variable     dU equal (c_c2-c_c3)/atoms\n"
-        else:
-            input_string += f"compute      c2 all pair {pair_style[1]}\n"
-            input_string += f"compute      c4 all pair {pair_style[4]}\n"
-            input_string += "compute      c3 all pair ufm\n"
-            input_string += "variable     dU equal ((c_c2+c_c4)-c_c3)/atoms\n"
-        input_string += "\n"
-        input_string += "variable     lamb equal 1-v_lambda_true\n"
-        input_string += "\n"
-        input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
-            "title \"# dU lambda\" screen no append forward.dat\n"
-        input_string += "run          ${nsteps}\n"
-        input_string += "unfix        f3\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n"
+            # pair_style comd compatible only with one zbl, To be fixed
+            block2("compute pair 1", f"compute c2 all pair {pair_style[1]}")
+            block2("compute pair 2", f"compute c4 all pair {pair_style[4]}")
+            block2("compute pair ufm", "compute c3 all pair ufm")
+            block2("dU", "variable dU equal ((c_c2+c_c4)-c_c3)/atoms")
+            
+        block2("lamb", "variable lamb equal 1-v_lambda_true")
+        block2("write fwd", "fix  f3 all print 1 \"${dU}  ${lamb}\" " + \
+              "title \"# dU lambda\" screen no append forward.dat")
+        block2("run", f"run {self.nsteps}")
+        block2("unfix write fwd", "unfix f3")
+        blocks.append(block2)
+        
+        block3 = LammpsBlockInput("eq bwd", "Equilibration with only UF potential")
+        block3("run eq bwd", f"run {self.nsteps_eq}")
+        blocks.append(block3)
 
-        input_string += "#####################################\n"
-        input_string += "#       Backward integration\n"
-        input_string += "#####################################\n"
-        input_string += "run          ${nstepseq}\n"
-        input_string += "\n"
-        input_string += "variable     tau equal ramp(0,1)\n"
-        input_string += "variable     lambda_true equal " + \
-            "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)\n"
-        input_string += "variable     lambda_ufm equal 1-v_lambda_true\n"
-        input_string += "\n"
+        block4 = LammpsBlockInput("bwd", "Backrward Integration")
+        block4("tau", "variable tau equal ramp(0,1)")
+        txt = "variable lambda_true equal " + \
+              "v_tau^5*(70*v_tau^4-315*v_tau^3+540*v_tau^2-420*v_tau+126)"
+        block4("lambda_true", txt)
+        block4("lambda_ufm", "variable lambda_ufm equal 1-v_lambda_true")
         if len(self.pair_coeff) == 1:
-            input_string += "pair_style          hybrid/scaled " + \
-                            f"v_lambda_true {pair_style[0]} " + \
-                            "v_lambda_ufm ufm ${{rc}}\n"
-            input_string += "pair_coeff   " + hybrid_pair_coeff + "\n"
-            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
-            input_string += "\n"
+            txt = "pair_style hybrid/scaled " + \
+                  f"v_lambda_true {pair_style[0]} " + \
+                  f"v_lambda_ufm ufm ${{rc}}\n"
+            block4("scaling pair_style", txt)
+            txt = "pair_coeff " + hybrid_pair_coeff
+            block4("true_pair_coeff", txt)
+            block4("ufm_pair_coeff", "pair_coeff * * ufm ${eps} ${sig}")
         else:
-            input_string += "pair_style   hybrid/scaled v_lambda_true " + \
-                            f"{pair_style[1]} {pair_style[2]} " + \
-                            f"{pair_style[3]} v_lambda_true " + \
-                            f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
-            input_string += "pair_coeff   " + hybrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff   " + hybrid_pair_coeff[1] + "\n"
-            input_string += "pair_coeff   * * ufm ${eps} ${sig}\n"
-            input_string += "\n"
-        input_string += "fix          f3 all print 1 \"${dU}  ${lamb}\" " + \
-            "title \"# dU lambda\" screen no append backward.dat\n"
-        input_string += "run          ${nsteps}\n"
-        input_string += "#####################################\n"
+            # pair_style comd compatible only with one zbl, To be fixed
+            txt = "pair_style hybrid/scaled " + \
+                  f"{pair_style[1]} {pair_style[2]} " + \
+                  f"{pair_style[3]} v_lambda_true " + \
+                  f"{pair_style[4]} v_lambda_ufm ufm ${{rc}}\n"
+            block4("scaling pair_style", txt)
+            txt = "pair_coeff " + hybrid_pair_coeff[0]
+            block4("true_pair_coeff_1", txt)
+            txt = "pair_coeff " + hybrid_pair_coeff[1]
+            block4("true_pair_coeff_1", txt)
+            block4("ufm_pair_coeff", "pair_coeff * * ufm ${eps} ${sig}")
+        block4("write bwd", "fix  f3 all print 1 \"${dU}  ${lamb}\" " + \
+              "title \"# dU lambda\" screen no append backward.dat")
+        blocks.append(block4)
 
-        with open("lammps_input.in", "w") as f:
-            f.write(input_string)
+        return blocks
 
 # ========================================================================== #
     def log_recap_state(self):

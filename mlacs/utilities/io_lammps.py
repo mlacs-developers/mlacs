@@ -714,3 +714,19 @@ def reconstruct_mlmd_trajectory(trajfile, logfile):
         newat.calc = calc
         traj.append(newat)
     return traj
+
+# ========================================================================== #
+def get_msd_input(self, msdfile):
+    """
+    Function to compute msd for neti in solid
+    """
+    block = LammpsBlockInput("msd", "Compute MSD")
+    block("eq", f"run {self.nsteps_eq}")
+    for iel, el in enumerate(self.elem):
+        block("compute", f"compute c{10+iel} {el} msd com yes")
+        block("variable", f"variable msd{el} equal c_c{10+iel}[4]")
+        block("msd el", f"fix f{iel+3} {el} print 1 " + \
+                  f"\"${{msd{el}}}\" screen no append msd{el}.dat")
+    return block
+
+

@@ -25,7 +25,7 @@ class BaseLammpsState(StateManager):
     Base class to perform simulations with LAMMPS.
     """
     def __init__(self, nsteps, nsteps_eq, logfile, trajfile, loginterval=50,
-                 blocks=None, **kwargs):
+                 lammpsfname=None, blocks=None, neti=False, **kwargs):
 
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
                          **kwargs)
@@ -35,8 +35,12 @@ class BaseLammpsState(StateManager):
         self.nbeads = 1  # Dummy nbeads to help
 
         self.atomsfname = "atoms.in"
-        self.lammpsfname = "lammps_input.in"
+        self.lammpsfname = lammpsfname
+        if self.lammpsfname is None:
+            self.lammpsfname = "lammps_input.in"
         self._myblock = blocks
+        # key word to adapt functions from BaseLammsState for NETI
+        self.neti = neti
 
         self.info_dynamics = dict()
         if isinstance(blocks, list):
@@ -64,7 +68,10 @@ class BaseLammpsState(StateManager):
 
         blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
                                         model_post, atom_style, eq)
-        lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+        if self.neti == False:
+            lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+        else:
+            lmp_input = LammpsInput("Lammps input to run a NETI created by MLACS")
         for block in blocks:
             lmp_input(block.name, block)
 
@@ -78,12 +85,13 @@ class BaseLammpsState(StateManager):
                          shell=True,
                          cwd=str(self.subsubdir),
                          stderr=PIPE)
-
+        
         if lmp_handle.returncode != 0:
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-        atoms = self._get_atoms_results(initial_charges)
+        if self.neti == False:
+            atoms = self._get_atoms_results(initial_charges)
 
         # Set the info of atoms
         atoms.info['info_state'] = self.info_dynamics
@@ -101,6 +109,7 @@ class BaseLammpsState(StateManager):
                           velocities=True,
                           atom_style=atom_style)
 
+
 # ========================================================================== #
     def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
                           atom_style, eq):
@@ -116,9 +125,13 @@ class BaseLammpsState(StateManager):
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
             blocks.append(self._get_block_traj(atoms))
-        blocks.append(self._get_block_custom())
+        if isinstance(self._get_block_custom(), list):
+            blocks.extend(self._get_block_custom())
+        else:
+            blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
-        blocks.append(self._get_block_lastdump(atoms, eq))
+        if self.neti == False:
+            blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
 
 # ========================================================================== #
@@ -137,6 +150,8 @@ class BaseLammpsState(StateManager):
         block("read_data", f"read_data {self.atomsfname}")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
+        for iel, e in enumerate(el):                                                      
+            block("group", f"group {e} type {iel+1}") 
         return block
 
 # ========================================================================== #
@@ -411,8 +426,9 @@ class LammpsState(BaseLammpsState):
 
         kwargs.setdefault('prefix', folder)  # To keep previous behaviour
 
-        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         blocks, **kwargs)
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile,
+                         loginterval=loginterval, blocks=blocks,
+                         folder=folder, **kwargs)
 
         self.temperature = temperature
         self.pressure = pressure
