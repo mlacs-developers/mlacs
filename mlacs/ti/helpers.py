@@ -33,7 +33,6 @@ def prepare_ti(trajprefix,
                trajfile=True,
                interval=500,
                loginterval=500,
-               trajinterval=500,
                **kwargs):
 
     traj = read(trajprefix + ".traj", index=":")
@@ -88,7 +87,6 @@ def prepare_ti(trajprefix,
                                    trajfile,
                                    interval,
                                    loginterval,
-                                   trajinterval,
                                    **kwargs)
 
     elif state == "liquid":
@@ -110,7 +108,6 @@ def prepare_ti(trajprefix,
                               trajfile,
                               interval,
                               loginterval,
-                              trajinterval,
                               **kwargs)
     else:
         msg = "state should be either \"solid\" or \"liquid\""
