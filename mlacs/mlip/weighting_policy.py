@@ -4,10 +4,8 @@
 """
 from pathlib import Path
 import numpy as np
-
 from ..core.manager import Manager
-from ase.atoms import Atoms
-
+from ase import Atoms
 
 # ========================================================================== #
 # ========================================================================== #
@@ -38,6 +36,7 @@ class WeightingPolicy(Manager):
         If you use an initial database, it needs weight.
         Can a list or an np.array of values or a file.
         Default :class:`None`
+
     """
 
     def __init__(self, energy_coefficient=1.0, forces_coefficient=1.0,
@@ -47,12 +46,12 @@ class WeightingPolicy(Manager):
         Manager.__init__(self, **kwargs)
 
         self.database = database
-        self.matsize = None
         self.matsize = []
 
-        self.energy_coefficient = energy_coefficient
-        self.forces_coefficient = forces_coefficient
-        self.stress_coefficient = stress_coefficient
+        sum_efs = energy_coefficient + forces_coefficient + stress_coefficient
+        self.energy_coefficient = energy_coefficient / sum_efs
+        self.forces_coefficient = forces_coefficient / sum_efs
+        self.stress_coefficient = stress_coefficient / sum_efs
 
         if database is not None:
             self.matsize = [len(a) for a in database]
@@ -96,12 +95,6 @@ class WeightingPolicy(Manager):
         wf = wf * self.forces_coefficient
         ws = ws * self.stress_coefficient
         return np.r_[we, wf, ws]
-
-# ========================================================================== #
-    def update_database(self, atoms):
-        """
-        """
-        raise NotImplementedError
 
 # ========================================================================== #
     def init_weight(self, scale=1):
@@ -190,7 +183,6 @@ class UniformWeight(WeightingPolicy):
 # ========================================================================== #
     def update_database(self, atoms):
         """
-        Update the database.
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]

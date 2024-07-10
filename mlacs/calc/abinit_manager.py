@@ -68,9 +68,12 @@ class AbinitManager(CalcManager):
         Default 'abinit.err'
 
     nproc: :class:`int` (optional)
-        Number of processor available for Abinit.
-        Distributed equally over all submitted calculations
-        And start MPI abinit calculation if more than 1 processor
+        Number of processor available for all Abinit.
+
+    nproc_per_task: :class:`int` (optional)
+        Number of processor available for all Abinit.
+        Default nproc
+
 
     Examples
     --------
@@ -90,6 +93,7 @@ class AbinitManager(CalcManager):
                  magmoms=None,
                  folder='DFT',
                  nproc=1,
+                 nproc_per_task=None,
                  **kwargs):
 
         CalcManager.__init__(self, "dummy", magmoms,
@@ -108,11 +112,15 @@ class AbinitManager(CalcManager):
         self.abinit_cmd = abinit_cmd
         self.mpi_runner = mpi_runner
         self.nproc = nproc
+        if nproc_per_task is None:
+            nproc_per_task = self.nproc
+        self.nproc_per_task = nproc_per_task
 
         self.log_suffix = "abinit.log"
         self.err_suffix = "abinit.eff"
         self.ncfile = AbinitNC()
 
+# ========================================================================== #
     @staticmethod
     def submit_abinit_calc(cmd, logfile, errfile, cdir):
         with open(logfile, 'w') as lfile, \
@@ -138,24 +146,19 @@ class AbinitManager(CalcManager):
         Compute the energy of given configurations with Abinit.
         """
         assert len(confs) == len(subfolder) == len(step)
-        ntask = len(confs)
+        nparal = self.nproc // self.nproc_per_task
 
         # Prepare all calculations
         confs = [at.copy() for at in confs]
-
         path_prefix_l = []
         for at, sf, istep in zip(confs, subfolder, step):
-
             # First set the prefix
             self.subfolder = sf
             self.prefix = str(self.subfolder) + '_'
-
             # Then append a level to subsubdir
             self.subsubdir = self.subsubdir / f"Step{istep}"
-
             # Save this list for parallel execution
             path_prefix_l.append((self.subsubdir, self.prefix))
-
             # Initialize objects
             at.set_initial_magnetic_moments(self.magmoms)
             self._write_input(at)
@@ -163,11 +166,11 @@ class AbinitManager(CalcManager):
         # Yeah for threading
         # GA: I would move the threading outside of this function
         # because the files naming depends on external objects.
-        with save_cwd(), ThreadPoolExecutor(max_workers=ntask) as executor:
+        with save_cwd(), ThreadPoolExecutor(max_workers=nparal) as executor:
             for (path, pref) in path_prefix_l:
                 self.subsubdir = path
                 self.prefix = pref
-                command = self._make_command(self.nproc)
+                command = self._make_command()
                 executor.submit(self.submit_abinit_calc,
                                 command,
                                 self.get_filepath('abinit.log'),
@@ -193,11 +196,12 @@ class AbinitManager(CalcManager):
         return results_confs
 
 # ========================================================================== #
-    def _make_command(self, nproc):
+    def _make_command(self):
         """
         Make the command to call Abinit including MPI :
         """
         abinit_cmd = self.abinit_cmd + " " + self.get_filepath("abinit.abi")
+        nproc = self.nproc_per_task
 
         if nproc > 1:
             mpi_cmd = "{} -n {}".format(self.mpi_runner, nproc)
@@ -206,7 +210,6 @@ class AbinitManager(CalcManager):
 
         full_cmd = "{} {}".format(mpi_cmd, abinit_cmd)
         full_cmd = shlex.split(full_cmd, posix=(os.name == "posix"))
-
         return full_cmd
 
 # ========================================================================== #
@@ -256,7 +259,6 @@ class AbinitManager(CalcManager):
         for psp in pseudos:
             fn = psp.split('/')[-1]
             source = pp_dirpath+psp
-            # dest = stateprefix+fn
             dest = self.get_filepath(fn)
             _create_copy(source, dest)
             new_psp.append(dest)

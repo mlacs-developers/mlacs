@@ -152,7 +152,7 @@ class MomentTensorPotential(SelfMlipManager):
         pass
 
 # ========================================================================== #
-    def get_pair_style(self, folder=None):
+    def get_pair_style(self):
         if self.version == 3:
             return f"mlip load_from={self.subdir / 'pot.mtp'}"
         return f"mlip {self.subdir / 'mlip.ini'}"

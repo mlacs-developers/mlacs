@@ -19,6 +19,8 @@ from .miscellanous import (get_elements_Z_and_masses,
 from .io_abinit import (AbinitNC,
                         set_aseAtoms)
 
+from .io_pandas import (make_dataframe)
+
 __all__ = ['compute_pdf',
            'get_elements_Z_and_masses',
            'create_random_structures',
@@ -33,4 +35,5 @@ __all__ = ['compute_pdf',
            'execute_from',
            'save_cwd',
            'create_link',
+           'make_dataframe',
            ]

@@ -34,6 +34,15 @@ def has_mlp():
     """
     return shutil.which("mlp") is None
 
+def has_pyace():
+    """
+    Returns True if there is no pyace module
+    """
+    try:
+        import pyace
+        return False
+    except ImportError:
+        return True
 
 def has_netcdf():
     """
