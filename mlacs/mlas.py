@@ -80,11 +80,6 @@ class Mlas(Manager):
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
-
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
     """
     def __init__(self,
                  atoms,
@@ -115,7 +110,6 @@ class Mlas(Manager):
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
-        self.ntrymax = ntrymax
 
         #######################
         # Initialize everything
@@ -147,7 +141,6 @@ class Mlas(Manager):
             self.restart_from_traj()
 
         self.step = 0
-        self.ntrymax = ntrymax
         self.logger.info("")
 
 # ========================================================================== #

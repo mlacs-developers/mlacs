@@ -57,11 +57,6 @@ class OtfMlacs(Mlas, Manager):
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
-
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
     """
     def __init__(self,
                  atoms,
@@ -73,7 +68,6 @@ class OtfMlacs(Mlas, Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 ntrymax=0,
                  workdir=''):
 
         Manager.__init__(self, workdir=workdir)
@@ -87,7 +81,7 @@ class OtfMlacs(Mlas, Manager):
         self.keep_tmp_mlip = keep_tmp_mlip
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
+                      keep_tmp_mlip=keep_tmp_mlip)
 
         # Check if trajectory files already exists
         self.launched = self._check_if_launched()
