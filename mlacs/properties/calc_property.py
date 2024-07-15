@@ -481,9 +481,80 @@ class CalcExecFunction(CalcProperty):
         msg += f'        - Maximum  : {self.maxf}\n'
         return msg
 
+# ========================================================================== #
+# ========================================================================== #
+class CalcRoutineFunction(CalcExecFunction):
+    """
+    Class to routinely compute basic thermodynamic observables.
+    
+    Parameters
+    ----------
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+    def __init__(self,
+                 function,
+                 label,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        CalcExecFunction.__init__(self, function, dict(), None,
+                                  True, gradient, criterion, frequence)
+        self.weight = weight
+        self.label = label
+
+# ========================================================================== #
+    
+    def __repr__(self):
+        """
+        Return a string for the log with informations of the calculated
+        routine property.
+        """
+        msg = f'Routine computation of the {self.label.lower()}\n'
+        if len(self.new>0):
+            for idx_state,value in enumerate(self.new):
+                msg += f'        - Value for state {idx_state+1} : {value}\n'
+        else:
+            msg += f'        - Value for state 1  : {self.new}\n'
+
+            
+        return msg
 
 # ========================================================================== #
 # ========================================================================== #
+class CalcPressure(CalcRoutineFunction):
+    """
+    Class to compute the hydrostatic pressure.
+    Warning: if you have multiple states, it will averaged all the states.
+
+    Parameters
+    ----------
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+    def __init__(self,
+                 label,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        CalcRoutineFunction.__init__(self, 'get_stress', label)
+        
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            self._function = [getattr(_, self._func) for _ in self.atoms]
+            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3]) for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
+        return self.isconverged
+
+# ========================================================================== #
+# ========================================================================== #
+# TODO suppress this class (now redundant)
 class CalcTrueVolume(CalcExecFunction):
     """
     Class to compute the averaged volume of all configurations.
@@ -510,7 +581,8 @@ class CalcTrueVolume(CalcExecFunction):
         """
         func = [getattr(_, self._func) for _ in self.weight.database]
         volume = np.r_[[_f() for _f in func]]
-        volume = volume / len(self.weight.database[0])
+        nb_atoms = len(self.weight.database[0])
+        volume = volume / nb_atoms
         w = np.ones(len(volume))
         if self.weight is not None and not len(self.weight.weight) == 0:
             w = self.weight.weight

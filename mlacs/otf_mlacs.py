@@ -6,6 +6,7 @@ from .mlas import Mlas
 from .core import Manager
 from .properties import PropertyManager
 from .utilities.log import MlacsLog
+from .properties import CalcExecFunction, CalcRoutineFunction, CalcPressure
 
 
 # ========================================================================== #
@@ -102,6 +103,9 @@ class OtfMlacs(Mlas, Manager):
         msg = self.calc.log_recap_state()
         self.logger.info(msg)
         self.logger.info(repr(self.mlip))
+        
+        self._initialize_properties(prop)
+        self._initialize_routine_properties()
 
 # ========================================================================== #
     def _initialize_properties(self, prop):
@@ -116,3 +120,37 @@ class OtfMlacs(Mlas, Manager):
         self.prop.workdir = self.workdir
         if not self.prop.folder:
             self.prop.folder = 'Properties'
+            
+    def _initialize_routine_properties(self):
+        """Create routine property object"""
+        routine_prop_list = [CalcRoutineFunction('get_volume', label='Volume', frequence=1),
+                             CalcRoutineFunction('get_temperature', label='Temperature', frequence=1),
+                             CalcPressure(label='Pressure', frequence=1),
+                             CalcRoutineFunction('get_potential_energy', label='PotentialEnergy', frequence=1)]
+        
+        self.routine_prop = PropertyManager(routine_prop_list)
+        self.routine_prop.folder = 'RoutineProperties'
+            
+            
+    def _compute_properties(self):
+        """
+        
+        """
+        if self.prop.manager is not None:
+            self.prop.calc_initialize(atoms=self.atoms)
+            msg = self.prop.run(self.step,
+                                self.prop.workdir / self.prop.folder)
+            self.log.logger_log.info(msg)
+            if self.prop.check_criterion:
+                msg = "All property calculations are converged, " + \
+                      "stopping MLACS ...\n"
+                self.log.logger_log.info(msg)
+        
+        #compute routine properties
+        self.routine_prop.calc_initialize(atoms=self.atoms)
+        msg = self.routine_prop.run(self.step,
+                            self.prop.workdir / self.routine_prop.folder)
+        self.log.logger_log.info(msg)
+        self.routine_prop.save_prop(self.step) 
+        self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
+        self.routine_prop.save_weights(self.step, self.mlip.weight)

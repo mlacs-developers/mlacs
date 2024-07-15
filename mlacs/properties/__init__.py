@@ -11,6 +11,8 @@ from mlacs.properties.calc_property import (CalcPafi,
                                             CalcTi,
                                             CalcTrueVolume,
                                             CalcExecFunction,
+                                            CalcRoutineFunction,
+                                            CalcPressure,
                                             CalcProperty,
                                             )
 
@@ -25,6 +27,8 @@ __all__ = ['PropertyManager',
            'CalcAdf',
            'CalcTi',
            'CalcExecFunction',
+           'CalcRoutineFunction',
+           'CalcPressure',
            'CalcTrueVolume',
            'eos_fit',
            ]
