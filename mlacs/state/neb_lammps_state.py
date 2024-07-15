@@ -107,7 +107,7 @@ class NebLammpsState(BaseLammpsState):
 
     def __init__(self, images, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
-                 dt=1.5, nimages=4, nprocs=None, mode=None,
+                 dt=1.5, nimages=4, nprocs=None, mode=None, interval=None,
                  linear=False, print=False,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):
@@ -118,6 +118,7 @@ class NebLammpsState(BaseLammpsState):
         self.dt = dt
         self.pressure = None
 
+        self._step = 1
         self.style = min_style
         self.criterions = (etol, ftol)
         self.nprocs = nprocs
@@ -127,7 +128,7 @@ class NebLammpsState(BaseLammpsState):
         self.Kspring = Kspring
         self.patoms = images
         if not isinstance(self.patoms, PathAtoms):
-            self.patoms = PathAtoms(self.patoms)
+            self.patoms = PathAtoms(self.patoms, interval=interval)
         if xi is not None:
             self.patoms.xi = xi
         if mode is not None:
@@ -188,11 +189,26 @@ class NebLammpsState(BaseLammpsState):
         atoms = self.patoms.splined
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
+        # RB: Usefull for tests, we should move these in the Mlminimizer.
+        i = self._step
         if self.print:
-            write(str(self.subsubdir / 'pos_neb_images.xyz'),
+            if self.patoms._gpi is not None:
+                if 4 < len(self.patoms._gpi.y):
+                    import numpy as np
+                    x = np.linspace(0, 1, 1001)
+                    m, s = self.patoms._gpi.predict(x, True)
+                    err = self.patoms._gp_error
+                    np.savetxt(str(self.subsubdir / f'mean_{i:02d}.dat'), m)
+                    np.savetxt(str(self.subsubdir / f'err_{i:02d}.dat'), err)
+                    np.savetxt(str(self.subsubdir / f'max_{i:02d}.dat'),
+                               np.max(s, axis=0))
+                    np.savetxt(str(self.subsubdir / f'min_{i:02d}.dat'),
+                               np.min(s, axis=0))
+            write(str(self.subsubdir / f'pos_neb_images_{i:02d}.xyz'),
                   self.patoms.images, format='extxyz')
-            write(str(self.subsubdir / 'pos_neb_splined.xyz'),
+            write(str(self.subsubdir / f'pos_neb_splined_{i:02d}.xyz'),
                   self.patoms.splined, format='extxyz')
+        self._step += 1
         return atoms
 
 # ========================================================================== #

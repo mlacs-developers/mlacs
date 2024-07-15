@@ -70,18 +70,9 @@ class OtfMlacs(Mlas, Manager):
                  keep_tmp_mlip=True,
                  workdir=''):
 
-        Manager.__init__(self, workdir=workdir)
-
-        # Initialize working directory
-        self.workdir.mkdir(exist_ok=True, parents=True)
-
-        ##############
-        # Check inputs
-        ##############
-        self.keep_tmp_mlip = keep_tmp_mlip
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      keep_tmp_mlip=keep_tmp_mlip)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
 
         # Check if trajectory files already exists
         self.launched = self._check_if_launched()

@@ -10,7 +10,7 @@ except ImportError:
     msg = "You need sklearn to use the calphagpy modules"
     raise ModuleNotFoundError(msg)
 
-from .gpinterface import GaussianProcessInterface
+from ..core import GaussianProcessInterface
 
 
 available_modes = ["t", "vt"]

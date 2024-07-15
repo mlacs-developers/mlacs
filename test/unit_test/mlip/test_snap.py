@@ -110,7 +110,8 @@ def test_writing_model():
 
     rcut = 3.5
     parameters = dict(twojmax=5)
-    snap = SnapDescriptor(at, rcut, parameters=parameters, workdir=root, folder=folder)
+    snap = SnapDescriptor(at, rcut, parameters=parameters,
+                          workdir=root, folder=folder)
     coeff = np.arange(0, 21)
 
     snap.write_mlip(coeff)
