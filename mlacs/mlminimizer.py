@@ -72,18 +72,13 @@ class MlMinimizer(Mlas):
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
-
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
     """
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
                  keep_tmp_mlip=False, ntrymax=0):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
+                      keep_tmp_mlip=keep_tmp_mlip)
 
         prop = []
         if etol is None:
