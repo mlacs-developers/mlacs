@@ -481,12 +481,13 @@ class CalcExecFunction(CalcProperty):
         msg += f'        - Maximum  : {self.maxf}\n'
         return msg
 
+
 # ========================================================================== #
 # ========================================================================== #
 class CalcRoutineFunction(CalcExecFunction):
     """
     Class to routinely compute basic thermodynamic observables.
-    
+
     Parameters
     ----------
     weight: :class:`WeightingPolicy`
@@ -505,21 +506,19 @@ class CalcRoutineFunction(CalcExecFunction):
         self.label = label
 
 # ========================================================================== #
-    
     def __repr__(self):
         """
         Return a string for the log with informations of the calculated
         routine property.
         """
         msg = f'Routine computation of the {self.label.lower()}\n'
-        if len(self.new>0):
-            for idx_state,value in enumerate(self.new):
+        if len(self.new > 0):
+            for idx_state, value in enumerate(self.new):
                 msg += f'        - Value for state {idx_state+1} : {value}\n'
         else:
             msg += f'        - Value for state 1  : {self.new}\n'
-
-            
         return msg
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -540,17 +539,20 @@ class CalcPressure(CalcRoutineFunction):
                  criterion=None,
                  frequence=1):
         CalcRoutineFunction.__init__(self, 'get_stress', label)
-        
+
+# ========================================================================== #
     def _exec(self, wdir=None):
         """
         Execute function
         """
         if self.use_atoms:
             self._function = [getattr(_, self._func) for _ in self.atoms]
-            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3]) for _f in self._function]]
+            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])
+                              for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
         return self.isconverged
+
 
 # ========================================================================== #
 # ========================================================================== #
