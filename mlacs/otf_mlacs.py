@@ -2,6 +2,9 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+
+import h5py
+
 from .mlas import Mlas
 from .core import Manager
 from .properties import PropertyManager
@@ -113,17 +116,44 @@ class OtfMlacs(Mlas, Manager):
         if not self.prop.folder:
             self.prop.folder = 'Properties'
             
+        self._initialize_hdf5_datasets(self.prop)
+            
+# ========================================================================== #            
     def _initialize_routine_properties(self):
         """Create routine property object"""
-        routine_prop_list = [CalcRoutineFunction('get_volume', label='Volume', frequence=1),
-                             CalcRoutineFunction('get_temperature', label='Temperature', frequence=1),
-                             CalcPressure(label='Pressure', frequence=1),
-                             CalcRoutineFunction('get_potential_energy', label='PotentialEnergy', frequence=1)]
+        label_list = ['Volume', 'Temperature', 'Potential_Energy', \
+                      'Kinetic_Energy', 'Total_Energy']
+        routine_prop_list = []
+        for x in label_list:
+            lammps_func = 'get_' + x.lower()
+            observable = CalcRoutineFunction(lammps_func, label=x, frequence=1)
+            routine_prop_list.append(observable)
+        
+        other_observables = [CalcPressure(label='Pressure', frequence=1)]
+        routine_prop_list += other_observables
         
         self.routine_prop = PropertyManager(routine_prop_list)
-        self.routine_prop.folder = 'RoutineProperties'
-            
-            
+        self.routine_prop.folder = 'Properties/RoutineProperties'
+        
+        self._initialize_hdf5_datasets(self.routine_prop)
+
+# ========================================================================== #            
+    def _initialize_hdf5_datasets(self, prop_obj):
+        """Create hdf5 datasets corresponding to a property object"""
+        if prop_obj.manager is not None:
+            hdir = self.workdir
+            hdir.mkdir(exist_ok=True, parents=True)
+            hpath = hdir / "HIST.hdf5"
+            hdf5file_exists = hpath.is_file()
+            if ((not self.launched) or (not hdf5file_exists)):
+                hfile = h5py.File(hpath, "a")
+                for observable in prop_obj.manager:
+                    dtst_path = prop_obj.folder + '/' + observable.label
+                    print(dtst_path)
+                    hfile.create_dataset(dtst_path, data=[], maxshape=(None,))
+                hfile.close()
+        
+# ========================================================================== #                                
     def _compute_properties(self):
         """
         

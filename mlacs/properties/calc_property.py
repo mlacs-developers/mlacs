@@ -59,6 +59,7 @@ class CalcProperty(Manager):
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        self.label = 'Observable_Label'
         if state is not None:
             self.state = copy.deepcopy(state)
 
@@ -456,6 +457,7 @@ class CalcExecFunction(CalcProperty):
         self.isfirst = True
         self.use_atoms = use_atoms
         self.isgradient = gradient
+        self.label = function
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -511,7 +513,8 @@ class CalcRoutineFunction(CalcExecFunction):
         Return a string for the log with informations of the calculated
         routine property.
         """
-        msg = f'Routine computation of the {self.label.lower()}\n'
+        name_observable = self.label.lower().replace("_", " ")
+        msg = f'Routine computation of the {name_observable}\n'
         if len(self.new>0):
             for idx_state,value in enumerate(self.new):
                 msg += f'        - Value for state {idx_state+1} : {value}\n'

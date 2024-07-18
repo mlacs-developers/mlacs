@@ -4,6 +4,7 @@
 """
 
 import numpy as np
+import h5py
 
 from ..core.manager import Manager
 
@@ -95,11 +96,22 @@ class PropertyManager(Manager):
         path_save = self.workdir / self.folder
         for observable in self.manager:
             to_be_saved = observable.new
+
+            hpath = self.workdir / "HIST.hdf5"
+            hfile = h5py.File(hpath, "a")
+            
             observable_is_scalar = (len(to_be_saved[0].shape) == 0)
             if observable_is_scalar:
                 namefile = path_save / (observable.label + ".dat")
+                dataset_path = self.folder + '/' + observable.label
                 for idx,value in enumerate(to_be_saved):
-                    self._save_row_to_dat(namefile, step, idx+1, value)
+                    index_state = idx+1
+                    row = [step, index_state, value]
+                    self._append_row_to_dat(namefile, row)
+                    self._append_row_to_hdf5(hfile, dataset_path, row)
+            hfile.close()
+                    
+                
                         
 # ========================================================================== #          
     def save_weighted_prop(self, step, weighting_pol):
@@ -135,8 +147,8 @@ class PropertyManager(Manager):
                     weighted_observable /= np.sum(weights)
                     namefile = path_save / ('Weighted' + observable.label + \
                                             ".dat")
-                    self._save_row_to_dat(namefile, step, nconfs_used, \
-                                          weighted_observable)
+                    row = [step, nconfs_used, weighted_observable]
+                    self._append_row_to_dat(namefile, row)
 
 # ========================================================================== #        
     def save_weights(self, step, weighting_pol):
@@ -169,15 +181,15 @@ class PropertyManager(Manager):
             path_save = self.workdir / self.folder
             to_be_saved = weights
             namefile = path_save / ('Weights' + ".dat")
-            # hspace = " "*5
             #If the properties correspond to the nth MLAS cycle
             #The weights correspond to the (n-1)th cycle
             #Hence below the occurrence of step-1
             for idx,value in enumerate(to_be_saved):
-                self._save_row_to_dat(namefile, step-1, idx+1, value)
+                row = [step-1, idx+1, value]
+                self._append_row_to_dat(namefile, row)
 
 # ========================================================================== #                       
-    def _save_row_to_dat(self, namefile, int1, int2, value, hspace=" "*5):
+    def _append_row_to_dat(self, namefile, row, hspace=" "*5):
         """
         Define format of .dat file.
         
@@ -187,6 +199,7 @@ class PropertyManager(Manager):
             3rd column: float [20 caract.]
             Columns are separated by blanks of hspace caracters (default 5).
         """
+        int1, int2, value = row
         row_to_be_saved = f"{int1:10.0f}" + hspace
         row_to_be_saved += f"{int2:10.0f}" + hspace
         row_to_be_saved += f"{value:20.15f}" + hspace
@@ -207,5 +220,16 @@ class PropertyManager(Manager):
                 beingread.append(float(line[25:50]))
         hasbeenread = np.array(beingread)
         return hasbeenread         
+
+# ========================================================================== #
+    def _append_row_to_hdf5(self, hfile, dataset_path, row):
+        """
+        Append a new value to an .hfd5 dataset
+        The dataset has to be of shape (n,), i.e. the observable must be scalar
+        """
+        new_value = row[2]
+        current_data_length = hfile[dataset_path].shape[0]
+        hfile[dataset_path].resize((current_data_length + 1), axis=0)
+        hfile[dataset_path][-1:] = new_value
     
     
