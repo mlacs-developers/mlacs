@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import os
 import logging
 import datetime
@@ -40,8 +44,22 @@ class MlacsLog:
     def write_header(self):
         msg = '============================================================\n'
         msg += '    On-the-fly Machine-Learning Assisted Canonical Sampling\n'
-        msg += '======================= version  ' + str(__version__) + \
-               ' =====================\n'
+        msg += '                                                           \n'
+        msg += '           Copyright (C) 2022-2024 MLACS group.            \n'
+        msg += '        MLACS comes with ABSOLUTELY NO WARRANTY.           \n'
+        msg += '    This package is distributed under the terms of the     \n' 
+        msg += '       GNU General Public License, see LICENSE.md          \n'
+        msg += '         or http://www.gnu.org/copyleft/gpl.txt .          \n'
+        msg += '                                                           \n'
+        msg += '           MLACS is a common project of the CEA,           \n'
+        msg += ' Universite de Liège, Université du Québec à Trois-Rivières\n'
+        msg += '       and other collaborators, see CONTRIBUTORS.md .      \n'
+        msg += '       Please read ACKNOWLEDGMENTS.md for suggested        \n'
+        msg += '           acknowledgments of the MLACS effort.            \n'
+        msg += '===========================================================\n'
+        msg += '                                                           \n'
+        msg += 'version: ' + str(__version__)
+        msg += '\n'
         now = datetime.datetime.now()
         msg += 'date: ' + now.strftime('%d-%m-%Y  %H:%M:%S')
         msg += '\n'
