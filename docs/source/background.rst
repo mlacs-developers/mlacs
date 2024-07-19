@@ -62,6 +62,70 @@ The self consistency comes from the dependence of the optimal parameters to the 
 Free energy computation
 -----------------------
 
+As explained in the previous section MLACS allows to optimize an approximation for the free energy of the system.
+However, the computation of this approximation necessitate to know the free energy associated with the surrogate model, which generally cannot be obtained analytically.
+Fortunately, the surrogate free energy :math:`\widetilde{\mathcal{F}}_\gamma` can be computed numerically by means of Thermodynamic Integration (TI).
+
+Let's introduce a reference system with a Hamiltonian :math:`H_\mathrm{ref}` for which the free energy :math:`\mathcal{F}_\mathrm{ref}` is known.
+Then, one can build a parametrized Hamiltonaian :math:`H(\lambda) = \lambda \widetilde{H}_\gamma + (1 - \lambda)H_\mathrm{ref}` and it can be shown that the free energy difference :math:`\Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} = \widetilde{\mathcal{F}}_\gamma - \mathcal{F}_\mathrm{ref}` between the reference and surrogate potential is given by
+
+.. math::
+   \Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} = \int_0^1 d\lambda \bigg\langle \frac{\partial H(\lambda)}{\partial \lambda} \bigg\rangle_\lambda
+
+where :math:`\langle \rangle_\lambda` correspond to an average with the Hamiltonian :math:`H(\lambda)`.
+Using Jarzinsky's identity, it can be shown that this integral can be computed using the irreversible work generated during a non-equilibrium simulation starting from one state and ending in the other.
+The irreversible work is written
+
+.. math::
+   W_{\mathrm{irr}} = \lim_{t_s\rightarrow \infty}\int_0^{t_s} dt \frac{\partial\lambda(t)}{\partial t} \frac{\partial H(\lambda)}{\partial \lambda}
+
+Numerically, the effect of noise in the estimation of the free energy difference can be estimated by computing the average between forward and backward simulation between the reference and surrogate Hamiltonian as
+
+.. math::
+   \Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} = \frac{1}{2} \big( W_{\mathrm{irr}}^{\gamma\rightarrow \mathrm{ref}} - W_{\mathrm{irr}}^{\mathrm{ref}\rightarrow\gamma})
+
+Then, the free energy associated with the surrogate model is given by
+
+.. math::
+   \widetilde{\mathcal{F}}_\gamma = \mathcal{F}_{\mathrm{ref}} + \Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma}
+
+
+However, we are interested in the free energy computed at the *ab initio* level.
+Despite the great accuracy provided by MLIPs, remaining at this level can generate error that are too large compared to the precision needed in free energy calculation.
+Thus, it can be important to perform another step consisting in correcting the obtained free energy from the surrogate model to *ab initio*.
+
+From free energy perturbation theory, we know that the difference :math:`\Delta \mathcal{F}_{\gamma\rightarrow \mathrm{AI}} = \mathcal{F} - \widetilde{\mathcal{F}}_\gamma` between *ab initio* and the surrogate model is written
+
+.. math::
+   \Delta \mathcal{F}_{\gamma\rightarrow \mathrm{AI}} = \big\langle e^{-\beta \Delta V(\mathbf{R})} \big\rangle_\gamma
+
+with :math:`\Delta V(\mathbf{R}) = V(\mathbf{R}) - \widetilde{V}_\gamma(\mathbf{R})`.
+This equation can be expanded into cumulants as
+
+.. math::
+    \Delta \mathcal{F}_{\gamma\rightarrow \mathrm{AI}} = \sum_{n=1}^\infty \frac{(-\beta)^{n-1} \kappa_n}{n!}
+
+
+where :math:`\kappa_n` is the :math:`n` -th order cumulant of the potential energy difference.
+Up to second order, the cumulants are given by
+
+
+.. math::
+   \kappa_1 =& \langle \Delta V(\mathbf{R}) \rangle_\gamma \\
+   \kappa_2 =& \langle \Delta V^2(\mathbf{R}) \rangle_\gamma - \langle \Delta V(\mathbf{R}) \rangle_\gamma^2
+
+Using this cumulant expansion, the free energy difference becomes
+
+.. math::
+    \Delta \mathcal{F}_{\gamma\rightarrow \mathrm{AI}} \approx \langle \Delta V(\mathbf{R}) \rangle_\gamma + \frac{\beta}{2} \langle \Delta V^2(\mathbf{R}) \rangle_\gamma - \langle \Delta V(\mathbf{R}) \rangle_\gamma^2
+
+
+and the final expression for the free energy at the *ab initio* level is
+
+.. math::
+   \mathcal{F} = \mathcal{F}_{\mathrm{ref}} + \Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} + \Delta \mathcal{F}_{\gamma\rightarrow \mathrm{AI}}
+
+
 .. image:: pictures/neti.png
    :width: 400
    :align: center
