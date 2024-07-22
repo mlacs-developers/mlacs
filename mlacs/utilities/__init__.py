@@ -14,6 +14,8 @@ from .miscellanous import (get_elements_Z_and_masses,
                            execute_from,
                            save_cwd,
                            create_link,
+                           get_dataset_paths,
+                           get_array_from_hdf5,
                            )
 
 from .io_abinit import (AbinitNC,
@@ -36,4 +38,6 @@ __all__ = ['compute_pdf',
            'save_cwd',
            'create_link',
            'make_dataframe',
+           'get_dataset_paths',
+           'get_array_from_hdf5',
            ]

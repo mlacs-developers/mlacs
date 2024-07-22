@@ -4,6 +4,7 @@
 """
 
 import numpy as np
+import h5py
 
 from ..core.manager import Manager
 
@@ -31,6 +32,7 @@ class PropertyManager(Manager):
         else:
             self.manager = [prop]
             self.check = [False]
+            
 
 # ========================================================================== #
     @property
@@ -58,9 +60,33 @@ class PropertyManager(Manager):
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
+                observable.isfirstcomputation = observable.isfirst
+                #Note: observable.isfirst becomes False after the 1st _exec()
+                #while, observable.isfirstcomputation stays True until the
+                #2nd _exec().
+                #This distinction proves useful e.g. to initialize datasets
                 self.check[i] = observable._exec()
                 msg += repr(observable)
+                
+                #Check if first mlas run AND if first observable computation
+                if self.isfirstlaunched and observable.isfirstcomputation:
+                    self._initialize_hdf5_dataset(observable)
+                    #Note: here the dataset is initialized AFTER the observable
+                    #has been first computed, but BEFORE save_prop() is called,
+                    #Hence, the dataset's shape is customized at will
         return msg
+
+# ========================================================================== #
+    def _initialize_hdf5_dataset(self, observable):
+        """Create hdf5 dataset corresponding to a calc property object"""
+        maxshape_val = (None,) + observable.shape
+        hpath = self.workdir / "HIST.hdf5"
+        hfile = h5py.File(hpath, "a")
+        dtst_path = self.folder + '/' + observable.label
+        #Some dummy data (with the correct shape) to initialize the dataset
+        dummy_init = np.ones(shape=(1,)+observable.shape)*-1
+        hfile.create_dataset(dtst_path, data=dummy_init, maxshape=maxshape_val)
+        hfile.close()
 
 # ========================================================================== #
     def calc_initialize(self, **kwargs):
@@ -95,12 +121,32 @@ class PropertyManager(Manager):
         path_save = self.workdir / self.folder
         for observable in self.manager:
             to_be_saved = observable.new
-            observable_is_scalar = (len(to_be_saved[0].shape) == 0)
-            if observable_is_scalar:
-                namefile = path_save / (observable.label + ".dat")
-                for idx,value in enumerate(to_be_saved):
-                    self._save_row_to_dat(namefile, step, idx+1, value)
+
+            hpath = self.workdir / "HIST.hdf5"
+            hfile = h5py.File(hpath, "a")
+            
+            if observable.shape is not None:
+                
+                dataset_path = self.folder + '/' + observable.label
+                for idx,val_state in enumerate(to_be_saved):
+                    index_state = idx+1
+                    metadata = [observable.isfirstcomputation,
+                                index_state,
+                                dataset_path,
+                                ]
+                    self._append_array_to_hdf5(hfile, metadata, val_state)
+                
+                #scalar observables are saved in .dat files
+                observable_is_scalar = (len(observable.shape) == 0)
+                if observable_is_scalar:
+                    namefile = path_save / (observable.label + ".dat")
+                    for idx,value in enumerate(to_be_saved):
+                        index_state = idx+1
+                        row = [step, index_state, value]
+                        self._append_row_to_dat(namefile, row)
                         
+            hfile.close()
+                                            
 # ========================================================================== #          
     def save_weighted_prop(self, step, weighting_pol):
         """
@@ -135,8 +181,8 @@ class PropertyManager(Manager):
                     weighted_observable /= np.sum(weights)
                     namefile = path_save / ('Weighted' + observable.label + \
                                             ".dat")
-                    self._save_row_to_dat(namefile, step, nconfs_used, \
-                                          weighted_observable)
+                    row = [step, nconfs_used, weighted_observable]
+                    self._append_row_to_dat(namefile, row)
 
 # ========================================================================== #        
     def save_weights(self, step, weighting_pol):
@@ -169,15 +215,15 @@ class PropertyManager(Manager):
             path_save = self.workdir / self.folder
             to_be_saved = weights
             namefile = path_save / ('Weights' + ".dat")
-            # hspace = " "*5
             #If the properties correspond to the nth MLAS cycle
             #The weights correspond to the (n-1)th cycle
             #Hence below the occurrence of step-1
             for idx,value in enumerate(to_be_saved):
-                self._save_row_to_dat(namefile, step-1, idx+1, value)
+                row = [step-1, idx+1, value]
+                self._append_row_to_dat(namefile, row)
 
 # ========================================================================== #                       
-    def _save_row_to_dat(self, namefile, int1, int2, value, hspace=" "*5):
+    def _append_row_to_dat(self, namefile, row, hspace=" "*5):
         """
         Define format of .dat file.
         
@@ -187,6 +233,7 @@ class PropertyManager(Manager):
             3rd column: float [20 caract.]
             Columns are separated by blanks of hspace caracters (default 5).
         """
+        int1, int2, value = row
         row_to_be_saved = f"{int1:10.0f}" + hspace
         row_to_be_saved += f"{int2:10.0f}" + hspace
         row_to_be_saved += f"{value:20.15f}" + hspace
@@ -207,5 +254,33 @@ class PropertyManager(Manager):
                 beingread.append(float(line[25:50]))
         hasbeenread = np.array(beingread)
         return hasbeenread         
-    
-    
+
+# ========================================================================== #
+    def _append_row_to_hdf5(self, hfile, dataset_path, row):
+        """
+        Append a new value to an .hdf5 dataset
+        The dataset has to be of shape (n,), i.e. the observable must be scalar
+        """
+        new_value = row[2]
+        current_data_length = hfile[dataset_path].shape[0]
+        hfile[dataset_path].resize((current_data_length + 1), axis=0)
+        hfile[dataset_path][-1:] = new_value
+
+# ========================================================================== #
+    def _append_array_to_hdf5(self, hfile, metadata, array):
+        """
+        Append a new array (of arbitrary shape) to an .hdf5 dataset
+        
+        Note:
+        Due to the initialization constraint on hdf5 datasets, an initial dummy
+        array is set for hfile[dataset_path][0], cf. _initialize_hdf5_dataset()
+        Hence, the very first call to _append_array_to_hdf5() replaces this 
+        dummy data, instead of being appended to it.
+        """
+        isfirstcomputation, index_state, dataset_path = metadata
+        if isfirstcomputation and index_state == 1 and self.isfirstlaunched:
+            hfile[dataset_path][0] = array
+        else:
+            current_data_length = hfile[dataset_path].shape[0]
+            hfile[dataset_path].resize((current_data_length + 1), axis=0)
+            hfile[dataset_path][-1:] = array

@@ -59,6 +59,8 @@ class CalcProperty(Manager):
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        self.label = 'Observable_Label'
+        self.shape = None
         if state is not None:
             self.state = copy.deepcopy(state)
 
@@ -456,6 +458,8 @@ class CalcExecFunction(CalcProperty):
         self.isfirst = True
         self.use_atoms = use_atoms
         self.isgradient = gradient
+        self.label = function
+        self.shape = None
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -467,6 +471,8 @@ class CalcExecFunction(CalcProperty):
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
         return self.isconverged
 
 # ========================================================================== #
@@ -511,12 +517,16 @@ class CalcRoutineFunction(CalcExecFunction):
         Return a string for the log with informations of the calculated
         routine property.
         """
-        msg = f'Routine computation of the {self.label.lower()}\n'
-        if len(self.new > 0):
-            for idx_state, value in enumerate(self.new):
-                msg += f'        - Value for state {idx_state+1} : {value}\n'
+        name_observable = self.label.lower().replace("_", " ")
+        msg = f'Routine computation of the {name_observable}\n'
+        if len(self.shape) == 0:
+            if len(self.new>0):
+                for idx_state,value in enumerate(self.new):
+                    msg += f'        - Value for state {idx_state+1} : {value}\n'
+            else:
+                msg += f'        - Value for state 1  : {self.new}\n'
         else:
-            msg += f'        - Value for state 1  : {self.new}\n'
+            msg += f'        - [...] Too big to print, cf. HIST.hdf5 file \n'
         return msg
 
 
@@ -547,10 +557,12 @@ class CalcPressure(CalcRoutineFunction):
         """
         if self.use_atoms:
             self._function = [getattr(_, self._func) for _ in self.atoms]
-            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])
+            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3]) \
                               for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
         return self.isconverged
 
 
@@ -589,6 +601,8 @@ class CalcTrueVolume(CalcExecFunction):
         if self.weight is not None and not len(self.weight.weight) == 0:
             w = self.weight.weight
         self.new = np.average(volume, weights=w)
+        if self.isfirst:
+            self.shape = self.new[0].shape
         return self.isconverged
 
 # ========================================================================== #

@@ -2,6 +2,9 @@
 // (c) 2021 Aloïs Castellano
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
+
+import h5py
+
 from .mlas import Mlas
 from .core import Manager
 from .properties import PropertyManager
@@ -112,18 +115,29 @@ class OtfMlacs(Mlas, Manager):
         self.prop.workdir = self.workdir
         if not self.prop.folder:
             self.prop.folder = 'Properties'
-            
+        
+        self.prop.isfirstlaunched = not self.launched
+                        
+# ========================================================================== #            
     def _initialize_routine_properties(self):
         """Create routine property object"""
-        routine_prop_list = [CalcRoutineFunction('get_volume', label='Volume', frequence=1),
-                             CalcRoutineFunction('get_temperature', label='Temperature', frequence=1),
-                             CalcPressure(label='Pressure', frequence=1),
-                             CalcRoutineFunction('get_potential_energy', label='PotentialEnergy', frequence=1)]
+        label_list = ['Volume', 'Temperature', 'Potential_Energy', \
+                      'Kinetic_Energy', 'Total_Energy', 'Velocities', 'Forces']
+        routine_prop_list = []
+        for x in label_list:
+            lammps_func = 'get_' + x.lower()
+            observable = CalcRoutineFunction(lammps_func, label=x, frequence=1)
+            routine_prop_list.append(observable)
+        
+        other_observables = [CalcPressure(label='Pressure', frequence=1)]
+        routine_prop_list += other_observables
         
         self.routine_prop = PropertyManager(routine_prop_list)
-        self.routine_prop.folder = 'RoutineProperties'
-            
-            
+        self.routine_prop.folder = 'Properties/RoutineProperties'
+        
+        self.routine_prop.isfirstlaunched = not self.launched
+        
+# ========================================================================== #                                
     def _compute_properties(self):
         """
         
@@ -144,5 +158,5 @@ class OtfMlacs(Mlas, Manager):
                             self.prop.workdir / self.routine_prop.folder)
         self.log.logger_log.info(msg)
         self.routine_prop.save_prop(self.step) 
-        self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
+        # self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
         self.routine_prop.save_weights(self.step, self.mlip.weight)
