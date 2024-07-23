@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import os
 from subprocess import run, PIPE
 from abc import abstractmethod
@@ -68,10 +72,12 @@ class BaseLammpsState(StateManager):
 
         blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
                                         model_post, atom_style, eq)
-        if self.neti == False:
-            lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+        if self.neti is False:
+            txt = "Lammps input to run MlMD created by MLACS"
+            lmp_input = LammpsInput(txt)
         else:
-            lmp_input = LammpsInput("Lammps input to run a NETI created by MLACS")
+            txt = "Lammps input to run a NETI created by MLACS"
+            lmp_input = LammpsInput(txt)
         for block in blocks:
             lmp_input(block.name, block)
 
@@ -85,12 +91,12 @@ class BaseLammpsState(StateManager):
                          shell=True,
                          cwd=str(self.subsubdir),
                          stderr=PIPE)
-        
+
         if lmp_handle.returncode != 0:
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-        if self.neti == False:
+        if self.neti is False:
             atoms = self._get_atoms_results(initial_charges)
 
         # Set the info of atoms
@@ -108,7 +114,6 @@ class BaseLammpsState(StateManager):
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
-
 
 # ========================================================================== #
     def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
@@ -130,7 +135,7 @@ class BaseLammpsState(StateManager):
         else:
             blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
-        if self.neti == False:
+        if self.neti is False:
             blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
 
@@ -150,8 +155,8 @@ class BaseLammpsState(StateManager):
         block("read_data", f"read_data {self.atomsfname}")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
-        for iel, e in enumerate(el):                                                      
-            block("group", f"group {e} type {iel+1}") 
+        for iel, e in enumerate(el):
+            block("group", f"group {e} type {iel+1}")
         return block
 
 # ========================================================================== #

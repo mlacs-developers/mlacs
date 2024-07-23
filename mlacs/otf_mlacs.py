@@ -1,17 +1,19 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
 from .mlas import Mlas
 from .core import Manager
 from .properties import PropertyManager
-from .utilities.log import MlacsLog
 
 
 # ========================================================================== #
 # ========================================================================== #
 class OtfMlacs(Mlas, Manager):
-    """
+    r"""
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
 
@@ -73,20 +75,6 @@ class OtfMlacs(Mlas, Manager):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
-
-        # Check if trajectory files already exists
-        self.launched = self._check_if_launched()
-
-        self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
-        self.logger = self.log.logger_log
-        msg = ""
-        for i in range(self.nstate):
-            msg += f"State {i+1}/{self.nstate} :\n"
-            msg += repr(self.state[i])
-        self.logger.info(msg)
-        msg = self.calc.log_recap_state()
-        self.logger.info(msg)
-        self.logger.info(repr(self.mlip))
 
 # ========================================================================== #
     def _initialize_properties(self, prop):

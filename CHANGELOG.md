@@ -43,6 +43,7 @@ CHANGE LOG
 * Give the possibility to the user to set equal masses for all the elements (to accelerate the dynamic).
 * Go continuously from nstep_eq to nstep
 * **Romuald** Create a central Atoms like object
+* **Romuald** We need to remove old lammps io functions
 
 ## MLIP
 * Use relative paths rather than absolute
@@ -96,6 +97,8 @@ CHANGE LOG
 * Plots *correlation*, *error*, *weights* using **CLI**
 * DeltaLearningPotential
 * PAFI
+* NewWeightingPolicy
+* GroundState with MlMinimizer
 * ...
 
 ## Changed

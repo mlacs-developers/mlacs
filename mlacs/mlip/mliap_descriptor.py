@@ -1,4 +1,13 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import os
+import shlex
 from pathlib import Path
 from subprocess import run, PIPE
 
@@ -71,14 +80,6 @@ class MliapDescriptor(Descriptor):
 
     Examples
     --------
-
-    >>> from ase.build import bulk
-    >>> atoms = bulk("Cu", cubic=True).repeat(2)
-    >>>
-    >>> from mlacs.mlip import MliapDescriptor, LinearPotential
-    >>> param = dict(nmax=4, lmax=4, alpha=1.0)
-    >>> desc = MliapDescriptor(atoms, rcut=4.2, parameters=param, style='so3')
-    >>> desc.compute_descriptor(atoms)
     """
     def __init__(self, atoms, rcut=5.0, parameters={},
                  model="linear", style="snap", alpha=1.0,
@@ -156,6 +157,10 @@ class MliapDescriptor(Descriptor):
         amat_f = bispectrum[1:3*nat+1, 1:-1]
         amat_s = bispectrum[3*nat+1:, 1:-1]
 
+        np.save("amat_e.npy", amat_e)
+        np.save("amat_f.npy", amat_f)
+        np.save("amat_s.npy", amat_s)
+
         self.cleanup()
         res = dict(desc_e=amat_e,
                    desc_f=amat_f,
@@ -216,8 +221,7 @@ class MliapDescriptor(Descriptor):
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
         lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
-        lmp_handle = run(lmp_cmd,
-                         shell=True,
+        lmp_handle = run(shlex.split(lmp_cmd),
                          stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
@@ -308,9 +312,9 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def read_mlip(self, filename=None):
+    def get_coef(self, filename=None):
         """
-        Read MLIP parameters from a file.
+        Read MLIP coefficients from a file.
         """
         if filename:
             filename = Path(filename)
