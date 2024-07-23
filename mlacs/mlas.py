@@ -94,7 +94,6 @@ class Mlas(Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 ntrymax=0,
                  workdir=''):
 
         Manager.__init__(self, workdir=workdir)

@@ -82,7 +82,7 @@ class MlMinimizer(Mlas):
     """
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
-                 keep_tmp_mlip=False, ntrymax=0):
+                 keep_tmp_mlip=False):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       keep_tmp_mlip=keep_tmp_mlip)
@@ -118,7 +118,6 @@ class MlMinimizer(Mlas):
         self.log.logger_log.info(msg)
 
         self.step = 0
-        self.ntrymax = ntrymax
         self.log.logger_log.info("")
 
 # ========================================================================== #
