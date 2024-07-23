@@ -1,3 +1,10 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
 from ase.units import GPa
 
 from .mlas import Mlas
@@ -7,7 +14,7 @@ from .properties import PropertyManager, CalcExecFunction
 # ========================================================================== #
 # ========================================================================== #
 class MlMinimizer(Mlas):
-    """
+    r"""
     Class to perform structure minimization assisted with machine-learning
     potential
 

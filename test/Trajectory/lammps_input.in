@@ -1,0 +1,38 @@
+# Lammps input to run MlMD created by MLACS
+
+##########################
+#     Initialization     #
+##########################
+units metal
+boundary p p p
+atom_style atomic
+read_data atoms.in
+mass 1  63.546
+group Cu type 1
+
+#######################
+#     Interaction     #
+#######################
+pair_style mliap model linear /home/bejaudr/software/Mlacs/mlacs/test/MLIP/MLIP.model descriptor sna /home/bejaudr/software/Mlacs/mlacs/test/MLIP/MLIP.descriptor
+pair_coeff * * Cu
+
+######################
+#     Thermostat     #
+######################
+timestep 0.0005
+fix ff all store/force
+fix f1 all langevin 3200 3200 $(100*dt) 2964093 gjf vhalf zero yes
+fix f2 all nph iso 39683.21192824588 39683.21192824588 $(1000*dt)
+fix fcm all recenter INIT INIT INIT
+
+
+
+
+run 10
+
+###################################
+#     Dump last configuration     #
+###################################
+dump last all custom 1 configurations.out id type xu yu zu vx vy vz fx fy fz element
+dump_modify last element Cu
+run 0

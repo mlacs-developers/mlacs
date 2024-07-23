@@ -1,5 +1,11 @@
-'''
-'''
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 from pathlib import Path
 from subprocess import run, Popen, PIPE
 from os import symlink
@@ -152,7 +158,7 @@ class MomentTensorPotential(SelfMlipManager):
         pass
 
 # ========================================================================== #
-    def get_pair_style(self, folder=None):
+    def get_pair_style(self):
         if self.version == 3:
             return f"mlip load_from={self.subdir / 'pot.mtp'}"
         return f"mlip {self.subdir / 'mlip.ini'}"

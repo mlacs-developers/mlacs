@@ -1,5 +1,11 @@
-'''
-'''
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import numpy as np
 from ase.units import GPa
 from ase import Atoms
@@ -39,14 +45,6 @@ class LinearPotential(MlipManager):
     Examples
     --------
 
-    >>> from ase.io import read
-    >>> confs = read('Trajectory.traj', index=':')
-    >>>
-    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
-    >>> desc = SnapDescriptor(confs[0], rcut=4.2, parameters=dict(twojmax=6))
-    >>> mlip = LinearPotential(desc)
-    >>> mlip.update_matrices(confs)
-    >>> mlip.train_mlip()
     """
     def __init__(self,
                  descriptor,
@@ -105,7 +103,6 @@ class LinearPotential(MlipManager):
         W = self.weight.get_weights()
         amat = amat * W[:, np.newaxis]
         ymat = ymat * W
-
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
                                                 ymat,
@@ -155,8 +152,15 @@ class LinearPotential(MlipManager):
         w = None
         if len(self.weight.weight) > 0:
             w = self.weight.weight
+
+        # Quickfix for variable number of atoms
+        wf = np.array([])
+        for i in range(len(w)):
+            wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
+        # End of Quickfix
+
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
-        res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=w)
+        res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=wf)
         res_S = compute_correlation(np.c_[ymat_s, s_mlip]/GPa, weight=w)
         self.fit_res = np.c_[res_E, res_F, res_S]
 
@@ -170,6 +174,7 @@ class LinearPotential(MlipManager):
         header = f"Weighted rmse: {self.fit_res[0, 1]:.6f} eV/angs   " + \
                  f"Weighted mae: {self.fit_res[1, 1]:.6f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
+
         np.savetxt("MLIP-Forces_comparison.dat",
                    np.c_[ymat_f, f_mlip],
                    header=header, fmt="%25.20f  %25.20f")

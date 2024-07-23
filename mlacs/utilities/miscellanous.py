@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import os
 from pathlib import Path
 from contextlib import contextmanager
@@ -115,7 +119,6 @@ def compute_correlation(data, weight=None):
         weight = np.ones(nconf) / nconf
     datatrue = data[:, 0]
     datatest = data[:, 1]
-
     assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
     weight = np.repeat(weight, len(datatrue)//len(weight))
 
@@ -328,7 +331,6 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
 
 # GA: This context manager might be problematic when used in parallel
 #     execution. We might not come back where we started!
-
 @contextmanager
 def execute_from(directory):
     """Context to work from a subfolder."""
