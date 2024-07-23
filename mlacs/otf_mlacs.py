@@ -3,13 +3,14 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 
+import os
+import sys
 import h5py
 
 from .mlas import Mlas
 from .core import Manager
 from .properties import PropertyManager
-from .utilities.log import MlacsLog
-from .properties import CalcExecFunction, CalcRoutineFunction, CalcPressure
+from .properties import CalcRoutineFunction, CalcPressure
 
 
 # ========================================================================== #
@@ -85,25 +86,42 @@ class OtfMlacs(Mlas, Manager):
                       ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip,
                       workdir=workdir)
 
-        # Check if trajectory files already exists
+        # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 
-        self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
-        self.logger = self.log.logger_log
-        msg = ""
-        for i in range(self.nstate):
-            msg += f"State {i+1}/{self.nstate} :\n"
-            msg += repr(self.state[i])
-        self.logger.info(msg)
-        msg = self.calc.log_recap_state()
-        self.logger.info(msg)
-        self.logger.info(repr(self.mlip))
-        
-        self._initialize_properties(prop)
-        self._initialize_routine_properties()
+        hpath = self._get_hdf5_path()
+
+        self._initialize_properties(prop, hpath)
+        self._initialize_routine_properties(hpath)
 
 # ========================================================================== #
-    def _initialize_properties(self, prop):
+    def _get_hdf5_path(self):
+        """Return hdf5 path, and create hdf5 file if necessary"""
+
+        script_name = os.path.basename(sys.argv[0])
+        if script_name.endswith('.py'):
+            script_name = script_name[:-3]
+        hname = script_name + "_HIST.hdf5"
+        hpath = str(self.workdir / hname)
+        
+        hdf5file_exists = os.path.isfile(hpath)
+        if hdf5file_exists:
+            #if it is the first MLAS launch
+            if not self.launched:
+                S = 1
+                while hdf5file_exists:
+                    hname = script_name + '_{:04d}'.format(S) + "_HIST.hdf5"
+                    hpath = str(self.workdir / hname)
+                    hdf5file_exists = os.path.isfile(hpath)
+                    S += 1
+                
+                hfile = h5py.File(hpath, "a")
+                hfile.close()
+                                
+        return hpath
+
+# ========================================================================== #
+    def _initialize_properties(self, prop, hpath):
         """Create property object"""
         if prop is None:
             self.prop = PropertyManager(None)
@@ -117,9 +135,10 @@ class OtfMlacs(Mlas, Manager):
             self.prop.folder = 'Properties'
         
         self.prop.isfirstlaunched = not self.launched
+        self.prop.hpath = hpath
                         
 # ========================================================================== #            
-    def _initialize_routine_properties(self):
+    def _initialize_routine_properties(self, hpath):
         """Create routine property object"""
         label_list = ['Volume', 'Temperature', 'Potential_Energy', \
                       'Kinetic_Energy', 'Total_Energy', 'Velocities', 'Forces']
@@ -136,6 +155,7 @@ class OtfMlacs(Mlas, Manager):
         self.routine_prop.folder = 'Properties/RoutineProperties'
         
         self.routine_prop.isfirstlaunched = not self.launched
+        self.routine_prop.hpath = hpath
         
 # ========================================================================== #                                
     def _compute_properties(self):

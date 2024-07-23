@@ -526,7 +526,7 @@ class CalcRoutineFunction(CalcExecFunction):
             else:
                 msg += f'        - Value for state 1  : {self.new}\n'
         else:
-            msg += f'        - [...] Too big to print, cf. HIST.hdf5 file \n'
+            msg += '        - [...] Too big to print, cf. *_HIST.hdf5 file \n'
             
         return msg
 

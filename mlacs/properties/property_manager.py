@@ -33,7 +33,6 @@ class PropertyManager(Manager):
             self.manager = [prop]
             self.check = [False]
             
-
 # ========================================================================== #
     @property
     def check_criterion(self):
@@ -80,12 +79,21 @@ class PropertyManager(Manager):
     def _initialize_hdf5_dataset(self, observable):
         """Create hdf5 dataset corresponding to a calc property object"""
         maxshape_val = (None,) + observable.shape
-        hpath = self.workdir / "HIST.hdf5"
+
+        hpath = self.hpath    
         hfile = h5py.File(hpath, "a")
         dtst_path = self.folder + '/' + observable.label
+        
         #Some dummy data (with the correct shape) to initialize the dataset
         dummy_init = np.ones(shape=(1,)+observable.shape)*-1
         hfile.create_dataset(dtst_path, data=dummy_init, maxshape=maxshape_val)
+        
+        #Initialize metadata
+        maxshape_val = (None, 2)
+        dtst_path += '_Meta'
+        dummy_init = np.ones(shape=(1,)+(2,))*-1
+        hfile.create_dataset(dtst_path, data=dummy_init, maxshape=maxshape_val)
+        
         hfile.close()
 
 # ========================================================================== #
@@ -122,21 +130,31 @@ class PropertyManager(Manager):
         for observable in self.manager:
             to_be_saved = observable.new
 
-            hpath = self.workdir / "HIST.hdf5"
+            hpath = self.hpath
             hfile = h5py.File(hpath, "a")
             
             if observable.shape is not None:
                 
+                #Observables are saved in the *_HIST.hdf5 file
                 dataset_path = self.folder + '/' + observable.label
                 for idx,val_state in enumerate(to_be_saved):
                     index_state = idx+1
                     metadata = [observable.isfirstcomputation,
-                                index_state,
                                 dataset_path,
+                                step,
+                                index_state,
                                 ]
                     self._append_array_to_hdf5(hfile, metadata, val_state)
+                    
+                    #Info on the observable itself, i.e. the MLAS iteration
+                    #index 'step' and the index of the state, is saved in a
+                    #separate array named by appending the suffix 'meta' to the
+                    #original label
+                    metadata[1] += '_Meta'
+                    val_meta = np.array(metadata[2:])
+                    self._append_array_to_hdf5(hfile, metadata, val_meta)
                 
-                #scalar observables are saved in .dat files
+                #Scalar observables are saved in .dat files
                 observable_is_scalar = (len(observable.shape) == 0)
                 if observable_is_scalar:
                     namefile = path_save / (observable.label + ".dat")
@@ -277,7 +295,7 @@ class PropertyManager(Manager):
         Hence, the very first call to _append_array_to_hdf5() replaces this 
         dummy data, instead of being appended to it.
         """
-        isfirstcomputation, index_state, dataset_path = metadata
+        isfirstcomputation, dataset_path, step, index_state = metadata
         if isfirstcomputation and index_state == 1 and self.isfirstlaunched:
             hfile[dataset_path][0] = array
         else:
