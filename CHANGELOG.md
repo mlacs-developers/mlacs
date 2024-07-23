@@ -96,6 +96,8 @@ CHANGE LOG
 * Plots *correlation*, *error*, *weights* using **CLI**
 * DeltaLearningPotential
 * PAFI
+* NewWeightingPolicy
+* GroundState with MlMinimizer
 * ...
 
 ## Changed
