@@ -65,7 +65,7 @@ welems      1.0"""
 
 def cleanup():
     root = Path()
-    paths = [Path("MLIP"), Path("MolecularDynamics")]
+    paths = [Path("MLIP"), Path("MolecularDynamics"), Path("Trajectory")]
     for path in paths:
         if (root/path).exists():
             shutil.rmtree(root/path)
