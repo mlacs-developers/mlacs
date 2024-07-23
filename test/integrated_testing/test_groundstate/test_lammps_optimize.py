@@ -33,7 +33,7 @@ def files_with_prefix():
 
 @pytest.fixture
 def expected_folder():
-    folder = ["MolecularDynamics", "Snap"]
+    folder = ["MolecularDynamics", "Snap", "Properties"]
     return folder
 
 
