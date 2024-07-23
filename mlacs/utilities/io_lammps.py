@@ -723,6 +723,7 @@ def reconstruct_mlmd_trajectory(trajfile, logfile):
         traj.append(newat)
     return traj
 
+
 # ========================================================================== #
 def get_msd_input(self, msdfile):
     """
@@ -733,8 +734,6 @@ def get_msd_input(self, msdfile):
     for iel, el in enumerate(self.elem):
         block("compute", f"compute c{10+iel} {el} msd com yes")
         block("variable", f"variable msd{el} equal c_c{10+iel}[4]")
-        block("msd el", f"fix f{iel+3} {el} print 1 " + \
-                  f"\"${{msd{el}}}\" screen no append msd{el}.dat")
+        block("msd el", f"fix f{iel+3} {el} print 1 " +
+              f"\"${{msd{el}}}\" screen no append msd{el}.dat")
     return block
-
-

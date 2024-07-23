@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -589,8 +589,8 @@ class Mlas(Manager):
         """
         train_traj, prev_traj = self.read_traj()
 
-        #for i in range(self._nmax):
-        #    self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
+        # for i in range(self._nmax):
+        #     self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
 
         # Add the Configuration without a MLIP generating them
         if train_traj is not None:

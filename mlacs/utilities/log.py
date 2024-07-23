@@ -47,7 +47,7 @@ class MlacsLog:
         msg += '                                                           \n'
         msg += '           Copyright (C) 2022-2024 MLACS group.            \n'
         msg += '        MLACS comes with ABSOLUTELY NO WARRANTY.           \n'
-        msg += '    This package is distributed under the terms of the     \n' 
+        msg += '    This package is distributed under the terms of the     \n'
         msg += '       GNU General Public License, see LICENSE.md          \n'
         msg += '         or http://www.gnu.org/copyleft/gpl.txt .          \n'
         msg += '                                                           \n'

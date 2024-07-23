@@ -6,20 +6,12 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
-from subprocess import call
-
-import numpy as np
-from ase.io.lammpsdata import write_lammps_data
-
 from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 
 from ..state.lammps_state import (BaseLammpsState,
-                                  LammpsState)     
-from ..utilities.io_lammps import (LammpsInput,
-                                   EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+                                  LammpsState)
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -118,8 +110,8 @@ class ThermoState(BaseLammpsState):
     def run_averaging(self):
         """
         Get the right volume structure at finite pressure
-        """ 
-        eq_state = LammpsState(self.temperature, 
+        """
+        eq_state = LammpsState(self.temperature,
                                self.pressure,
                                nsteps=self.nsteps,
                                nsteps_eq=self.nsteps_eq,
@@ -127,10 +119,9 @@ class ThermoState(BaseLammpsState):
                                folder=self.folder,
                                subfolder='Equilibration')
 
-        self.atoms = eq_state.run_dynamics(self.atoms, 
-                                           self.pair_style, 
+        self.atoms = eq_state.run_dynamics(self.atoms,
+                                           self.pair_style,
                                            self.pair_coeff)
- 
 
 # ========================================================================== #
     def post_process(self):

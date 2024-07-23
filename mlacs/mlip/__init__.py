@@ -17,9 +17,11 @@ from .spin_potential import SpinLatticePotential
 from .mbar_manager import MbarManager
 from .ace_descriptor import AceDescriptor
 from .tensorpotential import TensorpotPotential
-from .weights import UniformWeight, EnergyBasedWeight, FixedWeight
+from .weights import (UniformWeight,
+                      IncreasingWeight,
+                      EnergyBasedWeight,
+                      FixedWeight)
 
-from .weighting_policy import UniformWeight, IncreasingWeight
 __all__ = ['MlipManager',
            'Descriptor',
            'SumDescriptor',

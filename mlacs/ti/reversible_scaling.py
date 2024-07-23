@@ -12,9 +12,8 @@ from ase.units import kB
 
 from ..core.manager import Manager
 from ..utilities.miscellanous import get_elements_Z_and_masses
-from ..utilities.io_lammps import (LammpsInput,
-                                   EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+from ..utilities.io_lammps import LammpsBlockInput
+
 from .thermostate import ThermoState
 from .solids import EinsteinSolidState
 from .liquids import UFLiquidState
@@ -159,7 +158,7 @@ class ReversibleScalingState(ThermoState):
         self.rng = rng
         if self.rng is None:
             self.rng = np.random.default_rng()
-        
+
         # reversible scaling
         ThermoState.__init__(self,
                              atoms,
@@ -219,7 +218,7 @@ class ReversibleScalingState(ThermoState):
                                        workdir=self.workdir,
                                        folder=self.folder,
                                        subfolder=self.subfolder)
-            
+
         self.ti = ThermodynamicIntegration(self.state,
                                            ninstance=self.ninstance,
                                            workdir=self.workdir,
@@ -256,7 +255,7 @@ class ReversibleScalingState(ThermoState):
 
         block = LammpsBlockInput("thermostat", "Integrators")
         block("timestep", f"timestep {self.dt / 1000}")
-        block("momenta", f"velocity all create " +\
+        block("momenta", "velocity all create " +
               f"{temp} {langevinseed} dist gaussian")
         # If we are using Langevin, we want to remove the random part
         # of the forces
@@ -271,21 +270,22 @@ class ReversibleScalingState(ThermoState):
                 # Fix center of mass for barostat
                 block("xcm", "variable xcm equal xcm(all,x)")
                 block("ycm", "variable ycm equal xcm(all,y)")
-                block("zcm", "variable zcm equal xcm(all,z)") 
-                block("nph", "fix f2 all nph iso " + \
-                     f"{self.pressure*10000} {self.pressure*10000} {self.pdamp} " + \
-                     "fixedpoint ${xcm} ${ycm} ${zcm}")
+                block("zcm", "variable zcm equal xcm(all,z)")
+                block("nph", f"fix f2 all nph iso {self.pressure*10000} " +
+                             f"{self.pressure*10000} {self.pdamp} " +
+                             "fixedpoint ${xcm} ${ycm} ${zcm}")
             block("compute temp without cm", "compute c1 all temp/com")
             block("fix modify cm", "fix_modify f1 temp c1")
             if self.pressure is not None:
-                block("fix modify cm","fix_modify f2 temp c1")
+                block("fix modify cm", "fix_modify f2 temp c1")
         else:
             if self.pressure is None:
                 block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
             if self.pressure is not None:
-                block("npt", f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
-                      f"iso {self.pressure*10000} {self.pressure*10000} {self.pdamp} " + \
-                      "fixedpoint ${xcm} ${ycm} ${zcm}")
+                block("npt", f"fix f1 all npt temp {temp} {temp} " +
+                             f"{self.damp} iso {self.pressure*10000} " +
+                             f"{self.pressure*10000} {self.pdamp} " +
+                             "fixedpoint ${xcm} ${ycm} ${zcm}")
             block("compute temp without cm", "compute c1 all temp/com")
             block("fix modify cm", "fix_modify f1 temp c1")
         return block
@@ -297,8 +297,8 @@ class ReversibleScalingState(ThermoState):
         if self.trajfile:
             el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
-            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
-                  "id type xu yu zu vx vy vz fx fy fz "
+            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
+            txt += "id type xu yu zu vx vy vz fx fy fz "
             txt += "element"
             block("dump", txt)
             block("dump_modify1", "dump_modify dum1 append yes")
@@ -314,7 +314,7 @@ class ReversibleScalingState(ThermoState):
         """
         tstart = self.t_start
         tend = self.t_end
-        
+
         blocks = []
         pair_style = self.pair_style.split()
         if len(self.pair_coeff) == 1:
@@ -334,21 +334,22 @@ class ReversibleScalingState(ThermoState):
         blocks.append(block0)
 
         block1 = LammpsBlockInput("fwd", "Forward Integration")
-        block1("lambda fwd", "variable lambda equal " + \
+        block1("lambda fwd", "variable lambda equal " +
                f"1/(1+(elapsed/{self.nsteps})*({tend}/{tstart}-1))")
         if len(self.pair_coeff) == 1:
-            block1("adapt pair_style", "fix f3 all adapt 1 pair " + \
+            block1("adapt pair_style", "fix f3 all adapt 1 pair " +
                    f"{self.pair_style} scale * * v_lambda")
         else:
             # pair_style comd compatible only with one zbl, To be fixed
-            block1("scaling pair_style", "pair_style hybrid/scaled v_lamda " + \
-                   f"{pair_style[1]} {pair_style[2]} " + \
+            block1("scaling pair_style", "pair_style hybrid/scaled v_lamda " +
+                   f"{pair_style[1]} {pair_style[2]} " +
                    f"{pair_style[3]} v_lambda {pair_style[4]}")
             block1("pair_coeff_1", "pair_coeff " + hybrid_pair_coeff[0])
             block1("pair_coeff_2", "pair_coeff " + hybrid_pair_coeff[1])
-        block1("write fwd", "fix f4 all print 1 " + \
-               "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
-               "append forward.dat title \"# pe    pressure    vol    lambda\"\n")
+        block1("write fwd", "fix f4 all print 1 " +
+               "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " +
+               "append forward.dat title " +
+               "\"# pe    pressure    vol    lambda\"\n")
         block1("run fwd", f"run {self.nsteps}")
         if len(self.pair_coeff) == 1:
             block1("unfix f3", "unfix f3 ")
@@ -360,21 +361,22 @@ class ReversibleScalingState(ThermoState):
         blocks.append(block2)
 
         block3 = LammpsBlockInput("bwd", "Backward Integration")
-        block3("lambda bwd", "variable lambda equal " + \
+        block3("lambda bwd", "variable lambda equal " +
                f"1/(1+(1-elapsed/{self.nsteps})*({tend}/{tstart}-1))")
         if len(self.pair_coeff) == 1:
-            block3("adapt pair_style", "fix f3 all adapt 1 pair " + \
+            block3("adapt pair_style", "fix f3 all adapt 1 pair " +
                    f"{self.pair_style} scale * * v_lambda")
         else:
             # pair_style comd compatible only with one zbl, To be fixed
-            block3("scaling pair_style", "pair_style hybrid/scaled v_lamda " + \
-                   f"{pair_style[1]} {pair_style[2]} " + \
+            block3("scaling pair_style", "pair_style hybrid/scaled v_lamda " +
+                   f"{pair_style[1]} {pair_style[2]} " +
                    f"{pair_style[3]} v_lambda {pair_style[4]}")
             block3("pair_coeff_1", "pair_coeff " + hybrid_pair_coeff[0])
             block3("pair_coeff_2", "pair_coeff " + hybrid_pair_coeff[1])
-        block3("write bwd", "fix f4 all print 1 " + \
-               "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
-               "append backward.dat title \"# pe    pressure    vol    lambda\"\n")
+        block3("write bwd", "fix f4 all print 1 " +
+               "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " +
+               "append backward.dat title " +
+               "\"# pe    pressure    vol    lambda\"\n")
         blocks.append(block3)
         return blocks
 
@@ -416,7 +418,7 @@ class ReversibleScalingState(ThermoState):
         header = "   T [K]    F [eV/at]"
         fmt = "%10.3f  %10.6f"
         np.savetxt("free_energy.dat", results, header=header, fmt=fmt)
-        return 
+        return
 
 # ========================================================================== #
     def log_recap_state(self):
@@ -426,7 +428,7 @@ class ReversibleScalingState(ThermoState):
         if self.pressure is not None:
             npt = True
         if self.damp is None:
-            damp = 100 * self.dt
+            self.damp = 100 * self.dt
 
         msg = "Thermodynamic Integration using Reversible Scaling\n"
         msg += f"Starting temperature :          {self.t_start}\n"
