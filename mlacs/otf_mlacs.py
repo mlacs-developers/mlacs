@@ -101,7 +101,9 @@ class OtfMlacs(Mlas, Manager):
     def _get_hdf5_path(self):
         """Return hdf5 path, and create hdf5 file if necessary"""
         
-        script_name = self.hprefix + '_'
+        if self.hprefix != '' and (not self.hprefix.endswith('_')):
+            self.hprefix += '_'
+        script_name = self.hprefix
         script_name += os.path.basename(sys.argv[0])
         if script_name.endswith('.py'):
             script_name = script_name[:-3]
@@ -156,6 +158,7 @@ class OtfMlacs(Mlas, Manager):
         routine_prop_list += other_observables
 
         self.routine_prop = PropertyManager(routine_prop_list)
+        self.routine_prop.workdir = self.workdir
         self.routine_prop.folder = 'Properties/RoutineProperties'
 
         self.routine_prop.isfirstlaunched = not self.launched
