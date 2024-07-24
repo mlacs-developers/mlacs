@@ -79,13 +79,16 @@ class OtfMlacs(Mlas, Manager):
                  std_init=0.05,
                  keep_tmp_mlip=True,
                  ntrymax=0,
-                 workdir=''):
+                 workdir='',
+                 hprefix=''):
 
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip,
                       workdir=workdir)
-
+        
+        self.hprefix = hprefix
+        
         # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 
@@ -97,16 +100,17 @@ class OtfMlacs(Mlas, Manager):
 # ========================================================================== #
     def _get_hdf5_path(self):
         """Return hdf5 path, and create hdf5 file if necessary"""
-
-        script_name = os.path.basename(sys.argv[0])
+        
+        script_name = self.hprefix + '_'
+        script_name += os.path.basename(sys.argv[0])
         if script_name.endswith('.py'):
             script_name = script_name[:-3]
         hname = script_name + "_HIST.hdf5"
         hpath = str(self.workdir / hname)
-        
+
         hdf5file_exists = os.path.isfile(hpath)
         if hdf5file_exists:
-            #if it is the first MLAS launch
+            # if it is the first MLAS launch
             if not self.launched:
                 S = 1
                 while hdf5file_exists:
@@ -114,10 +118,10 @@ class OtfMlacs(Mlas, Manager):
                     hpath = str(self.workdir / hname)
                     hdf5file_exists = os.path.isfile(hpath)
                     S += 1
-                
+
                 hfile = h5py.File(hpath, "a")
                 hfile.close()
-                                
+
         return hpath
 
 # ========================================================================== #
@@ -133,34 +137,34 @@ class OtfMlacs(Mlas, Manager):
         self.prop.workdir = self.workdir
         if not self.prop.folder:
             self.prop.folder = 'Properties'
-        
+
         self.prop.isfirstlaunched = not self.launched
         self.prop.hpath = hpath
-                        
-# ========================================================================== #            
+
+# ========================================================================== #
     def _initialize_routine_properties(self, hpath):
         """Create routine property object"""
-        label_list = ['Volume', 'Temperature', 'Potential_Energy', \
+        label_list = ['Volume', 'Temperature', 'Potential_Energy',
                       'Kinetic_Energy', 'Total_Energy', 'Velocities', 'Forces']
         routine_prop_list = []
         for x in label_list:
             lammps_func = 'get_' + x.lower()
             observable = CalcRoutineFunction(lammps_func, label=x, frequence=1)
             routine_prop_list.append(observable)
-        
+
         other_observables = [CalcPressure(label='Pressure', frequence=1)]
         routine_prop_list += other_observables
-        
+
         self.routine_prop = PropertyManager(routine_prop_list)
         self.routine_prop.folder = 'Properties/RoutineProperties'
-        
+
         self.routine_prop.isfirstlaunched = not self.launched
         self.routine_prop.hpath = hpath
-        
-# ========================================================================== #                                
+
+# ========================================================================== #
     def _compute_properties(self):
         """
-        
+
         """
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
@@ -171,12 +175,13 @@ class OtfMlacs(Mlas, Manager):
                 msg = "All property calculations are converged, " + \
                       "stopping MLACS ...\n"
                 self.log.logger_log.info(msg)
-        
-        #compute routine properties
+
+        # compute routine properties
         self.routine_prop.calc_initialize(atoms=self.atoms)
         msg = self.routine_prop.run(self.step,
-                            self.prop.workdir / self.routine_prop.folder)
+                                    self.prop.workdir
+                                    / self.routine_prop.folder)
         self.log.logger_log.info(msg)
-        self.routine_prop.save_prop(self.step) 
+        self.routine_prop.save_prop(self.step)
         # self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
         self.routine_prop.save_weights(self.step, self.mlip.weight)
