@@ -18,7 +18,6 @@ import shlex
 import numpy as np
 from ase import Atoms
 from ..utilities import make_dataframe
-from pyace import ACEBBasisSet
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
@@ -49,6 +48,7 @@ try:
     from pyace.generalfit import GeneralACEFit
     from pyace import create_multispecies_basis_config
     from pyace.metrics_aggregator import MetricsAggregator
+    from pyace import ACEBBasisSet
     ispyace = True
     def_bconf = {'deltaSplineBins': 0.001,
                  'embeddings': {"ALL": {'npot': 'FinnisSinclairShiftedScaled',
