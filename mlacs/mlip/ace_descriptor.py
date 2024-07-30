@@ -25,7 +25,8 @@ from ase.io.lammpsdata import write_lammps_data
 from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor
-from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
+from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
+                                   get_lammps_command)
 
 try:
     import pandas as pd
@@ -157,11 +158,7 @@ class AceDescriptor(Descriptor):
                  bconf_dict=None, loss_dict=None, fitting_dict=None,
                  backend_dict=None, nworkers=None):
 
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp"
-        self.cmd = cmd
+        self.cmd = get_lammps_command()
         self._verify_dependency()
 
         Descriptor.__init__(self, atoms, rcut)
@@ -534,8 +531,6 @@ class AceDescriptor(Descriptor):
         out = run(grep_pace, input=res.stdout, stdout=PIPE)
         if out.returncode:  # There was no mention of pace in pair_style
             s += "Pace style not found.\n"
-            s += "Lammps exe is given by the environment variable :"
-            s += "ASE_LAMMPSRUN_COMMAND\n"
             s += "You can install Pace for Lammps from:\n"
             s += "https://github.com/ICAMS/lammps-user-pace\n\n"
 

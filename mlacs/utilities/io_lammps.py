@@ -737,3 +737,30 @@ def get_msd_input(self, msdfile):
         block("msd el", f"fix f{iel+3} {el} print 1 " +
               f"\"${{msd{el}}}\" screen no append msd{el}.dat")
     return block
+
+
+# ========================================================================== #
+def get_lammps_command():
+    '''
+    Function to load the bash command to run LAMMPS
+    '''
+    # Since some ASE update, there is a new way to get commands
+    envvar = "ASE_LAMMPSRUN_COMMAND"
+    try:
+        from ase.config import cfg
+        if "lammps" in cfg.parser:
+            section = cfg.parser["lammps"]
+            cmd = section["command"]
+        else:
+            cmd = cfg.get(envvar)
+    except ModuleNotFoundError:
+        # The goal is to have this deprecated in the long run
+        # when the update of file-io calculators in ASE is completely done
+        import os
+        cmd = os.environ.get(envvar)
+
+    # And we try the default one afterward
+    if cmd is None:
+        cmd = "lammps"
+
+    return cmd

@@ -21,7 +21,8 @@ from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
                                    EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+                                   LammpsBlockInput,
+                                   get_lammps_command)
 
 
 class BaseLammpsState(StateManager):
@@ -263,12 +264,9 @@ class BaseLammpsState(StateManager):
 # ========================================================================== #
     def _get_lammps_command(self):
         '''
-        Function to load the batch command to run LAMMPS
+        Function to load the bash command to run LAMMPS
         '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_serial"
+        cmd = get_lammps_command()
         return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
