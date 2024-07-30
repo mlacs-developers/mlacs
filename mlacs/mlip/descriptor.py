@@ -10,7 +10,6 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 
-from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
 from ..core import Manager
