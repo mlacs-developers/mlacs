@@ -265,10 +265,19 @@ class BaseLammpsState(StateManager):
         '''
         Function to load the batch command to run LAMMPS
         '''
+        # Since some ASE update, there is a new way to get commands
+        # This would change how to get things like mpi with lammps
         envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
+        try:
+            from ase.config import cfg
+            cmd = cfg.get(envvar)
+        except ModuleNotFoundError:
+            # The goal is to have this deprecated in the long run
+            # when the update of fileio calculators in ASE is completely done
+            cmd = os.environ.get(envvar)
+
         if cmd is None:
-            cmd = "lmp_serial"
+            cmd = "lammps"
         return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
