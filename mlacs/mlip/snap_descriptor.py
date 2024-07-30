@@ -1,4 +1,13 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import os
+import shlex
 from pathlib import Path
 from subprocess import run, PIPE
 
@@ -187,8 +196,7 @@ class SnapDescriptor(Descriptor):
         Function that call LAMMPS to extract the descriptor and gradient values
         '''
         lmp_cmd = f"{self.cmd} -in lammps_input.in -log none -sc lmp.out"
-        lmp_handle = run(lmp_cmd,
-                         shell=True,
+        lmp_handle = run(shlex.split(lmp_cmd),
                          stderr=PIPE)
 
         # There is a bug in LAMMPS that makes compute_mliap crashes at the end
@@ -273,9 +281,9 @@ class SnapDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def read_mlip(self, filename=None):
+    def get_coef(self, filename=None):
         """
-        Read MLIP parameters from a file.
+        Read MLIP coefficients from a file.
         """
         if filename:
             filename = Path(filename)

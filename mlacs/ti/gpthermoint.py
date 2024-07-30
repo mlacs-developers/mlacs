@@ -1,3 +1,11 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import brentq
@@ -10,7 +18,7 @@ except ImportError:
     msg = "You need sklearn to use the calphagpy modules"
     raise ModuleNotFoundError(msg)
 
-from .gpinterface import GaussianProcessInterface
+from ..core import GaussianProcessInterface
 
 
 available_modes = ["t", "vt"]

@@ -1,6 +1,9 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
 import os
 from concurrent.futures import ThreadPoolExecutor
@@ -80,11 +83,6 @@ class Mlas(Manager):
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
-
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
     """
     def __init__(self,
                  atoms,
@@ -96,7 +94,6 @@ class Mlas(Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 ntrymax=0,
                  workdir=''):
 
         Manager.__init__(self, workdir=workdir)
@@ -115,7 +112,6 @@ class Mlas(Manager):
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
-        self.ntrymax = ntrymax
 
         #######################
         # Initialize everything
@@ -147,7 +143,6 @@ class Mlas(Manager):
             self.restart_from_traj()
 
         self.step = 0
-        self.ntrymax = ntrymax
         self.logger.info("")
 
 # ========================================================================== #
@@ -593,8 +588,8 @@ class Mlas(Manager):
         """
         train_traj, prev_traj = self.read_traj()
 
-        for i in range(self._nmax):
-            self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
+        # for i in range(self._nmax):
+        #     self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
 
         # Add the Configuration without a MLIP generating them
         if train_traj is not None:
@@ -661,8 +656,8 @@ class Mlas(Manager):
         self.atoms = []
 
         for i in range(self._nmax):
-            self.traj.append(Trajectory(self.state[i].get_filepath(".traj"),
-                                        mode="a"))
+            traj_fname = str(self.workdir / (self.state[i].prefix + ".traj"))
+            self.traj.append(Trajectory(traj_fname, mode="a"))
             self.atoms.append(prev_traj[i][-1])
         del prev_traj
 

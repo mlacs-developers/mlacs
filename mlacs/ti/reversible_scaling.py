@@ -1,13 +1,19 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import numpy as np
 from scipy.integrate import cumtrapz
 from ase.units import kB
 
 from ..core.manager import Manager
 from ..utilities.miscellanous import get_elements_Z_and_masses
+from ..utilities.io_lammps import LammpsBlockInput
+
 from .thermostate import ThermoState
 from .solids import EinsteinSolidState
 from .liquids import UFLiquidState
@@ -25,63 +31,76 @@ class ReversibleScalingState(ThermoState):
     ----------
     atoms: :class:`ase.Atoms`
         ASE atoms object on which the simulation will be performed
+
     pair_style: :class:`str`
         pair_style for the LAMMPS input
+
     pair_coeff: :class:`str` or :class:`list` of :class:`str`
         pair_coeff for the LAMMPS input
+
     fcorr1: :class:`float` or ``None``
         First order cumulant correction to the free energy, in eV/at,
         to be added to the results.
         If ``None``, no value is added. Default ``None``.
+
     fcorr2: :class:`float` or ``None``
         Second order cumulant correction to the free energy, in eV/at,
         to be added to the results.
         If ``None``, no value is added. Default ``None``.
+
     t_start: :class:`float` (optional)
         Initial temperature of the simulation, in Kelvin. Default ``300``.
+
     t_end: :class:`float` (optional)
         Final temperature of the simulation, in Kelvin. Default ``1200``.
+
     fe_init: :class:`float` (optional)
         Free energy of the initial temperature, in eV/at. Default ``None``.
+
     ninstance: :class:`int` (optional)
         If Free energy calculation has to be done before temperature sweep
         Settles the number of forward and backward runs. Default ``1``.
+
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
+
     damp : :class:`float` (optional)
         Damping parameter. If ``None``, a damping parameter of a
         hundred time the timestep is used.
+
     pressure: :class:`float` or ``None``
         Pressure of the simulation.
         If ``None``, simulations are performed in the NVT ensemble.
         Default ``None``.
+
     pdamp : :class:`float` (optional)
         Damping parameter for the barostat. Default 1000 times ``dt`` is used.
         Default ``None``.
+
     nsteps: :class:`int` (optional)
         Number of production steps. Default ``10000``.
+
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
+
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
-    suffixdir: :class:`str`
-        Suffix for the directory in which the computation will be run.
-        If ``None``, a directory ``\"Solid_TXK\"`` is created,
-        where X is the temperature. Default ``None``.
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
+
     trajfile : :class:`str` (optional)
         Name of the file for saving the MLMD trajectory.
         If ``None``, no traj file is created. Default ``None``.
+
     interval : :class:`int` (optional)
         Number of steps between log and traj writing. Override
-        loginterval and trajinterval. Default ``50``.
+        loginterval. Default ``50``.
+
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-    trajinterval : :class:`int` (optional)
-        Number of steps between MLMD traj writing. Default ``50``.
     """
     def __init__(self,
                  atoms,
@@ -102,15 +121,33 @@ class ReversibleScalingState(ThermoState):
                  nsteps_eq=5000,
                  gjf=True,
                  rng=None,
-                 logfile=True,
-                 trajfile=True,
+                 langevin=True,
+                 logfile=None,
+                 trajfile=None,
                  interval=500,
                  loginterval=50,
-                 trajinterval=50,
                  **kwargs):
 
-        folder = kwargs.get('folder')
-        if folder is None:
+        self.atoms = atoms
+        self.pair_style = pair_style
+        self.pair_coeff = pair_coeff
+        self.fcorr1 = fcorr1
+        self.fcorr2 = fcorr2
+        self.t_start = t_start
+        self.t_end = t_end
+        self.fe_init = fe_init
+        self.phase = phase
+        self.ninstance = ninstance
+        self.damp = damp
+        self.pressure = pressure
+        self.langevin = langevin
+        self.pdamp = pdamp
+        self.nsteps = nsteps
+        self.nsteps_eq = nsteps_eq
+        self.gjf = gjf
+        self.dt = dt
+
+        if kwargs.get('folder') is None:
             folder = f"ReversibleScaling_T{self.t_start}K_T{self.t_end}K"
             if self.pressure is None:
                 folder += "_NVT"
@@ -118,78 +155,9 @@ class ReversibleScalingState(ThermoState):
                 folder += f"_{self.pressure}GPa"
             kwargs['folder'] = folder
 
-        self.atoms = atoms
-        self.t_start = t_start
-        self.t_end = t_end
-        self.fe_init = fe_init
-        self.ninstance = ninstance
-        self.damp = damp
-        self.pressure = pressure
-        self.pdamp = pdamp
-        self.gjf = gjf
-        self.dt = dt
-
-        # Free energy calculation before sweep
-        if self.fe_init is None:
-            if phase == 'solid':
-                self.state = EinsteinSolidState(atoms,
-                                                pair_style,
-                                                pair_coeff,
-                                                t_start,
-                                                pressure,
-                                                fcorr1,
-                                                fcorr2,
-                                                k=None,
-                                                dt=dt,
-                                                damp=damp,
-                                                pdamp=pdamp,
-                                                nsteps=nsteps,
-                                                nsteps_eq=nsteps_eq,
-                                                rng=rng,
-                                                logfile=logfile,
-                                                trajfile=trajfile,
-                                                interval=interval,
-                                                loginterval=loginterval,
-                                                trajinterval=trajinterval,
-                                                **kwargs)
-
-            elif phase == 'liquid':
-                self.state = UFLiquidState(atoms,
-                                           pair_style,
-                                           pair_coeff,
-                                           t_start,
-                                           pressure,
-                                           fcorr1,
-                                           fcorr2,
-                                           dt=dt,
-                                           damp=damp,
-                                           pdamp=pdamp,
-                                           nsteps=nsteps,
-                                           nsteps_eq=nsteps_eq,
-                                           rng=rng,
-                                           suffixdir=suffixdir,
-                                           logfile=logfile,
-                                           trajfile=trajfile,
-                                           interval=interval,
-                                           loginterval=loginterval,
-                                           trajinterval=trajinterval,
-                                           **kwargs)
-
-            self.ti = ThermodynamicIntegration(self.state,
-                                               ninstance,
-                                               logfile='FreeEnergy.log',
-                                               **kwargs)
-            self.ti.run()
-            # Get Fe
-            if self.ninstance == 1:
-                _, self.fe_init = self.state.postprocess()
-            elif self.ninstance > 1:
-                tmp = []
-                for i in range(self.ninstance):
-                    self.state.subdir = f"for_back_{i+1}"
-                    _, tmp_fe_init = self.state.postprocess()
-                    tmp.append(tmp_fe_init)
-                self.fe_init = np.mean(tmp)
+        self.rng = rng
+        if self.rng is None:
+            self.rng = np.random.default_rng()
 
         # reversible scaling
         ThermoState.__init__(self,
@@ -204,7 +172,6 @@ class ReversibleScalingState(ThermoState):
                              trajfile=trajfile,
                              interval=interval,
                              loginterval=loginterval,
-                             trajinterval=trajinterval,
                              **kwargs)
 
 # ========================================================================== #
@@ -212,34 +179,149 @@ class ReversibleScalingState(ThermoState):
     def run(self):
         """
         """
-        self.run_dynamics()
+
+        if self.fe_init is None:
+            self.run_single_ti()
+
+        self.run_dynamics(self.atoms, self.pair_style, self.pair_coeff)
 
         with open("MLMD.done", "w") as f:
             f.write("Done")
 
 # ========================================================================== #
-    @Manager.exec_from_path
-    def write_lammps_input(self):
+    def run_single_ti(self):
         """
-        Write the LAMMPS input for the MLMD simulation
+        Free energy calculation before sweep
         """
-        elem, Z, masses, charges = get_elements_Z_and_masses(self.atoms)
+        if self.phase == 'solid':
+            self.state = EinsteinSolidState(self.atoms,
+                                            self.pair_style,
+                                            self.pair_coeff,
+                                            self.t_start,
+                                            pressure=self.pressure,
+                                            fcorr1=self.fcorr1,
+                                            fcorr2=self.fcorr2,
+                                            k=None,
+                                            dt=self.dt,
+                                            workdir=self.workdir,
+                                            folder=self.folder,
+                                            subfolder=self.subfolder)
+        elif self.phase == 'liquid':
+            self.state = UFLiquidState(self.atoms,
+                                       self.pair_style,
+                                       self.pair_coeff,
+                                       self.t_start,
+                                       pressure=self.pressure,
+                                       fcorr1=self.fcorr1,
+                                       fcorr2=self.fcorr2,
+                                       dt=self.dt,
+                                       workdir=self.workdir,
+                                       folder=self.folder,
+                                       subfolder=self.subfolder)
 
-        damp = self.damp
-        if damp is None:
-            damp = "$(100*dt)"
+        self.ti = ThermodynamicIntegration(self.state,
+                                           ninstance=self.ninstance,
+                                           workdir=self.workdir,
+                                           folder=self.folder,
+                                           subfolder=self.subfolder,
+                                           logfile='FreeEnergy.log')
+        self.ti.run()
+        # Get Fe
+        if self.ninstance == 1:
+            _, self.fe_init = self.state.postprocess()
+        elif self.ninstance > 1:
+            tmp = []
+            for i in range(self.ninstance):
+                _, tmp_fe_init = self.state.postprocess()
+                tmp.append(tmp_fe_init)
+            self.fe_init = np.mean(tmp)
 
-        pdamp = self.pdamp
-        if pdamp is None:
-            pdamp = "$(1000*dt)"
+        return self.fe_init
 
+# ========================================================================== #
+    def _get_block_thermostat(self, eq):
+        """
+        """
+        if self.damp is None:
+            self.damp = "$(100*dt)"
+
+        if self.pdamp is None:
+            self.pdamp = "$(1000*dt)"
+
+        temp = self.t_start
+        self.info_dynamics["temperature"] = temp
+        if self.langevin:
+            langevinseed = self.rng.integers(1, 9999999)
+
+        block = LammpsBlockInput("thermostat", "Integrators")
+        block("timestep", f"timestep {self.dt / 1000}")
+        block("momenta", "velocity all create " +
+              f"{temp} {langevinseed} dist gaussian")
+        # If we are using Langevin, we want to remove the random part
+        # of the forces
+        if self.langevin:
+            block("rmv_langevin", "fix ff all store/force")
+            txt = f"fix f1 all langevin {temp} {temp} {self.damp} " + \
+                  f"{langevinseed} zero yes"
+            block("langevin", txt)
+            if self.pressure is None:
+                block("nve", "fix f2 all nve")
+            if self.pressure is not None:
+                # Fix center of mass for barostat
+                block("xcm", "variable xcm equal xcm(all,x)")
+                block("ycm", "variable ycm equal xcm(all,y)")
+                block("zcm", "variable zcm equal xcm(all,z)")
+                block("nph", f"fix f2 all nph iso {self.pressure*10000} " +
+                             f"{self.pressure*10000} {self.pdamp} " +
+                             "fixedpoint ${xcm} ${ycm} ${zcm}")
+            block("compute temp without cm", "compute c1 all temp/com")
+            block("fix modify cm", "fix_modify f1 temp c1")
+            if self.pressure is not None:
+                block("fix modify cm", "fix_modify f2 temp c1")
+        else:
+            if self.pressure is None:
+                block("nvt", f"fix f1 all nvt temp {temp} {temp} {self.damp}")
+            if self.pressure is not None:
+                block("npt", f"fix f1 all npt temp {temp} {temp} " +
+                             f"{self.damp} iso {self.pressure*10000} " +
+                             f"{self.pressure*10000} {self.pdamp} " +
+                             "fixedpoint ${xcm} ${ycm} ${zcm}")
+            block("compute temp without cm", "compute c1 all temp/com")
+            block("fix modify cm", "fix_modify f1 temp c1")
+        return block
+
+# ========================================================================== #
+    def _get_block_traj(self, atoms):
+        """
+        """
+        if self.trajfile:
+            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+            block = LammpsBlockInput("dump", "Dumping")
+            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
+            txt += "id type xu yu zu vx vy vz fx fy fz "
+            txt += "element"
+            block("dump", txt)
+            block("dump_modify1", "dump_modify dum1 append yes")
+            txt = "dump_modify dum1 element " + " ".join([p for p in el])
+            block("dump_modify2", txt)
+            return block
+        else:
+            pass
+
+# ========================================================================== #
+    def _get_neti(self):
+        """
+        """
+        tstart = self.t_start
+        tend = self.t_end
+
+        blocks = []
         pair_style = self.pair_style.split()
         if len(self.pair_coeff) == 1:
             pair_coeff = self.pair_coeff[0].split()
             hybrid_pair_coeff = " ".join([*pair_coeff[:2],
                                           pair_style[0],
                                           *pair_coeff[2:]])
-
         else:
             hybrid_pair_coeff = []
             for pc in self.pair_coeff:
@@ -247,117 +329,56 @@ class ReversibleScalingState(ThermoState):
                 hpc_ = " ".join([*pc_[:2], *pc_[2:]])
                 hybrid_pair_coeff.append(hpc_)
 
-        input_string = self.get_general_input()
+        block0 = LammpsBlockInput("eq fwd", "Equilibration before fwd rs")
+        block0("run eq fwd", f"run {self.nsteps_eq}")
+        blocks.append(block0)
 
-        input_string += "#####################################\n"
-        input_string += "#        Initialize variables\n"
-        input_string += "#####################################\n"
-        input_string += f"variable      nsteps equal {self.nsteps}\n"
-        input_string += f"variable      nstepseq equal {self.nsteps_eq}\n"
-        input_string += f"variable      tstart equal {self.t_start}\n"
-        input_string += f"variable      tend  equal {self.t_end}\n"
-        input_string += f"timestep      {self.dt / 1000}\n"
-        input_string += "#####################################\n"
-        input_string += "\n\n"
-
-        input_string += self.get_interaction_input()
-
-        input_string += "\n\n"
-
-        input_string += "#####################################\n"
-        input_string += "#          Integrators\n"
-        input_string += "#####################################\n"
-        input_string += "velocity      all create ${tstart} " + \
-            f"{self.rng.integers(99999)} dist gaussian\n"
-        if self.pressure is not None:
-            input_string += "# Fix center of mass for barostat\n"
-            input_string += "variable      xcm equal xcm(all,x)\n"
-            input_string += "variable      ycm equal xcm(all,y)\n"
-            input_string += "variable      zcm equal xcm(all,z)\n"
-        input_string += "fix           f1  all langevin ${tstart} " + \
-                        f"${{tstart}}  {damp}  {self.rng.integers(99999)}" + \
-                        " zero yes\n"
-        if self.pressure is None:
-            input_string += "fix           f2  all nve\n"
-        else:
-            input_string += "fix           f2  all nph iso " + \
-                f"{self.pressure*10000} {self.pressure*10000} {pdamp} " + \
-                "fixedpoint ${xcm} ${ycm} ${zcm}\n"
-            # input_string += "fix           f2  all npt temp ${tstart} " + \
-            #     f"${{tstart}} {damp} iso {self.pressure*10000} " + \
-            #     f"{self.pressure*10000} {pdamp} " + \
-            #     "fixedpoint ${xcm} ${ycm} ${zcm}\n"
-
-        input_string += "\n"
-        input_string += "# Fix center of mass\n"
-        input_string += "compute       c1 all temp/com\n"
-        input_string += "fix_modify    f1 temp c1\n"
-        if self.pressure is not None:
-            input_string += "fix_modify    f2 temp c1\n"
-        input_string += "#####################################\n"
-
-        input_string += "\n\n"
-
-        if self.logfile is not None:
-            input_string += self.get_log_input()
-        if self.trajfile is not None:
-            input_string += self.get_traj_input()
-
-        input_string += "\n"
-
-        input_string += "#####################################\n"
-        input_string += "# Forward integration\n"
-        input_string += "#####################################\n"
-        input_string += "# Equilibration\n"
-        input_string += "run          ${nstepseq}\n"
-        input_string += "variable     lambda equal " + \
-            "1/(1+(elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
+        block1 = LammpsBlockInput("fwd", "Forward Integration")
+        block1("lambda fwd", "variable lambda equal " +
+               f"1/(1+(elapsed/{self.nsteps})*({tend}/{tstart}-1))")
         if len(self.pair_coeff) == 1:
-            input_string += "fix          f3 all adapt 1 pair " + \
-                            f"{self.pair_style} scale * * v_lambda\n"
+            block1("adapt pair_style", "fix f3 all adapt 1 pair " +
+                   f"{self.pair_style} scale * * v_lambda")
         else:
-            input_string += "pair_style hybrid/scaled v_lamda " + \
-                            f"{pair_style[1]} {pair_style[2]} " + \
-                            f"{pair_style[3]} + v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff    " + hybrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff    " + hybrid_pair_coeff[1] + "\n"
-            input_string += "\n"
-        input_string += "fix          f4 all print 1 " + \
-            "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
-            "append forward.dat title \"# pe    pressure    vol    lambda\"\n"
-        input_string += "run          ${nsteps}\n"
+            # pair_style comd compatible only with one zbl, To be fixed
+            block1("scaling pair_style", "pair_style hybrid/scaled v_lamda " +
+                   f"{pair_style[1]} {pair_style[2]} " +
+                   f"{pair_style[3]} v_lambda {pair_style[4]}")
+            block1("pair_coeff_1", "pair_coeff " + hybrid_pair_coeff[0])
+            block1("pair_coeff_2", "pair_coeff " + hybrid_pair_coeff[1])
+        block1("write fwd", "fix f4 all print 1 " +
+               "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " +
+               "append forward.dat title " +
+               "\"# pe    pressure    vol    lambda\"\n")
+        block1("run fwd", f"run {self.nsteps}")
         if len(self.pair_coeff) == 1:
-            input_string += "unfix        f3\n"
-        input_string += "unfix        f4\n"
-        input_string += "#####################################\n"
+            block1("unfix f3", "unfix f3 ")
+        block1("unfix f4", "unfix f4 ")
+        blocks.append(block1)
 
-        input_string += "\n\n"
+        block2 = LammpsBlockInput("eq bwd", "Equilibration before bwd rs")
+        block2("run eq bwd", f"run {self.nsteps_eq}")
+        blocks.append(block2)
 
-        input_string += "#####################################\n"
-        input_string += "# Backward integration\n"
-        input_string += "#####################################\n"
-        input_string += "# Equilibration\n"
-        input_string += "run          ${nstepseq}\n"
-        input_string += "variable     lambda equal " + \
-            "1/(1+(1-elapsed/${nsteps})*(${tend}/${tstart}-1))\n"
+        block3 = LammpsBlockInput("bwd", "Backward Integration")
+        block3("lambda bwd", "variable lambda equal " +
+               f"1/(1+(1-elapsed/{self.nsteps})*({tend}/{tstart}-1))")
         if len(self.pair_coeff) == 1:
-            input_string += "fix          f3 all adapt 1 pair " + \
-                            f"{self.pair_style} scale * * v_lambda\n"
+            block3("adapt pair_style", "fix f3 all adapt 1 pair " +
+                   f"{self.pair_style} scale * * v_lambda")
         else:
-            input_string += "pair_style hybrid/scaled v_lamda " + \
-                            f"{pair_style[1]} {pair_style[2]} " + \
-                            f"{pair_style[3]} v_lambda {pair_style[4]}\n"
-            input_string += "pair_coeff    " + hybrid_pair_coeff[0] + "\n"
-            input_string += "pair_coeff    " + hybrid_pair_coeff[1] + "\n"
-            input_string += "\n"
-        input_string += "fix          f4 all print 1 " + \
-            "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " + \
-            "append backward.dat title \"# pe    pressure    vol    lambda\"\n"
-        input_string += "run          ${nsteps}\n"
-        input_string += "#####################################\n"
-
-        with open("lammps_input.in", "w") as f:
-            f.write(input_string)
+            # pair_style comd compatible only with one zbl, To be fixed
+            block3("scaling pair_style", "pair_style hybrid/scaled v_lamda " +
+                   f"{pair_style[1]} {pair_style[2]} " +
+                   f"{pair_style[3]} v_lambda {pair_style[4]}")
+            block3("pair_coeff_1", "pair_coeff " + hybrid_pair_coeff[0])
+            block3("pair_coeff_2", "pair_coeff " + hybrid_pair_coeff[1])
+        block3("write bwd", "fix f4 all print 1 " +
+               "\"$(pe/atoms) ${mypress} ${vol} ${lambda}\" screen no " +
+               "append backward.dat title " +
+               "\"# pe    pressure    vol    lambda\"\n")
+        blocks.append(block3)
+        return blocks
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -397,7 +418,7 @@ class ReversibleScalingState(ThermoState):
         header = "   T [K]    F [eV/at]"
         fmt = "%10.3f  %10.6f"
         np.savetxt("free_energy.dat", results, header=header, fmt=fmt)
-        return ""
+        return
 
 # ========================================================================== #
     def log_recap_state(self):
@@ -407,12 +428,12 @@ class ReversibleScalingState(ThermoState):
         if self.pressure is not None:
             npt = True
         if self.damp is None:
-            damp = 100 * self.dt
+            self.damp = 100 * self.dt
 
         msg = "Thermodynamic Integration using Reversible Scaling\n"
         msg += f"Starting temperature :          {self.t_start}\n"
         msg += f"Stopping temperature :          {self.t_end}\n"
-        msg += f"Langevin damping :              {damp} fs\n"
+        msg += f"Langevin damping :              {self.damp} fs\n"
         msg += f"Timestep :                      {self.dt} fs\n"
         msg += f"Number of steps :               {self.nsteps}\n"
         msg += f"Number of equilibration steps : {self.nsteps_eq}\n"

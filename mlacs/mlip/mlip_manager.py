@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 from pathlib import Path
 import numpy as np
 from abc import ABC, abstractmethod
@@ -11,7 +15,7 @@ from ase.units import GPa
 
 from ..core import Manager
 from ..utilities import compute_correlation, create_link
-from .weighting_policy import UniformWeight
+from .weights import UniformWeight
 
 
 # ========================================================================== #
@@ -131,9 +135,9 @@ class MlipManager(Manager, ABC):
         # Check that this simulation and the previous one use the same mlip
         fn_descriptor = self.subdir / f"{prefix}.descriptor"
         with open(fn_descriptor, "r") as f:
-            lines = f.read()
+            previous_mlip = f.read()
 
-        if not lines == self.descriptor.get_mlip_params():
+        if not previous_mlip == self.descriptor.get_mlip_params():
             err = "The MLIP.descriptor from {fn_descriptor} seems different "
             err += "to the one you have in this simulation. If you want a "
             err += "new mlip: Rerun MLACS with DatabaseCalculator and "
@@ -146,7 +150,6 @@ class MlipManager(Manager, ABC):
                 if "parent_mlip" not in conf.info:  # Initial or training
                     continue
                 else:  # A traj
-
                     # GA: Not sure if this is absolute or relative
                     model = conf.info['parent_mlip']
                     directory = Path(model)
@@ -162,13 +165,10 @@ class MlipManager(Manager, ABC):
                         err += "OtfMlacs.keep_tmp_files=True on your traj"
                         raise FileNotFoundError(err)
                     if model not in parent_mlip:  # New state
-
                         parent_mlip.append(model)
                         fn = directory / f"{prefix}.model"
-
-                        coef = self.descriptor.read_mlip(filename=fn)
+                        coef = self.descriptor.get_coef(filename=fn)
                         mlip_coef.append(coef)
-
         return parent_mlip, np.array(mlip_coef)
 
 # ========================================================================== #
@@ -181,7 +181,6 @@ class MlipManager(Manager, ABC):
         self.descriptor.subfolder = self.subfolder
 
         self.coefficients = mlip_coef
-        idx_e, idx_f, idx_s = self._get_idx_fit()
 
         # GA: Passing names like this is a bit shady. TODO: clean up.
         mlip_fn = self.descriptor.write_mlip(mlip_coef)
