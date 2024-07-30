@@ -6,7 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 from subprocess import run, PIPE
 from abc import abstractmethod
 
