@@ -1,3 +1,10 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
 import os
 import sys
 import shlex
@@ -14,6 +21,8 @@ def has_lammps_nompi():
     """
     envvar = "ASE_LAMMPSRUN_COMMAND"
     exe = os.environ.get(envvar)
+    from mlacs.utilities.io_lammps import get_lammps_command
+    exe = get_lammps_command()
     error = b'ERROR: Processor partitions do not match number of allocated'
     if exe is None:
         exe = "lmp_mpi"
@@ -34,6 +43,15 @@ def has_mlp():
     """
     return shutil.which("mlp") is None
 
+def has_pyace():
+    """
+    Returns True if there is no pyace module
+    """
+    try:
+        import pyace
+        return False
+    except ImportError:
+        return True
 
 def has_netcdf():
     """

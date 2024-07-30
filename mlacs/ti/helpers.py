@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import numpy as np
 from ase.units import kB
 from ase.io import read
@@ -33,7 +37,6 @@ def prepare_ti(trajprefix,
                trajfile=True,
                interval=500,
                loginterval=500,
-               trajinterval=500,
                **kwargs):
 
     traj = read(trajprefix + ".traj", index=":")
@@ -88,7 +91,6 @@ def prepare_ti(trajprefix,
                                    trajfile,
                                    interval,
                                    loginterval,
-                                   trajinterval,
                                    **kwargs)
 
     elif state == "liquid":
@@ -110,7 +112,6 @@ def prepare_ti(trajprefix,
                               trajfile,
                               interval,
                               loginterval,
-                              trajinterval,
                               **kwargs)
     else:
         msg = "state should be either \"solid\" or \"liquid\""

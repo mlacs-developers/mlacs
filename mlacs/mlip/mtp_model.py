@@ -1,5 +1,11 @@
-'''
-'''
+"""
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 from pathlib import Path
 from subprocess import run, Popen, PIPE
 from os import symlink
@@ -152,7 +158,7 @@ class MomentTensorPotential(SelfMlipManager):
         pass
 
 # ========================================================================== #
-    def get_pair_style(self, folder=None):
+    def get_pair_style(self):
         if self.version == 3:
             return f"mlip load_from={self.subdir / 'pot.mtp'}"
         return f"mlip {self.subdir / 'mlip.ini'}"
@@ -194,10 +200,14 @@ class MomentTensorPotential(SelfMlipManager):
 
         # Symlink new MTP in the main folder
         if self.subfolder:
-            src = self.subsubdir / "pot.mtp"
-            symlink(src, mtpfile)
+            # We might need to remove the old symlink before the new one
+            if mtpfile.exists():
+                mtpfile.unlink()
 
-        with open(self.path / "mlip.ini", "w") as fd:
+            src = self.subsubdir / "pot.mtp"
+            symlink(src, self.subdir / "pot.mtp")
+
+        with open(self.subdir / "mlip.ini", "w") as fd:
             fd.write(f"mtp-filename    {mtpfile}\n")
             fd.write("select           FALSE")
 
@@ -298,7 +308,6 @@ class MomentTensorPotential(SelfMlipManager):
             mlp_command = self._get_cmd_mlip3()
         else:
             mlp_command = self._get_cmd_mlip2()
-        print(mlp_command)
         with open(self.subsubdir / "mlip.log", "w") as fd:
             mlp_handle = run(mlp_command.split(),
                              stderr=PIPE,

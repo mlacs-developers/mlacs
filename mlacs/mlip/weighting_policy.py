@@ -1,12 +1,13 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
-from pathlib import Path
-import numpy as np
 
+import numpy as np
 from ..core.manager import Manager
-from ase.atoms import Atoms
 
 
 # ========================================================================== #
@@ -38,6 +39,7 @@ class WeightingPolicy(Manager):
         If you use an initial database, it needs weight.
         Can a list or an np.array of values or a file.
         Default :class:`None`
+
     """
 
     def __init__(self, energy_coefficient=1.0, forces_coefficient=1.0,
@@ -47,12 +49,12 @@ class WeightingPolicy(Manager):
         Manager.__init__(self, **kwargs)
 
         self.database = database
-        self.matsize = None
         self.matsize = []
 
-        self.energy_coefficient = energy_coefficient
-        self.forces_coefficient = forces_coefficient
-        self.stress_coefficient = stress_coefficient
+        sum_efs = energy_coefficient + forces_coefficient + stress_coefficient
+        self.energy_coefficient = energy_coefficient / sum_efs
+        self.forces_coefficient = forces_coefficient / sum_efs
+        self.stress_coefficient = stress_coefficient / sum_efs
 
         if database is not None:
             self.matsize = [len(a) for a in database]
@@ -98,12 +100,6 @@ class WeightingPolicy(Manager):
         return np.r_[we, wf, ws]
 
 # ========================================================================== #
-    def update_database(self, atoms):
-        """
-        """
-        raise NotImplementedError
-
-# ========================================================================== #
     def init_weight(self, scale=1):
         """
         Scale the weight matrice to include the new configurations.
@@ -131,131 +127,3 @@ class WeightingPolicy(Manager):
         w_f = np.r_[w_f] / np.sum(np.r_[w_f])
         w_s = np.r_[w_s] / np.sum(np.r_[w_s])
         return w_e, w_f, w_s
-
-
-# ========================================================================== #
-# ========================================================================== #
-class UniformWeight(WeightingPolicy):
-    """
-    Class that gives uniform weight in MLACS.
-
-    Parameters
-    ----------
-    nthrow: :class:`int`
-        Number of configurations to ignore when doing the fit.
-        Three cases :
-
-        1. If nconf > 2*nthrow, remove the nthrow first configuration
-        2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
-        3. If nconf < nthrow, keep all conf
-
-    """
-
-    def __init__(self, nthrow=0, energy_coefficient=1.0,
-                 forces_coefficient=1.0, stress_coefficient=1.0,
-                 database=None, weight=None, **kwargs):
-        self.nthrow = nthrow
-        WeightingPolicy.__init__(
-                self,
-                energy_coefficient=energy_coefficient,
-                forces_coefficient=forces_coefficient,
-                stress_coefficient=stress_coefficient,
-                database=database, weight=weight, **kwargs)
-
-# ========================================================================== #
-    @Manager.exec_from_subsubdir
-    def compute_weight(self, coef, f_mlipE):
-        """
-        Compute Uniform Weight taking into account nthrow :
-        """
-        fname = "MLIP.weight"
-        if (filepath := Path(fname)).exists():
-            filepath.unlink()
-
-        nconf = len(self.matsize)
-        to_remove = 0
-        if nconf > 2*self.nthrow:
-            to_remove = self.nthrow
-        elif nconf > self.nthrow:
-            to_remove = nconf-self.nthrow
-
-        w = np.ones(nconf-to_remove) / (nconf-to_remove)
-        w = np.r_[np.zeros(to_remove), w]
-        self.weight = w
-
-        header = "Using Uniform weighting\n"
-        np.savetxt(fname, self.weight, header=header, fmt="%25.20f")
-        return header, fname
-
-# ========================================================================== #
-    def update_database(self, atoms):
-        """
-        Update the database.
-        """
-        if isinstance(atoms, Atoms):
-            atoms = [atoms]
-        self.matsize.extend([len(a) for a in atoms])
-
-
-# ========================================================================== #
-# ========================================================================== #
-class IncreasingWeight(WeightingPolicy):
-    """
-    Class that gives increasing weight with the index of a configuration
-    in MLACS.
-    This weighting policy has been though for structural optimization.
-
-    nthrow: :class: int
-        Number of configurations to ignore when doing the fit.
-        Three cases :
-         1. If nconf > 2*nthrow, remove the nthrow first configuration
-         2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
-         3. If nconf < nthrow, keep all conf
-    """
-
-    def __init__(self, nthrow=0, power=1, energy_coefficient=1.0,
-                 forces_coefficient=1.0, stress_coefficient=1.0,
-                 database=None, weight=None):
-        self.nthrow = nthrow
-        self.power = power
-        WeightingPolicy.__init__(
-                self,
-                energy_coefficient=energy_coefficient,
-                forces_coefficient=forces_coefficient,
-                stress_coefficient=stress_coefficient,
-                database=database, weight=weight)
-
-# ========================================================================== #
-    @Manager.exec_from_subsubdir
-    def compute_weight(self, coef, f_mlipE):
-        """
-        Compute Increasing Weight taking into account nthrow :
-        """
-        fname = "MLIP.weight"
-        if (filepath := Path(fname)).exists():
-            filepath.unlink()
-
-        nconf = len(self.matsize)
-        to_remove = 0
-        if nconf > 2*self.nthrow:
-            to_remove = self.nthrow
-        elif nconf > self.nthrow:
-            to_remove = nconf-self.nthrow
-
-        w = (np.arange(nconf-to_remove, dtype=float) + 1)**self.power
-        w /= w.sum()
-        w = np.r_[np.zeros(to_remove), w]
-        self.weight = w
-
-        header = "Using Increasing weighting\n"
-        np.savetxt(fname, self.weight, header=header, fmt="%25.20f")
-        return header, fname
-
-# ========================================================================== #
-    def update_database(self, atoms):
-        """
-        Update the database.
-        """
-        if isinstance(atoms, Atoms):
-            atoms = [atoms]
-        self.matsize.extend([len(a) for a in atoms])

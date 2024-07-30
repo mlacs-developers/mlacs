@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import numpy as np
 
 from ase.io import Trajectory
@@ -103,7 +107,7 @@ class LangevinState(StateManager):
         self.isneb = False
 
 # ========================================================================== #
-    @Manager.exec_from_subdir
+    @Manager.exec_from_subsubdir
     def run_dynamics(self,
                      supercell,
                      pair_style,

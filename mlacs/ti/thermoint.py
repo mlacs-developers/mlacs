@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
@@ -30,42 +34,32 @@ class ThermodynamicIntegration(Manager):
     def __init__(self,
                  thermostate,
                  ninstance=1,
-                 logfile=None,
-                 folder='ThermoInt',
+                 logfile="ThermoInt.log",
+                 workdir='ThermoInt',
                  **kwargs):
 
-        Manager.__init__(self, **kwargs)
+        Manager.__init__(self, workdir=workdir, **kwargs)
 
-        self.log = ThermoLog(logfile)
+        self.workdir.mkdir(exist_ok=True, parents=True)
+
+        self.log = ThermoLog(str(self.workdir / logfile))
         self.ninstance = ninstance
         self.logfile = logfile
-
-        # Construct the working directory to run the thermodynamic integrations
-        self.subdir.mkdir(exist_ok=True, parents=True)
 
         # Create list of thermostate
         if isinstance(thermostate, ThermoState):
             thermostate.workdir = self.workdir
-            thermostate.folder = self.folder
             self.state = [thermostate]
-            # Create ninstance state
-        #    if self.ninstance > 1:
-        #        state_replica = self.state
-        #        self.state.extend(state_replica * (self.ninstance-1))
         elif isinstance(thermostate, list):
             self.state = thermostate
             for st in self.state:
                 st.workdir = self.workdir
-                st.folder = self.folder
         else:
             msg = "state should be a ThermoState object or " + \
                   "a list of ThermoState objects"
             raise TypeError(msg)
         self.nstate = len(self.state)
         self.recap_state()
-#        self.log.logger_log.removeHandler(
-#            logging.FileHandler(self.logfile, 'a'))
-#        logging.FileHandler(self.logfile, 'a').close()
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -82,21 +76,14 @@ class ThermodynamicIntegration(Manager):
                         msg = f"State {istate+1}/{self.nstate} " + \
                               f"instance_{i+1} launched\n"
 
-                        self.subfolder = "for_back_{i+1}/"
-
-                        # stateworkdir = os.path.join(self.workdir,
-                        #    self.state[istate].get_workdir(),
-                        #    f"for_back_{i+1}/")
-
                         msg += "Working directory for this instance " + \
-                               f"of state : \n{self.path}\n"
+                               f"of state : \n{self.state[istate].path}\n"
                         self.log.logger_log.info(msg)
                 elif self.ninstance == 1:
-                    self.subfolder = ''
                     executor.submit(self._run_one_state, istate, i=1)
                     msg = f"State {istate+1}/{self.nstate} launched\n"
                     msg += "Working directory for this state " + \
-                           f": \n{self.path}\n"
+                           f": \n{self.state[istate].path}\n"
                     self.log.logger_log.info(msg)
             executor.shutdown(wait=True)
 
@@ -112,8 +99,7 @@ class ThermodynamicIntegration(Manager):
         """
         ii = istate + 1
         if self.ninstance > 1:
-            self.subfolder = f"for_back_{i+1}"
-            self.state[istate].subfolder = self.subfolder
+            self.state[istate].subfolder = f"for_back_{i+1}"
             self.state[istate].run()
             msg = f"State {ii} instance_{i+1} : Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
@@ -125,8 +111,7 @@ class ThermodynamicIntegration(Manager):
             msg += "=" * 59 + "\n"
             self.log.logger_log.info(msg)
         elif self.ninstance == 1:
-            self.subfolder = ''
-            self.state[istate].subfolder = self.subfolder
+            self.state[istate].subfolder = ''
             self.state[istate].run()
             msg = f"State {ii}: Molecular Dynamics Done\n"
             msg += "Starting post-process\n"
@@ -174,12 +159,6 @@ class ThermodynamicIntegration(Manager):
         Get the directory where free energy is.
         Useful to get free energy for property convergence during sampling
         """
-        # if self.ninstance > 1:
-        #     for i in range(self.ninstance):
-        #         stateworkdir = self.workdir + \
-        #                        self.state.get_workdir() + \
-        #                        f"for_back_{i+1}/"
-        # elif self.ninstance == 1:
         for istate in range(self.nstate):
             stateworkdir = self.state[istate].path
         return stateworkdir

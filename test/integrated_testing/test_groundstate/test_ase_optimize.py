@@ -6,7 +6,7 @@ from ase.build import bulk
 from ase.io import read
 from ase.calculators.emt import EMT
 from ase.optimize import BFGS, BFGSLineSearch
-from ase.filters import UnitCellFilter
+from ase.constraints import UnitCellFilter
 from ase.units import GPa
 
 from ... import context  # noqa
@@ -33,7 +33,7 @@ def files_with_prefix():
 
 @pytest.fixture
 def expected_folder():
-    folder = ["MolecularDynamics", "Snap"]
+    folder = ["MolecularDynamics", "Snap", "Properties"]
     return folder
 
 

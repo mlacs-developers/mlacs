@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import os
 from subprocess import run, PIPE
 from abc import abstractmethod
@@ -17,7 +21,8 @@ from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
                                    EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+                                   LammpsBlockInput,
+                                   get_lammps_command)
 
 
 class BaseLammpsState(StateManager):
@@ -25,7 +30,7 @@ class BaseLammpsState(StateManager):
     Base class to perform simulations with LAMMPS.
     """
     def __init__(self, nsteps, nsteps_eq, logfile, trajfile, loginterval=50,
-                 blocks=None, **kwargs):
+                 lammpsfname=None, blocks=None, neti=False, **kwargs):
 
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
                          **kwargs)
@@ -35,8 +40,12 @@ class BaseLammpsState(StateManager):
         self.nbeads = 1  # Dummy nbeads to help
 
         self.atomsfname = "atoms.in"
-        self.lammpsfname = "lammps_input.in"
+        self.lammpsfname = lammpsfname
+        if self.lammpsfname is None:
+            self.lammpsfname = "lammps_input.in"
         self._myblock = blocks
+        # key word to adapt functions from BaseLammsState for NETI
+        self.neti = neti
 
         self.info_dynamics = dict()
         if isinstance(blocks, list):
@@ -64,7 +73,12 @@ class BaseLammpsState(StateManager):
 
         blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
                                         model_post, atom_style, eq)
-        lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+        if self.neti is False:
+            txt = "Lammps input to run MlMD created by MLACS"
+            lmp_input = LammpsInput(txt)
+        else:
+            txt = "Lammps input to run a NETI created by MLACS"
+            lmp_input = LammpsInput(txt)
         for block in blocks:
             lmp_input(block.name, block)
 
@@ -83,7 +97,8 @@ class BaseLammpsState(StateManager):
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-        atoms = self._get_atoms_results(initial_charges)
+        if self.neti is False:
+            atoms = self._get_atoms_results(initial_charges)
 
         # Set the info of atoms
         atoms.info['info_state'] = self.info_dynamics
@@ -116,9 +131,13 @@ class BaseLammpsState(StateManager):
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
             blocks.append(self._get_block_traj(atoms))
-        blocks.append(self._get_block_custom())
+        if isinstance(self._get_block_custom(), list):
+            blocks.extend(self._get_block_custom())
+        else:
+            blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
-        blocks.append(self._get_block_lastdump(atoms, eq))
+        if self.neti is False:
+            blocks.append(self._get_block_lastdump(atoms, eq))
         return blocks
 
 # ========================================================================== #
@@ -137,6 +156,8 @@ class BaseLammpsState(StateManager):
         block("read_data", f"read_data {self.atomsfname}")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
+        for iel, e in enumerate(el):
+            block("group", f"group {e} type {iel+1}")
         return block
 
 # ========================================================================== #
@@ -243,12 +264,9 @@ class BaseLammpsState(StateManager):
 # ========================================================================== #
     def _get_lammps_command(self):
         '''
-        Function to load the batch command to run LAMMPS
+        Function to load the bash command to run LAMMPS
         '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_serial"
+        cmd = get_lammps_command()
         return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
@@ -411,8 +429,9 @@ class LammpsState(BaseLammpsState):
 
         kwargs.setdefault('prefix', folder)  # To keep previous behaviour
 
-        super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
-                         blocks, **kwargs)
+        super().__init__(nsteps, nsteps_eq, logfile, trajfile,
+                         loginterval=loginterval, blocks=blocks,
+                         folder=folder, **kwargs)
 
         self.temperature = temperature
         self.pressure = pressure

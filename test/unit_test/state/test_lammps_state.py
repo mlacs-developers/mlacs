@@ -1,3 +1,11 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 from pathlib import Path
 import shutil
 from ase.build import bulk
@@ -57,7 +65,7 @@ welems      1.0"""
 
 def cleanup():
     root = Path()
-    paths = [Path("MLIP"), Path("MolecularDynamics")]
+    paths = [Path("MLIP"), Path("MolecularDynamics"), Path("Trajectory")]
     for path in paths:
         if (root/path).exists():
             shutil.rmtree(root/path)

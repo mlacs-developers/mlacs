@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import os
 import logging
 import datetime
@@ -15,9 +19,8 @@ class ThermoLog:
     """
     Logging class for the thermodynamic integration module
     """
-    def __init__(self, logfile=None, restart=False):
-        if logfile is None:
-            logfile = "ThermoInt.log"
+    def __init__(self, logfile: str, restart=False):
+
         if not restart:
             if os.path.isfile(logfile):
                 prev_step = 1
