@@ -21,7 +21,8 @@ from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
                                    EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+                                   LammpsBlockInput,
+                                   get_lammps_command)
 
 
 class BaseLammpsState(StateManager):
@@ -263,21 +264,9 @@ class BaseLammpsState(StateManager):
 # ========================================================================== #
     def _get_lammps_command(self):
         '''
-        Function to load the batch command to run LAMMPS
+        Function to load the bash command to run LAMMPS
         '''
-        # Since some ASE update, there is a new way to get commands
-        # This would change how to get things like mpi with lammps
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        try:
-            from ase.config import cfg
-            cmd = cfg.get(envvar)
-        except ModuleNotFoundError:
-            # The goal is to have this deprecated in the long run
-            # when the update of fileio calculators in ASE is completely done
-            cmd = os.environ.get(envvar)
-
-        if cmd is None:
-            cmd = "lammps"
+        cmd = get_lammps_command()
         return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
