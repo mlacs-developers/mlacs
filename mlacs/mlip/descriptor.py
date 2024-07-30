@@ -40,12 +40,16 @@ class Descriptor(Manager, ABC):
     def compute_descriptors(self, atoms, forces=True, stress=True):
         desc = []
         for at in atoms:
-            if "descriptor" in at.info:
-                desc.append(at.info['descriptor'])
-            else:
-                desc.append(self.compute_descriptor(atoms=at,
-                                                    forces=forces,
-                                                    stress=stress))
+            # AC : apparently, the at.info for descriptor does not work
+            # if "descriptor" in at.info:
+            #     desc.append(at.info['descriptor'])
+            # else:
+            #     desc.append(self.compute_descriptor(atoms=at,
+            #                                         forces=forces,
+            #                                         stress=stress))
+            desc.append(self.compute_descriptor(atoms=at,
+                                                forces=forces,
+                                                stress=stress))
         return desc
 
 # ========================================================================== #
@@ -62,30 +66,6 @@ class Descriptor(Manager, ABC):
         iel = np.array([np.where(self.elements == el)[0][0]
                         for el in iel])
         return iat, jat, vdist, iel
-
-# ========================================================================== #
-    @Manager.exec_from_subdir
-    def calculate(self, atoms, forces=True, stress=True):
-        """
-        """
-        if stress and not forces:
-            raise ValueError("You need the forces to compute the stress")
-
-        if isinstance(atoms, Atoms):
-            atoms = [atoms]
-        res = []
-        for at in atoms:
-            # RB : seems this doesn't work.
-            # if "descriptor" in at.info:
-            #     res_iat = at.info['descriptor']
-            # elif self.need_neigh:
-            if self.need_neigh:
-                iat, jat, vdist, iel = self._compute_rij(at)
-                res_iat = self.compute_descriptor(at, iat, jat, vdist, iel)
-            else:
-                res_iat = self.compute_descriptor(at, forces, stress)
-            res.append(res_iat)
-        return res
 
 # ========================================================================== #
     def _regularization_matrix(self):
@@ -123,37 +103,6 @@ class SumDescriptor(Descriptor):
             fcol = icol + d.ncolumns
             d.write_mlip(coefficients[icol:fcol])
             icol = fcol
-
-# ========================================================================== #
-    @Manager.exec_from_subsubdir
-    def calculate(self, atoms, forces=True, stress=True):
-        """
-        """
-        if stress and not forces:
-            raise ValueError("You need the forces to compute the stress")
-
-        if isinstance(atoms, Atoms):
-            atoms = [atoms]
-        res = []
-        for at in atoms:
-            if self.need_neigh:
-                iat, jat, vdist, iel = self._compute_rij(at)
-            desc_e = np.empty((1, 0))
-            desc_f = np.empty((len(at) * 3, 0))
-            desc_s = np.empty((6, 0))
-            for desc in self.desc:
-                if desc.need_neigh:
-                    res_iat_d = desc.compute_descriptor(at, iat, jat,
-                                                        vdist, iel)
-                else:
-                    res_iat_d = desc.compute_descriptor(at, forces, stress)
-                desc_e = np.c_[desc_e, res_iat_d["desc_e"]]
-                desc_f = np.c_[desc_f, res_iat_d["desc_f"]]
-                desc_s = np.c_[desc_s, res_iat_d["desc_s"]]
-            res.append(dict(desc_e=desc_e,
-                            desc_f=desc_f,
-                            desc_s=desc_s))
-        return res
 
 # ========================================================================== #
     def compute_descriptor(self, atoms, forces=True, stress=True):
