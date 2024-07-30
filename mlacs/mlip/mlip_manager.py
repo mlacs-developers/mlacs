@@ -74,7 +74,7 @@ class MlipManager(Manager, ABC):
 
         self.descriptor.workdir = self.workdir
         self.descriptor.folder = self.folder
-        amat_all = self.descriptor.calculate(atoms)
+        amat_all = self.descriptor.compute_descriptors(atoms)
 
         energy = np.array([at.get_potential_energy() for at in atoms])
         forces = []
