@@ -191,3 +191,4 @@ I will start making some for what we have currently to give examples
 
 License
 =======
+MLACS is released under the GNU GPL license. For more details see the LICENSE file.
