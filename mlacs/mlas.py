@@ -411,7 +411,7 @@ class Mlas(Manager):
                 checkisfile = False
 
             if checkisfile:
-                self._delimiter()
+                self.log._delimiter()
                 self._write("Training configurations found")
                 self._write("Adding them to the training data")
 
