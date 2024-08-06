@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-import h5py
+import netCDF4 as nc4
 
 from ..core.manager import Manager
 
@@ -59,42 +59,9 @@ class PropertyManager(Manager):
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
-                observable.isfirstcomputation = observable.isfirst
-                # Note: observable.isfirst becomes False after the 1st _exec()
-                # while, observable.isfirstcomputation stays True until the
-                # 2nd _exec().
-                # This distinction proves useful e.g. to initialize datasets
                 self.check[i] = observable._exec()
                 msg += repr(observable)
-
-                # Check if first mlas run AND if first observable computation
-                if self.isfirstlaunched and observable.isfirstcomputation:
-                    self._initialize_hdf5_dataset(observable)
-                    # Note: the dataset is initialized AFTER the observable
-                    # has been first computed, but BEFORE save_prop() is called
-                    # Hence, the dataset's shape is customized at will
         return msg
-
-# ========================================================================== #
-    def _initialize_hdf5_dataset(self, observable):
-        """Create hdf5 dataset corresponding to a calc property object"""
-        maxshape_val = (None,) + observable.shape
-
-        hpath = self.hpath
-        hfile = h5py.File(hpath, "a")
-        dtst_path = self.folder + '/' + observable.label
-
-        # Some dummy data (with the correct shape) to initialize the dataset
-        dummy_init = np.ones(shape=(1,)+observable.shape)*-1
-        hfile.create_dataset(dtst_path, data=dummy_init, maxshape=maxshape_val)
-
-        # Initialize metadata
-        maxshape_val = (None, 2)
-        dtst_path += '_Meta'
-        dummy_init = np.ones(shape=(1,)+(2,))*-1
-        hfile.create_dataset(dtst_path, data=dummy_init, maxshape=maxshape_val)
-
-        hfile.close()
 
 # ========================================================================== #
     def calc_initialize(self, **kwargs):
@@ -126,32 +93,23 @@ class PropertyManager(Manager):
             WeightingPolicy class, Default: `None`.
         """
         path_save = self.workdir / self.folder
+        ncpath = self.ncpath
+
         for observable in self.manager:
             to_be_saved = observable.new
-
-            hpath = self.hpath
-            hfile = h5py.File(hpath, "a")
+            nc_name = observable.nc_name
 
             if observable.shape is not None:
-
-                # Observables are saved in the *_HIST.hdf5 file
-                dataset_path = self.folder + '/' + observable.label
                 for idx, val_state in enumerate(to_be_saved):
-                    index_state = idx+1
-                    metadata = [observable.isfirstcomputation,
-                                dataset_path,
-                                step,
-                                index_state,
-                                ]
-                    self._append_array_to_hdf5(hfile, metadata, val_state)
+                    with nc4.Dataset(ncpath, 'a') as ncfile:
+                        index_state = idx+1
+                        metadata = [step, index_state]
+                        idx_db = np.ma.count(ncfile[nc_name+'_meta'][:]) // 2
+                        # idx_db is index of config in dtbase for observable
 
-                    # Info on the observable itself, i.e. the MLAS iteration
-                    # index 'step' and the index of the state, is saved in a
-                    # separate array named by appending the suffix 'meta' to
-                    # the original label
-                    metadata[1] += '_Meta'
-                    val_meta = np.array(metadata[2:])
-                    self._append_array_to_hdf5(hfile, metadata, val_meta)
+                        ncfile[nc_name][idx_db] = val_state
+                        ncfile[nc_name+'_meta'][idx_db] = metadata
+                        ncfile['mdtime'][idx_db] = idx_db + 1
 
                 # Scalar observables are saved in .dat files
                 observable_is_scalar = (len(observable.shape) == 0)
@@ -161,8 +119,6 @@ class PropertyManager(Manager):
                         index_state = idx+1
                         row = [step, index_state, value]
                         self._append_row_to_dat(namefile, row)
-
-            hfile.close()
 
 # ========================================================================== #
     def save_weighted_prop(self, step, weighting_pol):
@@ -269,33 +225,3 @@ class PropertyManager(Manager):
                 beingread.append(float(line[25:50]))
         hasbeenread = np.array(beingread)
         return hasbeenread
-
-# ========================================================================== #
-    def _append_row_to_hdf5(self, hfile, dataset_path, row):
-        """
-        Append a new value to an .hdf5 dataset
-        The dataset has to be of shape (n,), i.e. the observable must be scalar
-        """
-        new_value = row[2]
-        current_data_length = hfile[dataset_path].shape[0]
-        hfile[dataset_path].resize((current_data_length + 1), axis=0)
-        hfile[dataset_path][-1:] = new_value
-
-# ========================================================================== #
-    def _append_array_to_hdf5(self, hfile, metadata, array):
-        """
-        Append a new array (of arbitrary shape) to an .hdf5 dataset
-
-        Note:
-        Due to the initialization constraint on hdf5 datasets, an initial dummy
-        array is set for hfile[dataset_path][0], cf. _initialize_hdf5_dataset()
-        Hence, the very first call to _append_array_to_hdf5() replaces this
-        dummy data, instead of being appended to it.
-        """
-        isfirstcomputation, dataset_path, step, index_state = metadata
-        if isfirstcomputation and index_state == 1 and self.isfirstlaunched:
-            hfile[dataset_path][0] = array
-        else:
-            current_data_length = hfile[dataset_path].shape[0]
-            hfile[dataset_path].resize((current_data_length + 1), axis=0)
-            hfile[dataset_path][-1:] = array

@@ -504,6 +504,8 @@ class CalcRoutineFunction(CalcExecFunction):
     def __init__(self,
                  function,
                  label,
+                 nc_name=None,
+                 nc_dim=None,
                  weight=None,
                  gradient=False,
                  criterion=None,
@@ -512,6 +514,8 @@ class CalcRoutineFunction(CalcExecFunction):
                                   True, gradient, criterion, frequence)
         self.weight = weight
         self.label = label
+        self.nc_name = nc_name
+        self.nc_dim = nc_dim
 
 # ========================================================================== #
     def __repr__(self):
@@ -528,7 +532,7 @@ class CalcRoutineFunction(CalcExecFunction):
             else:
                 msg += f'        - Value for state 1  : {self.new}\n'
         else:
-            msg += '        - [...] Too big to print, cf. *_HIST.hdf5 file \n'
+            msg += '        - [...] Too big to print, cf. *_HIST.nc file \n'
 
         return msg
 
@@ -538,7 +542,6 @@ class CalcRoutineFunction(CalcExecFunction):
 class CalcPressure(CalcRoutineFunction):
     """
     Class to compute the hydrostatic pressure.
-    Warning: if you have multiple states, it will averaged all the states.
 
     Parameters
     ----------
@@ -548,11 +551,17 @@ class CalcPressure(CalcRoutineFunction):
 
     def __init__(self,
                  label,
+                 nc_name,
+                 nc_dim,
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
-        CalcRoutineFunction.__init__(self, 'get_stress', label)
+        CalcRoutineFunction.__init__(self,
+                                     'get_stress',
+                                     label,
+                                     nc_name,
+                                     nc_dim)
 
     def _exec(self, wdir=None):
         """
@@ -562,6 +571,86 @@ class CalcPressure(CalcRoutineFunction):
             self._function = [getattr(_, self._func) for _ in self.atoms]
             self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])
                               for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcAcell(CalcRoutineFunction):
+    """
+    Class to compute the cell lengths.
+
+    Parameters
+    ----------
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+
+    def __init__(self,
+                 label,
+                 nc_name,
+                 nc_dim,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        CalcRoutineFunction.__init__(self,
+                                     'get_cell_lengths_and_angles',
+                                     label,
+                                     nc_name,
+                                     nc_dim)
+
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            self._function = [getattr(_, self._func) for _ in self.atoms]
+            self.new = np.r_[[_f(**self.kwargs)[:3] for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcAngles(CalcRoutineFunction):
+    """
+    Class to compute the cell angles.
+
+    Parameters
+    ----------
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+
+    def __init__(self,
+                 label,
+                 nc_name,
+                 nc_dim,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        CalcRoutineFunction.__init__(self,
+                                     'get_cell_lengths_and_angles',
+                                     label,
+                                     nc_name,
+                                     nc_dim)
+
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            self._function = [getattr(_, self._func) for _ in self.atoms]
+            self.new = np.r_[[_f(**self.kwargs)[3:] for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
         if self.isfirst:

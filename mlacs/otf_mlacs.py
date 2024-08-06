@@ -5,12 +5,15 @@
 
 import os
 import sys
-import h5py
+import netCDF4 as nc4
 
 from .mlas import Mlas
 from .core import Manager
-from .properties import PropertyManager
-from .properties import CalcRoutineFunction, CalcPressure
+from .properties import (PropertyManager,
+                         CalcRoutineFunction,
+                         CalcPressure,
+                         CalcAcell,
+                         CalcAngles)
 
 
 # ========================================================================== #
@@ -68,6 +71,7 @@ class OtfMlacs(Mlas, Manager):
         the reference potential raises an error or didn't converge.
         Default ``0``.
     """
+
     def __init__(self,
                  atoms,
                  state,
@@ -80,54 +84,87 @@ class OtfMlacs(Mlas, Manager):
                  keep_tmp_mlip=True,
                  ntrymax=0,
                  workdir='',
-                 hprefix=''):
+                 ncprefix='',
+                 ncformat='NETCDF3_CLASSIC'):
 
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip,
                       workdir=workdir)
-        
-        self.hprefix = hprefix
-        
+
+        self.ncprefix = ncprefix
+        self.ncformat = ncformat
+
         # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 
-        hpath = self._get_hdf5_path()
+        ncpath = self._get_nc_path()
+        if not os.path.isfile(ncpath):
+            self._create_nc_file(ncpath, atoms)
 
-        self._initialize_properties(prop, hpath)
-        self._initialize_routine_properties(hpath)
+        self._initialize_properties(prop, ncpath)
+        self._initialize_routine_properties(ncpath)
 
 # ========================================================================== #
-    def _get_hdf5_path(self):
-        """Return hdf5 path, and create hdf5 file if necessary"""
-        
-        if self.hprefix != '' and (not self.hprefix.endswith('_')):
-            self.hprefix += '_'
-        script_name = self.hprefix
+    def _get_nc_path(self):
+        """Return netcdf path"""
+        if self.ncprefix != '' and (not self.ncprefix.endswith('_')):
+            self.ncprefix += '_'
+        script_name = self.ncprefix
         script_name += os.path.basename(sys.argv[0])
         if script_name.endswith('.py'):
             script_name = script_name[:-3]
-        hname = script_name + "_HIST.hdf5"
-        hpath = str(self.workdir / hname)
+        ncname = script_name + "_HIST.nc"
+        ncpath = str(self.workdir / ncname)
 
-        hdf5file_exists = os.path.isfile(hpath)
-        if hdf5file_exists:
+        ncfile_exists = os.path.isfile(ncpath)
+        if ncfile_exists:
             # if it is the first MLAS launch
             if not self.launched:
                 S = 1
-                while hdf5file_exists:
-                    hname = script_name + '_{:04d}'.format(S) + "_HIST.hdf5"
-                    hpath = str(self.workdir / hname)
-                    hdf5file_exists = os.path.isfile(hpath)
+                while ncfile_exists:
+                    ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
+                    ncpath = str(self.workdir / ncname)
+                    ncfile_exists = os.path.isfile(ncpath)
                     S += 1
 
-                hfile = h5py.File(hpath, "a")
-                hfile.close()
-
-        return hpath
+        return ncpath
 
 # ========================================================================== #
-    def _initialize_properties(self, prop, hpath):
+    def _create_nc_file(self, ncpath, atoms):
+        """
+        Create netcdf file.
+
+        Create Abinit-style dimensions
+        Create Abinit-style variables that are not 'RoutineProperties'
+        """
+
+        dict_abi_dim = {'time': None,
+                        'two': 2,
+                        'xyz': 3,
+                        'npsp': 3,
+                        'six': 6,
+                        'ntypat': len(set(atoms.get_atomic_numbers())),
+                        'natom': len(atoms),
+                        }
+
+        datatype = 'float64'
+        dict_abi_var = {'typat': ('natom',),
+                        'znucl': ('npsp',),
+                        'amu': ('ntypat',),
+                        'dtion': (),
+                        'mdtemp': ('two',),
+                        'mdtime': ('time',),
+                        }
+
+        with nc4.Dataset(ncpath, 'w', format=self.ncformat) as new:
+            for dim_name, dim_value in dict_abi_dim.items():
+                new.createDimension(dim_name, (dim_value))
+            for var_name, var_dim in dict_abi_var.items():
+                new.createVariable(var_name, datatype, var_dim)
+
+# ========================================================================== #
+    def _initialize_properties(self, prop, ncpath):
         """Create property object"""
         if prop is None:
             self.prop = PropertyManager(None)
@@ -141,28 +178,65 @@ class OtfMlacs(Mlas, Manager):
             self.prop.folder = 'Properties'
 
         self.prop.isfirstlaunched = not self.launched
-        self.prop.hpath = hpath
+        self.prop.ncpath = ncpath
 
 # ========================================================================== #
-    def _initialize_routine_properties(self, hpath):
+    def _initialize_routine_properties(self, ncpath):
         """Create routine property object"""
-        label_list = ['Volume', 'Temperature', 'Potential_Energy',
-                      'Kinetic_Energy', 'Total_Energy', 'Velocities', 'Forces']
+
+        label_dict = {'Total_Energy': ['etotal', ('time',)],
+                      'Kinetic_Energy': ['ekin', ('time',)],
+                      'Potential_Energy': ['epot', ('time',)],
+                      'Velocities': ['vel', ('time', 'natom', 'xyz')],
+                      'Forces': ['fcart', ('time', 'natom', 'xyz')],
+                      'Positions': ['xcart', ('time', 'natom', 'xyz')],
+                      'Scaled_Positions': ['xred', ('time', 'natom', 'xyz')],
+                      'Temperature': ['temper', ('time',)],
+                      'Volume': ['vol', ('time',)],
+                      'Stress': ['strten', ('time', 'six')],
+                      }
+
         routine_prop_list = []
-        for x in label_list:
+        for x in label_dict:
+            var_name, var_dim = label_dict[x]
             lammps_func = 'get_' + x.lower()
-            observable = CalcRoutineFunction(lammps_func, label=x, frequence=1)
+            observable = CalcRoutineFunction(lammps_func,
+                                             label=x,
+                                             nc_name=var_name,
+                                             nc_dim=var_dim,
+                                             frequence=1)
             routine_prop_list.append(observable)
 
-        other_observables = [CalcPressure(label='Pressure', frequence=1)]
+        other_observables = [CalcPressure(label='Pressure',
+                                          nc_name='press',
+                                          nc_dim=('time',),
+                                          frequence=1),
+                             CalcAcell(label='Acell',
+                                       nc_name='acell',
+                                       nc_dim=('time', 'xyz'),
+                                       frequence=1),
+                             CalcAngles(label='Angles',
+                                        nc_name='angl',
+                                        nc_dim=('time', 'xyz'),
+                                        frequence=1),
+                             ]
         routine_prop_list += other_observables
+
+        if not self.launched:
+            # Create Abinit-style variables in netcdf file
+            datatype = 'float64'
+            for obs in routine_prop_list:
+                with nc4.Dataset(ncpath, 'a') as new:
+                    new.createVariable(obs.nc_name, datatype, obs.nc_dim)
+                    meta_dim = ('time', 'two',)
+                    new.createVariable(obs.nc_name+'_meta', datatype, meta_dim)
 
         self.routine_prop = PropertyManager(routine_prop_list)
         self.routine_prop.workdir = self.workdir
         self.routine_prop.folder = 'Properties/RoutineProperties'
 
         self.routine_prop.isfirstlaunched = not self.launched
-        self.routine_prop.hpath = hpath
+        self.routine_prop.ncpath = ncpath
 
 # ========================================================================== #
     def _compute_properties(self):
