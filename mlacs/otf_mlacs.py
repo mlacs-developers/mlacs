@@ -194,6 +194,7 @@ class OtfMlacs(Mlas, Manager):
                       'Temperature': ['temper', ('time',)],
                       'Volume': ['vol', ('time',)],
                       'Stress': ['strten', ('time', 'six')],
+                      'Cell': ['rprimd', ('time', 'xyz', 'xyz')]
                       }
 
         routine_prop_list = []
