@@ -10,7 +10,6 @@ import numpy as np
 
 from .lammps_state import BaseLammpsState
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    write_atoms_lammps_spin_style)
 
@@ -123,13 +122,11 @@ class SpinLammpsState(BaseLammpsState):
             self.damp = "$(100*dt)"
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("map", "atom_modify map array")
@@ -172,11 +169,10 @@ class SpinLammpsState(BaseLammpsState):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
 
         """
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
         block = LammpsBlockInput("traj", "Dumping trajectory")
         txt = "compute spin all property/atom sp spx spy spz fmx fmy fmz"
         block("compute", txt)
@@ -224,8 +220,7 @@ class SpinLammpsState(BaseLammpsState):
         return block
 
 # ========================================================================== #
-    def _get_block_lastdump(self, atoms, eq):
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+    def _get_block_lastdump(self, el, eq):
         block = LammpsBlockInput("lastdump", "Dump last configuration")
         txt = "dump last all custom 1 configurations.out " + \
               "id type xu yu zu vx vy vz fx fy fz c_spin[1] " + \

@@ -10,7 +10,6 @@ import numpy as np
 from ase.units import kB
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                 free_energy_com_harmonic_oscillator)
 from ..utilities.io_lammps import get_msd_input
@@ -368,11 +367,10 @@ class EinsteinSolidState(ThermoState):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
         """
         if self.trajfile:
-            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
             txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
             txt += "id type xu yu zu vx vy vz fx fy fz "
