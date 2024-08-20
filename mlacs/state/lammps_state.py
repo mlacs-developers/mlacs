@@ -376,6 +376,9 @@ class LammpsState(BaseLammpsState):
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
 
+    eq_mass_md : :class:`Bool` (optional)
+        If all atoms have the same mass for the MD. Default ``False``
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.

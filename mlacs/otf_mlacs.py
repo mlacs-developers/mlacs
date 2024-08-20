@@ -55,7 +55,7 @@ class OtfMlacs(Mlas, Manager):
         when creating initial configurations.
         Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool` (optional)
+    keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
