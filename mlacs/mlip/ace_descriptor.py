@@ -595,7 +595,7 @@ class AceDescriptor(Descriptor):
         """
         acefile = self.get_filepath('.yace')
         pair_coeff = [f"* * {acefile} " +
-                      ''.join(self.elements)]
+                      ' '.join(self.elements)]
         return pair_coeff
 
 # ========================================================================== #
