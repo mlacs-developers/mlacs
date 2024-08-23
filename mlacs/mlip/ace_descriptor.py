@@ -294,7 +294,9 @@ class AceDescriptor(Descriptor):
         if self.acefit is None:
             self.create_acefit()
         else:
-            self.acefit.fit_config['fit_cycles'] += 1
+            # Dubious implementation of GeneralACEFit, 
+            # No function to update dataframe once created ??
+            self.create_acefit()
 
         # Note that self.fitting is the same object as self.acefit.fit_config
         real_maxiter = self.fitting['maxiter']
