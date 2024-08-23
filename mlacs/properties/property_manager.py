@@ -104,7 +104,7 @@ class PropertyManager(Manager):
                     with nc4.Dataset(ncpath, 'a') as ncfile:
                         index_state = idx+1
                         metadata = [step, index_state]
-                        idx_db = np.ma.count(ncfile[nc_name+'_meta'][:]) // 2
+                        idx_db = np.ma.count(ncfile[nc_name+'_meta'][:,0])
                         # idx_db is index of config in dtbase for observable
 
                         ncfile[nc_name][idx_db] = val_state
@@ -126,13 +126,6 @@ class PropertyManager(Manager):
         For all observables in a PropertyManager object, save the values
         of the observables, weighted by the weighting policy.
 
-        The .dat file is formatted as:
-            1st col.: index of MLAS iteration
-            2nd col.: number of configs used in the database
-            3rd col.: value of weighted observable
-
-        Warning: At the first MLAS iteration, no weights are computed.
-
         Parameters
         ----------
 
@@ -143,22 +136,29 @@ class PropertyManager(Manager):
             WeightingPolicy class, Default: `None`.
 
         """
-        path_save = self.workdir / self.folder
+        ncpath = self.ncpath
+
         if weighting_pol is not None:
             for observable in self.manager:
+                nc_name = observable.nc_name
                 weights = weighting_pol.weight[2:]
-                observable_values = self._read_prop(observable)[:len(weights)]
-                nconfs_used = len(weights)
+
+                with nc4.Dataset(ncpath, 'r') as ncfile:
+                    observable_values = ncfile[nc_name][:len(weights)].data
+
                 if len(weights) > 0:
-                    weighted_observable = np.sum(weights*observable_values)
-                    weighted_observable /= np.sum(weights)
-                    namefile = path_save / ('Weighted' + observable.label +
-                                            ".dat")
-                    row = [step, nconfs_used, weighted_observable]
-                    self._append_row_to_dat(namefile, row)
+                    w_name = 'weighted_' + nc_name
+                    weights /= np.sum(weights)
+                    dim_array = np.array([1]*observable_values.ndim)
+                    dim_array[0] = -1
+                    r_weights = weights.reshape(dim_array)
+                    weighted_observable = np.sum(r_weights*observable_values)
+                    with nc4.Dataset(ncpath, 'a') as ncfile:
+                        ncfile[w_name][len(weights)-1] = weighted_observable
+
 
 # ========================================================================== #
-    def save_weights(self, step, weighting_pol):
+    def save_weights(self, step, weighting_pol, ncformat):
         """
         Save the MBAR weights.
 
@@ -184,14 +184,29 @@ class PropertyManager(Manager):
             weights = weighting_pol.weight[2:]
 
             path_save = self.workdir / self.folder
-            to_be_saved = weights
             namefile = path_save / ('Weights' + ".dat")
             # If the properties correspond to the nth MLAS cycle
             # The weights correspond to the (n-1)th cycle
             # Hence below the occurrence of step-1
-            for idx, value in enumerate(to_be_saved):
+            for idx, value in enumerate(weights):
                 row = [step-1, idx+1, value]
                 self._append_row_to_dat(namefile, row)
+
+            # Save weights into HIST file
+            weights_ncpath = self.ncpath
+            if 'NETCDF3' in ncformat:
+                weights_ncpath = weights_ncpath.replace('HIST', 'WEIGHTS')
+            with nc4.Dataset(weights_ncpath, 'a') as ncfile:
+                idx_db = np.ma.count(ncfile['weights_meta'][:])
+                for idx, value in enumerate(weights):
+                    ncfile['weights'][idx_db+idx] = value
+                    # weights_meta keeps track of db index for given cycle
+                    ncfile['weights_meta'][idx_db+idx] = idx + 1
+                    
+            # Weight of first two confs (that are throwned out)
+            w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
+            return w_first2
+
 
 # ========================================================================== #
     def _append_row_to_dat(self, namefile, row, hspace=" "*5):
