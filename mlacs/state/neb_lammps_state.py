@@ -6,8 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
-
 import numpy as np
 
 from ase.atoms import Atoms
@@ -19,7 +17,8 @@ from .lammps_state import BaseLammpsState
 from ..core import PathAtoms
 from ..core.manager import Manager
 from ..utilities.io_lammps import (LammpsBlockInput,
-                                   EmptyLammpsBlockInput)
+                                   EmptyLammpsBlockInput,
+                                   get_lammps_command)
 
 from ..utilities import get_elements_Z_and_masses
 
@@ -274,10 +273,7 @@ class NebLammpsState(BaseLammpsState):
         '''
         Function to load the batch command to run LAMMPS with replica.
         '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_mpi"
+        cmd = get_lammps_command()
         exe = cmd.split()[-1]
 
         if "-partition" in cmd:

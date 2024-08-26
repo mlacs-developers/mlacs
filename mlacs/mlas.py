@@ -122,14 +122,23 @@ class Mlas(Manager):
 
         self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
         self.logger = self.log.logger_log
-        msg = ""
+        self._write()
+        self.log._delimiter()
+        self._write("Recap of the simulation parameters", True)
+        self._write()
+        self._write("Recap of the states", False, True)
         for i in range(self.nstate):
-            msg += f"State {i+1}/{self.nstate} :\n"
-            msg += repr(self.state[i])
-        self.logger.info(msg)
+            self._write(f"State {i+1}/{self.nstate} :")
+            self._write(repr(self.state[i]))
+            self._write()
+        self._write()
+        self._write("Recap of the calculator", False, True)
         msg = self.calc.log_recap_state()
-        self.logger.info(msg)
-        self.logger.info(repr(self.mlip))
+        self._write(msg)
+        self._write()
+        self._write("Recap of the MLIP", False, True)
+        self._write(repr(self.mlip))
+        self._write()
 
         # We initialize momenta and parameters for training configurations
         if not self.launched:
@@ -143,7 +152,8 @@ class Mlas(Manager):
             self.restart_from_traj()
 
         self.step = 0
-        self.logger.info("")
+        self.log._delimiter()
+        self._write("Starting the simulation", True)
 
 # ========================================================================== #
     @Manager.exec_from_workdir
@@ -151,8 +161,10 @@ class Mlas(Manager):
         """
         Run the algorithm for nsteps
         """
+        isearlystop = False
         while self.step < nsteps:
             if self._check_early_stop():
+                isearlystop = True
                 break
             self.log.init_new_step(self.step)
             if not self.launched:
@@ -165,6 +177,10 @@ class Mlas(Manager):
                 else:
                     self.step += 1
 
+        self.log.write_end(isearlystop)
+        # Here we have to add some info about the end of the simulation
+        self.log.write_footer()
+
 # ========================================================================== #
     def _run_step(self):
         """
@@ -176,7 +192,7 @@ class Mlas(Manager):
            true potential computation
         """
         # Check if this is an equilibration or normal step for the mlmd
-        self.logger.info("")
+        self._write()
         eq = []
         for istate in range(self.nstate):
             trajstep = self.nconfs[istate]
@@ -187,12 +203,11 @@ class Mlas(Manager):
                 eq.append(False)
                 msg = f"Production step for state {istate+1}, "
             msg += f"configurations {trajstep} for this state"
-            self.logger.info(msg)
-        self.logger.info("\n")
+            self._write(msg)
+        self._write()
 
         # Training MLIP
-        msg = "Training new MLIP\n"
-        self.logger.info(msg)
+        self._write("Training new MLIP")
 
         if self.keep_tmp_mlip:
             self.mlip.subfolder = f"Coef{max(self.nconfs)}"
@@ -201,7 +216,7 @@ class Mlas(Manager):
 
         # TODO GA: mlip object should be logging instead
         msg = self.mlip.train_mlip()
-        self.logger.info(msg)
+        self._write(msg)
 
         # Create MLIP atoms object
         atoms_mlip = []
@@ -213,13 +228,11 @@ class Mlas(Manager):
         sp_calc_mlip = []
 
         # Run the actual MLMD
-        msg = "Running MLMD"
-        self.logger.info(msg)
+        self._write("Running MLMD")
 
         for istate in range(self.nstate):
             if self.state[istate].isrestart or eq[istate]:
-                msg = " -> Starting from first atomic configuration"
-                self.logger.info(msg)
+                self._write(" -> Starting from first atomic configuration")
                 atoms_mlip[istate] = self.atoms_start[istate].copy()
                 self.state[istate].initialize_momenta(atoms_mlip[istate])
 
@@ -235,8 +248,7 @@ class Mlas(Manager):
                                         self.mlip.atom_style,
                                         eq[istate]))
                 futures.append(exe)
-                msg = f"State {istate+1}/{self.nstate} has been launched"
-                self.logger.info(msg)
+                self._write(f"State {istate+1}/{self.nstate} has been launched")  # noqa
             for istate, exe in enumerate(futures):
                 atoms_mlip[istate] = exe.result()
                 if self.keep_tmp_mlip:
@@ -245,8 +257,7 @@ class Mlas(Manager):
             executor.shutdown(wait=True)
 
         # Computing energy with true potential
-        msg = "Computing energy with the True potential\n"
-        self.logger.info(msg)
+        self._write("Computing energy with the True potential")
         atoms_true = []
         nerror = 0  # Handling of calculator error / non-convergence
 
@@ -272,14 +283,14 @@ class Mlas(Manager):
                 msg = f"For state {i+1}/{self._nmax} calculation with " + \
                        "the true potential resulted in error " + \
                        "or didn't converge"
-                self.logger.info(msg)
+                self._write(msg)
                 nerror += 1
 
         # True potential error handling
         if nerror == self.nstate:
             msg = "All true potential calculations failed, " + \
-                  "restarting the step\n"
-            self.logger.info(msg)
+                  "restarting the step"
+            self._write(msg)
             return False
 
         # And now we can write the configurations in the trajectory files
@@ -316,8 +327,7 @@ class Mlas(Manager):
         # and write the configuration to the trajectory
         self.traj = []  # To initialize the trajectories for each state
 
-        msg = "Running initial step"
-        self.logger.info(msg)
+        self._write("Running initial step")
         # Once each computation is done, we need to correctly assign each atom
         # to the right state, this is done using the idx_computed list of list
         uniq_at = []
@@ -336,8 +346,7 @@ class Mlas(Manager):
                     uniq_at.append(self.atoms[istate])
                     idx_computed.append([istate])
 
-        msg = f"There are {len(uniq_at)} unique configuration in the states "
-        self.logger.info(msg)
+        self._write("There are {len(uniq_at)} unique configuration in the states ")  # noqa
 
         # And finally we compute the properties for each unique atoms
         nstate = len(uniq_at)
@@ -345,8 +354,7 @@ class Mlas(Manager):
         istep = np.arange(nstate, dtype=int)
         uniq_at = self.calc.compute_true_potential(uniq_at, subfolder_l, istep)
 
-        msg = "Computation done, creating trajectories"
-        self.logger.info(msg)
+        self._write("Computation done, creating trajectories")
 
         # And now, we dispatch each atoms to the right trajectory
         for iun, at in enumerate(uniq_at):
@@ -378,7 +386,7 @@ class Mlas(Manager):
         if self.mlip.nconfs == 0:
             msg = "\nComputing energy with true potential " + \
                   "on training configurations"
-            self.logger.info(msg)
+            self._write(msg)
             # Check number of training configurations and create them if needed
             if self.confs_init is None:
                 confs_init = create_random_structures(uniq_at,
@@ -403,9 +411,9 @@ class Mlas(Manager):
                 checkisfile = False
 
             if checkisfile:
-                msg = "Training configurations found\n"
-                msg += "Adding them to the training data"
-                self.logger.info(msg)
+                self.log._delimiter()
+                self._write("Training configurations found")
+                self._write("Adding them to the training data")
 
                 confs_init = read(conf_fname, index=":")
                 confs_init = self.add_traj_descriptors(confs_init)
@@ -432,11 +440,11 @@ class Mlas(Manager):
                     init_traj.write(conf)
                 # We dont need the initial configurations anymore
                 del self.confs_init
-            self.logger.info("")
+            self._write()
         else:
             msg = f"There are already {self.mlip.nconfs} configurations " + \
                   "in the database, no need to start training computations\n"
-            self.logger.info(msg)
+            self._write(msg)
         # And now we add the starting configurations in the fit matrices
         for at in uniq_at:
             self.mlip.update_matrices(at)
@@ -594,13 +602,11 @@ class Mlas(Manager):
         # Add the Configuration without a MLIP generating them
         if train_traj is not None:
             for i, conf in enumerate(train_traj):
-                msg = f"Configuration {i+1} / {len(train_traj)}"
-                self.logger.info(msg)
+                self._write(f"Configuration {i+1} / {len(train_traj)}")
                 self.mlip.update_matrices(conf)  # We add training conf
 
         # Add all the configuration of trajectories traj
-        msg = "Adding previous configuration iteratively"
-        self.logger.info(msg)
+        self._write("Adding previous configuration iteratively")
         # GA: TODO We dont actually need parent_list. Remove this variable.
         parent_list, mlip_coef = self.mlip.read_parent_mlip(prev_traj)
 
@@ -624,9 +630,8 @@ class Mlas(Manager):
         # we put the old MLIP.model and weight in a Coef folder
         can_use_weight = self.mlip.can_use_weight
         if len(no_parent_atoms) > 1 and self.keep_tmp_mlip and can_use_weight:
-            msg = "Some configuration in Trajectory have no parent_mlip\n"
-            msg += "You should rerun this simulation with DatabaseCalc\n"
-            self.logger.info(msg)
+            self._write("Some configuration in Trajectory have no parent_mlip")
+            self._write("You should rerun this simulation with DatabaseCalc")
 
             fm = self.mlip.subdir / "MLIP.model"
             fw = self.mlip.subdir / "MLIP.weight"
@@ -666,14 +671,12 @@ class Mlas(Manager):
         """
         Read Trajectory files from previous simulations
         """
-        msg = "Adding previous configurations to the training data"
-        self.logger.info(msg)
+        self._write("Adding previous configurations to the training data")
 
         conf_fname = str(self.workdir / "Training_configurations.traj")
         if os.path.isfile(conf_fname):
             train_traj = Trajectory(conf_fname, mode="r")
-            msg = "{0} training configurations\n".format(len(train_traj))
-            self.logger.info(msg)
+            self._write(f"{len(train_traj)} training configurations\n")
         else:
             train_traj = None
 
@@ -684,8 +687,7 @@ class Mlas(Manager):
             prev_traj.append(Trajectory(traj_fname, mode="r"))
             lgth.append(len(prev_traj[i]))
         self.nconfs = lgth
-        msg = f"{np.sum(lgth)} configuration from trajectories\n"
-        self.logger.info(msg)
+        self._write(f"{np.sum(lgth)} configuration from trajectories")
         return train_traj, prev_traj
 
 # ========================================================================== #
@@ -716,6 +718,10 @@ class Mlas(Manager):
         For example, CalcRdf, CalcTI ...
         """
         pass
+
+# ========================================================================== #
+    def _write(self, msg="", center=False, underline=False):
+        self.log.write(msg, center, underline)
 
 
 class TruePotentialError(Exception):

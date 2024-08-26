@@ -6,7 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 import shlex
 from pathlib import Path
 from subprocess import run, PIPE
@@ -17,7 +16,8 @@ from ase.io.lammpsdata import write_lammps_data
 from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor, combine_reg
-from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
+from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
+                                   get_lammps_command)
 
 
 default_snap = {"twojmax": 8,
@@ -123,11 +123,7 @@ class MliapDescriptor(Descriptor):
             self.ndesc += int(self.ndesc * (self.ndesc + 1) / 2)
         self.ncolumns = int(self.nel * (self.ndesc + 1))
 
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp"
-        self.cmd = cmd
+        self.cmd = get_lammps_command()
 
 # ========================================================================== #
     @Manager.exec_from_path

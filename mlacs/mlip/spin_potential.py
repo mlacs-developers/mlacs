@@ -6,7 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 from pathlib import Path
 from subprocess import run, PIPE
 
@@ -24,7 +23,8 @@ from ..utilities import (get_elements_Z_and_masses,
 from ..utilities.io_lammps import (write_atoms_lammps_spin_style,
                                    get_interaction_input,
                                    get_last_dump_input,
-                                   get_log_input)
+                                   get_log_input,
+                                   get_lammps_command)
 
 
 # ========================================================================== #
@@ -67,11 +67,7 @@ class SpinLatticePotential(DeltaLearningPotential):
         DeltaLearningPotential.__init__(self, model, pair_style,
                                         pair_coeff, model_post, **kwargs)
 
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp"
-        self.cmd = cmd
+        self.cmd = get_lammps_command()
 
 # ========================================================================== #
     def update_matrices(self, atoms):

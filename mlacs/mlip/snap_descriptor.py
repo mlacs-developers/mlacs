@@ -6,7 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 import shlex
 from pathlib import Path
 from subprocess import run, PIPE
@@ -18,7 +17,8 @@ from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from .mliap_descriptor import default_snap
 from .descriptor import Descriptor, combine_reg
-from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
+from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
+                                   get_lammps_command)
 
 
 # ========================================================================== #
@@ -106,11 +106,7 @@ class SnapDescriptor(Descriptor):
             self.ndesc += int(self.ndesc * (self.ndesc + 1) / 2)
         self.ncolumns = int(self.nel * (self.ndesc + 1))
 
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp"
-        self.cmd = cmd
+        self.cmd = get_lammps_command()
 
 # ========================================================================== #
     def compute_descriptor(self, atoms, forces=True, stress=True):
