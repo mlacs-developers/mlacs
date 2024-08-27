@@ -6,9 +6,13 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import pandas as pd
 import numpy as np
 
+
+try:
+    import pandas as pd
+except ImportError:
+    pass
 
 def make_dataframe(df, name, atoms, atomic_env,
                    energy=None, forces=None, we=None, wf=None):
@@ -26,7 +30,7 @@ def make_dataframe(df, name, atoms, atomic_env,
         Ase.Atoms object for each configuration
 
     atomic_env: :class:`list` :shape:`[nconfs]`
-        pyace.catomicenvironment.ACEAtomicEnvironment for each configuration
+        pyace.catomicenvironment.ACEAtomicEnvironment for each confs
 
     energy: :class:`np.array` :shape:`[nconfs]`
         Energy of each configuration

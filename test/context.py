@@ -31,6 +31,10 @@ def has_lammps_nompi():
     if b'REPLICA' not in lmp_info:
         return True
     cmd = f"mpirun -n 2 {exe} -partition 2x1"
+
+    if shutil.which("mpirun") is None or shutil.which(exe) is None:
+        return True
+
     lmp_info = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
     if error in lmp_info:
         return True
