@@ -46,7 +46,7 @@ class PropertyManager(Manager):
 
 # ========================================================================== #
     @Manager.exec_from_workdir
-    def run(self, step, wdir):
+    def run(self, step):
         """
         Run property calculation.
         """
@@ -55,7 +55,7 @@ class PropertyManager(Manager):
             if step % observable.freq == 0:
                 dircheck = True
         if dircheck:
-            wdir.mkdir(exist_ok=True, parents=True)
+            self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
@@ -152,9 +152,10 @@ class PropertyManager(Manager):
                     dim_array = np.array([1]*observable_values.ndim)
                     dim_array[0] = -1
                     r_weights = weights.reshape(dim_array)
-                    weighted_observable = np.sum(r_weights*observable_values)
-                    with nc4.Dataset(ncpath, 'a') as ncfile:
-                        ncfile[w_name][len(weights)-1] = weighted_observable
+                    if r_weights.shape[0] == observable_values.shape[0]:
+                        weighted_observable = np.sum(r_weights*observable_values)
+                        with nc4.Dataset(ncpath, 'a') as ncfile:
+                            ncfile[w_name][len(weights)-1] = weighted_observable
 
 
 # ========================================================================== #

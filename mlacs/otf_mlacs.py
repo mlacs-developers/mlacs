@@ -147,14 +147,20 @@ class OtfMlacs(Mlas, Manager):
                     new.createVariable(var_name, datatype, var_dim)
 
         datatype = 'float64'
+        
+        # Assume ntypat and natom are the same for all items in list
+        if isinstance(atoms, list):
+            atoms = atoms[0]
+        ntypat = len(set(atoms.get_atomic_numbers()))
+        natom = len(atoms)
 
         dict_dim = {'time': None,
                     'two': 2,
                     'xyz': 3,
                     'npsp': 3,
                     'six': 6,
-                    'ntypat': len(set(atoms.get_atomic_numbers())),
-                    'natom': len(atoms),
+                    'ntypat': ntypat,
+                    'natom': natom,
                     }
         dict_var = {'typat': ('natom',),
                     'znucl': ('npsp',),
@@ -264,8 +270,7 @@ class OtfMlacs(Mlas, Manager):
         """
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
-            msg = self.prop.run(self.step,
-                                self.prop.workdir / self.prop.folder)
+            msg = self.prop.run(self.step)
             self.log.logger_log.info(msg)
             if self.prop.check_criterion:
                 msg = "All property calculations are converged, " + \
@@ -274,9 +279,7 @@ class OtfMlacs(Mlas, Manager):
 
         # Compute routine properties
         self.routine_prop.calc_initialize(atoms=self.atoms)
-        msg = self.routine_prop.run(self.step,
-                                    self.prop.workdir
-                                    / self.routine_prop.folder)
+        msg = self.routine_prop.run(self.step)
         self.log.logger_log.info(msg)
         self.routine_prop.save_prop(self.step)
         self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)

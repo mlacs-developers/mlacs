@@ -6,6 +6,7 @@ import os
 import copy
 import importlib
 import numpy as np
+from operator import attrgetter
 
 from ase.atoms import Atoms
 
@@ -609,7 +610,10 @@ class CalcAcell(CalcRoutineFunction):
         Execute function
         """
         if self.use_atoms:
-            self._function = [getattr(_, self._func) for _ in self.atoms]
+            # Use of get_cell_lengths_and_angles is now deprecated in lammps
+            # self._function = [getattr(_, self._func) for _ in self.atoms]
+            attr = 'cell.cellpar'
+            self._function = [attrgetter(attr)(_) for _ in self.atoms]
             self.new = np.r_[[_f(**self.kwargs)[:3] for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
@@ -649,7 +653,8 @@ class CalcAngles(CalcRoutineFunction):
         Execute function
         """
         if self.use_atoms:
-            self._function = [getattr(_, self._func) for _ in self.atoms]
+            attr = 'cell.cellpar'
+            self._function = [attrgetter(attr)(_) for _ in self.atoms]
             self.new = np.r_[[_f(**self.kwargs)[3:] for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
