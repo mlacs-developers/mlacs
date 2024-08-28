@@ -3,7 +3,9 @@
 // This code is licensed under MIT license (see LICENSE.txt for details)
 """
 import os
+import sys
 import numpy as np
+from pathlib import Path
 
 from ase import Atoms
 from ase.units import Bohr, Hartree
@@ -60,6 +62,132 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
                   free_energy=results['entropy'] * Hartree)
     atoms.calc = calc
     return atoms
+
+
+def get_nc_path(ncprefix, workdir, launched):
+    """Return netcdf path of Abinit-style HIST file"""
+    if ncprefix != '' and (not ncprefix.endswith('_')):
+        ncprefix += '_'
+    script_name = ncprefix
+    script_name += os.path.basename(sys.argv[0])
+    if script_name.endswith('.py'):
+        script_name = script_name[:-3]
+    ncname = script_name + "_HIST.nc"
+    ncpath = str(Path(workdir) / ncname)
+
+    ncfile_exists = os.path.isfile(ncpath)
+    if ncfile_exists:
+        # if it is the first MLAS launch
+        if not launched:
+            S = 1
+            while ncfile_exists:
+                ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
+                ncpath = str(workdir / ncname)
+                ncfile_exists = os.path.isfile(ncpath)
+                S += 1
+    return ncpath
+
+
+def create_nc_file(ncpath, ncformat, atoms):
+    """
+    Create netcdf file(s).
+
+    Create Abinit-style dimensions
+    Create Abinit-style variables that are not 'RoutineProperties'
+    """
+
+    def _core(ncpath, mode, f, dict_dim, dict_var):
+        with nc.Dataset(ncpath, mode, format=f) as new:
+            for dim_name, dim_value in dict_dim.items():
+                new.createDimension(dim_name, (dim_value))
+            for var_name, var_dim in dict_var.items():
+                new.createVariable(var_name, datatype, var_dim)
+
+    datatype = 'float64'
+
+    # Assume ntypat and natom are the same for all items in list
+    if isinstance(atoms, list):
+        atoms = atoms[0]
+    ntypat = len(set(atoms.get_atomic_numbers()))
+    natom = len(atoms)
+
+    dict_dim = {'time': None,
+                'two': 2,
+                'xyz': 3,
+                'npsp': 3,
+                'six': 6,
+                'ntypat': ntypat,
+                'natom': natom,
+                }
+    dict_var = {'typat': ('natom',),
+                'znucl': ('npsp',),
+                'amu': ('ntypat',),
+                'dtion': (),
+                'mdtemp': ('two',),
+                'mdtime': ('time',),
+                }
+
+    _core(ncpath, 'r+', ncformat, dict_dim, dict_var)
+
+    dict_w_dim = {'weights_dim': None}
+    dict_w_var = {'weights': ('weights_dim',),
+                  'weights_meta': ('weights_dim',),
+                  }
+
+    weights_ncpath = ncpath
+    if 'NETCDF3' in ncformat:
+        weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
+
+    _core(weights_ncpath, 'r+', ncformat, dict_w_dim, dict_w_var)
+
+
+def create_nc_var(ncpath, routine_prop_list):
+    """Create Abinit-style variables in netcdf file"""
+    datatype = 'float64'
+    for obs in routine_prop_list:
+        with nc.Dataset(ncpath, 'a') as ncfile:
+            var = ncfile.createVariable(obs.nc_name, datatype, obs.nc_dim)
+            var.setncattr('unit', obs.nc_unit)
+            meta_dim = ('time', 'two',)
+            meta_name = obs.nc_name + '_meta'
+            ncfile.createVariable(meta_name, datatype, meta_dim)
+            w_name = 'weighted_' + obs.nc_name
+            wvar = ncfile.createVariable(w_name, datatype, obs.nc_dim)
+            wvar.setncattr('unit', obs.nc_unit)
+
+
+def nc_conv():
+    """Define several conventions related to *HIST.nc file"""
+
+    # Variable names and dimensions are those produced by Abinit
+    var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
+                    'Kinetic_Energy': ['ekin', ('time',)],
+                    'Potential_Energy': ['epot', ('time',)],
+                    'Velocities': ['vel', ('time', 'natom', 'xyz')],
+                    'Forces': ['fcart', ('time', 'natom', 'xyz')],
+                    'Positions': ['xcart', ('time', 'natom', 'xyz')],
+                    'Scaled_Positions': ['xred', ('time', 'natom', 'xyz')],
+                    'Temperature': ['temper', ('time',)],
+                    'Volume': ['vol', ('time',)],
+                    'Stress': ['strten', ('time', 'six')],
+                    'Cell': ['rprimd', ('time', 'xyz', 'xyz')]
+                    }
+
+    # Units correspond to those used in ASE
+    units_dict = {'Total_Energy': 'eV',
+                  'Kinetic_Energy': 'eV',
+                  'Potential_Energy': 'eV',
+                  'Velocities': '',
+                  'Forces': 'eV/Ang',
+                  'Positions': 'Ang',
+                  'Scaled_Positions': 'dimensionless',
+                  'Temperature': 'K',
+                  'Volume': 'Ang^3',
+                  'Stress': 'eV/Ang^3',
+                  'Cell': 'Ang',
+                  }
+
+    return var_dim_dict, units_dict
 
 
 # ========================================================================== #

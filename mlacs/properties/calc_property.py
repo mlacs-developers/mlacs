@@ -507,6 +507,7 @@ class CalcRoutineFunction(CalcExecFunction):
                  label,
                  nc_name=None,
                  nc_dim=None,
+                 nc_unit='',
                  weight=None,
                  gradient=False,
                  criterion=None,
@@ -517,6 +518,7 @@ class CalcRoutineFunction(CalcExecFunction):
         self.label = label
         self.nc_name = nc_name
         self.nc_dim = nc_dim
+        self.nc_unit = nc_unit
 
 # ========================================================================== #
     def __repr__(self):
@@ -525,15 +527,18 @@ class CalcRoutineFunction(CalcExecFunction):
         routine property.
         """
         name_observable = self.label.lower().replace("_", " ")
+        unit = self.nc_unit
         msg = f'Routine computation of the {name_observable}\n'
         if len(self.shape) == 0:
             if len(self.new > 0):
                 for idx_state, val in enumerate(self.new):
-                    msg += f'        - Value for state {idx_state+1} : {val}\n'
+                    msg += f'        - Value for state {idx_state+1} : '
+                    msg += '{:.5e}'.format(val) + ' ' + unit + ' \n'
             else:
                 msg += f'        - Value for state 1  : {self.new}\n'
         else:
-            msg += '        - [...] Too big to print, cf. *_HIST.nc file \n'
+            # Too big to print, cf. *_HIST.nc file
+            msg = ''
 
         return msg
 
@@ -551,18 +556,20 @@ class CalcPressure(CalcRoutineFunction):
     """
 
     def __init__(self,
-                 label,
-                 nc_name,
-                 nc_dim,
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
+        label = 'Pressure'
+        nc_name = 'press'
+        nc_dim = ('time',)
+        nc_unit = 'eV/Ang^3'
         CalcRoutineFunction.__init__(self,
                                      'get_stress',
                                      label,
                                      nc_name,
-                                     nc_dim)
+                                     nc_dim,
+                                     nc_unit)
 
     def _exec(self, wdir=None):
         """
@@ -592,18 +599,20 @@ class CalcAcell(CalcRoutineFunction):
     """
 
     def __init__(self,
-                 label,
-                 nc_name,
-                 nc_dim,
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
+        label = 'Acell'
+        nc_name = 'acell'
+        nc_dim = ('time', 'xyz')
+        nc_unit = 'Ang'
         CalcRoutineFunction.__init__(self,
                                      'get_cell_lengths_and_angles',
                                      label,
                                      nc_name,
-                                     nc_dim)
+                                     nc_dim,
+                                     nc_unit)
 
     def _exec(self, wdir=None):
         """
@@ -635,18 +644,20 @@ class CalcAngles(CalcRoutineFunction):
     """
 
     def __init__(self,
-                 label,
-                 nc_name,
-                 nc_dim,
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
+        label = 'Angles'
+        nc_name = 'angl'
+        nc_dim = ('time', 'xyz')
+        nc_unit = 'deg'
         CalcRoutineFunction.__init__(self,
                                      'get_cell_lengths_and_angles',
                                      label,
                                      nc_name,
-                                     nc_dim)
+                                     nc_dim,
+                                     nc_unit)
 
     def _exec(self, wdir=None):
         """
@@ -661,4 +672,3 @@ class CalcAngles(CalcRoutineFunction):
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
-
