@@ -287,7 +287,7 @@ class SnapDescriptor(Descriptor):
             filename = Path(self.get_filepath('.model'))
 
         if not filename.is_file():
-            filename = filename.absoluse()
+            filename = filename.absolute()
             raise FileNotFoundError(f"File {filename} does not exist")
 
         with open(filename, "r") as fd:

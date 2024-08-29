@@ -246,7 +246,7 @@ class AceDescriptor(Descriptor):
         filename = Path(folder) / "ACE.yace"
 
         if not filename.is_file():
-            filename = filename.absoluse()
+            filename = filename.absolute()
             raise FileNotFoundError(f"File {filename} does not exist")
         return str(filename)
 
