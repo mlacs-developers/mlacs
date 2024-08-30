@@ -67,7 +67,7 @@ class BaseMepState(StateManager):
 
     """
     def __init__(self, images, xi=None, nimages=4, mode=None, model=None,
-                 interpolate='linear', parameters={}, print=False, **kwargs):
+                 interpolate='linear', parameters={}, print=True, **kwargs):
 
         super().__init__(**kwargs)
 
@@ -100,7 +100,7 @@ class BaseMepState(StateManager):
                      supercell,
                      pair_style,
                      pair_coeff,
-                     model_post,
+                     model_post=None,
                      atom_style="atomic",
                      eq=False):
         """
