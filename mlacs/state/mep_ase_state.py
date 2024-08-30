@@ -174,6 +174,7 @@ class LinearInterpolation(BaseMepState):
         Interpolate images and run the optimization.
         """
 
+        # RB in future ASE version NEB should be imported from ase.mep
         from ase.neb import NEB
         neb = NEB(images, **self.parameters)
 
@@ -238,6 +239,7 @@ class NebAseState(BaseMepState):
 
         images = self._set_calculator(images)
 
+        # RB in future ASE version NEB should be imported from ase.mep
         from ase.neb import NEB
         neb = NEB(images, k=self.Kspring, **self.parameters)
 
