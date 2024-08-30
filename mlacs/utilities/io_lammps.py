@@ -207,12 +207,12 @@ def get_block_rdf(nsteps, filename='spce-rdf.dat', rmax=None):
     """
     # freq = int(nsteps/5)
     block = LammpsBlockInput("RDF", "Compute RDF")
-    block("v_rep", f"variable repeat equal {nsteps}/2")
-    txt = "compute rdf all rdf ${repeat} 1 1"
+    block("v_rep_rdf", f"variable rep_rdf equal {nsteps}/2")
+    txt = "compute rdf all rdf ${rep_rdf} 1 1"
     if rmax is not None:
         txt += ' cutoff {rmax}'
     block("c_rdf", txt)
-    txt = "fix rdf all ave/time 1 ${repeat}" + \
+    txt = "fix rdf all ave/time 1 ${rep_rdf}" + \
           f" {nsteps} c_rdf[*] file {filename} mode vector\n"
     block("rdf", txt)
     return block
@@ -225,9 +225,9 @@ def get_block_adf(nsteps, filename='spce-adf.dat'):
     """
     # freq = int(nsteps/5)
     block = LammpsBlockInput("ADF", "Compute ADF")
-    block("v_rep", "variable repeat equal 1")
+    block("v_rep_adf", "variable rep_adf equal 1")
     block("c_adf", "compute adf all adf 360")
-    txt = "fix adf all ave/time 100 ${repeat}" + \
+    txt = "fix adf all ave/time 100 ${rep_adf}" + \
           f" {nsteps} c_adf[*] file {filename} mode vector\n"
     block("adf", txt)
     return block
