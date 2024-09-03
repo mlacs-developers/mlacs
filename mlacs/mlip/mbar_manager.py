@@ -132,7 +132,6 @@ class MbarManager(WeightingPolicy):
         self._newddb = []
 
         if not docalc:
-            print("DEBUUUUG1", self.Nk)
             return "_", "_"
 
         # Calculate ukn
@@ -188,7 +187,6 @@ class MbarManager(WeightingPolicy):
         """
         Update the database.
         """
-        print(f"UPDATE DATABASE with {len(atoms)}")
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         self._newddb.extend(atoms)

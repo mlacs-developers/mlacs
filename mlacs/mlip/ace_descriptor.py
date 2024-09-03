@@ -8,6 +8,7 @@
 
 import sys
 import os
+import shutil
 import warnings
 import logging
 
@@ -408,23 +409,25 @@ class AceDescriptor(Descriptor):
     def predict(self, atoms, coef, folder):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
+        if Path("Atoms").exists():
+            shutil.rmtree("Atoms")
+        Path("Atoms").mkdir()
 
-        e, f, s = [], [], []
-        for at in atoms:
-            lmp_atfname = "atoms.lmp"
-            el, z, masses, charges = get_elements_Z_and_masses(at)
+        #e, f, s = [], [], []
 
-            self._write_lammps_input(masses, at.get_pbc(), coef, el)
+        for i, at in enumerate(atoms):
+            if np.any(at.get_pbc() != atoms[0].get_pbc()):
+                raise ValueError("PBC cannot change between states")
+            lmp_atfname = f"Atoms/atoms{i+1}.lmp"
             write_lammps_data(lmp_atfname,
                               at,
                               specorder=self.elements.tolist())
 
-            self._run_lammps(lmp_atfname)
-            tmp_e, tmp_f, tmp_s = self._read_lammps_output(len(at))
-            e.append(tmp_e + self.calc_free_e(at)/len(at))
-            f.append(tmp_f)
-            s.append(tmp_s)
-            self.cleanup()
+        self._write_lammps_input(atoms, coef)
+
+        self._run_lammps(lmp_atfname)
+        e, f, s = self._read_lammps_output(atoms)
+        self.cleanup(len(atoms))
 
         if len(e) == 1:
             return e[0], f[0], s[0]
@@ -433,52 +436,68 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _read_lammps_output(self, natoms):
+    def _read_lammps_output(self, atoms):
         with open("lammps.out", "r") as f:
             lines = f.readlines()
 
-        toparse = None
+        toparse = []
         tofind = "Step          Temp          E_pair         Press"
         for idx, line in enumerate(lines):
             if tofind in line:
-                toparse = lines[idx+1].split()
-        if toparse is None:
-            raise ValueError("lammps.out didnt have the expected format")
+                # "WARNING:" may appear between Step and value
+                while "WARNING" in lines[idx+1]:
+                    idx += 1
+                toparse.append(lines[idx+1].split())
+        if len(toparse)!=len(atoms):
+            raise ValueError("lammps.out a thermo for each atoms")
 
-        bar2GPa = 1e-4
-        e = float(toparse[2])/natoms
-        f = read('forces.out', format='lammps-dump-text').get_forces()
-        s = np.loadtxt('stress.out', skiprows=4)[:, 1]*bar2GPa
-        return e, f, s
+        e, f, s = [], [], []
+        for i in range(len(toparse)):
+            thermo, at = toparse[i], atoms[i]
+            
+            e_correction = self.calc_free_e(at)  # To only get cohesion energy
+            bar2GPa = 1e-4
+            e.append((float(thermo[2]) + e_correction)/len(at))
+            f.append(read(f'forces{i+1}.out', format='lammps-dump-text').get_forces())
+            s.append(np.loadtxt(f'stress{i+1}.out', skiprows=4)[:, 1]*bar2GPa)
+        return np.array(e), np.array(f), np.array(s)
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def cleanup(self):
+    def cleanup(self, natoms):
         '''
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        Path("forces.out").unlink()
-        Path("stress.out").unlink()
+        for i in range(natoms):
+            Path(f"forces{i+1}.out").unlink()
+            Path(f"stress{i+1}.out").unlink()
         Path("lammps.out").unlink()
         Path("lammps.in").unlink()
-        Path("atoms.lmp").unlink()
+        shutil.rmtree("Atoms")
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_input(self, masses, pbc, coef, el):
+    def _write_lammps_input(self, atoms, coef):
         """
+        Create one lammps input to evaluate E,F,S of multiple atoms
         """
-        txt = "LAMMPS input file for extracting MLIP descriptors"
+        # Note: if any of these changes between simulations, big problem ...
+        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
+
+        # Write the input file
+        txt = "LAMMPS input file for extracting MLIP E, F, S"
         lmp_in = LammpsInput(txt)
 
         block = LammpsBlockInput("init", "Initialization")
-        block("clear", "clear")
-        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        block("loop", f"variable a loop {len(atoms)}")
+        block("label", "label loopstart")
+        
+        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
         block("boundary", f"boundary {pbc_txt}")
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
-        block("read_data", "read_data atoms.lmp")
+        block("read_data", "read_data Atoms/atoms${a}.lmp")
         for i, m in enumerate(masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
@@ -493,11 +512,17 @@ class AceDescriptor(Descriptor):
         block("thermo_style", "thermo_style custom step temp epair press")
         block("cp", "compute svirial all pressure NULL virial")
         block("fs", "fix svirial all ave/time 1 1 1 c_svirial" +
-              " file stress.out mode vector")
-        block("dump", "dump dump_force all custom 1 forces.out" +
+              " file stress${a}.out mode vector")
+        block("dump", "dump dump_force all custom 1 forces${a}.out" +
               " id type x y z fx fy fz")
         block("run", "run 0")
         lmp_in("compute", block)
+        
+        block = LammpsBlockInput("loopback", "Loop Back")
+        block("clear data", "clear")
+        block("iterate", "next a")
+        block("loopend", "jump SELF loopstart")
+        lmp_in("loopback", block)
 
         with open("lammps.in", "w") as fd:
             fd.write(str(lmp_in))
