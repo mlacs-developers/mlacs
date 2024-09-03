@@ -245,7 +245,7 @@ def get_block_diffusion(nsteps, filename='diffusion.dat'):
     block("v_msd", "variable msd equal c_msd[4]")
     block("v_twopts", "variable twopoint equal c_msd[4]/6/(step*dt+1.0e-6)")
     block("f_msd", "fix msd all vector 1000 c_msd[4]")
-    block("v_slope", "variable fislope equal slope(f_msd)/6/(10000*dt)")
+    block("v_slope", "variable fitslope equal slope(f_msd)/6/(10000*dt)")
     txt = 'fix dcoeff all print 100 "${t} ${msd} ${twopoint} ${fitslope}"' + \
           f' append {filename} title "# Step MSD D(start) D(slope)"'
     block("diffusion", txt)
