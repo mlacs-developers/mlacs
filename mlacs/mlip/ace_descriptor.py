@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -49,7 +49,6 @@ try:
     from pyace.generalfit import GeneralACEFit
     from pyace import create_multispecies_basis_config
     from pyace.metrics_aggregator import MetricsAggregator
-    from pyace import ACEBBasisSet
     ispyace = True
     def_bconf = {'deltaSplineBins': 0.001,
                  'embeddings': {"ALL": {'npot': 'FinnisSinclairShiftedScaled',
@@ -294,7 +293,9 @@ class AceDescriptor(Descriptor):
         if self.acefit is None:
             self.create_acefit()
         else:
-            self.acefit.fit_config['fit_cycles'] += 1
+            # Dubious implementation of GeneralACEFit,
+            # No function to update dataframe once created ??
+            self.create_acefit()
 
         # Note that self.fitting is the same object as self.acefit.fit_config
         real_maxiter = self.fitting['maxiter']
@@ -303,11 +304,12 @@ class AceDescriptor(Descriptor):
         while retry:
             retry, niter_done = self.actual_fit()
             nattempt += 1
-            # TODO: Substract the iteration done on i-1 from max_iter of i
-            self.acefit.fit_config['fit_cycles'] += 1
             self.fitting['maxiter'] -= niter_done
             if nattempt > self.n_fit_attempt or self.fitting['maxiter'] < 1:
                 retry = False
+            if retry:
+                self.acefit.fit_config['fit_cycles'] += 1
+
         self.fitting['maxiter'] = real_maxiter
 
         fn_yaml = "interim_potential_best_cycle.yaml"
@@ -331,7 +333,6 @@ class AceDescriptor(Descriptor):
             self.acefit.fit()
         except StopIteration:  # For Scipy < 1.11
             pass
-
         fit_res = self.acefit.fit_backend.fitter.res_opt
 
         # Fit failed due to precision loss
@@ -348,7 +349,9 @@ class AceDescriptor(Descriptor):
         """
         fn = str(Path(mlip_subfolder).parent /
                  "interim_potential_best_cycle.yaml")
-        self.bconf.set_all_coeffs(ACEBBasisSet(fn).all_coeffs)
+        self.bconf.load(fn)
+        fc = int(pyace.BBasisConfiguration(fn).metadata["_fit_cycles"])
+        self.fitting['fit_cycles'] = fc+1
 
 # ========================================================================== #
     @Manager.exec_from_subdir
@@ -595,7 +598,7 @@ class AceDescriptor(Descriptor):
         """
         acefile = self.get_filepath('.yace')
         pair_coeff = [f"* * {acefile} " +
-                      ''.join(self.elements)]
+                      ' '.join(self.elements)]
         return pair_coeff
 
 # ========================================================================== #
