@@ -346,7 +346,7 @@ class Mlas(Manager):
                     uniq_at.append(self.atoms[istate])
                     idx_computed.append([istate])
 
-        self._write("There are {len(uniq_at)} unique configuration in the states ")  # noqa
+        self._write(f"There are {len(uniq_at)} unique configuration in the states ")  # noqa
 
         # And finally we compute the properties for each unique atoms
         nstate = len(uniq_at)
