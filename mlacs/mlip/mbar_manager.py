@@ -35,6 +35,17 @@ default_parameters = {"solver": "L-BFGS-B",
                       "start": 2,
                       }
 
+## DEBUG
+import time, sys
+def timing_decorator(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        print(f"Function {func.__name__} took {end_time - start_time:.4f} seconds", file=sys.stderr)
+        return result
+    return wrapper
+
 
 # ========================================================================== #
 # ========================================================================== #
@@ -100,7 +111,8 @@ class MbarManager(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def compute_weight(self, coef, predict):
+    @timing_decorator    
+    def compute_weight(self, coef, predict, docalc=True):
         """
         Save the MLIP coefficients and compute the Weight
         Compute the matrice Ukn of partition fonctions of shape [ndesc, nconf]
@@ -118,6 +130,10 @@ class MbarManager(WeightingPolicy):
         else:
             self.Nk = np.append(self.Nk, [len(self._newddb)])
         self._newddb = []
+
+        if not docalc:
+            print("DEBUUUUG1", self.Nk)
+            return "_", "_"
 
         # Calculate ukn
         ukn = np.zeros([len(self.mlip_coef), len(self.database)])
@@ -172,6 +188,7 @@ class MbarManager(WeightingPolicy):
         """
         Update the database.
         """
+        print(f"UPDATE DATABASE with {len(atoms)}")
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         self._newddb.extend(atoms)
