@@ -42,7 +42,6 @@ class Descriptor(Manager, ABC):
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
-        self.skip = False
 
 # ========================================================================== #
     def compute_descriptors(self, atoms, forces=True, stress=True):
