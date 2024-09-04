@@ -413,8 +413,6 @@ class AceDescriptor(Descriptor):
             shutil.rmtree("Atoms")
         Path("Atoms").mkdir()
 
-        #e, f, s = [], [], []
-
         for i, at in enumerate(atoms):
             if np.any(at.get_pbc() != atoms[0].get_pbc()):
                 raise ValueError("PBC cannot change between states")
@@ -448,17 +446,17 @@ class AceDescriptor(Descriptor):
                 while "WARNING" in lines[idx+1]:
                     idx += 1
                 toparse.append(lines[idx+1].split())
-        if len(toparse)!=len(atoms):
+        if len(toparse) != len(atoms):
             raise ValueError("lammps.out a thermo for each atoms")
 
         e, f, s = [], [], []
         for i in range(len(toparse)):
             thermo, at = toparse[i], atoms[i]
-            
             e_correction = self.calc_free_e(at)  # To only get cohesion energy
             bar2GPa = 1e-4
             e.append((float(thermo[2]) + e_correction)/len(at))
-            f.append(read(f'forces{i+1}.out', format='lammps-dump-text').get_forces())
+            f.append(read(f'forces{i+1}.out',
+                     format='lammps-dump-text').get_forces())
             s.append(np.loadtxt(f'stress{i+1}.out', skiprows=4)[:, 1]*bar2GPa)
         return np.array(e), np.array(f), np.array(s)
 
@@ -492,8 +490,9 @@ class AceDescriptor(Descriptor):
         block = LammpsBlockInput("init", "Initialization")
         block("loop", f"variable a loop {len(atoms)}")
         block("label", "label loopstart")
-        
-        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
+
+        pbc_txt = "{0} {1} {2}".format(
+                *tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
         block("boundary", f"boundary {pbc_txt}")
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
@@ -517,7 +516,7 @@ class AceDescriptor(Descriptor):
               " id type x y z fx fy fz")
         block("run", "run 0")
         lmp_in("compute", block)
-        
+
         block = LammpsBlockInput("loopback", "Loop Back")
         block("clear data", "clear")
         block("iterate", "next a")

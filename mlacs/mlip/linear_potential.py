@@ -19,6 +19,17 @@ default_parameters = {"method": "ols",
                       "gridcv": {}}
 
 
+## DEBUG
+import time, sys
+def timing_decorator(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()
+        result = func(*args, **kwargs)
+        end_time = time.perf_counter()
+        print(f"Function {func.__name__} took {end_time - start_time:.4f} seconds", file=sys.stderr)
+        return result
+    return wrapper
+
 # ========================================================================== #
 # ========================================================================== #
 class LinearPotential(MlipManager):
@@ -204,6 +215,7 @@ class LinearPotential(MlipManager):
         return calc
 
 # ========================================================================== #
+    @timing_decorator
     def predict(self, atoms, coef=None):
         """
         Predict energy (eV), forces (eV/ang) and stress (eV/ang**3) given
