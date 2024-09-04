@@ -42,22 +42,21 @@ class Descriptor(Manager, ABC):
         self.welems = np.array(self.Z) / np.sum(self.Z)
         self.alpha = alpha
         self.need_neigh = False
+        self.skip = False
 
 # ========================================================================== #
     def compute_descriptors(self, atoms, forces=True, stress=True):
         desc = []
         for at in atoms:
             # AC : apparently, the at.info for descriptor does not work
-            # RB : tested this fix works fined.
+            # RB : Tested this, the fix works fined for Trajectory confs but
+            #      not for Training. I don't know why ?!
             if "descriptor" in at.info:
                 desc.append(at.info['descriptor'])
             else:
                 desc.append(self.compute_descriptor(atoms=at,
                                                     forces=forces,
                                                     stress=stress))
-            # desc.append(self.compute_descriptor(atoms=at,
-            #                                     forces=forces,
-            #                                     stress=stress))
         return desc
 
 # ========================================================================== #

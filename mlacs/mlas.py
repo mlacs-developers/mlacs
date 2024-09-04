@@ -374,7 +374,9 @@ class Mlas(Manager):
                 newat.calc = calc
                 self.atoms[icop] = newat
 
-        self.atoms = self.add_traj_descriptors(self.atoms)
+        # RB: Don't now why but computing desc is different in run_initial
+        #     than in run_steps
+        # self.atoms = self.add_traj_descriptors(self.atoms)
         for istate in range(self.nstate):
             prefix = self.state[istate].prefix
             self.traj.append(Trajectory(prefix + ".traj", mode="w"))
@@ -416,7 +418,8 @@ class Mlas(Manager):
                 self._write("Adding them to the training data")
 
                 confs_init = read(conf_fname, index=":")
-                confs_init = self.add_traj_descriptors(confs_init)
+                # RB: Same comment
+                # confs_init = self.add_traj_descriptors(confs_init)
                 for conf in confs_init:
                     self.mlip.update_matrices(conf)
             else:
@@ -429,7 +432,8 @@ class Mlas(Manager):
                     confs_init,
                     subfolder_l,
                     istep)
-                confs_init = self.add_traj_descriptors(confs_init)
+                # RB: Same comment
+                # confs_init = self.add_traj_descriptors(confs_init)
                 init_traj = Trajectory(conf_fname, mode="w")
                 for i, conf in enumerate(confs_init):
                     if conf is None:
