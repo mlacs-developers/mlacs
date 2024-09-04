@@ -152,11 +152,10 @@ class TensorpotPotential(MlipManager):
         self.coefficients = mlip_coef
 
         self.descriptor.set_restart_coefficient(mlip_coef)
-        _, weight_fn = self.weight.compute_weight(mlip_coef, 
+        _, weight_fn = self.weight.compute_weight(mlip_coef,
                                                   self.predict,
                                                   docalc=False)
 
-        #create_link(mlip_coef + "/" + weight_fn, self.subdir/weight_fn)
         create_link(mlip_coef + "/" + "ACE.yace", self.subdir/"ACE.yace")
 
 # ========================================================================== #

@@ -15,16 +15,6 @@ from ase.neighborlist import neighbor_list
 from ..core import Manager
 from ..utilities import get_elements_Z_and_masses
 
-## DEBUG
-import time, sys
-def timing_decorator(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        print(f"Function {func.__name__} took {end_time - start_time:.4f} seconds", file=sys.stderr)
-        return result
-    return wrapper
 
 # ========================================================================== #
 # ========================================================================== #
@@ -54,7 +44,6 @@ class Descriptor(Manager, ABC):
         self.need_neigh = False
 
 # ========================================================================== #
-    @timing_decorator
     def compute_descriptors(self, atoms, forces=True, stress=True):
         desc = []
         for at in atoms:

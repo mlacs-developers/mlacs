@@ -6,11 +6,13 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
+import shutil
 import shlex
 from pathlib import Path
 from subprocess import run, PIPE
 
 import numpy as np
+from ase.atoms import Atoms
 from ase.io.lammpsdata import write_lammps_data
 
 from ..core.manager import Manager
@@ -175,23 +177,24 @@ class SnapDescriptor(Descriptor):
         self._run_lammps(lmp_atfname)
 
         desc = []
-        for i in range(len(atoms)):
-            nat = len(atoms[i])
+        for idx in range(len(atoms)):
+            nat = len(atoms[idx])
+            chemsymb = np.array(atoms[idx].get_chemical_symbols())
+
             amat_e = np.zeros((1, self.ncolumns))
             amat_f = np.zeros((3 * nat, self.ncolumns))
             amat_s = np.zeros((6, self.ncolumns))
 
             bispectrum = np.loadtxt(f"descriptor{i+1}.out",
                                     skiprows=4)
-            bispectrum[-6:, 1:-1] /= -atoms[i].get_volume()
+            bispectrum[-6:, 1:-1] /= -atoms[idx].get_volume()
 
-            amat_e[0] = bispectrum[0, 1:-1]
-            amat_f = bispectrum[1:3*nat+1, 1:-1]
-            amat_s = bispectrum[3*nat+1:, 1:-1]
+            amat_e[0, self.nel:] = bispectrum[0, 1:-1]
+            amat_f[:, self.nel:] = bispectrum[1:3*nat+1, 1:-1]
+            amat_s[:, self.nel:] = bispectrum[3*nat+1:, 1:-1]
 
-            np.save("amat_e.npy", amat_e)
-            np.save("amat_f.npy", amat_f)
-            np.save("amat_s.npy", amat_s)
+            for i, el in enumerate(self.elements):
+                amat_e[0, i] = np.count_nonzero(chemsymb == el)
 
             desc.append(dict(desc_e=amat_e,
                              desc_f=amat_f,
@@ -251,7 +254,7 @@ class SnapDescriptor(Descriptor):
         lmp_in("fake_dynamic", block)
 
         block = LammpsBlockInput("compute", "Compute")
-        block("compute", f"compute ml all snap {self._snap_opt_str()}")        
+        block("compute", f"compute ml all snap {self._snap_opt_str()}")
         block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
               "file descriptor${a}.out mode vector")
         block("run", "run 0")

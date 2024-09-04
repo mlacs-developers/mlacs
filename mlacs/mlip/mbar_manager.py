@@ -35,17 +35,6 @@ default_parameters = {"solver": "L-BFGS-B",
                       "start": 2,
                       }
 
-## DEBUG
-import time, sys
-def timing_decorator(func):
-    def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()
-        result = func(*args, **kwargs)
-        end_time = time.perf_counter()
-        print(f"Function {func.__name__} took {end_time - start_time:.4f} seconds", file=sys.stderr)
-        return result
-    return wrapper
-
 
 # ========================================================================== #
 # ========================================================================== #
@@ -111,7 +100,6 @@ class MbarManager(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    @timing_decorator    
     def compute_weight(self, coef, predict, docalc=True):
         """
         Save the MLIP coefficients and compute the Weight
