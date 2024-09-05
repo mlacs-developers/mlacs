@@ -413,15 +413,18 @@ class AceDescriptor(Descriptor):
             shutil.rmtree("Atoms")
         Path("Atoms").mkdir()
 
+        clear_loop = False  # If we use clear or delete_atoms in lammps input
         for i, at in enumerate(atoms):
             if np.any(at.get_pbc() != atoms[0].get_pbc()):
                 raise ValueError("PBC cannot change between states")
+            if np.any(at.cell.array != atoms[0].cell.array):
+                clear_loop = True
             lmp_atfname = f"Atoms/atoms{i+1}.lmp"
             write_lammps_data(lmp_atfname,
                               at,
                               specorder=self.elements.tolist())
 
-        self._write_lammps_input(atoms, coef)
+        self._write_lammps_input(atoms, coef, is_clear=clear_loop)
 
         self._run_lammps(lmp_atfname)
         e, f, s = self._read_lammps_output(atoms)
@@ -476,9 +479,11 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_input(self, atoms, coef):
+    def _write_lammps_input(self, atoms, coef, is_clear=True):
         """
         Create one lammps input to evaluate E,F,S of multiple atoms
+        Note : We need to use clear if the cell changes between atoms
+               Else, we can use delete_atoms which doesn't reload potential
         """
         # Note: if any of these changes between simulations, big problem ...
         _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
@@ -487,16 +492,25 @@ class AceDescriptor(Descriptor):
         txt = "LAMMPS input file for extracting MLIP E, F, S"
         lmp_in = LammpsInput(txt)
 
-        block = LammpsBlockInput("init", "Initialization")
-        block("loop", f"variable a loop {len(atoms)}")
-        block("label", "label loopstart")
+        block_loopstart = LammpsBlockInput("loopstart", "Loop starts")
+        block_loopstart("loop", f"variable a loop {len(atoms)}")
+        block_loopstart("label", "label loopstart")
+        if is_clear:
+            # loopstart, init, atoms_data, pot, compute1, compute2, loopback
+            block_loopstart("clear data", "clear")
+            lmp_in("loop", block_loopstart)
+            read_data = "read_data Atoms/atoms${a}.lmp"
+        else:
+            # init, atoms_data, pot, compute1, loopstart, compute2, loopback
+            read_data = "read_data Atoms/atoms1.lmp"
 
+        block = LammpsBlockInput("init", "Initialization")
         pbc_txt = "{0} {1} {2}".format(
                 *tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
         block("boundary", f"boundary {pbc_txt}")
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
-        block("read_data", "read_data Atoms/atoms${a}.lmp")
+        block("read_data", read_data)
         for i, m in enumerate(masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
@@ -507,18 +521,25 @@ class AceDescriptor(Descriptor):
         block("pair_coeff", pc)
         lmp_in("interaction", block)
 
-        block = LammpsBlockInput("compute", "Compute")
+        block = LammpsBlockInput("compute1", "Compute")
         block("thermo_style", "thermo_style custom step temp epair press")
         block("cp", "compute svirial all pressure NULL virial")
-        block("fs", "fix svirial all ave/time 1 1 1 c_svirial" +
+        lmp_in("compute1", block)
+
+        if not is_clear:
+            block_loopstart("delat", "delete_atoms group all")
+            block_loopstart("rd", "read_data Atoms/atoms${a}.lmp add append")
+            lmp_in("loop", block_loopstart)
+
+        block = LammpsBlockInput("compute2", "Compute")
+        block("fs", "fix svirial${a} all ave/time 1 1 1 c_svirial" +
               " file stress${a}.out mode vector")
-        block("dump", "dump dump_force all custom 1 forces${a}.out" +
+        block("dump", "dump dump_force${a} all custom 1 forces${a}.out" +
               " id type x y z fx fy fz")
         block("run", "run 0")
-        lmp_in("compute", block)
+        lmp_in("compute2", block)
 
         block = LammpsBlockInput("loopback", "Loop Back")
-        block("clear data", "clear")
         block("iterate", "next a")
         block("loopend", "jump SELF loopstart")
         lmp_in("loopback", block)
