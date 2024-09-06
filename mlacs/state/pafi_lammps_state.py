@@ -16,7 +16,7 @@ from ase.units import kB, J, kg, m
 from .lammps_state import LammpsState
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses, save_cwd
+from ..utilities import save_cwd
 from ..utilities import integrate_points as intgpts
 from ..utilities.io_lammps import LammpsBlockInput
 
@@ -230,13 +230,11 @@ class PafiLammpsState(LammpsState):
             w.write(instr)
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("units", "units metal")
