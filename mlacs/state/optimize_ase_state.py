@@ -39,6 +39,14 @@ class OptimizeAseState(StateManager):
         Dictionnary with the parameter for the constraints.
         Default: {}
 
+    filters: :class:`ase.filters`
+        Filters are constraints to apply on the cell during the minimization.
+        By default there is no filters.
+
+    fltr_parameters: :class:`dict`
+        Dictionnary with the parameter for the constraints.
+        Default: {}
+
     fmax: :class:`float`
         The maximum value for the forces to be considered converged.
         Default: 1e-5
@@ -53,16 +61,17 @@ class OptimizeAseState(StateManager):
     >>> opt = OptimizeAseState()
     >>> opt.run_dynamics(initial, mlip.pair_style, mlip.pair_coeff)
 
-    To perform volume optimization, import the UnitCellFilter constraint
+    To perform volume optimization, import the UnitCellFilter filter
 
-    >>> from ase.constraints import UnitCellFilter
-    >>> opt = OptimizeAseState(constraints=UnitCellFilter,
-                               cstr_parameters=dict(cell_factor=10))
+    >>> from ase.filters import UnitCellFilter
+    >>> opt = OptimizeAseState(filters=UnitCellFilter,
+                               fltr_parameters=dict(cell_factor=10))
     >>> opt.run_dynamics(initial, mlip.pair_style, mlip.pair_coeff)
     """
     def __init__(self, optimizer=None, opt_parameters={},
-                 constraints=None, cstr_parameters={}, fmax=1e-5,
-                 nsteps=1000, nsteps_eq=100, **kwargs):
+                 constraints=None, cstr_parameters={},
+                 filters=None, fltr_parameters={},
+                 fmax=1e-5, nsteps=1000, nsteps_eq=100, **kwargs):
 
         super().__init__(nsteps=nsteps, nsteps_eq=nsteps_eq, **kwargs)
 
@@ -74,8 +83,13 @@ class OptimizeAseState(StateManager):
             from ase.optimize import BFGS
             self._opt = BFGS
 
+        # RB constraints on Atoms.
         self._cstr = constraints
         self._cstr_params = cstr_parameters
+
+        # RB constraints on Cell.
+        self._fltr = filters
+        self._fltr_params = fltr_parameters
 
         self.ispimd = False
         self.isrestart = False
@@ -114,12 +128,14 @@ class OptimizeAseState(StateManager):
 
         opt_at = atoms
         if self._cstr is not None:
-            opt_at = self._cstr(atoms, **self._cstr_params)
+            opt_at.set_constraint(self._cstr(**self._cstr_params))
+        if self._fltr is not None:
+            opt_at = self._fltr(atoms, **self._fltr_params)
 
         opt = self._opt(opt_at, **self._opt_parameters)
         opt.run(steps=steps, fmax=self.criterions)
 
-        if self._cstr is not None:
+        if self._fltr is not None:
             atoms = opt.atoms.atoms
         else:
             atoms = opt.atoms

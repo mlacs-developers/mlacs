@@ -68,6 +68,7 @@ CHANGE LOG
 * CalcProperty
 * File management system for files and logs (*workdir*, *folder* and *subfolder*)
 * New PathAtom object for transition path sampling.
+* New ASE States for strutural optimization and NEB.
 * New main Mlas object, splitting State sampling into OtfMlacs and geometry optimizisation into MlMinimizer  
 * ...
 
