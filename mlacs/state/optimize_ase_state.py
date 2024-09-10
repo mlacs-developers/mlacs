@@ -31,12 +31,14 @@ class OptimizeAseState(StateManager):
         Dictionnary with the parameters for the Optimizer.
         Default: {}
 
-    constraints: :class:`ase.constraints`
-        Constraints to apply to the system during the minimization.
+    constraints: :class:`ase.constraints` or :class:`list`
+        Constraints to apply to the system during the minimization or list
+        of constraints.
         By default there is no constraints.
 
-    cstr_parameters: :class:`dict`
-        Dictionnary with the parameter for the constraints.
+    cstr_parameters: :class:`dict` or :class:`list`
+        Dictionnary with the parameter for the constraints or list
+        of constraints parameters.
         Default: {}
 
     filters: :class:`ase.filters`
@@ -128,7 +130,11 @@ class OptimizeAseState(StateManager):
 
         opt_at = atoms
         if self._cstr is not None:
-            opt_at.set_constraint(self._cstr(**self._cstr_params))
+            if isinstance(self._cstr, list):
+                cstr = [c(**p) for c, p in zip(self._cstr, self._cstr_params)]
+                opt_at.set_constraint(cstr)
+            else:
+                opt_at.set_constraint(self._cstr(**self._cstr_params))
         if self._fltr is not None:
             opt_at = self._fltr(atoms, **self._fltr_params)
 
@@ -150,10 +156,10 @@ class OptimizeAseState(StateManager):
         msg = "Geometry optimization as implemented in ASE\n"
         # RB not implemented yet.
         # AC now it's implemented, but not easily accessible
-        if self._cstr is not None:
-            if self._cstr.__name__ == "UnitCellFilter":
-                if "scalar_pressure" in self._cstr_params.keys():
-                    press = self._cstr_params["scalar_pressure"] / GPa
+        if self._fltr is not None:
+            if self._fltr.__name__ == "UnitCellFilter":
+                if "scalar_pressure" in self._fltr_params.keys():
+                    press = self._fltr_params["scalar_pressure"] / GPa
                 else:
                     press = 0.0 / GPa
                 msg += f"   target pressure: {press} GPa\n"
