@@ -111,12 +111,10 @@ class OtfMlacs(Mlas, Manager):
 # ========================================================================== #
     def _initialize_properties(self, prop, ncpath):
         """Create property object"""
-        if prop is None:
-            self.prop = PropertyManager(None)
-        elif isinstance(prop, PropertyManager):
-            self.prop = prop
-        else:
-            self.prop = PropertyManager(prop)
+        self.prop = PropertyManager(prop)
+
+        if not self.launched:
+            create_nc_var(ncpath, prop)
 
         self.prop.workdir = self.workdir
         if not self.prop.folder:
@@ -149,7 +147,6 @@ class OtfMlacs(Mlas, Manager):
         routine_prop_list += other_observables
         self.routine_prop = PropertyManager(routine_prop_list)
 
-        # Create Abinit-style variables in netcdf file
         if not self.launched:
             create_nc_var(ncpath, routine_prop_list)
 
@@ -168,6 +165,7 @@ class OtfMlacs(Mlas, Manager):
             self.prop.calc_initialize(atoms=self.atoms)
             msg = self.prop.run(self.step)
             self.log.logger_log.info(msg)
+            self.prop.save_prop(self.step)
             if self.prop.check_criterion:
                 msg = "All property calculations are converged, " + \
                       "stopping MLACS ...\n"

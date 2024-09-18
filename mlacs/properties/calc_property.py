@@ -62,6 +62,9 @@ class CalcProperty(Manager):
         self.useatoms = True
         self.label = 'Observable_Label'
         self.shape = None
+        self.nc_name = None
+        self.nc_dim = None
+        self.nc_unit = ''
         if state is not None:
             self.state = copy.deepcopy(state)
 
@@ -78,20 +81,13 @@ class CalcProperty(Manager):
         """
         Check if the property is converged.
         """
+        if not isinstance(self.new, np.ndarray):
+            self.new = np.r_[self.new]
         if self.isfirst:
-            if isinstance(self.new, np.ndarray):
-                self.old = np.zeros(self.new.shape)
-            else:
-                self.new = np.r_[self.new]
-                self.old = np.zeros(self.new.shape)
-            check = self._check
-            self.old = self.new
+            self.old = np.zeros(self.new.shape)
             self.isfirst = False
-        else:
-            check = self._check
-            if not isinstance(self.new, np.ndarray):
-                self.new = np.r_[self.new]
-            self.old = self.new
+        check = self._check
+        self.old = self.new
         return check
 
 # ========================================================================== #

@@ -82,11 +82,20 @@ def get_nc_path(ncprefix, workdir, launched):
             S = 1
             while ncfile_exists:
                 ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
-                ncpath = str(workdir / ncname)
+                ncpath = str(Path(workdir) / ncname)
                 ncfile_exists = os.path.isfile(ncpath)
                 S += 1
     return ncpath
 
+def add_dim(ncpath, dict_dim, ncformat, mode='r+'):
+    with nc.Dataset(ncpath, mode, format=ncformat) as new:
+        for dim_name, dim_value in dict_dim.items():
+            new.createDimension(dim_name, (dim_value))
+
+def add_var(ncpath, dict_var, ncformat, mode='r+', datatype='float64'):
+    with nc.Dataset(ncpath, mode, format=ncformat) as new:
+        for var_name, var_dim in dict_var.items():
+            new.createVariable(var_name, datatype, var_dim)
 
 def create_nc_file(ncpath, ncformat, atoms):
     """
@@ -95,15 +104,6 @@ def create_nc_file(ncpath, ncformat, atoms):
     Create Abinit-style dimensions
     Create Abinit-style variables that are not 'RoutineProperties'
     """
-
-    def _core(ncpath, mode, f, dict_dim, dict_var):
-        with nc.Dataset(ncpath, mode, format=f) as new:
-            for dim_name, dim_value in dict_dim.items():
-                new.createDimension(dim_name, (dim_value))
-            for var_name, var_dim in dict_var.items():
-                new.createVariable(var_name, datatype, var_dim)
-
-    datatype = 'float64'
 
     # Assume ntypat and natom are the same for all items in list
     if isinstance(atoms, list):
@@ -127,7 +127,8 @@ def create_nc_file(ncpath, ncformat, atoms):
                 'mdtime': ('time',),
                 }
 
-    _core(ncpath, 'r+', ncformat, dict_dim, dict_var)
+    add_dim(ncpath, dict_dim, ncformat)
+    add_var(ncpath, dict_var, ncformat)
 
     dict_w_dim = {'weights_dim': None}
     dict_w_var = {'weights': ('weights_dim',),
@@ -138,22 +139,28 @@ def create_nc_file(ncpath, ncformat, atoms):
     if 'NETCDF3' in ncformat:
         weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
 
-    _core(weights_ncpath, 'r+', ncformat, dict_w_dim, dict_w_var)
+    add_dim(weights_ncpath, dict_w_dim, ncformat)
+    add_var(weights_ncpath, dict_w_var, ncformat)
 
-
-def create_nc_var(ncpath, routine_prop_list):
+def create_nc_var(ncpath, prop_list):
     """Create Abinit-style variables in netcdf file"""
     datatype = 'float64'
-    for obs in routine_prop_list:
-        with nc.Dataset(ncpath, 'a') as ncfile:
-            var = ncfile.createVariable(obs.nc_name, datatype, obs.nc_dim)
-            var.setncattr('unit', obs.nc_unit)
-            meta_dim = ('time', 'two',)
-            meta_name = obs.nc_name + '_meta'
-            ncfile.createVariable(meta_name, datatype, meta_dim)
-            w_name = 'weighted_' + obs.nc_name
-            wvar = ncfile.createVariable(w_name, datatype, obs.nc_dim)
-            wvar.setncattr('unit', obs.nc_unit)
+    1
+    if prop_list is not None:
+        for obs in prop_list:
+            nc_name = obs.nc_name
+            nc_dim = obs.nc_dim
+            # Observables need these two attributes to get saved in the HIST.nc
+            if None not in (nc_name, nc_dim):
+                with nc.Dataset(ncpath, 'a') as ncfile:
+                    var = ncfile.createVariable(nc_name, datatype, nc_dim)
+                    var.setncattr('unit', obs.nc_unit)
+                    meta_dim = ('time', 'two',)
+                    meta_name = nc_name + '_meta'
+                    ncfile.createVariable(meta_name, datatype, meta_dim)
+                    w_name = 'weighted_' + nc_name
+                    wvar = ncfile.createVariable(w_name, datatype, nc_dim)
+                    wvar.setncattr('unit', obs.nc_unit)
 
 
 def nc_conv():

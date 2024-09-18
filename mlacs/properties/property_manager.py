@@ -37,12 +37,10 @@ class PropertyManager(Manager):
     @property
     def check_criterion(self):
         """
-        Check all criterions. They have to converged at the same time.
+        Check all criterions. They have to be all converged at the same time.
+        Return True if all elements in list are True, else return False.
         """
-        for _ in self.check:
-            if not _:
-                return False
-        return True
+        return np.all(self.check)
 
 # ========================================================================== #
     @Manager.exec_from_workdir
@@ -94,31 +92,32 @@ class PropertyManager(Manager):
         """
         path_save = self.workdir / self.folder
         ncpath = self.ncpath
-
-        for observable in self.manager:
-            to_be_saved = observable.new
-            nc_name = observable.nc_name
-
-            if observable.shape is not None:
-                for idx, val_state in enumerate(to_be_saved):
-                    with nc4.Dataset(ncpath, 'a') as ncfile:
-                        index_state = idx+1
-                        metadata = [step, index_state]
-                        idx_db = np.ma.count(ncfile[nc_name+'_meta'][:,0])
-                        # idx_db is index of config in dtbase for observable
-
-                        ncfile[nc_name][idx_db] = val_state
-                        ncfile[nc_name+'_meta'][idx_db] = metadata
-                        ncfile['mdtime'][idx_db] = idx_db + 1
-
-                # Scalar observables are saved in .dat files
-                observable_is_scalar = (len(observable.shape) == 0)
-                if observable_is_scalar:
-                    namefile = path_save / (observable.label + ".dat")
-                    for idx, value in enumerate(to_be_saved):
-                        index_state = idx+1
-                        row = [step, index_state, value]
-                        self._append_row_to_dat(namefile, row)
+        
+        if self.manager is not None:
+            for observable in self.manager:
+                to_be_saved = observable.new
+                nc_name = observable.nc_name
+    
+                if nc_name is not None:
+                    for idx, val_state in enumerate(to_be_saved):
+                        with nc4.Dataset(ncpath, 'a') as ncfile:
+                            index_state = idx+1
+                            metadata = [step, index_state]
+                            idx_db = np.ma.count(ncfile[nc_name+'_meta'][:,0])
+                            # idx_db is index of config in dtbase for observable
+    
+                            ncfile[nc_name][idx_db] = val_state
+                            ncfile[nc_name+'_meta'][idx_db] = metadata
+                            ncfile['mdtime'][idx_db] = idx_db + 1
+    
+                    # Scalar observables are saved in .dat files
+                    observable_is_scalar = (len(observable.shape) == 0)
+                    if observable_is_scalar:
+                        namefile = path_save / (observable.label + ".dat")
+                        for idx, value in enumerate(to_be_saved):
+                            index_state = idx+1
+                            row = [step, index_state, value]
+                            self._append_row_to_dat(namefile, row)
 
 # ========================================================================== #
     def save_weighted_prop(self, step, weighting_pol):
