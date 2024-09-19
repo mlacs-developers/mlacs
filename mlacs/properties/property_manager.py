@@ -15,6 +15,7 @@ class PropertyManager(Manager):
     """
     Parent Class managing the calculation of differents properties
     """
+
     def __init__(self,
                  prop,
                  folder='Properties',
@@ -92,24 +93,24 @@ class PropertyManager(Manager):
         """
         path_save = self.workdir / self.folder
         ncpath = self.ncpath
-        
+
         if self.manager is not None:
             for observable in self.manager:
                 to_be_saved = observable.new
                 nc_name = observable.nc_name
-    
+
                 if nc_name is not None:
                     for idx, val_state in enumerate(to_be_saved):
                         with nc4.Dataset(ncpath, 'a') as ncfile:
                             index_state = idx+1
                             metadata = [step, index_state]
-                            idx_db = np.ma.count(ncfile[nc_name+'_meta'][:,0])
-                            # idx_db is index of config in dtbase for observable
-    
+                            idx_db = np.ma.count(ncfile[nc_name+'_meta'][:, 0])
+                            # idx_db is index of conf in dtbase for observable
+
                             ncfile[nc_name][idx_db] = val_state
                             ncfile[nc_name+'_meta'][idx_db] = metadata
                             ncfile['mdtime'][idx_db] = idx_db + 1
-    
+
                     # Scalar observables are saved in .dat files
                     observable_is_scalar = (len(observable.shape) == 0)
                     if observable_is_scalar:
@@ -152,12 +153,12 @@ class PropertyManager(Manager):
                     dim_array[0] = -1
                     r_weights = weights.reshape(dim_array)
                     if r_weights.shape[0] == observable_values.shape[0]:
-                        weighted_observable = np.sum(r_weights*observable_values)
+                        weighted_observ = np.sum(r_weights*observable_values)
                         with nc4.Dataset(ncpath, 'a') as ncfile:
-                            ncfile[w_name][len(weights)-1] = weighted_observable
-
+                            ncfile[w_name][len(weights)-1] = weighted_observ
 
 # ========================================================================== #
+
     def save_weights(self, step, weighting_pol, ncformat):
         """
         Save the MBAR weights.
@@ -202,13 +203,13 @@ class PropertyManager(Manager):
                     ncfile['weights'][idx_db+idx] = value
                     # weights_meta keeps track of db index for given cycle
                     ncfile['weights_meta'][idx_db+idx] = idx + 1
-                    
+
             # Weight of first two confs (that are throwned out)
             w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
             return w_first2
 
-
 # ========================================================================== #
+
     def _append_row_to_dat(self, namefile, row, hspace=" "*5):
         """
         Define format of .dat file.

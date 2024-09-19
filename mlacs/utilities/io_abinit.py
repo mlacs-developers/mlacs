@@ -69,7 +69,16 @@ def get_nc_path(ncprefix, workdir, launched):
     if ncprefix != '' and (not ncprefix.endswith('_')):
         ncprefix += '_'
     script_name = ncprefix
-    script_name += os.path.basename(sys.argv[0])
+    # Obtain script name, including in case of pytest execution
+    pytest_path = os.getenv('PYTEST_CURRENT_TEST')
+    if pytest_path is not None:
+        if str(workdir) == '':
+            workdir = Path(pytest_path).parents[0].absolute()
+        name1 = os.path.basename(pytest_path)
+        script_name += name1.partition('.py')[0]
+    else:
+        script_name += os.path.basename(sys.argv[0])
+
     if script_name.endswith('.py'):
         script_name = script_name[:-3]
     ncname = script_name + "_HIST.nc"
@@ -87,15 +96,18 @@ def get_nc_path(ncprefix, workdir, launched):
                 S += 1
     return ncpath
 
+
 def add_dim(ncpath, dict_dim, ncformat, mode='r+'):
     with nc.Dataset(ncpath, mode, format=ncformat) as new:
         for dim_name, dim_value in dict_dim.items():
             new.createDimension(dim_name, (dim_value))
 
+
 def add_var(ncpath, dict_var, ncformat, mode='r+', datatype='float64'):
     with nc.Dataset(ncpath, mode, format=ncformat) as new:
         for var_name, var_dim in dict_var.items():
             new.createVariable(var_name, datatype, var_dim)
+
 
 def create_nc_file(ncpath, ncformat, atoms):
     """
@@ -142,10 +154,10 @@ def create_nc_file(ncpath, ncformat, atoms):
     add_dim(weights_ncpath, dict_w_dim, ncformat)
     add_var(weights_ncpath, dict_w_var, ncformat)
 
+
 def create_nc_var(ncpath, prop_list):
     """Create Abinit-style variables in netcdf file"""
     datatype = 'float64'
-    1
     if prop_list is not None:
         for obs in prop_list:
             nc_name = obs.nc_name
