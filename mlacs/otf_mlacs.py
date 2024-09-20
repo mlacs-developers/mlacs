@@ -60,18 +60,9 @@ class OtfMlacs(Mlas, Manager):
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
     """
-    def __init__(self,
-                 atoms,
-                 state,
-                 calc,
-                 mlip=None,
-                 prop=None,
-                 neq=10,
-                 confs_init=None,
-                 std_init=0.05,
-                 keep_tmp_mlip=True,
+    def __init__(self, atoms, state, calc, mlip=None, prop=None, neq=10,
+                 confs_init=None, std_init=0.05, keep_tmp_mlip=True,
                  workdir=''):
-
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)

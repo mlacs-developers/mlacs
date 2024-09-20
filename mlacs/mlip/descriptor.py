@@ -48,15 +48,14 @@ class Descriptor(Manager, ABC):
         desc = []
         for at in atoms:
             # AC : apparently, the at.info for descriptor does not work
-            # if "descriptor" in at.info:
-            #     desc.append(at.info['descriptor'])
-            # else:
-            #     desc.append(self.compute_descriptor(atoms=at,
-            #                                         forces=forces,
-            #                                         stress=stress))
-            desc.append(self.compute_descriptor(atoms=at,
-                                                forces=forces,
-                                                stress=stress))
+            # RB : Tested this, the fix works fined for Trajectory confs but
+            #      not for Training. I don't know why ?!
+            if "descriptor" in at.info:
+                desc.append(at.info['descriptor'])
+            else:
+                desc.append(self.compute_descriptor(atoms=at,
+                                                    forces=forces,
+                                                    stress=stress))
         return desc
 
 # ========================================================================== #
