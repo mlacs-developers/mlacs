@@ -533,7 +533,8 @@ class Mlas(Manager):
             for istate in range(self.nstate):
                 self.atoms.append(atoms.copy())
         elif isinstance(atoms, list):
-            assert len(atoms) == self.nstate
+            e = "You should have 1 atoms per state"
+            assert len(atoms) == self.nstate, e
             self.atoms = [at.copy() for at in atoms]
         else:
             msg = "atoms should be a ASE Atoms object or " + \

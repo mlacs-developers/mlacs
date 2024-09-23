@@ -83,16 +83,16 @@ class LinearPotential(MlipManager):
         self.descriptor.subfolder = self.subfolder
 
         msg = ''
-        idx_e, idx_f, idx_s = self._get_idx_fit()
-        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
-        amat_f = self.amat_f[idx_f:]
-        amat_s = self.amat_s[idx_s:]
-        ymat_e = np.copy(self.ymat_e[idx_e:]) / self.natoms[idx_e:]
-        ymat_f = self.ymat_f[idx_f:]
-        ymat_s = self.ymat_s[idx_s:]
+        amat_e = self.amat_e / self.natoms[:, None]
+        amat_f = self.amat_f
+        amat_s = self.amat_s
+        ymat_e = np.copy(self.ymat_e) / self.natoms
+        ymat_f = self.ymat_f
+        ymat_s = self.ymat_s
 
         # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit
         # 1000x more on the stress than on the energy. Careful ymat/AMAT.std
+        
         amat = np.r_[amat_e / amat_e.std(),
                      amat_f / amat_f.std(),
                      amat_s / amat_s.std()]
@@ -103,6 +103,18 @@ class LinearPotential(MlipManager):
         W = self.weight.get_weights()
         amat = amat * W[:, np.newaxis]
         ymat = ymat * W
+        print("DEBUG2")
+        print("len(E):", np.shape(amat_e))
+        print("len(F):", np.shape(amat_f))
+        print("len(S):", np.shape(amat_s))
+        print("W", np.shape(W))
+        print("AMAT", np.shape(amat))
+        print("YMAT", np.shape(ymat))
+
+        print("AMAT", amat)
+        print("YMAT", ymat)
+        print("NATOMS", self.natoms)
+        
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
                                                 ymat,
@@ -116,15 +128,16 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
+        
         else:
             msg = f"Fitting method {self.parameters['method']} " + \
                   "unknown"
             raise ValueError(msg)
 
         msg += "\nNumber of configurations for training: " + \
-               f"{len(self.natoms[idx_e:]):}\n"
+               f"{len(self.natoms):}\n"
         msg += "Number of atomic environments for training: " + \
-               f"{self.natoms[idx_e:].sum():}\n\n"
+               f"{self.natoms.sum():}\n\n"
 
         tmp_msg, weight_fn = self.weight.compute_weight(
             self.coefficients,

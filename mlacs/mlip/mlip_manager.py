@@ -271,14 +271,6 @@ class MlipManager(Manager, ABC):
         return msg
 
 # ========================================================================== #
-    def _get_idx_fit(self):
-        """
-        """
-        idx_e = 0
-        idx_f = 3 * self.natoms[:idx_e].sum()
-        idx_s = idx_e * 6
-        return idx_e, idx_f, idx_s
-
     @property
     def pair_style(self):
         return self._get_pair_style()

@@ -133,10 +133,9 @@ class MliapDescriptor(Descriptor):
         """
         """
         nat = len(atoms)
-        el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
         lmp_atfname = "atoms.lmp"
-        self._write_lammps_input(masses, atoms.get_pbc())
+        self._write_lammps_input(atoms.get_pbc())
         self._write_mlip_params()
 
         amat_e = np.zeros((1, self.ncolumns))
@@ -144,8 +143,8 @@ class MliapDescriptor(Descriptor):
         amat_s = np.zeros((6, self.ncolumns))
         write_lammps_data(lmp_atfname,
                           atoms,
+                          #specorder=self.elements.tolist())
                           specorder=self.elements.tolist())
-
         self._run_lammps(lmp_atfname)
         bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
@@ -163,6 +162,16 @@ class MliapDescriptor(Descriptor):
         res = dict(desc_e=amat_e,
                    desc_f=amat_f,
                    desc_s=amat_s)
+        
+        print("DEBUG1")
+        print(atoms.symbols)
+        print("E:", len(res['desc_e']))
+        print("F:", len(res['desc_f']))
+        print("S:", len(res['desc_s']))
+        print("F[i]:", [len(r) for r in res['desc_f']])
+        print("S[i]:", [len(r) for r in res['desc_s']])
+        #raise ValueError
+        
         return res
 
 # ========================================================================== #
@@ -224,8 +233,7 @@ class MliapDescriptor(Descriptor):
         """
         Write one lammps file for all the config in atoms
         """
-        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
-
+        
         # Write the input file
         txt = "LAMMPS input file for extracting MLIP descriptors"
         lmp_in = LammpsInput(txt)
@@ -240,7 +248,7 @@ class MliapDescriptor(Descriptor):
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
         block("read_data", "read_data Atoms/atoms${a}.lmp")
-        for i, m in enumerate(masses):
+        for i, m in enumerate(self.masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
 
@@ -280,7 +288,7 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_input(self, masses, pbc):
+    def _write_lammps_input(self, pbc):
         """
         """
         txt = "LAMMPS input file for extracting MLIP descriptors"
@@ -293,7 +301,7 @@ class MliapDescriptor(Descriptor):
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
         block("read_data", "read_data atoms.lmp")
-        for i, m in enumerate(masses):
+        for i, m in enumerate(self.masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
 
@@ -380,10 +388,12 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     def get_mlip_params(self):
+        elements = self.elements
+
         s = ("# ")
         # Adding a commment line to know what elements are fitted here
-        for elements in self.elements:
-            s += ("{:} ".format(elements))
+        for el in elements:
+            s += ("{:} ".format(el))
         s += ("MLIP parameters\n")
         s += (f"# Descriptor:  {self.style}\n")
         s += (f"# Model:       {self.model}\n")
@@ -392,17 +402,17 @@ class MliapDescriptor(Descriptor):
         for key in self.params.keys():
             s += (f"{key:12}    {self.params[key]}\n")
         s += ("\n\n\n")
-        s += (f"nelems      {self.nel}\n")
+        s += (f"nelems      {len(elements)}\n")
         s += ("elems       ")
-        for n in range(len(self.elements)):
-            s += (self.elements[n] + " ")
+        for n in range(len(elements)):
+            s += (elements[n] + " ")
         s += ("\n")
         s += ("radelems   ")
-        for n in range(len(self.elements)):
+        for n in range(len(elements)):
             s += (f" {self.radelems[n]}")
         s += ("\n")
         s += ("welems    ")
-        for n in range(len(self.elements)):
+        for n in range(len(elements)):
             s += (f"  {self.welems[n]}")
         s += ("\n")
 

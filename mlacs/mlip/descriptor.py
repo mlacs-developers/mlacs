@@ -35,7 +35,25 @@ class Descriptor(Manager, ABC):
 
         Manager.__init__(self, prefix=prefix, **kwargs)
 
-        self.elements, self.Z, self.masses, self.charges = \
+        if isinstance(atoms, list):
+            self.elements, self.Z, self.masses, self.charges = \
+                    [np.array([]) for _ in range(4)]
+            # ON : Gonna need to test SELF.CHARGES before pushing
+            for at in atoms:
+                el, Z, masses, charges = get_elements_Z_and_masses(at)
+                for i in range(len(el)):
+                    if el[i] not in self.elements:
+                        self.elements = np.append(self.elements, el[i])
+                        self.Z = np.append(self.Z, Z[i])
+                        self.masses = np.append(self.masses, masses[i])
+                        if charges is None:
+                            self.charges = np.append(self.charges, 0.)
+                        else:
+                            self.charges = np.append(self.charges, charges[i])
+            if np.allclose(self.charges,0.0, atol=1e-8):
+                self.charges = None
+        else:
+            self.elements, self.Z, self.masses, self.charges = \
             get_elements_Z_and_masses(atoms)
         self.nel = len(self.elements)
         self.rcut = rcut
