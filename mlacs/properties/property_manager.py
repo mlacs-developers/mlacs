@@ -4,7 +4,7 @@
 """
 
 import numpy as np
-import netCDF4 as nc4
+import netCDF4 as nc
 
 from ..core.manager import Manager
 
@@ -92,7 +92,7 @@ class PropertyManager(Manager):
             WeightingPolicy class, Default: `None`.
         """
         path_save = self.workdir / self.folder
-        ncpath = self.ncpath
+        ncpath = self.ncfile.ncpath
 
         if self.manager is not None:
             for observable in self.manager:
@@ -101,7 +101,7 @@ class PropertyManager(Manager):
 
                 if nc_name is not None:
                     for idx, val_state in enumerate(to_be_saved):
-                        with nc4.Dataset(ncpath, 'a') as ncfile:
+                        with nc.Dataset(ncpath, 'a') as ncfile:
                             index_state = idx+1
                             metadata = [step, index_state]
                             idx_db = np.ma.count(ncfile[nc_name+'_meta'][:, 0])
@@ -136,15 +136,17 @@ class PropertyManager(Manager):
             WeightingPolicy class, Default: `None`.
 
         """
-        ncpath = self.ncpath
+        ncpath = self.ncfile.ncpath
 
         if weighting_pol is not None:
             for observable in self.manager:
                 nc_name = observable.nc_name
                 weights = weighting_pol.weight[2:]
-
-                with nc4.Dataset(ncpath, 'r') as ncfile:
-                    observable_values = ncfile[nc_name][:len(weights)].data
+                
+                # with nc.Dataset(ncpath, 'r') as ncfile:
+                #     observable_values = ncfile[nc_name][:len(weights)].data
+                obs = self.ncfile.read(nc_name)
+                observable_values = obs[:len(weights)]
 
                 if len(weights) > 0:
                     w_name = 'weighted_' + nc_name
@@ -154,7 +156,7 @@ class PropertyManager(Manager):
                     r_weights = weights.reshape(dim_array)
                     if r_weights.shape[0] == observable_values.shape[0]:
                         weighted_observ = np.sum(r_weights*observable_values)
-                        with nc4.Dataset(ncpath, 'a') as ncfile:
+                        with nc.Dataset(ncpath, 'a') as ncfile:
                             ncfile[w_name][len(weights)-1] = weighted_observ
 
 # ========================================================================== #
@@ -194,10 +196,10 @@ class PropertyManager(Manager):
                 self._append_row_to_dat(namefile, row)
 
             # Save weights into HIST file
-            weights_ncpath = self.ncpath
+            weights_ncpath = self.ncfile.ncpath
             if 'NETCDF3' in ncformat:
                 weights_ncpath = weights_ncpath.replace('HIST', 'WEIGHTS')
-            with nc4.Dataset(weights_ncpath, 'a') as ncfile:
+            with nc.Dataset(weights_ncpath, 'a') as ncfile:
                 idx_db = np.ma.count(ncfile['weights_meta'][:])
                 for idx, value in enumerate(weights):
                     ncfile['weights'][idx_db+idx] = value

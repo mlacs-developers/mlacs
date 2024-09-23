@@ -64,150 +64,207 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
     return atoms
 
 
-def get_nc_path(ncprefix, workdir, launched):
-    """Return netcdf path of Abinit-style HIST file"""
-    if ncprefix != '' and (not ncprefix.endswith('_')):
-        ncprefix += '_'
-    script_name = ncprefix
-    # Obtain script name, including in case of pytest execution
-    pytest_path = os.getenv('PYTEST_CURRENT_TEST')
-    if pytest_path is not None:
-        if str(workdir) == '':
-            workdir = Path(pytest_path).parents[0].absolute()
-        name1 = os.path.basename(pytest_path)
-        script_name += name1.partition('.py')[0]
-    else:
-        script_name += os.path.basename(sys.argv[0])
-
-    if script_name.endswith('.py'):
-        script_name = script_name[:-3]
-    ncname = script_name + "_HIST.nc"
-    ncpath = str(Path(workdir) / ncname)
-
-    ncfile_exists = os.path.isfile(ncpath)
-    if ncfile_exists:
-        # if it is the first MLAS launch
-        if not launched:
-            S = 1
-            while ncfile_exists:
-                ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
-                ncpath = str(Path(workdir) / ncname)
-                ncfile_exists = os.path.isfile(ncpath)
-                S += 1
-    return ncpath
-
-
-def add_dim(ncpath, dict_dim, ncformat, mode='r+'):
-    with nc.Dataset(ncpath, mode, format=ncformat) as new:
-        for dim_name, dim_value in dict_dim.items():
-            new.createDimension(dim_name, (dim_value))
-
-
-def add_var(ncpath, dict_var, ncformat, mode='r+', datatype='float64'):
-    with nc.Dataset(ncpath, mode, format=ncformat) as new:
-        for var_name, var_dim in dict_var.items():
-            new.createVariable(var_name, datatype, var_dim)
-
-
-def create_nc_file(ncpath, ncformat, atoms):
+# ========================================================================== #
+# ========================================================================== #
+class HistFile:
     """
-    Create netcdf file(s).
+    Class to handle Abinit-like *HIST.nc file.
 
-    Create Abinit-style dimensions
-    Create Abinit-style variables that are not 'RoutineProperties'
+    Parameters
+    ----------
     """
+    def __init__(self,
+                 ncprefix='',
+                 workdir='',
+                 ncformat='NETCDF4',
+                 launched=True,
+                 atoms=None,
+                 ncpath=None):
 
-    # Assume ntypat and natom are the same for all items in list
-    if isinstance(atoms, list):
-        atoms = atoms[0]
-    ntypat = len(set(atoms.get_atomic_numbers()))
-    natom = len(atoms)
+        if nc is None:
+            raise ImportError("You need Netcdf4 to use the AbinitNC class")
 
-    dict_dim = {'time': None,
-                'two': 2,
-                'xyz': 3,
-                'npsp': 3,
-                'six': 6,
-                'ntypat': ntypat,
-                'natom': natom,
-                }
-    dict_var = {'typat': ('natom',),
-                'znucl': ('npsp',),
-                'amu': ('ntypat',),
-                'dtion': (),
-                'mdtemp': ('two',),
-                'mdtime': ('time',),
-                }
+        self.ncprefix = ncprefix
+        self.launched = launched
 
-    add_dim(ncpath, dict_dim, ncformat)
-    add_var(ncpath, dict_var, ncformat)
+        if ncpath is not None:
+            # Initialize path in a post-processing usage, with given ncpath
+            self.ncpath = ncpath
+            self.workdir = Path(ncpath).parents[0]
+            with nc.Dataset(str(ncpath), 'r') as ncfile:
+                self.ncformat = ncfile.file_format
+        else:
+            # Initialize path during MLACS execution:
+            # Compute the path itself, then create file if it doesn't exist
+            self.ncformat = ncformat
+            self.workdir = workdir
+            self.ncpath = self._get_nc_path()
+            if not os.path.isfile(self.ncpath):
+                self._create_nc_file(atoms)
 
-    dict_w_dim = {'weights_dim': None}
-    dict_w_var = {'weights': ('weights_dim',),
-                  'weights_meta': ('weights_dim',),
-                  }
+# ========================================================================== #
+    def _get_nc_path(self):
+        """Return netcdf path of Abinit-style HIST file"""
+        ncprefix_loc = self.ncprefix
+        workdir_loc = self.workdir
+        if ncprefix_loc != '' and (not ncprefix_loc.endswith('_')):
+            ncprefix_loc += '_'
+        script_name = ncprefix_loc
+        # Obtain script name, including in case of pytest execution
+        pytest_path = os.getenv('PYTEST_CURRENT_TEST')
 
-    weights_ncpath = ncpath
-    if 'NETCDF3' in ncformat:
-        weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
+        if pytest_path is not None:
+            if str(workdir_loc) == '':
+                workdir_loc = Path(pytest_path).parents[0].absolute()
+            name1 = os.path.basename(pytest_path)
+            script_name += name1.partition('.py')[0]
+        else:
+            script_name += os.path.basename(sys.argv[0])
 
-    add_dim(weights_ncpath, dict_w_dim, ncformat)
-    add_var(weights_ncpath, dict_w_var, ncformat)
+        if script_name.endswith('.py'):
+            script_name = script_name[:-3]
+        ncname = script_name + "_HIST.nc"
+        ncpath = str(Path(workdir_loc) / ncname)
 
+        ncfile_exists = os.path.isfile(ncpath)
+        if ncfile_exists:
+            # if it is the first MLAS launch
+            if not self.launched:
+                S = 1
+                while ncfile_exists:
+                    ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
+                    ncpath = str(Path(workdir_loc) / ncname)
+                    ncfile_exists = os.path.isfile(ncpath)
+                    S += 1
 
-def create_nc_var(ncpath, prop_list):
-    """Create Abinit-style variables in netcdf file"""
-    datatype = 'float64'
-    if prop_list is not None:
-        for obs in prop_list:
-            nc_name = obs.nc_name
-            nc_dim = obs.nc_dim
-            # Observables need these two attributes to get saved in the HIST.nc
-            if None not in (nc_name, nc_dim):
-                with nc.Dataset(ncpath, 'a') as ncfile:
-                    var = ncfile.createVariable(nc_name, datatype, nc_dim)
-                    var.setncattr('unit', obs.nc_unit)
-                    meta_dim = ('time', 'two',)
-                    meta_name = nc_name + '_meta'
-                    ncfile.createVariable(meta_name, datatype, meta_dim)
-                    w_name = 'weighted_' + nc_name
-                    wvar = ncfile.createVariable(w_name, datatype, nc_dim)
-                    wvar.setncattr('unit', obs.nc_unit)
+        return ncpath
 
-
-def nc_conv():
-    """Define several conventions related to *HIST.nc file"""
-
-    # Variable names and dimensions are those produced by Abinit
-    var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
-                    'Kinetic_Energy': ['ekin', ('time',)],
-                    'Potential_Energy': ['epot', ('time',)],
-                    'Velocities': ['vel', ('time', 'natom', 'xyz')],
-                    'Forces': ['fcart', ('time', 'natom', 'xyz')],
-                    'Positions': ['xcart', ('time', 'natom', 'xyz')],
-                    'Scaled_Positions': ['xred', ('time', 'natom', 'xyz')],
-                    'Temperature': ['temper', ('time',)],
-                    'Volume': ['vol', ('time',)],
-                    'Stress': ['strten', ('time', 'six')],
-                    'Cell': ['rprimd', ('time', 'xyz', 'xyz')]
+# ========================================================================== #
+    def _create_nc_file(self, atoms):
+        """
+        Create netcdf file(s).
+    
+        Create Abinit-style dimensions
+        Create Abinit-style variables that are not 'RoutineProperties'
+        """
+        
+        # Assume ntypat and natom are the same for all items in list
+        if isinstance(atoms, list):
+            atoms = atoms[0]
+        ntypat = len(set(atoms.get_atomic_numbers()))
+        natom = len(atoms)
+    
+        dict_dim = {'time': None,
+                    'two': 2,
+                    'xyz': 3,
+                    'npsp': 3,
+                    'six': 6,
+                    'ntypat': ntypat,
+                    'natom': natom,
                     }
+        dict_var = {'typat': ('natom',),
+                    'znucl': ('npsp',),
+                    'amu': ('ntypat',),
+                    'dtion': (),
+                    'mdtemp': ('two',),
+                    'mdtime': ('time',),
+                    }
+    
+        self._add_dim(self.ncpath, dict_dim)
+        self._add_var(self.ncpath, dict_var)
+    
+        dict_w_dim = {'weights_dim': None}
+        dict_w_var = {'weights': ('weights_dim',),
+                      'weights_meta': ('weights_dim',),
+                      }
+    
+        self.weights_ncpath = self.ncpath
+        if 'NETCDF3' in self.ncformat:
+            self.weights_ncpath = self.ncpath.replace('HIST', 'WEIGHTS')
+    
+        self._add_dim(self.weights_ncpath, dict_w_dim)
+        self._add_var(self.weights_ncpath, dict_w_var)
 
-    # Units correspond to those used in ASE
-    units_dict = {'Total_Energy': 'eV',
-                  'Kinetic_Energy': 'eV',
-                  'Potential_Energy': 'eV',
-                  'Velocities': '',
-                  'Forces': 'eV/Ang',
-                  'Positions': 'Ang',
-                  'Scaled_Positions': 'dimensionless',
-                  'Temperature': 'K',
-                  'Volume': 'Ang^3',
-                  'Stress': 'eV/Ang^3',
-                  'Cell': 'Ang',
-                  }
+# ========================================================================== #
+    def _add_dim(self, ncfilepath, dict_dim, mode='r+'):
+        with nc.Dataset(ncfilepath, mode, format=self.ncformat) as new:
+            for dim_name, dim_value in dict_dim.items():
+                new.createDimension(dim_name, (dim_value))
 
-    return var_dim_dict, units_dict
+# ========================================================================== #
+    def _add_var(self, ncfilepath, dict_var, mode='r+', datatype='float64'):
+        with nc.Dataset(ncfilepath, mode, format=self.ncformat) as new:
+            for var_name, var_dim in dict_var.items():
+                new.createVariable(var_name, datatype, var_dim)
 
+# ========================================================================== #
+    def create_nc_var(self, prop_list):
+        """Create Abinit-style variables in netcdf file"""
+        datatype = 'float64'
+        if prop_list is not None:
+            for obs in prop_list:
+                nc_name = obs.nc_name
+                nc_dim = obs.nc_dim
+                # Observables need these attributes to get saved in the HIST.nc
+                if None not in (nc_name, nc_dim):
+                    with nc.Dataset(self.ncpath, 'a') as ncfile:
+                        var = ncfile.createVariable(nc_name, datatype, nc_dim)
+                        var.setncattr('unit', obs.nc_unit)
+                        meta_dim = ('time', 'two',)
+                        meta_name = nc_name + '_meta'
+                        ncfile.createVariable(meta_name, datatype, meta_dim)
+                        w_name = 'weighted_' + nc_name
+                        wvar = ncfile.createVariable(w_name, datatype, nc_dim)
+                        wvar.setncattr('unit', obs.nc_unit)
+
+# ========================================================================== #
+    def read(self, obs_name=None):
+        """Read Abinit-style variables of netcdf file"""
+        if obs_name is not None:
+            with nc.Dataset(self.ncpath, 'r') as ncfile:
+                observable_values = ncfile[obs_name][:].data 
+            return observable_values
+        else:
+            res = {}
+            with nc.Dataset(self.ncpath, 'r') as ncfile:
+                for name, variable in ncfile.variables.items():
+                    res[name] = variable
+            return res
+
+# ========================================================================== #            
+    def nc_routine_conv(self):
+        """Define several conventions related to routine properties"""
+        #TODO
+        #This dictionnaries should belong to the RoutineProperties class
+        # Variable names and dimensions are those produced by Abinit
+        var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
+                        'Kinetic_Energy': ['ekin', ('time',)],
+                        'Potential_Energy': ['epot', ('time',)],
+                        'Velocities': ['vel', ('time', 'natom', 'xyz')],
+                        'Forces': ['fcart', ('time', 'natom', 'xyz')],
+                        'Positions': ['xcart', ('time', 'natom', 'xyz')],
+                        'Scaled_Positions': ['xred', ('time', 'natom', 'xyz')],
+                        'Temperature': ['temper', ('time',)],
+                        'Volume': ['vol', ('time',)],
+                        'Stress': ['strten', ('time', 'six')],
+                        'Cell': ['rprimd', ('time', 'xyz', 'xyz')]
+                        }
+
+        # Units correspond to those used in ASE
+        units_dict = {'Total_Energy': 'eV',
+                      'Kinetic_Energy': 'eV',
+                      'Potential_Energy': 'eV',
+                      'Velocities': '',
+                      'Forces': 'eV/Ang',
+                      'Positions': 'Ang',
+                      'Scaled_Positions': 'dimensionless',
+                      'Temperature': 'K',
+                      'Volume': 'Ang^3',
+                      'Stress': 'eV/Ang^3',
+                      'Cell': 'Ang',
+                      }
+
+        return var_dim_dict, units_dict
 
 # ========================================================================== #
 # ========================================================================== #

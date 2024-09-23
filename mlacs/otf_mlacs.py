@@ -7,10 +7,7 @@ import os
 
 from .mlas import Mlas
 from .core import Manager
-from .utilities.io_abinit import (get_nc_path,
-                                  create_nc_file,
-                                  nc_conv,
-                                  create_nc_var)
+from .utilities.io_abinit import HistFile
 from .properties import (PropertyManager,
                          CalcRoutineFunction,
                          CalcPressure,
@@ -94,41 +91,40 @@ class OtfMlacs(Mlas, Manager):
                       ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip,
                       workdir=workdir)
 
-        self.ncprefix = ncprefix
-        self.ncformat = ncformat
-
         # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 
-        # Create Abinit-style netcdf file
-        ncpath = get_nc_path(ncprefix, workdir, self.launched)
-        if not os.path.isfile(ncpath):
-            create_nc_file(ncpath, ncformat, atoms)
+        # Create Abinit-style *HIST.nc file of netcdf format
+        self.ncfile = HistFile(ncprefix=ncprefix,
+                               workdir=workdir,
+                               ncformat=ncformat,
+                               launched=self.launched,
+                               atoms=atoms)
 
-        self._initialize_properties(prop, ncpath)
-        self._initialize_routine_properties(ncpath)
+        self._initialize_properties(prop)
+        self._initialize_routine_properties()
 
 # ========================================================================== #
-    def _initialize_properties(self, prop, ncpath):
+    def _initialize_properties(self, prop):
         """Create property object"""
         self.prop = PropertyManager(prop)
 
         if not self.launched:
-            create_nc_var(ncpath, prop)
+            self.ncfile.create_nc_var(prop)
 
         self.prop.workdir = self.workdir
         if not self.prop.folder:
             self.prop.folder = 'Properties'
 
         self.prop.isfirstlaunched = not self.launched
-        self.prop.ncpath = ncpath
+        self.prop.ncfile = self.ncfile
 
 # ========================================================================== #
-    def _initialize_routine_properties(self, ncpath):
+    def _initialize_routine_properties(self):
         """Create routine property object"""
 
         # Get variables names, dimensions, and units
-        var_dim_dict, units_dict = nc_conv()
+        var_dim_dict, units_dict = self.ncfile.nc_routine_conv()
 
         # Build a PropertyManager made of "routine" observables
         routine_prop_list = []
@@ -148,13 +144,13 @@ class OtfMlacs(Mlas, Manager):
         self.routine_prop = PropertyManager(routine_prop_list)
 
         if not self.launched:
-            create_nc_var(ncpath, routine_prop_list)
+            self.ncfile.create_nc_var(routine_prop_list)
 
         self.routine_prop.workdir = self.workdir
         self.routine_prop.folder = 'Properties/RoutineProperties'
 
         self.routine_prop.isfirstlaunched = not self.launched
-        self.routine_prop.ncpath = ncpath
+        self.routine_prop.ncfile = self.ncfile
 
 # ========================================================================== #
     def _compute_properties(self):
@@ -179,4 +175,4 @@ class OtfMlacs(Mlas, Manager):
         self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
         self.routine_prop.save_weights(self.step,
                                        self.mlip.weight,
-                                       self.ncformat)
+                                       self.ncfile.ncformat)

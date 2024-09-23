@@ -38,8 +38,7 @@ def test_basic_hist():
     """
     Check that a '*HIST_nc' file is created, with required format.
     Check that it stores some basic thermodynamic variables.
-    Check that different OtfMlacs objects can be saved independently with
-    different prefix.
+    Check that it can be read with the hist_read() method.
     """
     pytest_path = os.getenv('PYTEST_CURRENT_TEST')
     root = Path(pytest_path).parents[0].absolute()
