@@ -16,7 +16,6 @@ from ase.io.lammpsdata import write_lammps_data
 from ase.atoms import Atoms
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor, combine_reg
 from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
                                    get_lammps_command)
@@ -143,7 +142,6 @@ class MliapDescriptor(Descriptor):
         amat_s = np.zeros((6, self.ncolumns))
         write_lammps_data(lmp_atfname,
                           atoms,
-                          #specorder=self.elements.tolist())
                           specorder=self.elements.tolist())
         self._run_lammps(lmp_atfname)
         bispectrum = np.loadtxt("descriptor.out",
@@ -162,16 +160,6 @@ class MliapDescriptor(Descriptor):
         res = dict(desc_e=amat_e,
                    desc_f=amat_f,
                    desc_s=amat_s)
-        
-        print("DEBUG1")
-        print(atoms.symbols)
-        print("E:", len(res['desc_e']))
-        print("F:", len(res['desc_f']))
-        print("S:", len(res['desc_s']))
-        print("F[i]:", [len(r) for r in res['desc_f']])
-        print("S[i]:", [len(r) for r in res['desc_s']])
-        #raise ValueError
-        
         return res
 
 # ========================================================================== #
@@ -233,7 +221,6 @@ class MliapDescriptor(Descriptor):
         """
         Write one lammps file for all the config in atoms
         """
-        
         # Write the input file
         txt = "LAMMPS input file for extracting MLIP descriptors"
         lmp_in = LammpsInput(txt)

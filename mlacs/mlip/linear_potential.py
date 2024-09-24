@@ -92,7 +92,6 @@ class LinearPotential(MlipManager):
 
         # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit
         # 1000x more on the stress than on the energy. Careful ymat/AMAT.std
-        
         amat = np.r_[amat_e / amat_e.std(),
                      amat_f / amat_f.std(),
                      amat_s / amat_s.std()]
@@ -103,18 +102,6 @@ class LinearPotential(MlipManager):
         W = self.weight.get_weights()
         amat = amat * W[:, np.newaxis]
         ymat = ymat * W
-        print("DEBUG2")
-        print("len(E):", np.shape(amat_e))
-        print("len(F):", np.shape(amat_f))
-        print("len(S):", np.shape(amat_s))
-        print("W", np.shape(W))
-        print("AMAT", np.shape(amat))
-        print("YMAT", np.shape(ymat))
-
-        print("AMAT", amat)
-        print("YMAT", ymat)
-        print("NATOMS", self.natoms)
-        
         if self.parameters["method"] == "ols":
             self.coefficients = np.linalg.lstsq(amat,
                                                 ymat,
@@ -128,7 +115,6 @@ class LinearPotential(MlipManager):
                                                 ymat,
                                                 None)[0]
 
-        
         else:
             msg = f"Fitting method {self.parameters['method']} " + \
                   "unknown"
@@ -240,11 +226,8 @@ class LinearPotential(MlipManager):
 
         # We use the latest value coefficients to get the properties
         energy = np.einsum('nij,j->n',  amat_e, coef)
-        forces = np.einsum('nij,j->ni', amat_f, coef)
+        forces = [np.einsum('ij,j->i', conf_f, coef) for conf_f in amat_f]
         stress = np.einsum('nij,j->ni', amat_s, coef)
-
-        #  This line will cause problem if the number of atoms vary
-        forces = forces.reshape(len(energy), -1, 3)
 
         if len(energy) == 1:
             return energy[0], forces[0], stress[0]

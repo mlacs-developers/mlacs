@@ -50,11 +50,11 @@ class Descriptor(Manager, ABC):
                             self.charges = np.append(self.charges, 0.)
                         else:
                             self.charges = np.append(self.charges, charges[i])
-            if np.allclose(self.charges,0.0, atol=1e-8):
+            if np.allclose(self.charges, 0.0, atol=1e-8):
                 self.charges = None
         else:
             self.elements, self.Z, self.masses, self.charges = \
-            get_elements_Z_and_masses(atoms)
+              get_elements_Z_and_masses(atoms)
         self.nel = len(self.elements)
         self.rcut = rcut
         self.welems = np.array(self.Z) / np.sum(self.Z)
