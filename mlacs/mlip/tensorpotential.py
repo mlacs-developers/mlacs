@@ -169,18 +169,26 @@ class TensorpotPotential(MlipManager):
         true_f = [at.get_forces() for at in self.atoms]
         true_s = [at.get_stress() for at in self.atoms]
 
-        mlip_f = np.reshape(mlip_f, [-1])
-        mlip_s = np.reshape(mlip_s, [-1])
-        true_f = np.reshape(true_f, [-1])
-        true_s = np.reshape(true_s, [-1])
+        print("MLIP_E:", mlip_e)
+        print("MLIP_F:", mlip_f)
+        print("MLIP_S:", mlip_s)
+        print("MLIP_E:", [np.shape(m) for m in mlip_e])
+        print("MLIP_F:", [np.shape(m) for m in mlip_f])
+        print("MLIP_S:", [np.shape(m) for m in mlip_s])
+        print(type(mlip_f), type(mlip_f[0]))
+        
+        #mlip_f = np.reshape(mlip_f, [-1])
+        #mlip_s = np.reshape(mlip_s, [-1])
+        #true_f = np.reshape(true_f, [-1])
+        #true_s = np.reshape(true_s, [-1])
 
         w = None
         if len(self.weight.weight) > 0:
             w = self.weight.weight
 
-        res_E = compute_correlation(np.c_[true_e, mlip_e], weight=w)
-        res_F = compute_correlation(np.c_[true_f, mlip_f], weight=w)
-        res_S = compute_correlation(np.c_[true_s, mlip_s]/GPa, weight=w)
+        res_E = compute_correlation([true_e, mlip_e], weight=w)
+        res_F = compute_correlation([true_f, mlip_f], weight=w)
+        res_S = compute_correlation([true_s, mlip_s]/GPa, weight=w)
         r = np.c_[res_E, res_F, res_S]
         self.fit_res = r
 

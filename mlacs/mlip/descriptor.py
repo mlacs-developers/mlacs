@@ -38,7 +38,6 @@ class Descriptor(Manager, ABC):
         if isinstance(atoms, list):
             self.elements, self.Z, self.masses, self.charges = \
                     [np.array([]) for _ in range(4)]
-            # ON : Gonna need to test SELF.CHARGES before pushing
             for at in atoms:
                 el, Z, masses, charges = get_elements_Z_and_masses(at)
                 for i in range(len(el)):

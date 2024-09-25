@@ -22,6 +22,7 @@ from ..utilities import make_dataframe
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
+from ase.data import atomic_masses, chemical_symbols 
 
 from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
@@ -88,7 +89,7 @@ class AceDescriptor(Descriptor):
 
     Parameters
     ----------
-    atoms : :class:`ase.atoms`
+    atoms : :class:`ase.atoms` or list 
         Reference structure, with the elements for the descriptor
 
     free_at_e : :class:`dict`
@@ -184,7 +185,8 @@ class AceDescriptor(Descriptor):
             self.backend['parallel_mode'] = "process"
             self.backend['nworkers'] = nworkers
         if 'elements' not in self.loss:
-            bconf['elements'] = np.unique(atoms.get_chemical_symbols())
+            #bconf['elements'] = np.unique(atoms.get_chemical_symbols())
+            bconf['elements'] = self.elements
 
         # Set bconf['rcut'] according to rcut if rcut is given
         if rcut is not None:
@@ -458,10 +460,10 @@ class AceDescriptor(Descriptor):
             e_correction = self.calc_free_e(at)  # To only get cohesion energy
             bar2GPa = 1e-4
             e.append((float(thermo[2]) + e_correction)/len(at))
-            f.append(read(f'forces{i+1}.out',
-                     format='lammps-dump-text').get_forces())
+            f.append(np.array(read(f'forces{i+1}.out',
+                              format='lammps-dump-text').get_forces()))
             s.append(np.loadtxt(f'stress{i+1}.out', skiprows=4)[:, 1]*bar2GPa)
-        return np.array(e), np.array(f), np.array(s)
+        return e, f, s
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -486,7 +488,8 @@ class AceDescriptor(Descriptor):
                Else, we can use delete_atoms which doesn't reload potential
         """
         # Note: if any of these changes between simulations, big problem ...
-        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
+        masses = [atomic_masses[chemical_symbols.index(el)]\
+                  for el in self.elements]
 
         # Write the input file
         txt = "LAMMPS input file for extracting MLIP E, F, S"
