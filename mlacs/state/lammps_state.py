@@ -14,6 +14,7 @@ import numpy as np
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.data import chemical_symbols
 
 from .state import StateManager
 from ..core.manager import Manager
@@ -130,7 +131,8 @@ class BaseLammpsState(StateManager):
         blocks = []
         blocks.append(self._get_block_init(atom_style, pbc, el, masses))
         blocks.append(self._get_block_interactions(pair_style, pair_coeff,
-                                                   model_post, atom_style))
+                                                   model_post, atom_style,
+                                                   atoms))
         blocks.append(self._get_block_thermostat(eq))
         if self.logfile is not None:
             blocks.append(self._get_block_log())
@@ -178,10 +180,22 @@ class BaseLammpsState(StateManager):
 
 # ========================================================================== #
     def _get_block_interactions(self, pair_style, pair_coeff, model_post,
-                                atom_style):
+                                atom_style, atoms):
         """
 
         """
+        # Lammps Snap doesn't allow unused elements in pair_coeff
+        if pair_style.startswith("snap"):
+            elems = set(atoms.get_chemical_symbols())
+            fixed_pc, tmp_pc = [], ""
+            for pc in pair_coeff:
+                for st in pc.split():
+                    if st not in chemical_symbols or st in elems:
+                        tmp_pc += f"{st} "
+                fixed_pc.append(tmp_pc)
+            pair_coeff = fixed_pc
+
+        # Write lammps input
         block = LammpsBlockInput("interaction", "Interaction")
         block("pair_style", f"pair_style {pair_style}")
         for i, pair in enumerate(pair_coeff):

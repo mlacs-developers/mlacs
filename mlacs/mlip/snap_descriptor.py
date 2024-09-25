@@ -115,11 +115,11 @@ class SnapDescriptor(Descriptor):
         """
         """
         nat = len(atoms)
-        el, z, masses, charges = get_elements_Z_and_masses(atoms)
+        el, _, _, _ = get_elements_Z_and_masses(atoms)
         chemsymb = np.array(atoms.get_chemical_symbols())
 
         lmp_atfname = "atoms.lmp"
-        self._write_lammps_input(masses, atoms.get_pbc())
+        self._write_lammps_input(atoms.get_pbc())
         self._write_mlip_params()
 
         amat_e = np.zeros((1, self.ncolumns))
@@ -185,10 +185,9 @@ class SnapDescriptor(Descriptor):
             amat_f = np.zeros((3 * nat, self.ncolumns))
             amat_s = np.zeros((6, self.ncolumns))
 
-            bispectrum = np.loadtxt(f"descriptor{i+1}.out",
+            bispectrum = np.loadtxt(f"descriptor{idx+1}.out",
                                     skiprows=4)
             bispectrum[-6:, 1:-1] /= -atoms[idx].get_volume()
-
             amat_e[0, self.nel:] = bispectrum[0, 1:-1]
             amat_f[:, self.nel:] = bispectrum[1:3*nat+1, 1:-1]
             amat_s[:, self.nel:] = bispectrum[3*nat+1:, 1:-1]
@@ -221,9 +220,6 @@ class SnapDescriptor(Descriptor):
         """
         Write one lammps file for all the config in atoms
         """
-        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
-
-        # Write the input file
         txt = "LAMMPS input file for extracting MLIP descriptors"
         lmp_in = LammpsInput(txt)
 
@@ -237,7 +233,7 @@ class SnapDescriptor(Descriptor):
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
         block("read_data", "read_data Atoms/atoms${a}.lmp")
-        for i, m in enumerate(masses):
+        for i, m in enumerate(self.masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
 
@@ -270,7 +266,7 @@ class SnapDescriptor(Descriptor):
             fd.write(str(lmp_in))
 
 # ========================================================================== #
-    def _write_lammps_input(self, masses, pbc):
+    def _write_lammps_input(self, pbc):
         """
         """
         txt = "LAMMPS input file for extracting SNAP descriptors"
@@ -283,7 +279,7 @@ class SnapDescriptor(Descriptor):
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
         block("read_data", "read_data atoms.lmp")
-        for i, m in enumerate(masses):
+        for i, m in enumerate(self.masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
 

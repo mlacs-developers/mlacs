@@ -146,8 +146,8 @@ class MliapDescriptor(Descriptor):
         self._run_lammps(lmp_atfname)
         bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
-        bispectrum[-6:, 1:-1] /= -atoms.get_volume()
 
+        bispectrum[-6:, 1:-1] /= -atoms.get_volume()
         amat_e[0] = bispectrum[0, 1:-1]
         amat_f = bispectrum[1:3*nat+1, 1:-1]
         amat_s = bispectrum[3*nat+1:, 1:-1]
