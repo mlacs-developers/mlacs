@@ -124,7 +124,7 @@ class HistFile:
         if script_name.endswith('.py'):
             script_name = script_name[:-3]
         ncname = script_name + "_HIST.nc"
-        ncpath = str(Path(workdir_loc) / ncname)
+        ncpath = str(Path(workdir_loc).absolute() / ncname)
 
         ncfile_exists = os.path.isfile(ncpath)
         if ncfile_exists:
@@ -147,13 +147,13 @@ class HistFile:
         Create Abinit-style dimensions
         Create Abinit-style variables that are not 'RoutineProperties'
         """
-        
+
         # Assume ntypat and natom are the same for all items in list
         if isinstance(atoms, list):
             atoms = atoms[0]
         ntypat = len(set(atoms.get_atomic_numbers()))
         natom = len(atoms)
-    
+
         dict_dim = {'time': None,
                     'two': 2,
                     'xyz': 3,
@@ -169,13 +169,13 @@ class HistFile:
                     'mdtemp': ('two',),
                     'mdtime': ('time',),
                     }
-    
+
         self._add_dim(self.ncpath, dict_dim)
         self._add_var(self.ncpath, dict_var)
     
         dict_w_dim = {'weights_dim': None}
         dict_w_var = {'weights': ('weights_dim',),
-                      'weights_meta': ('weights_dim',),
+                      'weights_meta': ('weights_dim','xyz',),
                       }
     
         self.weights_ncpath = self.ncpath
@@ -218,19 +218,54 @@ class HistFile:
                         wvar.setncattr('unit', obs.nc_unit)
 
 # ========================================================================== #
-    def read(self, obs_name=None):
-        """Read Abinit-style variables of netcdf file"""
-        if obs_name is not None:
-            with nc.Dataset(self.ncpath, 'r') as ncfile:
-                observable_values = ncfile[obs_name][:].data 
-            return observable_values
-        else:
-            res = {}
-            with nc.Dataset(self.ncpath, 'r') as ncfile:
-                for name, variable in ncfile.variables.items():
-                    res[name] = variable
-            return res
+    def read_obs(self, obs_name):
+        """Read specific observable from netcdf file"""
+        with nc.Dataset(self.ncpath, 'r') as ncfile:
+            observable_values = ncfile[obs_name][:].data 
+        return observable_values
 
+# ========================================================================== #
+    def read_weighted_obs(self, obs_name):
+        """
+        Read specific weighted observable from netcdf file.
+        Return values, idx in database
+        """
+        with nc.Dataset(self.ncpath, 'r') as ncfile:
+            wobs_values = ncfile[obs_name][:] 
+            weighted_obs_data = wobs_values[wobs_values.mask == False].data
+            weighted_obs_idx = 1 + np.where(~wobs_values.mask)[0]
+        return weighted_obs_data, weighted_obs_idx
+
+# ========================================================================== #
+    def read_all(self):
+        """Read all observables from netcdf file"""
+        res = {}
+        with nc.Dataset(self.ncpath, 'r') as ncfile:
+            for name, variable in ncfile.variables.items():
+                res[name] = variable[:] 
+        return res
+
+# ========================================================================== #
+    def get_var_names(self):
+        """Return list of all observable names"""
+        res = []
+        with nc.Dataset(self.ncpath, 'r') as ncfile:
+            for name, variable in ncfile.variables.items():
+                res.append(name)
+        return res
+
+# ========================================================================== #
+    def get_units(self):
+        """
+        Return dict where keys are obs. names and values are units.
+        Variables without units do not appear.
+        """
+        res = {}
+        with nc.Dataset(self.ncpath, 'r') as ncfile:
+            for name, variable in ncfile.variables.items():
+                if hasattr(variable, 'unit'):
+                    res[name] = variable.unit
+        return res
 # ========================================================================== #            
     def nc_routine_conv(self):
         """Define several conventions related to routine properties"""

@@ -1,0 +1,36 @@
+from pathlib import Path
+
+from ..utilities.plots import HistPlot
+
+
+def main(args, parser):
+    
+    ncname = args.file
+    path = Path().absolute()
+    ncpath = str(path / ncname)
+    ncplot = HistPlot(ncpath=ncpath)
+    boolean_no_show = args.noshow
+    boolean_show = not boolean_no_show
+
+    ncplot.plot_thermo_basic(show=boolean_show, savename=args.save)
+
+
+class CLICommand:
+    """Plot basic thermodynamic observables from HIST file.
+
+    Example:
+
+        $ mlacs plot_thermo *HIST.nc file
+    """
+    @staticmethod
+    def add_arguments(parser):
+        parser.add_argument('file', help="Full name of *HIST.nc file")
+        parser.add_argument("-s", "--save", default='',
+                            help="Name of the file to save the plot. "
+                                 "Default None")
+        parser.add_argument("--noshow", action="store_true",
+                            help="To disable the visualisation of the plot")
+
+    @staticmethod
+    def run(args, parser):
+        main(args, parser)

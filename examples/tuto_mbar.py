@@ -1,8 +1,5 @@
 """
-Performing MLACS Langevin dynamics.
-The system is Cu is at 300 K
-The descriptor is SNAP.
-The true potential is from EMT as implemented in ASE.
+Tutorial on mbar that serves at prerequisite for postprocessing example.
 """
 
 import os
@@ -11,25 +8,23 @@ from ase.build import bulk
 from ase.calculators.emt import EMT
 
 from mlacs.mlip import MliapDescriptor, LinearPotential
-from mlacs.state.langevin import LangevinState
 from mlacs import OtfMlacs
 
-workdir = 'run_Langevin_Cu300K'
+workdir = 'run_tuto_mbar'
 
 # MLACS Parameters ------------------------------------------------------------
 nconfs = 200        # Numbers of final configurations.
-neq = 5            # Numbers of mlacs equilibration iterations. 
+neq = 5           # Numbers of mlacs equilibration iterations. 
 nsteps = 1000      # Numbers of MD steps in the production phase.
 nsteps_eq = 100    # Numbers of MD steps in the equilibration phase.
 
 # MD Parameters ---------------------------------------------------------------
-temperature = 300  # Temperature of the simulation in K.
-dt = 1.5           # Integration time in fs.
-friction = 0.01    # Friction coefficient for the Langevin thermostat.
+temperature = 400  # Temperature of the simulation in K.
+pressure = 100 # GPa
 
 # MLIP Parameters -------------------------------------------------------------
 rcut = 4.2
-mlip_params = {"twojmax": 4}
+mlip_params = {"twojmax": 6}
 
 # Supercell creation ----------------------------------------------------------
 cell_size = 2      # Multiplicity of the supercell, here 2x2x2.
@@ -40,20 +35,21 @@ atoms = bulk('Cu', cubic=True).repeat(cell_size)
 
 # Creation of the MLIP
 descriptor = MliapDescriptor(atoms=atoms, 
-                             rcut=rcut, 
-                             parameters=mlip_params, 
-                             model="linear", 
-                             style="snap", 
-                             alpha="1.0")
+                              rcut=rcut, 
+                              parameters=mlip_params, 
+                              model="linear", 
+                              style="snap", 
+                              alpha="1.0")
 
-mlip = LinearPotential(descriptor=descriptor)
+from mlacs.mlip import MbarManager
+parameters = {"solver": "L-BFGS-B"}
+mbar = MbarManager(parameters=parameters)
+
+mlip = LinearPotential(descriptor=descriptor, weight=mbar)
 
 # Creation of the State Manager
-state = LangevinState(temperature,
-                      nsteps=nsteps,
-                      nsteps_eq=nsteps_eq,
-                      dt=dt,
-                      friction=friction)
+from mlacs.state import LammpsState
+state = list(LammpsState(temperature, nsteps=nsteps) for i in range(2))
 
 # Creation of the Calculator Manager
 calc = EMT()

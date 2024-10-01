@@ -145,7 +145,7 @@ class PropertyManager(Manager):
                 
                 # with nc.Dataset(ncpath, 'r') as ncfile:
                 #     observable_values = ncfile[nc_name][:len(weights)].data
-                obs = self.ncfile.read(nc_name)
+                obs = self.ncfile.read_obs(nc_name)
                 observable_values = obs[:len(weights)]
 
                 if len(weights) > 0:
@@ -160,7 +160,6 @@ class PropertyManager(Manager):
                             ncfile[w_name][len(weights)-1] = weighted_observ
 
 # ========================================================================== #
-
     def save_weights(self, step, weighting_pol, ncformat):
         """
         Save the MBAR weights.
@@ -185,6 +184,8 @@ class PropertyManager(Manager):
             # in the properties computations, so they are throwned out here
             # by the slicing operator [2:]
             weights = weighting_pol.weight[2:]
+            nb_effective_conf = np.sum(weights)**2 / np.sum(weights**2)
+            nb_conf = len(weights)
 
             path_save = self.workdir / self.folder
             namefile = path_save / ('Weights' + ".dat")
@@ -200,11 +201,13 @@ class PropertyManager(Manager):
             if 'NETCDF3' in ncformat:
                 weights_ncpath = weights_ncpath.replace('HIST', 'WEIGHTS')
             with nc.Dataset(weights_ncpath, 'a') as ncfile:
-                idx_db = np.ma.count(ncfile['weights_meta'][:])
+                idx_db = np.ma.count(ncfile['weights_meta'][:, 0])
                 for idx, value in enumerate(weights):
                     ncfile['weights'][idx_db+idx] = value
                     # weights_meta keeps track of db index for given cycle
-                    ncfile['weights_meta'][idx_db+idx] = idx + 1
+                    # and of number of effective configurations
+                    metadata = [idx + 1, nb_effective_conf, nb_conf]
+                    ncfile['weights_meta'][idx_db+idx] = metadata
 
             # Weight of first two confs (that are throwned out)
             w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
