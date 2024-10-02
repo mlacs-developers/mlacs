@@ -2,7 +2,8 @@
 Tutorial on mbar that serves at prerequisite for postprocessing example.
 """
 
-import os
+from mlacs.state import LammpsState
+from mlacs.mlip import MbarManager
 
 from ase.build import bulk
 from ase.calculators.emt import EMT
@@ -14,13 +15,13 @@ workdir = 'run_tuto_mbar'
 
 # MLACS Parameters ------------------------------------------------------------
 nconfs = 200        # Numbers of final configurations.
-neq = 5           # Numbers of mlacs equilibration iterations. 
+neq = 5           # Numbers of mlacs equilibration iterations.
 nsteps = 1000      # Numbers of MD steps in the production phase.
 nsteps_eq = 100    # Numbers of MD steps in the equilibration phase.
 
 # MD Parameters ---------------------------------------------------------------
 temperature = 400  # Temperature of the simulation in K.
-pressure = 100 # GPa
+pressure = 100  # GPa
 
 # MLIP Parameters -------------------------------------------------------------
 rcut = 4.2
@@ -34,21 +35,19 @@ atoms = bulk('Cu', cubic=True).repeat(cell_size)
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
 # Creation of the MLIP
-descriptor = MliapDescriptor(atoms=atoms, 
-                              rcut=rcut, 
-                              parameters=mlip_params, 
-                              model="linear", 
-                              style="snap", 
-                              alpha="1.0")
+descriptor = MliapDescriptor(atoms=atoms,
+                             rcut=rcut,
+                             parameters=mlip_params,
+                             model="linear",
+                             style="snap",
+                             alpha="1.0")
 
-from mlacs.mlip import MbarManager
 parameters = {"solver": "L-BFGS-B"}
 mbar = MbarManager(parameters=parameters)
 
 mlip = LinearPotential(descriptor=descriptor, weight=mbar)
 
 # Creation of the State Manager
-from mlacs.state import LammpsState
 state = list(LammpsState(temperature, nsteps=nsteps) for i in range(2))
 
 # Creation of the Calculator Manager

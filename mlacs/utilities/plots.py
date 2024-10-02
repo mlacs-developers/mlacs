@@ -4,7 +4,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 import matplotlib as mpl
 import matplotlib.pyplot as plt
- 
+
 from . import compute_correlation
 from mlacs.utilities.io_abinit import HistFile
 
@@ -270,14 +270,15 @@ class HistPlot:
     Parameters
     ----------
     """
+
     def __init__(self,
                  ncpath=''):
-        
+
         mpl.rcParams["font.size"] = 10
         mpl.rcParams['figure.dpi'] = 300
-        
+
         if os.path.isfile(ncpath):
-            ncfile = HistFile(ncpath=ncpath)        
+            ncfile = HistFile(ncpath=ncpath)
             # var_names = ncfile.get_var_names()
             dict_var_units = ncfile.get_units()
             var_dim_dict = ncfile.nc_routine_conv()[0]
@@ -289,7 +290,7 @@ class HistPlot:
             self.basic_obs = ['temper', 'etotal', 'press', 'vol']
             self.energy_obs = ['ekin', 'epot']
         else:
-            msg = '*HIST.nc file not found.' 
+            msg = '*HIST.nc file not found.'
             raise FileNotFoundError(msg)
 
 # ========================================================================== #
@@ -308,31 +309,29 @@ class HistPlot:
             obs_label = dict_name_label[obs_name].replace("_", " ")
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
-        
+
         weights_meta = ncfile.read_obs('weights_meta')
         weights_idx = weights_meta[:, 0]
         nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
         nb_conf = weights_meta[:, 2][weights_idx == 1.0]
-        if np.max(np.abs(nb_conf-nb_effective_conf))>10**-10:
+        if np.max(np.abs(nb_conf-nb_effective_conf)) > 10**-10:
             uniform_weight = False
         else:
             uniform_weight = True
-        
-        # Mlacs iteration index
-        mlacs_idx = obs_meta[:, 0]
+
         # Index of state
         state_idx = obs_meta[:, 1]
         # Index of configuration in database
         confs_idx = np.array([i+1 for i in range(len(observable))])
 
         w_obs_data, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
-        uniform_w_obs_data = np.array([np.mean(observable[:i+1]) 
+        uniform_w_obs_data = np.array([np.mean(observable[:i+1])
                                        for i in range(len(w_obs_idx))])
 
         ax.plot(confs_idx, observable, label='raw data', alpha=0.7)
         ax.plot(w_obs_idx, uniform_w_obs_data, c='g', label='uniform weights')
 
-        if uniform_weight == False:
+        if uniform_weight is False:
             ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar')
         xlabel_str = 'Configuration index in database \n'
         xlabel_str += '[training confs. excluded]'
@@ -344,8 +343,9 @@ class HistPlot:
         try:
             obs_unit = dict_var_units[obs_name]
             ylabel += ' [' + obs_unit + ']'
-        except:
-            print('No unit found for ', obs_name)
+        except KeyError:
+            msg = 'No unit found for ' + str(obs_name)
+            raise KeyError(msg)
         ax.set_ylabel(ylabel)
 
         legend1 = ax.legend(frameon=False, loc='best')
@@ -354,7 +354,7 @@ class HistPlot:
 # ========================================================================== #
     def plot_thermo_basic(self, show=True, savename=''):
         fig, ax = plt.subplots(2, 2, figsize=(9, 7))
-        for idx,ax_loc in enumerate(ax.reshape(-1)):
+        for idx, ax_loc in enumerate(ax.reshape(-1)):
             obs_name = self.basic_obs[idx]
             self._core_plot(obs_name, fig, ax_loc)
         fig.tight_layout()
@@ -362,7 +362,7 @@ class HistPlot:
             savename = 'plot_thermo'
         savename += '.jpeg'
         fig.savefig(savename, bbox_inches='tight')
-        if show == True:
+        if show is True:
             os.system('xdg-open '+savename)
 
 # ========================================================================== #
@@ -383,15 +383,15 @@ class HistPlot:
         ax[0].set_yscale('log')
         legend_0 = ax[0].legend(frameon=False, loc=4)
         legend_0.get_frame().set_facecolor('none')
-        
+
         # dict_weights maps an Mlacs iteration index to its Mbar data
         dict_weights = {}
-        idx_bounds = np.argwhere(weights_idx == 1.0)[:,0]
+        idx_bounds = np.argwhere(weights_idx == 1.0)[:, 0]
         for ii in range(len(idx_bounds)-1):
             iter_mlacs = ii+1
             i1, i2 = idx_bounds[ii], idx_bounds[ii+1]
-            dict_weights[iter_mlacs] = [weights_idx[i1:i2], weights[i1:i2]]            
-        
+            dict_weights[iter_mlacs] = [weights_idx[i1:i2], weights[i1:i2]]
+
         def _plot_distribution(iter_loc):
             loc_weights_idx = dict_weights[iter_loc][0]
             normalized_x = (loc_weights_idx-1)/(loc_weights_idx[-1]-1)
@@ -399,8 +399,8 @@ class HistPlot:
             normalized_y = loc_weights/np.mean(loc_weights)
             Nconfs_loc = np.round(nb_effective_conf[iter_loc-1], 1)
             lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
-            ax[1].step(normalized_x, normalized_y, where='mid',label=lab_str)
-        
+            ax[1].step(normalized_x, normalized_y, where='mid', label=lab_str)
+
         if len(idx_bounds)-1 > 5:
             mlacs_iter_arr = np.geomspace(3, len(idx_bounds)-1, 4, dtype=int)
         else:
@@ -408,15 +408,15 @@ class HistPlot:
         for iter_mlacs in mlacs_iter_arr:
             _plot_distribution(iter_mlacs)
             ax[0].scatter(nb_conf[iter_mlacs-1],
-                           nb_effective_conf[iter_mlacs-1],
-                           marker='s',
-                           s=20)
-            
+                          nb_effective_conf[iter_mlacs-1],
+                          marker='s',
+                          s=20)
+
         ax[1].set_xlabel(r"Normalized config. index")
         ax[1].set_ylabel(r"Weights / $ \langle $Weights$ \rangle $")
         ax[1].set_title('Evolution of the distribution of weights',
-                         fontsize=plt.rcParams["font.size"])
-        
+                        fontsize=plt.rcParams["font.size"])
+
         legend_1 = ax[1].legend(frameon=False, loc='best', ncol=2)
         legend_1.get_frame().set_facecolor('none')
         fig.tight_layout()
@@ -426,8 +426,5 @@ class HistPlot:
         savename += '.jpeg'
         fig.savefig(savename, bbox_inches='tight')
 
-        if show == True:
+        if show is True:
             os.system('xdg-open '+savename)
-        
-
-

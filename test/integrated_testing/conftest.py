@@ -11,7 +11,7 @@ def root():
 
 @pytest.fixture(autouse=True)
 def expected_folder_base():
-    folder = ["MolecularDynamics", "Snap"]
+    folder = ["MolecularDynamics", "Snap", "Properties"]
     return folder
 
 
@@ -65,3 +65,12 @@ def langevin_treelink(root, expected_folder, expected_files):
 
     for f in expected_files:
         (root / f).unlink()
+
+
+@pytest.fixture(autouse=True)
+def clean_up_hist(root):
+    for filename in root.rglob("*_HIST.nc"):
+        filename.unlink()
+    yield
+    for filename in root.rglob("*_HIST.nc"):
+        filename.unlink()

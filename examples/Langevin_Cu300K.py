@@ -5,8 +5,6 @@ The descriptor is SNAP.
 The true potential is from EMT as implemented in ASE.
 """
 
-import os
-
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
@@ -17,8 +15,8 @@ from mlacs import OtfMlacs
 workdir = 'run_Langevin_Cu300K'
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 200        # Numbers of final configurations.
-neq = 5            # Numbers of mlacs equilibration iterations. 
+nconfs = 10        # Numbers of final configurations.
+neq = 5            # Numbers of mlacs equilibration iterations.
 nsteps = 1000      # Numbers of MD steps in the production phase.
 nsteps_eq = 100    # Numbers of MD steps in the equilibration phase.
 
@@ -39,11 +37,11 @@ atoms = bulk('Cu', cubic=True).repeat(cell_size)
 # Prepare the On The Fly Machine-Learning Assisted Sampling simulation --------
 
 # Creation of the MLIP
-descriptor = MliapDescriptor(atoms=atoms, 
-                             rcut=rcut, 
-                             parameters=mlip_params, 
-                             model="linear", 
-                             style="snap", 
+descriptor = MliapDescriptor(atoms=atoms,
+                             rcut=rcut,
+                             parameters=mlip_params,
+                             model="linear",
+                             style="snap",
                              alpha="1.0")
 
 mlip = LinearPotential(descriptor=descriptor)

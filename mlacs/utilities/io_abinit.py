@@ -73,6 +73,7 @@ class HistFile:
     Parameters
     ----------
     """
+
     def __init__(self,
                  ncprefix='',
                  workdir='',
@@ -143,7 +144,7 @@ class HistFile:
     def _create_nc_file(self, atoms):
         """
         Create netcdf file(s).
-    
+
         Create Abinit-style dimensions
         Create Abinit-style variables that are not 'RoutineProperties'
         """
@@ -172,16 +173,17 @@ class HistFile:
 
         self._add_dim(self.ncpath, dict_dim)
         self._add_var(self.ncpath, dict_var)
-    
+
         dict_w_dim = {'weights_dim': None}
         dict_w_var = {'weights': ('weights_dim',),
-                      'weights_meta': ('weights_dim','xyz',),
+                      'weights_meta': ('weights_dim', 'xyz',),
                       }
-    
+
         self.weights_ncpath = self.ncpath
         if 'NETCDF3' in self.ncformat:
+            dict_w_dim['xyz'] = 3
             self.weights_ncpath = self.ncpath.replace('HIST', 'WEIGHTS')
-    
+
         self._add_dim(self.weights_ncpath, dict_w_dim)
         self._add_var(self.weights_ncpath, dict_w_var)
 
@@ -221,7 +223,7 @@ class HistFile:
     def read_obs(self, obs_name):
         """Read specific observable from netcdf file"""
         with nc.Dataset(self.ncpath, 'r') as ncfile:
-            observable_values = ncfile[obs_name][:].data 
+            observable_values = ncfile[obs_name][:].data
         return observable_values
 
 # ========================================================================== #
@@ -231,7 +233,7 @@ class HistFile:
         Return values, idx in database
         """
         with nc.Dataset(self.ncpath, 'r') as ncfile:
-            wobs_values = ncfile[obs_name][:] 
+            wobs_values = ncfile[obs_name][:]
             weighted_obs_data = wobs_values[wobs_values.mask == False].data
             weighted_obs_idx = 1 + np.where(~wobs_values.mask)[0]
         return weighted_obs_data, weighted_obs_idx
@@ -242,7 +244,7 @@ class HistFile:
         res = {}
         with nc.Dataset(self.ncpath, 'r') as ncfile:
             for name, variable in ncfile.variables.items():
-                res[name] = variable[:] 
+                res[name] = variable[:]
         return res
 
 # ========================================================================== #
@@ -266,11 +268,12 @@ class HistFile:
                 if hasattr(variable, 'unit'):
                     res[name] = variable.unit
         return res
-# ========================================================================== #            
+# ========================================================================== #
+
     def nc_routine_conv(self):
         """Define several conventions related to routine properties"""
-        #TODO
-        #This dictionnaries should belong to the RoutineProperties class
+        # TODO
+        # This dictionnaries should belong to the RoutineProperties class
         # Variable names and dimensions are those produced by Abinit
         var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
                         'Kinetic_Energy': ['ekin', ('time',)],
@@ -303,6 +306,8 @@ class HistFile:
 
 # ========================================================================== #
 # ========================================================================== #
+
+
 class AbinitNC:
     """
     Class to handle all Abinit NetCDF files.
@@ -313,6 +318,7 @@ class AbinitNC:
         The root for the directory.
         Default 'DFT'
     """
+
     def __init__(self, workdir=None, prefix='abinit'):
 
         if nc is None:

@@ -1,6 +1,5 @@
 import pytest
 from pathlib import Path
-import shutil
 import os
 import netCDF4 as nc
 import numpy as np
@@ -16,17 +15,6 @@ from mlacs import OtfMlacs
 
 from ... import context  # noqa
 
-
-at = bulk("Cu", cubic=True).repeat(4)
-calc = EMT()
-T = 400
-P = 0
-nsteps = 10
-parameters = {"twojmax": 6}
-descriptor = SnapDescriptor(at, parameters=parameters)
-parameters = {"solver": "L-BFGS-B"}
-mlip_mbar = LinearPotential(descriptor)
-properties = [CalcExecFunction('get_kinetic_energy')]
 nb_mlacs_iter1 = 3
 nb_mlacs_iter2 = 2
 nb_mlacs_iter3 = 1
@@ -42,11 +30,21 @@ def test_basic_hist():
     """
     pytest_path = os.getenv('PYTEST_CURRENT_TEST')
     root = Path(pytest_path).parents[0].absolute()
-    test_wkdir = root / 'tmp_data'
+    test_wkdir = root / 'tmp_hist_dir1'
 
+    at = bulk("Cu", cubic=True).repeat(4)
+    calc = EMT()
+    T = 400
+    P = 0
+    nsteps = 10
+    parameters = {"twojmax": 6}
+    descriptor = SnapDescriptor(at, parameters=parameters)
+    parameters = {"solver": "L-BFGS-B"}
+    mlip_mbar = LinearPotential(descriptor)
     target_nc_format = 'NETCDF4'
-    nb_states = 3
+    nb_states = 2
     states = list(LammpsState(T, P, nsteps=nsteps) for i in range(nb_states))
+    properties = [CalcExecFunction('get_kinetic_energy')]
     dyn1 = OtfMlacs(at,
                     states,
                     calc,
@@ -90,8 +88,17 @@ def test_distinct_hist():
     """
     pytest_path = os.getenv('PYTEST_CURRENT_TEST')
     root = Path(pytest_path).parents[0].absolute()
-    test_wkdir2 = root / 'tmp_data2'
+    test_wkdir2 = root / 'tmp_hist_dir2'
 
+    at = bulk("Cu", cubic=True).repeat(4)
+    calc = EMT()
+    T = 400
+    P = 0
+    nsteps = 10
+    parameters = {"twojmax": 6}
+    descriptor = SnapDescriptor(at, parameters=parameters)
+    parameters = {"solver": "L-BFGS-B"}
+    mlip_mbar = LinearPotential(descriptor)
     target_nc_format2 = 'NETCDF3_CLASSIC'
     nc_name2 = 'obj2_test_hist_file_HIST.nc'
     path_name2 = test_wkdir2 / nc_name2
@@ -125,12 +132,21 @@ def test_restart_hist():
     """
     pytest_path = os.getenv('PYTEST_CURRENT_TEST')
     root = Path(pytest_path).parents[0].absolute()
-    test_wkdir = root / 'tmp_data'
-    test_wkdir2 = root / 'tmp_data2'
-
+    test_wkdir = root / 'tmp_hist_dir3'
     target_nc_format = 'NETCDF4'
-    nb_states = 3
+    nb_states = 1
+
+    at = bulk("Cu", cubic=True).repeat(4)
+    calc = EMT()
+    T = 400
+    P = 0
+    nsteps = 10
+    parameters = {"twojmax": 6}
+    descriptor = SnapDescriptor(at, parameters=parameters)
+    parameters = {"solver": "L-BFGS-B"}
+    mlip_mbar = LinearPotential(descriptor)
     states = list(LammpsState(T, P, nsteps=nsteps) for i in range(nb_states))
+    properties = [CalcExecFunction('get_kinetic_energy')]
     dyn1 = OtfMlacs(at,
                     states,
                     calc,
@@ -138,17 +154,27 @@ def test_restart_hist():
                     properties,
                     neq=0,
                     workdir=test_wkdir,
-                    ncprefix='obj1',
+                    ncprefix='obj3',
                     ncformat=target_nc_format)
-    dyn1.run(nb_mlacs_iter3)
-    script_name = 'obj1_' + 'test_hist_file'
+    dyn1.run(nb_mlacs_iter1)
+
+    states = list(LammpsState(T, P, nsteps=nsteps) for i in range(nb_states))
+    properties = [CalcExecFunction('get_kinetic_energy')]
+    dyn2 = OtfMlacs(at,
+                    states,
+                    calc,
+                    mlip_mbar,
+                    properties,
+                    neq=0,
+                    workdir=test_wkdir,
+                    ncprefix='obj3',
+                    ncformat=target_nc_format)
+    dyn2.run(nb_mlacs_iter3)
+
+    script_name = 'obj3_' + 'test_hist_file'
     script_name += '_HIST.nc'
     path_name = test_wkdir / script_name
     with nc.Dataset(str(path_name), 'r') as ncfile:
         vol_var = ncfile['vol']
         vol_data = vol_var[:].data
         assert vol_data.shape == (nb_states*(nb_mlacs_iter1-1+nb_mlacs_iter3),)
-
-    # Clean-up
-    shutil.rmtree(test_wkdir)
-    shutil.rmtree(test_wkdir2)

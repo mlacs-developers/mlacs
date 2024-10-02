@@ -142,7 +142,7 @@ class PropertyManager(Manager):
             for observable in self.manager:
                 nc_name = observable.nc_name
                 weights = weighting_pol.weight[2:]
-                
+
                 # with nc.Dataset(ncpath, 'r') as ncfile:
                 #     observable_values = ncfile[nc_name][:len(weights)].data
                 obs = self.ncfile.read_obs(nc_name)
@@ -184,7 +184,10 @@ class PropertyManager(Manager):
             # in the properties computations, so they are throwned out here
             # by the slicing operator [2:]
             weights = weighting_pol.weight[2:]
-            nb_effective_conf = np.sum(weights)**2 / np.sum(weights**2)
+            if len(weights) > 0:
+                nb_effective_conf = np.sum(weights)**2 / np.sum(weights**2)
+            else:
+                nb_effective_conf = 0
             nb_conf = len(weights)
 
             path_save = self.workdir / self.folder
