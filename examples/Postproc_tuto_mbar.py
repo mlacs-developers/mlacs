@@ -8,8 +8,10 @@ import os
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
-plt.rcParams['figure.dpi'] = 300
 
+plt.rcdefaults()
+plt.rcParams["font.size"] = 10
+plt.rcParams['figure.dpi'] = 300
 
 # Requires prior execution of tuto_mbar.py
 workdir = 'run_tuto_mbar'
@@ -29,6 +31,9 @@ if os.path.isfile(ncpath):
     # print('Variables names: ', var_names)
 
     obs_name = 'temper'
+    # obs_name = 'press'
+    # obs_name = 'vol'
+    # obs_name = 'etotal'
     observable = ncfile.read_obs(obs_name)
     obs_label = obs_name
     if obs_name in dict_name_label:
@@ -46,12 +51,12 @@ if os.path.isfile(ncpath):
     confs_idx = np.array([i+1 for i in range(len(observable))])
 
     w_obs_data, w_obs_idx = ncfile.read_weighted_obs('weighted_' + obs_name)
-    uniform_w_obs_data = np.array(
-        [np.mean(w_obs_data[:i+1]) for i in range(len(w_obs_idx))])
+
+    uniform_obs = np.array([np.mean(observable[:i]) for i in w_obs_idx])
 
     fig1, ax1 = plt.subplots()
     ax1.plot(confs_idx, observable, label='raw data', alpha=0.7)
-    ax1.plot(w_obs_idx, uniform_w_obs_data, c='g', label='uniform weights')
+    ax1.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights')
     ax1.plot(w_obs_idx, w_obs_data, c='r',  label='mbar')
     ax1.set_xlabel(
         'Configuration index in database \n[training confs. excluded]')

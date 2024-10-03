@@ -274,6 +274,7 @@ class HistPlot:
     def __init__(self,
                  ncpath=''):
 
+        mpl.rcdefaults()
         mpl.rcParams["font.size"] = 10
         mpl.rcParams['figure.dpi'] = 300
 
@@ -325,11 +326,11 @@ class HistPlot:
         confs_idx = np.array([i+1 for i in range(len(observable))])
 
         w_obs_data, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
-        uniform_w_obs_data = np.array([np.mean(observable[:i+1])
-                                       for i in range(len(w_obs_idx))])
+
+        uniform_obs = np.array([np.mean(observable[:i]) for i in w_obs_idx])
 
         ax.plot(confs_idx, observable, label='raw data', alpha=0.7)
-        ax.plot(w_obs_idx, uniform_w_obs_data, c='g', label='uniform weights')
+        ax.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights')
 
         if uniform_weight is False:
             ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar')

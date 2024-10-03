@@ -268,12 +268,10 @@ class HistFile:
                 if hasattr(variable, 'unit'):
                     res[name] = variable.unit
         return res
-# ========================================================================== #
 
+# ========================================================================== #
     def nc_routine_conv(self):
         """Define several conventions related to routine properties"""
-        # TODO
-        # This dictionnaries should belong to the RoutineProperties class
         # Variable names and dimensions are those produced by Abinit
         var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
                         'Kinetic_Energy': ['ekin', ('time',)],
@@ -304,10 +302,9 @@ class HistFile:
 
         return var_dim_dict, units_dict
 
+
 # ========================================================================== #
 # ========================================================================== #
-
-
 class AbinitNC:
     """
     Class to handle all Abinit NetCDF files.
