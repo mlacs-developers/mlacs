@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON, CD)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
