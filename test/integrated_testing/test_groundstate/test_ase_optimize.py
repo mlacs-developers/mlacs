@@ -18,22 +18,26 @@ from mlacs import MlMinimizer
 @pytest.fixture
 def files_with_prefix():
     files = []
-    cstr = [None, UnitCellFilter, UnitCellFilter]
+    fltr = [None, UnitCellFilter, UnitCellFilter]
     press = [None, 0.0, 5.0]
     algo = [None, BFGS, BFGSLineSearch]
-    for c, p, a in zip(cstr, press, algo):
+    for f, p, a in zip(fltr, press, algo):
         if a is None:
             name = "None"
         else:
             name = a.__name__
-        files.append(f'{name}_{p}_{c}.traj')
-        files.append(f'{name}_{p}_{c}_potential.dat')
+        if f is None:
+            fname = "None"
+        else:
+            fname = f.__name__
+        files.append(f'{name}_{p}_{fname}.traj')
+        files.append(f'{name}_{p}_{fname}_potential.dat')
     return files
 
 
 @pytest.fixture
 def expected_folder():
-    folder = ["MolecularDynamics", "Snap"]
+    folder = ["MolecularDynamics", "Snap", "Properties"]
     return folder
 
 
@@ -66,19 +70,23 @@ def test_mlacs_optimize(root, treelink):
     stol = 0.01
 
     prefix = []
-    cstr = [None, UnitCellFilter, UnitCellFilter]
+    fltr = [None, UnitCellFilter, UnitCellFilter]
     press = [None, 0.0, 5.0]
     algo = [None, BFGS, BFGSLineSearch]
-    for c, p, a in zip(cstr, press, algo):
+    for f, p, a in zip(fltr, press, algo):
         if a is None:
             name = "None"
         else:
             name = a.__name__
-        prefix.append(f'{name}_{p}_{c}')
+        if f is None:
+            fname = "None"
+        else:
+            fname = f.__name__
+        prefix.append(f'{name}_{p}_{fname}')
         if p is not None:
             press = p * GPa
-        state = OptimizeAseState(optimizer=a, constraints=c,
-                                 cstr_parameters=dict(scalar_pressure=press,
+        state = OptimizeAseState(optimizer=a, filters=f,
+                                 fltr_parameters=dict(scalar_pressure=press,
                                                       cell_factor=10),
                                  prefix=prefix[-1])
         sampling = MlMinimizer(atoms, state, calc, dmlip, etol, ftol, stol)

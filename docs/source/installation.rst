@@ -105,7 +105,7 @@ extra-fix, extra-pair, extra-compute, extra-dump``
 
 .. admonition:: Warning
 
-    Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommand to use the development versions of ASE.
+    Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommand to use ASE versions up to 3.23.
 
 MLACS will then call LAMMPS through ASE, which relies on environment variables.
 They can be set before running the simulation or by modifying environment variables directly in the python script.
@@ -143,8 +143,7 @@ ASE is an atomic simulation environment, interfaced with several codes and writt
 
 .. code:: bash
 
-    $ git clone -b 3.22.1 https://gitlab.com/ase/ase.git # If LAMMPS < 03Aug22
-    $ git clone -b 3.23.0b1 https://gitlab.com/ase/ase.git # If LAMMPS > 03Aug22
+    $ git clone -b 3.23.1 https://gitlab.com/ase/ase.git
 
 Then in the package directory:
 

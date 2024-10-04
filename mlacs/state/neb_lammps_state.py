@@ -1,4 +1,10 @@
-import os
+"""
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
 
 import numpy as np
 
@@ -11,9 +17,8 @@ from .lammps_state import BaseLammpsState
 from ..core import PathAtoms
 from ..core.manager import Manager
 from ..utilities.io_lammps import (LammpsBlockInput,
-                                   EmptyLammpsBlockInput)
-
-from ..utilities import get_elements_Z_and_masses
+                                   EmptyLammpsBlockInput,
+                                   get_lammps_command)
 
 from ..utilities.io_lammps import write_lammps_NEB_ASCIIfile
 
@@ -150,13 +155,11 @@ class NebLammpsState(BaseLammpsState):
                                    self.patoms.final)
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("units", "units metal")
@@ -176,7 +179,7 @@ class NebLammpsState(BaseLammpsState):
         return EmptyLammpsBlockInput("empty_thermostat")
 
 # ========================================================================== #
-    def _get_block_lastdump(self, atoms, eq):
+    def _get_block_lastdump(self, el, eq):
         return EmptyLammpsBlockInput("empty_lastdump")
 
 # ========================================================================== #
@@ -266,10 +269,7 @@ class NebLammpsState(BaseLammpsState):
         '''
         Function to load the batch command to run LAMMPS with replica.
         '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_mpi"
+        cmd = get_lammps_command()
         exe = cmd.split()[-1]
 
         if "-partition" in cmd:

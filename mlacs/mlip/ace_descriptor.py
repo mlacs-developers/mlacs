@@ -1,5 +1,14 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import sys
 import os
+import shutil
 import warnings
 import logging
 
@@ -10,7 +19,6 @@ import shlex
 import numpy as np
 from ase import Atoms
 from ..utilities import make_dataframe
-from pyace import ACEBBasisSet
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
@@ -18,7 +26,8 @@ from ase.io.lammpsdata import write_lammps_data
 from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor
-from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
+from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
+                                   get_lammps_command)
 
 try:
     import pandas as pd
@@ -149,11 +158,8 @@ class AceDescriptor(Descriptor):
                  bconf_dict=None, loss_dict=None, fitting_dict=None,
                  backend_dict=None, nworkers=None):
 
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp"
-        self.cmd = cmd
+
+        self.cmd = get_lammps_command()
         self._verify_dependency()
 
         Descriptor.__init__(self, atoms, rcut)
@@ -241,7 +247,7 @@ class AceDescriptor(Descriptor):
         filename = Path(folder) / "ACE.yace"
 
         if not filename.is_file():
-            filename = filename.absoluse()
+            filename = filename.absolute()
             raise FileNotFoundError(f"File {filename} does not exist")
         return str(filename)
 
@@ -289,7 +295,9 @@ class AceDescriptor(Descriptor):
         if self.acefit is None:
             self.create_acefit()
         else:
-            self.acefit.fit_config['fit_cycles'] += 1
+            # Dubious implementation of GeneralACEFit,
+            # No function to update dataframe once created ??
+            self.create_acefit()
 
         # Note that self.fitting is the same object as self.acefit.fit_config
         real_maxiter = self.fitting['maxiter']
@@ -298,11 +306,12 @@ class AceDescriptor(Descriptor):
         while retry:
             retry, niter_done = self.actual_fit()
             nattempt += 1
-            # TODO: Substract the iteration done on i-1 from max_iter of i
-            self.acefit.fit_config['fit_cycles'] += 1
             self.fitting['maxiter'] -= niter_done
             if nattempt > self.n_fit_attempt or self.fitting['maxiter'] < 1:
                 retry = False
+            if retry:
+                self.acefit.fit_config['fit_cycles'] += 1
+
         self.fitting['maxiter'] = real_maxiter
 
         fn_yaml = "interim_potential_best_cycle.yaml"
@@ -326,7 +335,6 @@ class AceDescriptor(Descriptor):
             self.acefit.fit()
         except StopIteration:  # For Scipy < 1.11
             pass
-
         fit_res = self.acefit.fit_backend.fitter.res_opt
 
         # Fit failed due to precision loss
@@ -343,7 +351,9 @@ class AceDescriptor(Descriptor):
         """
         fn = str(Path(mlip_subfolder).parent /
                  "interim_potential_best_cycle.yaml")
-        self.bconf.set_all_coeffs(ACEBBasisSet(fn).all_coeffs)
+        self.bconf.load(fn)
+        fc = int(pyace.BBasisConfiguration(fn).metadata["_fit_cycles"])
+        self.fitting['fit_cycles'] = fc+1
 
 # ========================================================================== #
     @Manager.exec_from_subdir
@@ -400,23 +410,27 @@ class AceDescriptor(Descriptor):
     def predict(self, atoms, coef, folder):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
+        if Path("Atoms").exists():
+            shutil.rmtree("Atoms")
+        Path("Atoms").mkdir()
 
-        e, f, s = [], [], []
-        for at in atoms:
-            lmp_atfname = "atoms.lmp"
-            el, z, masses, charges = get_elements_Z_and_masses(at)
+        clear_loop = False  # If we use clear or delete_atoms in lammps input
+        for i, at in enumerate(atoms):
+            if np.any(at.get_pbc() != atoms[0].get_pbc()):
+                raise ValueError("PBC cannot change between states")
+            if np.any(at.cell.array != atoms[0].cell.array):
+                clear_loop = True
+            lmp_atfname = f"Atoms/atoms{i+1}.lmp"
 
-            self._write_lammps_input(masses, at.get_pbc(), coef, el)
             write_lammps_data(lmp_atfname,
                               at,
                               specorder=self.elements.tolist())
 
-            self._run_lammps(lmp_atfname)
-            tmp_e, tmp_f, tmp_s = self._read_lammps_output(len(at))
-            e.append(tmp_e + self.calc_free_e(at)/len(at))
-            f.append(tmp_f)
-            s.append(tmp_s)
-            self.cleanup()
+        self._write_lammps_input(atoms, coef, is_clear=clear_loop)
+
+        self._run_lammps(lmp_atfname)
+        e, f, s = self._read_lammps_output(atoms)
+        self.cleanup(len(atoms))
 
         if len(e) == 1:
             return e[0], f[0], s[0]
@@ -425,52 +439,80 @@ class AceDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _read_lammps_output(self, natoms):
+    def _read_lammps_output(self, atoms):
         with open("lammps.out", "r") as f:
             lines = f.readlines()
 
-        toparse = None
+        toparse = []
         tofind = "Step          Temp          E_pair         Press"
         for idx, line in enumerate(lines):
             if tofind in line:
-                toparse = lines[idx+1].split()
-        if toparse is None:
-            raise ValueError("lammps.out didnt have the expected format")
+                # "WARNING:" may appear between Step and value
+                while "WARNING" in lines[idx+1]:
+                    idx += 1
+                toparse.append(lines[idx+1].split())
+        if len(toparse) != len(atoms):
+            raise ValueError("lammps.out a thermo for each atoms")
 
-        bar2GPa = 1e-4
-        e = float(toparse[2])/natoms
-        f = read('forces.out', format='lammps-dump-text').get_forces()
-        s = np.loadtxt('stress.out', skiprows=4)[:, 1]*bar2GPa
-        return e, f, s
+        e, f, s = [], [], []
+        for i in range(len(toparse)):
+            thermo, at = toparse[i], atoms[i]
+            e_correction = self.calc_free_e(at)  # To only get cohesion energy
+            bar2GPa = 1e-4
+            e.append((float(thermo[2]) + e_correction)/len(at))
+            f.append(read(f'forces{i+1}.out',
+                     format='lammps-dump-text').get_forces())
+            s.append(np.loadtxt(f'stress{i+1}.out', skiprows=4)[:, 1]*bar2GPa)
+        return np.array(e), np.array(f), np.array(s)
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def cleanup(self):
+    def cleanup(self, natoms):
         '''
         Function to cleanup the LAMMPS files used
         to extract the descriptor and gradient values
         '''
-        Path("forces.out").unlink()
-        Path("stress.out").unlink()
+        for i in range(natoms):
+            Path(f"forces{i+1}.out").unlink()
+            Path(f"stress{i+1}.out").unlink()
         Path("lammps.out").unlink()
         Path("lammps.in").unlink()
-        Path("atoms.lmp").unlink()
+        shutil.rmtree("Atoms")
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_input(self, masses, pbc, coef, el):
+    def _write_lammps_input(self, atoms, coef, is_clear=True):
         """
+        Create one lammps input to evaluate E,F,S of multiple atoms
+        Note : We need to use clear if the cell changes between atoms
+               Else, we can use delete_atoms which doesn't reload potential
         """
-        txt = "LAMMPS input file for extracting MLIP descriptors"
+        # Note: if any of these changes between simulations, big problem ...
+        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
+
+        # Write the input file
+        txt = "LAMMPS input file for extracting MLIP E, F, S"
         lmp_in = LammpsInput(txt)
 
+        block_loopstart = LammpsBlockInput("loopstart", "Loop starts")
+        block_loopstart("loop", f"variable a loop {len(atoms)}")
+        block_loopstart("label", "label loopstart")
+        if is_clear:
+            # loopstart, init, atoms_data, pot, compute1, compute2, loopback
+            block_loopstart("clear data", "clear")
+            lmp_in("loop", block_loopstart)
+            read_data = "read_data Atoms/atoms${a}.lmp"
+        else:
+            # init, atoms_data, pot, compute1, loopstart, compute2, loopback
+            read_data = "read_data Atoms/atoms1.lmp"
+
         block = LammpsBlockInput("init", "Initialization")
-        block("clear", "clear")
-        pbc_txt = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
+        pbc_txt = "{0} {1} {2}".format(
+                *tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
         block("boundary", f"boundary {pbc_txt}")
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
-        block("read_data", "read_data atoms.lmp")
+        block("read_data", read_data)
         for i, m in enumerate(masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
@@ -481,15 +523,28 @@ class AceDescriptor(Descriptor):
         block("pair_coeff", pc)
         lmp_in("interaction", block)
 
-        block = LammpsBlockInput("compute", "Compute")
+        block = LammpsBlockInput("compute1", "Compute")
         block("thermo_style", "thermo_style custom step temp epair press")
         block("cp", "compute svirial all pressure NULL virial")
-        block("fs", "fix svirial all ave/time 1 1 1 c_svirial" +
-              " file stress.out mode vector")
-        block("dump", "dump dump_force all custom 1 forces.out" +
+        lmp_in("compute1", block)
+
+        if not is_clear:
+            block_loopstart("delat", "delete_atoms group all")
+            block_loopstart("rd", "read_data Atoms/atoms${a}.lmp add append")
+            lmp_in("loop", block_loopstart)
+
+        block = LammpsBlockInput("compute2", "Compute")
+        block("fs", "fix svirial${a} all ave/time 1 1 1 c_svirial" +
+              " file stress${a}.out mode vector")
+        block("dump", "dump dump_force${a} all custom 1 forces${a}.out" +
               " id type x y z fx fy fz")
         block("run", "run 0")
-        lmp_in("compute", block)
+        lmp_in("compute2", block)
+
+        block = LammpsBlockInput("loopback", "Loop Back")
+        block("iterate", "next a")
+        block("loopend", "jump SELF loopstart")
+        lmp_in("loopback", block)
 
         with open("lammps.in", "w") as fd:
             fd.write(str(lmp_in))
@@ -526,8 +581,6 @@ class AceDescriptor(Descriptor):
         out = run(grep_pace, input=res.stdout, stdout=PIPE)
         if out.returncode:  # There was no mention of pace in pair_style
             s += "Pace style not found.\n"
-            s += "Lammps exe is given by the environment variable :"
-            s += "ASE_LAMMPSRUN_COMMAND\n"
             s += "You can install Pace for Lammps from:\n"
             s += "https://github.com/ICAMS/lammps-user-pace\n\n"
 
@@ -592,7 +645,7 @@ class AceDescriptor(Descriptor):
         """
         acefile = self.get_filepath('.yace')
         pair_coeff = [f"* * {acefile} " +
-                      ''.join(self.elements)]
+                      ' '.join(self.elements)]
         return pair_coeff
 
 # ========================================================================== #

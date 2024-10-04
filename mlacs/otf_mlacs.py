@@ -1,9 +1,10 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
-
-import os
 
 from .mlas import Mlas
 from .core import Manager
@@ -18,7 +19,7 @@ from .properties import (PropertyManager,
 # ========================================================================== #
 # ========================================================================== #
 class OtfMlacs(Mlas, Manager):
-    """
+    r"""
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
 
@@ -60,17 +61,11 @@ class OtfMlacs(Mlas, Manager):
         when creating initial configurations.
         Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool` (optional)
+    keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
-
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
     """
-
     def __init__(self,
                  atoms,
                  state,
@@ -81,16 +76,13 @@ class OtfMlacs(Mlas, Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 ntrymax=0,
                  workdir='',
                  ncprefix='',
                  ncformat='NETCDF4'):
-
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip,
-                      workdir=workdir)
-
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
+        
         # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 

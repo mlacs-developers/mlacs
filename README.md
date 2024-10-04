@@ -109,7 +109,7 @@ Several packages are necessary for the proper functioning of MLACS, here is a no
     extra-fix, extra-pair, extra-compute, extra-dump
     
 > [!WARNING]
-> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommend to use the development versions of ASE.
+> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommend to use ASE versions up to 3.23.
 
 MLACS will then call LAMMPS through ASE, which relies on environment variables.
 They can be set before running the simulation or by modifying environment variables directly in the python script.
@@ -140,8 +140,7 @@ ASE:
 
 ASE is an atomic simulation environment, interfaced with several codes and written in order to set up, control and analyze atomic simulations. As mentioned previously, the correct version must be used for LAMMPS.
 
-    $ git clone -b 3.22.1 https://gitlab.com/ase/ase.git # If LAMMPS < 03Aug22 
-    $ git clone -b 3.23.0b1 https://gitlab.com/ase/ase.git # If LAMMPS > 03Aug22
+    $ git clone -b 3.23.1 https://gitlab.com/ase/ase.git
 
 Then in the package directory
 
@@ -191,3 +190,4 @@ I will start making some for what we have currently to give examples
 
 License
 =======
+MLACS is released under the GNU GPL license. For more details see the LICENSE file.

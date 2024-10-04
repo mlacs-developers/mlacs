@@ -1,8 +1,10 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
-from subprocess import call
 
 import numpy as np
 from ase.units import kB
@@ -11,9 +13,8 @@ from ..core.manager import Manager
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                 free_energy_com_harmonic_oscillator)
 from ..utilities.io_lammps import get_msd_input
-from ..utilities.io_lammps import (LammpsInput,
-                                   EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+from ..utilities.io_lammps import LammpsBlockInput
+
 from ..state.lammps_state import LammpsState
 from .thermostate import ThermoState
 
@@ -201,7 +202,7 @@ class EinsteinSolidState(ThermoState):
     def compute_msd(self):
         """
         """
-        msd_state = LammpsState(self.temperature, 
+        msd_state = LammpsState(self.temperature,
                                 pressure=self.pressure,
                                 nsteps=self.nsteps_msd,
                                 nsteps_eq=self.nsteps_eq,
@@ -210,11 +211,11 @@ class EinsteinSolidState(ThermoState):
                                 workdir=self.workdir,
                                 folder=self.folder,
                                 subfolder='MSD')
-    
+
         msd_state.run_dynamics(self.atoms,
                                self.pair_style,
                                self.pair_coeff)
-        
+
         kall = []
         with open("msd.dat", "w") as f:
             for e in self.elem:
@@ -340,7 +341,7 @@ class EinsteinSolidState(ThermoState):
 
         """
         if self.damp is None:
-             self.damp = "$(100*dt)"
+            self.damp = "$(100*dt)"
 
         temp = self.temperature
         self.info_dynamics["temperature"] = temp
@@ -349,7 +350,7 @@ class EinsteinSolidState(ThermoState):
 
         block = LammpsBlockInput("thermostat", "Integrators")
         block("timestep", f"timestep {self.dt / 1000}")
-        block("momenta", f"velocity all create " +\
+        block("momenta", "velocity all create " +
               f"{temp} {langevinseed} dist gaussian")
         # If we are using Langevin, we want to remove the random part
         # of the forces
@@ -366,14 +367,13 @@ class EinsteinSolidState(ThermoState):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
         """
         if self.trajfile:
-            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
-            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
-                  "id type xu yu zu vx vy vz fx fy fz "
+            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
+            txt += "id type xu yu zu vx vy vz fx fy fz "
             txt += "element"
             block("dump", txt)
             block("dump_modify1", "dump_modify dum1 append yes")
@@ -389,7 +389,8 @@ class EinsteinSolidState(ThermoState):
         Write the LAMMPS input neti in solids
         """
         blocks = []
-        block0 = LammpsBlockInput("einstein params", "Integrators and variables for solid neti")
+        block0 = LammpsBlockInput("einstein params",
+                                  "Integrators and variables for solid neti")
         for iel, el in enumerate(self.elem):
             txt = f"fix ff{el} {el} ti/spring " + \
                   f"{self.k[iel]} {self.nsteps} {self.nsteps_eq} " + \
@@ -398,21 +399,32 @@ class EinsteinSolidState(ThermoState):
             block0("dE", f"variable dE equal (pe-f_ff{el})/atoms")
         block0("lambda", f"variable lambda equal f_ff{self.elem[0]}[1]")
         blocks.append(block0)
-        
-        block1 = LammpsBlockInput("eq fwd", "Equilibration without Einstein potential")
+
+        block1 = LammpsBlockInput("eq fwd",
+                                  "Equilibration without Einstein potential")
         block1("run eq fwd", f"run {self.nsteps_eq}")
         blocks.append(block1)
 
         block2 = LammpsBlockInput("fwd", "Forward Integration")
-        block2("write fwd", "fix f4 all print 1 \"${dE} ${lambda}\" " + \
-                   "screen no append forward.dat title \"# pe  lambda\"")
-        block2("run fwd",f"run {self.nsteps}")
+        block2("write fwd", "fix f4 all print 1 \"${dE} ${lambda}\" " +
+                            "screen no append forward.dat title " +
+                            "\"# pe  lambda\"")
+        block2("run fwd", f"run {self.nsteps}")
         block2("unifx write fwd", "unfix f4")
         blocks.append(block2)
 
-        block3 = LammpsBlockInput("eq bwd", "Equilibration with only Einstein potential")
+        block3 = LammpsBlockInput("eq bwd",
+                                  "Equilibration with only Einstein potential")
         block3("run eq bwd", f"run {self.nsteps_eq}")
         blocks.append(block3)
+
+        block4 = LammpsBlockInput("bwd", "Backward Integration")
+        block4("write bwd", "fix f4 all print 1 \"${dE} ${lambda}\" " +
+                            "screen no append backward.dat title " +
+                            "\"# pe  lambda\"")
+        blocks.append(block4)
+
+        return blocks
 
         block4 = LammpsBlockInput("bwd", "Backward Integration")
         block4("write bwd", "fix f4 all print 1 \"${dE} ${lambda}\" " + \

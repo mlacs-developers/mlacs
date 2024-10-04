@@ -1,3 +1,11 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 from pathlib import Path
 
 import numpy as np
@@ -199,12 +207,12 @@ def get_block_rdf(nsteps, filename='spce-rdf.dat', rmax=None):
     """
     # freq = int(nsteps/5)
     block = LammpsBlockInput("RDF", "Compute RDF")
-    block("v_rep", f"variable repeat equal {nsteps}/2")
-    txt = "compute rdf all rdf ${repeat} 1 1"
+    block("v_rep_rdf", f"variable rep_rdf equal {nsteps}/2")
+    txt = "compute rdf all rdf ${rep_rdf} 1 1"
     if rmax is not None:
         txt += ' cutoff {rmax}'
     block("c_rdf", txt)
-    txt = "fix rdf all ave/time 1 ${repeat}" + \
+    txt = "fix rdf all ave/time 1 ${rep_rdf}" + \
           f" {nsteps} c_rdf[*] file {filename} mode vector\n"
     block("rdf", txt)
     return block
@@ -217,9 +225,9 @@ def get_block_adf(nsteps, filename='spce-adf.dat'):
     """
     # freq = int(nsteps/5)
     block = LammpsBlockInput("ADF", "Compute ADF")
-    block("v_rep", "variable repeat equal 1")
+    block("v_rep_adf", "variable rep_adf equal 1")
     block("c_adf", "compute adf all adf 360")
-    txt = "fix adf all ave/time 100 ${repeat}" + \
+    txt = "fix adf all ave/time 100 ${rep_adf}" + \
           f" {nsteps} c_adf[*] file {filename} mode vector\n"
     block("adf", txt)
     return block
@@ -237,7 +245,7 @@ def get_block_diffusion(nsteps, filename='diffusion.dat'):
     block("v_msd", "variable msd equal c_msd[4]")
     block("v_twopts", "variable twopoint equal c_msd[4]/6/(step*dt+1.0e-6)")
     block("f_msd", "fix msd all vector 1000 c_msd[4]")
-    block("v_slope", "variable fislope equal slope(f_msd)/6/(10000*dt)")
+    block("v_slope", "variable fitslope equal slope(f_msd)/6/(10000*dt)")
     txt = 'fix dcoeff all print 100 "${t} ${msd} ${twopoint} ${fitslope}"' + \
           f' append {filename} title "# Step MSD D(start) D(slope)"'
     block("diffusion", txt)
@@ -458,7 +466,7 @@ def get_minimize_input(style,
                         f"{ptype} {press*10000} vmax {vmax}\n"
     input_string += "thermo    1\n"
     input_string += f"min_style {style}\n"
-    input_string += f"minimize  {etol} {ftol} {nitmax} {nitmax}\n"
+    input_string += f"minimize  {etol} {ftol} {nitmax} {nitmax}\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
@@ -715,6 +723,7 @@ def reconstruct_mlmd_trajectory(trajfile, logfile):
         traj.append(newat)
     return traj
 
+
 # ========================================================================== #
 def get_msd_input(self, msdfile):
     """
@@ -725,8 +734,33 @@ def get_msd_input(self, msdfile):
     for iel, el in enumerate(self.elem):
         block("compute", f"compute c{10+iel} {el} msd com yes")
         block("variable", f"variable msd{el} equal c_c{10+iel}[4]")
-        block("msd el", f"fix f{iel+3} {el} print 1 " + \
-                  f"\"${{msd{el}}}\" screen no append msd{el}.dat")
+        block("msd el", f"fix f{iel+3} {el} print 1 " +
+              f"\"${{msd{el}}}\" screen no append msd{el}.dat")
     return block
 
 
+# ========================================================================== #
+def get_lammps_command():
+    '''
+    Function to load the bash command to run LAMMPS
+    '''
+    # Since some ASE update, there is a new way to get commands
+    envvar = "ASE_LAMMPSRUN_COMMAND"
+    try:
+        from ase.config import cfg
+        if "lammps" in cfg.parser:
+            section = cfg.parser["lammps"]
+            cmd = section["command"]
+        else:
+            cmd = cfg.get(envvar)
+    except ModuleNotFoundError:
+        # The goal is to have this deprecated in the long run
+        # when the update of file-io calculators in ASE is completely done
+        import os
+        cmd = os.environ.get(envvar)
+
+    # And we try the default one afterward
+    if cmd is None:
+        cmd = "lammps"
+
+    return cmd

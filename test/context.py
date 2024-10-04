@@ -1,3 +1,10 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
 import os
 import sys
 import shlex
@@ -14,6 +21,8 @@ def has_lammps_nompi():
     """
     envvar = "ASE_LAMMPSRUN_COMMAND"
     exe = os.environ.get(envvar)
+    from mlacs.utilities.io_lammps import get_lammps_command
+    exe = get_lammps_command()
     error = b'ERROR: Processor partitions do not match number of allocated'
     if exe is None:
         exe = "lmp_mpi"
@@ -22,6 +31,10 @@ def has_lammps_nompi():
     if b'REPLICA' not in lmp_info:
         return True
     cmd = f"mpirun -n 2 {exe} -partition 2x1"
+
+    if shutil.which("mpirun") is None or shutil.which(exe) is None:
+        return True
+
     lmp_info = Popen(shlex.split(cmd), stdout=PIPE).communicate()[0]
     if error in lmp_info:
         return True

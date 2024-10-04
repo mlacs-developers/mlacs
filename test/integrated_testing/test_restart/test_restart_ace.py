@@ -1,5 +1,12 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import pytest
-import pandas as pd
 
 from ase.build import bulk
 from ase.calculators.emt import EMT
@@ -30,6 +37,8 @@ def expected_files(expected_files_base):
 
 @pytest.mark.skipif(context.has_pyace(), reason="Need Python-Ace to use ACE")
 def test_ace_restart(root, treelink):
+    import pandas as pd
+
     # Parameters --------------------------------------------------------------
     temperature = 300  # K
     nconfs = 2

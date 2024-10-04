@@ -1,5 +1,18 @@
-import pandas as pd
+"""
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
+
 import numpy as np
+
+
+try:
+    import pandas as pd
+except ImportError:
+    pass
 
 
 def make_dataframe(df, name, atoms, atomic_env,
@@ -18,7 +31,7 @@ def make_dataframe(df, name, atoms, atomic_env,
         Ase.Atoms object for each configuration
 
     atomic_env: :class:`list` :shape:`[nconfs]`
-        pyace.catomicenvironment.ACEAtomicEnvironment for each configuration
+        pyace.catomicenvironment.ACEAtomicEnvironment for each confs
 
     energy: :class:`np.array` :shape:`[nconfs]`
         Energy of each configuration

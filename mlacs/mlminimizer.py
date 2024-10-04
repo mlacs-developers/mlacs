@@ -1,3 +1,10 @@
+"""
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
+"""
 from ase.units import GPa
 
 from .mlas import Mlas
@@ -7,7 +14,7 @@ from .properties import PropertyManager, CalcExecFunction
 # ========================================================================== #
 # ========================================================================== #
 class MlMinimizer(Mlas):
-    """
+    r"""
     Class to perform structure minimization assisted with machine-learning
     potential
 
@@ -68,22 +75,17 @@ class MlMinimizer(Mlas):
         when creating initial configurations.
         Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool` (optional)
+    keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
-
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
     """
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
-                 keep_tmp_mlip=False, ntrymax=0):
+                 keep_tmp_mlip=False, workdir=''):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
 
         prop = []
         if etol is None:
@@ -116,7 +118,6 @@ class MlMinimizer(Mlas):
         self.log.logger_log.info(msg)
 
         self.step = 0
-        self.ntrymax = ntrymax
         self.log.logger_log.info("")
 
 # ========================================================================== #
