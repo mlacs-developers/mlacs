@@ -7,6 +7,10 @@ from mlacs.ti import ReversibleScalingState, EinsteinSolidState, ThermodynamicIn
 
 rootdir = Path.cwd()
 
+# Link LAMMPS executable
+lmp_exe = 'lmp'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
+
 # System
 atoms = bulk('Cu', cubic=True).repeat(3)
 
