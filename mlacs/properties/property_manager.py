@@ -79,19 +79,12 @@ class PropertyManager(Manager):
         """
         Save the values of observables contained in a PropertyManager object.
 
-        If an observable is scalar, a .dat file is saved as:
-            1st col.: index of MLAS iteration
-            2nd col.: index of state at given MLAS iteration
-            3rd col.: value of observable
-            Columns are separated by blanks of 5 caracters.
-
         Parameters
         ----------
 
         step: :class:`int`
             The index of MLAS iteration
         """
-        path_save = self.workdir / self.folder
         ncpath = self.ncfile.ncpath
 
         if self.manager is not None:
@@ -110,15 +103,6 @@ class PropertyManager(Manager):
                             ncfile[nc_name][idx_db] = val_state
                             ncfile[nc_name+'_meta'][idx_db] = metadata
                             ncfile['mdtime'][idx_db] = idx_db + 1
-
-                    # Scalar observables are saved in .dat files
-                    observable_is_scalar = (len(observable.shape) == 0)
-                    if observable_is_scalar:
-                        namefile = path_save / (observable.label + ".dat")
-                        for idx, value in enumerate(to_be_saved):
-                            index_state = idx+1
-                            row = [step, index_state, value]
-                            self._append_row_to_dat(namefile, row)
 
 # ========================================================================== #
     def save_weighted_prop(self, step, weighting_pol):
@@ -143,8 +127,6 @@ class PropertyManager(Manager):
                 nc_name = observable.nc_name
                 weights = weighting_pol.weight[2:]
 
-                # with nc.Dataset(ncpath, 'r') as ncfile:
-                #     observable_values = ncfile[nc_name][:len(weights)].data
                 obs = self.ncfile.read_obs(nc_name)
                 observable_values = obs[:len(weights)]
 
@@ -163,11 +145,6 @@ class PropertyManager(Manager):
     def save_weights(self, step, weighting_pol, ncformat):
         """
         Save the MBAR weights.
-
-        The .dat file is formatted as:
-            1st col.: index of MLAS iteration
-            2nd col.: index of config in database
-            3rd col.: weights
 
         Parameters
         ----------
@@ -196,15 +173,6 @@ class PropertyManager(Manager):
                 nb_effective_conf = 0
             nb_conf = len(weights)
 
-            path_save = self.workdir / self.folder
-            namefile = path_save / ('Weights' + ".dat")
-            # If the properties correspond to the nth MLAS cycle
-            # The weights correspond to the (n-1)th cycle
-            # Hence below the occurrence of step-1
-            for idx, value in enumerate(weights):
-                row = [step-1, idx+1, value]
-                self._append_row_to_dat(namefile, row)
-
             # Save weights into HIST file
             weights_ncpath = self.ncfile.ncpath
             if 'NETCDF3' in ncformat:
@@ -221,36 +189,3 @@ class PropertyManager(Manager):
             # Weight of first two confs (that are throwned out)
             w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
             return w_first2
-
-# ========================================================================== #
-    def _append_row_to_dat(self, namefile, row, hspace=" "*5):
-        """
-        Define format of .dat file.
-
-        The .dat file is formatted as:
-            1st column: int [10 caract.]
-            2nd column: int [10 caract.]
-            3rd column: float [20 caract.]
-            Columns are separated by blanks of hspace caracters (default 5).
-        """
-        int1, int2, value = row
-        row_to_be_saved = f"{int1:10.0f}" + hspace
-        row_to_be_saved += f"{int2:10.0f}" + hspace
-        row_to_be_saved += f"{value:20.15f}" + hspace
-        row_to_be_saved += "\n"
-        with open(namefile, "a") as f:
-            f.write(row_to_be_saved)
-
-# ========================================================================== #
-    def _read_prop(self, observable):
-        """
-        Read previous values of a given observable from .dat file.
-        """
-        path_save = self.workdir / self.folder
-        namefile = path_save / (observable.label + ".dat")
-        with open(namefile, "r") as f:
-            beingread = []
-            for line in f:
-                beingread.append(float(line[25:50]))
-        hasbeenread = np.array(beingread)
-        return hasbeenread

@@ -185,7 +185,7 @@ class SnapDescriptor(Descriptor):
             amat_f = np.zeros((3 * nat, self.ncolumns))
             amat_s = np.zeros((6, self.ncolumns))
 
-            bispectrum = np.loadtxt(f"descriptor{i+1}.out",
+            bispectrum = np.loadtxt(f"descriptor{idx+1}.out",
                                     skiprows=4)
             bispectrum[-6:, 1:-1] /= -atoms[idx].get_volume()
 

@@ -504,22 +504,22 @@ class CalcRoutineFunction(CalcExecFunction):
 
     label: :class:`str`
         Label of the function to be executed, e.g. `Kinetic_Energy`.
-        Cf. nc_routine_conv method of HistFile class.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
 
     nc_name: :class:`str` (optional)
         Name of the observable in *HIST.nc file, e.g. `ekin`.
-        Cf. nc_routine_conv method of HistFile class.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
         This name should follow Abinit conventions as much as possible.
         Default ``None``.
 
     nc_dim: :class:`str` (optional)
         Name of the dimension of the observable in *HIST.nc file.
-        Cf. nc_routine_conv method of HistFile class.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
         Default ``None``.
 
     nc_unit: :class:`str` (optional)
         Name of the unit of the observable in *HIST.nc file.
-        Cf. nc_routine_conv method of HistFile class.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
         Default ''.
 
     weight: :class:`WeightingPolicy` (optional)
