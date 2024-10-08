@@ -498,7 +498,31 @@ class CalcRoutineFunction(CalcExecFunction):
 
     Parameters
     ----------
-    weight: :class:`WeightingPolicy`
+
+    function: :class:`str`
+        Name of Lammps function, e.g. `get_kinetic_energy'.
+
+    label: :class:`str`
+        Label of the function to be executed, e.g. `Kinetic_Energy`.
+        Cf. nc_routine_conv method of HistFile class.
+
+    nc_name: :class:`str` (optional)
+        Name of the observable in *HIST.nc file, e.g. `ekin`.
+        Cf. nc_routine_conv method of HistFile class.
+        This name should follow Abinit conventions as much as possible.
+        Default ``None``.
+
+    nc_dim: :class:`str` (optional)
+        Name of the dimension of the observable in *HIST.nc file.
+        Cf. nc_routine_conv method of HistFile class.
+        Default ``None``.
+
+    nc_unit: :class:`str` (optional)
+        Name of the unit of the observable in *HIST.nc file.
+        Cf. nc_routine_conv method of HistFile class.
+        Default ''.
+
+    weight: :class:`WeightingPolicy` (optional)
         WeightingPolicy class, Default: `None`.
     """
 
@@ -551,6 +575,7 @@ class CalcPressure(CalcRoutineFunction):
 
     Parameters
     ----------
+
     weight: :class:`WeightingPolicy`
         WeightingPolicy class, Default: `None`.
     """

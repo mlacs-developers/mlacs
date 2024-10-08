@@ -90,9 +90,6 @@ class PropertyManager(Manager):
 
         step: :class:`int`
             The index of MLAS iteration
-
-        weighting_pol: :class:`WeightingPolicy`
-            WeightingPolicy class, Default: `None`.
         """
         path_save = self.workdir / self.folder
         ncpath = self.ncfile.ncpath
@@ -136,7 +133,7 @@ class PropertyManager(Manager):
             The index of MLAS iteration
 
         weighting_pol: :class:`WeightingPolicy`
-            WeightingPolicy class, Default: `None`.
+            WeightingPolicy class.
 
         """
         ncpath = self.ncfile.ncpath
@@ -180,6 +177,12 @@ class PropertyManager(Manager):
 
         weighting_pol: :class:`WeightingPolicy`
             WeightingPolicy class, Default: `None`.
+
+        ncformat: :class:`str`
+            The format of the *HIST.nc file. One of the five flavors of netCDF
+            files format available in netCDF4 python package 'NETCDF3_CLASSIC',
+            'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+            'NETCDF4'.
         """
 
         if weighting_pol is not None:
@@ -220,7 +223,6 @@ class PropertyManager(Manager):
             return w_first2
 
 # ========================================================================== #
-
     def _append_row_to_dat(self, namefile, row, hspace=" "*5):
         """
         Define format of .dat file.

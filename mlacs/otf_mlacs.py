@@ -65,6 +65,16 @@ class OtfMlacs(Mlas, Manager):
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
+
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF4``.
     """
     def __init__(self,
                  atoms,
@@ -147,7 +157,7 @@ class OtfMlacs(Mlas, Manager):
 # ========================================================================== #
     def _compute_properties(self):
         """
-
+        Main method to compute/save properties of OtfMlacs objects.
         """
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)

@@ -277,6 +277,10 @@ class HistPlot:
 
     Parameters
     ----------
+
+    ncpath: :class:`str` or :class:`Path` of `pathlib` module (optional)
+        Absolute path to *HIST.nc file, i.e. `path_to_ncfile/ncfilename`.
+        Default ''.
     """
 
     def __init__(self,
@@ -304,7 +308,7 @@ class HistPlot:
 
 # ========================================================================== #
     def _core_plot(self, obs_name, fig=None, ax=None):
-        """  """
+        """Plot the observable named `obs_name` in the ncfile."""
         if None in (fig, ax):
             fig, ax = plt.subplots()
 
@@ -362,6 +366,7 @@ class HistPlot:
 
 # ========================================================================== #
     def plot_thermo_basic(self, show=True, savename=''):
+        """Plot the set of observables in self.basic_obs"""
         fig, ax = plt.subplots(2, 2, figsize=(9, 7))
         for idx, ax_loc in enumerate(ax.reshape(-1)):
             obs_name = self.basic_obs[idx]
@@ -376,6 +381,7 @@ class HistPlot:
 
 # ========================================================================== #
     def plot_neff(self, show=True, savename=''):
+        """Plot Neff against Nconfs, and a few weigth distributions."""
         ncfile = self.ncfile
         weights = ncfile.read_obs('weights')
         weights_meta = ncfile.read_obs('weights_meta')

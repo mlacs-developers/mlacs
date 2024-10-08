@@ -76,6 +76,34 @@ class HistFile:
 
     Parameters
     ----------
+
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+
+    workdir: :class:`str` (optional)
+        The directory in which to run the calculation.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF4``.
+
+    launched: :class:`Bool` (optional)
+        If True then is not the first MLACS start of the related Mlas instance,
+        i.e. it is a restart situation for which a *HIST.nc already exists.
+        Default ``True``.
+
+    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms` (optional)
+        the atom object on which the simulation is run.
+        Default ``None``.
+
+    ncpath: :class:`str` or :class:`Path` of `pathlib` module (optional)
+        Absolute path to *HIST.nc file, i.e. `path_to_ncfile/ncfilename`.
+        Must be given in a postprocessing use, otherwise defined by the
+        _get_nc_path method.
+        Default ``None``.
     """
 
     def __init__(self,
@@ -114,10 +142,10 @@ class HistFile:
         workdir_loc = self.workdir
         if ncprefix_loc != '' and (not ncprefix_loc.endswith('_')):
             ncprefix_loc += '_'
-        script_name = ncprefix_loc
+        
         # Obtain script name, including in case of pytest execution
+        script_name = ncprefix_loc
         pytest_path = os.getenv('PYTEST_CURRENT_TEST')
-
         if pytest_path is not None:
             if str(workdir_loc) == '':
                 workdir_loc = Path(pytest_path).parents[0].absolute()
@@ -125,12 +153,11 @@ class HistFile:
             script_name += name1.partition('.py')[0]
         else:
             script_name += os.path.basename(sys.argv[0])
-
         if script_name.endswith('.py'):
             script_name = script_name[:-3]
         ncname = script_name + "_HIST.nc"
-        ncpath = str(Path(workdir_loc).absolute() / ncname)
 
+        ncpath = str(Path(workdir_loc).absolute() / ncname)
         ncfile_exists = os.path.isfile(ncpath)
         if ncfile_exists:
             # if it is the first MLAS launch
