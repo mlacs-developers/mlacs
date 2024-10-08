@@ -3,9 +3,14 @@ from pathlib import Path
 import numpy as np
 from ase.io import read
 from ase.build import make_supercell
-from mlacs.ti import EinsteinSolidState, ThermodynamicIntegration, UFLiquidState
+from mlacs.ti import ThermodynamicIntegration, UFLiquidState
 
 rootdir = Path.cwd()
+
+# Link LAMMPS executable
+lmp_exe = 'lmp'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
+
 
 # Load the atoms and the calculator
 atoms = read(f"{rootdir}/Cu.json")

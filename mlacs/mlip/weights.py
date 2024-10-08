@@ -57,7 +57,7 @@ class FixedWeight(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def compute_weight(self, coef=None, predict=None):
+    def compute_weight(self, coef=None, predict=None, **kwargs):
         """
         Compute Uniform Weight taking into account nthrow :
         """
@@ -71,7 +71,9 @@ class FixedWeight(WeightingPolicy):
         if len(self.matsize) == (self.nstatic+1):  # Exactly 1 conf not static
             self.weight = np.append(self.static_weight, self.remaining)
         elif len(self.matsize) > self.nstatic:
-            tmp, fn = self.subweight.compute_weight(coef=coef, predict=predict)
+            tmp, fn = self.subweight.compute_weight(coef=coef,
+                                                    predict=predict,
+                                                    **kwargs)
             header2 += tmp
             dynamic_w = self.remaining * self.subweight.weight
             self.weight = np.append(self.static_weight, dynamic_w)
@@ -134,7 +136,7 @@ class EnergyBasedWeight(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def compute_weight(self, coef=None, predict=None):
+    def compute_weight(self, coef=None, predict=None, **kwargs):
         """
         Compute Uniform Weight taking into account nthrow :
         """
@@ -190,7 +192,7 @@ class UniformWeight(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def compute_weight(self, coef=None, predict=None):
+    def compute_weight(self, coef=None, predict=None, **kwargs):
         """
         Compute Uniform Weight taking into account nthrow :
         """
@@ -252,7 +254,7 @@ class IncreasingWeight(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def compute_weight(self, coef, f_mlipE):
+    def compute_weight(self, coef, f_mlipE, **kwargs):
         """
         Compute Increasing Weight taking into account nthrow :
         """

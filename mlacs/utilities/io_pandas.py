@@ -14,6 +14,7 @@ try:
 except ImportError:
     pass
 
+
 def make_dataframe(df, name, atoms, atomic_env,
                    energy=None, forces=None, we=None, wf=None):
     """

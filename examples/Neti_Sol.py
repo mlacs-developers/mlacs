@@ -7,6 +7,10 @@ from mlacs.ti import EinsteinSolidState, ThermodynamicIntegration
 
 rootdir = Path.cwd()
 
+# Link LAMMPS executable 
+lmp_exe = 'lmp'
+os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
+
 # Load the atoms and the calculator
 atoms = read(f"{rootdir}/Cu.json")
 
@@ -33,5 +37,5 @@ state = EinsteinSolidState(atoms,
                            nsteps=nsteps,
                            logfile='neti.log')
 
-ti = ThermodynamicIntegration(state, ninstance=1, workdir='run_Neti_Sol')
+ti = ThermodynamicIntegration(state, ninstance=1)
 ti.run()
