@@ -158,6 +158,7 @@ class AceDescriptor(Descriptor):
                  bconf_dict=None, loss_dict=None, fitting_dict=None,
                  backend_dict=None, nworkers=None):
 
+
         self.cmd = get_lammps_command()
         self._verify_dependency()
 
@@ -420,6 +421,7 @@ class AceDescriptor(Descriptor):
             if np.any(at.cell.array != atoms[0].cell.array):
                 clear_loop = True
             lmp_atfname = f"Atoms/atoms{i+1}.lmp"
+
             write_lammps_data(lmp_atfname,
                               at,
                               specorder=self.elements.tolist())

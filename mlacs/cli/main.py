@@ -16,7 +16,9 @@ from ..version import __version__
 
 commands = [('correlation', 'mlacs.cli.correlation'),
             ('plot_error', 'mlacs.cli.plot_error'),
-            ('plot_weights', 'mlacs.cli.plot_weights')]
+            ('plot_weights', 'mlacs.cli.plot_weights'),
+            ('plot_thermo', 'mlacs.cli.plot_thermo'),
+            ('plot_neff', 'mlacs.cli.plot_neff')]
 
 
 def main(prog='mlacs', description='MLACS command line tool',
