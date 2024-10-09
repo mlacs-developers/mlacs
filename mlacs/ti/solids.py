@@ -426,6 +426,13 @@ class EinsteinSolidState(ThermoState):
 
         return blocks
 
+        block4 = LammpsBlockInput("bwd", "Backward Integration")
+        block4("write bwd", "fix f4 all print 1 \"${dE} ${lambda}\" " + \
+                   "screen no append backward.dat title \"# pe  lambda\"")
+        blocks.append(block4)
+
+        return blocks
+    
 # ========================================================================== #
     def log_recap_state(self):
         """
@@ -448,3 +455,4 @@ class EinsteinSolidState(ThermoState):
                 msg += f"    For {e} :                   " + \
                        f"k = {self.k[iel]} eV/angs^2\n"
         return msg
+
