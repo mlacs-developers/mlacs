@@ -175,18 +175,28 @@ class HistFile:
     def _create_nc_file(self, atoms):
         """
         Create netcdf file(s).
-
-        Create Abinit-style dimensions
-        Create Abinit-style variables that are not 'RoutineProperties'
+        Create Abinit-style dimensions.
+        Create Abinit-style variables that are not 'CalcProperty' objects:
+        The latter are typically static structural data obeying Abinit naming
+        conventions. Some of these variables (namely: znucl, typat, amu, dtion)
+        are initialized here.
         """
 
-        # Assume ntypat and natom are the same for all items in list
+        # Assume ntypat, natom, etc., are the same for all items in list
         if isinstance(atoms, list):
             atoms = atoms[0]
-        ntypat = len(set(atoms.get_atomic_numbers()))
+        atomic_numbers = list(atoms.get_atomic_numbers())
+        atomic_masses = list(atoms.get_masses())
         natom = len(atoms)
+        znucl = sorted(set(atomic_numbers), key=atomic_numbers.index)
+        amu = sorted(set(atomic_masses), key=atomic_masses.index)
+        ntypat = len(znucl)
+        typat = [1+znucl.index(x) for x in atomic_numbers]
+        # dtion is not well-defined in MLACS. Set to one below by convention.
+        dtion = 1.0
 
         dict_dim = {'time': None,
+                    'one': 1,
                     'two': 2,
                     'xyz': 3,
                     'npsp': 3,
@@ -195,15 +205,21 @@ class HistFile:
                     'natom': natom,
                     }
         dict_var = {'typat': ('natom',),
-                    'znucl': ('npsp',),
+                    'znucl': ('ntypat',),
                     'amu': ('ntypat',),
-                    'dtion': (),
+                    'dtion': ('one',),
                     'mdtemp': ('two',),
                     'mdtime': ('time',),
                     }
+        dict_initialize_var = {'typat': typat,
+                               'znucl': znucl,
+                               'amu': amu,
+                               'dtion': dtion,
+                               }
 
         self._add_dim(self.ncpath, dict_dim)
         self._add_var(self.ncpath, dict_var)
+        self._initialize_var(self.ncpath, dict_initialize_var)
 
         dict_w_dim = {'weights_dim': None}
         dict_w_var = {'weights': ('weights_dim',),
@@ -229,6 +245,12 @@ class HistFile:
         with nc.Dataset(ncfilepath, mode, format=self.ncformat) as new:
             for var_name, var_dim in dict_var.items():
                 new.createVariable(var_name, datatype, var_dim)
+
+# ========================================================================== #
+    def _initialize_var(self, ncfilepath, dict_initialize_var, mode='r+'):
+        with nc.Dataset(ncfilepath, mode, format=self.ncformat) as new:
+            for var_name, var_value in dict_initialize_var.items():
+                new[var_name][:] = var_value
 
 # ========================================================================== #
     def create_nc_var(self, prop_list):
