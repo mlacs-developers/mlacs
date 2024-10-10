@@ -1,6 +1,9 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, CD)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
 
 from mlacs.properties.property_manager import PropertyManager
@@ -9,11 +12,12 @@ from mlacs.properties.calc_property import (CalcPafi,
                                             CalcRdf,
                                             CalcAdf,
                                             CalcTi,
-                                            CalcTrueVolume,
                                             CalcExecFunction,
                                             CalcRoutineFunction,
                                             CalcPressure,
                                             CalcProperty,
+                                            CalcAcell,
+                                            CalcAngles,
                                             )
 
 from .basic_function import (eos_fit,
@@ -29,6 +33,7 @@ __all__ = ['PropertyManager',
            'CalcExecFunction',
            'CalcRoutineFunction',
            'CalcPressure',
-           'CalcTrueVolume',
+           'CalcAcell',
+           'CalcAngles',
            'eos_fit',
            ]

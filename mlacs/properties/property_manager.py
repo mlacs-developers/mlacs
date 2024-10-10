@@ -1,10 +1,13 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, CD)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
 
 import numpy as np
-import h5py
+import netCDF4 as nc
 
 from ..core.manager import Manager
 
@@ -15,6 +18,7 @@ class PropertyManager(Manager):
     """
     Parent Class managing the calculation of differents properties
     """
+
     def __init__(self,
                  prop,
                  folder='Properties',
@@ -32,22 +36,19 @@ class PropertyManager(Manager):
         else:
             self.manager = [prop]
             self.check = [False]
-            
 
 # ========================================================================== #
     @property
     def check_criterion(self):
         """
-        Check all criterions. They have to converged at the same time.
+        Check all criterions. They have to be all converged at the same time.
+        Return True if all elements in list are True, else return False.
         """
-        for _ in self.check:
-            if not _:
-                return False
-        return True
+        return np.all(self.check)
 
 # ========================================================================== #
     @Manager.exec_from_workdir
-    def run(self, step, wdir):
+    def run(self, step):
         """
         Run property calculation.
         """
@@ -56,37 +57,13 @@ class PropertyManager(Manager):
             if step % observable.freq == 0:
                 dircheck = True
         if dircheck:
-            wdir.mkdir(exist_ok=True, parents=True)
+            self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
-                observable.isfirstcomputation = observable.isfirst
-                #Note: observable.isfirst becomes False after the 1st _exec()
-                #while, observable.isfirstcomputation stays True until the
-                #2nd _exec().
-                #This distinction proves useful e.g. to initialize datasets
                 self.check[i] = observable._exec()
                 msg += repr(observable)
-                
-                #Check if first mlas run AND if first observable computation
-                if self.isfirstlaunched and observable.isfirstcomputation:
-                    self._initialize_hdf5_dataset(observable)
-                    #Note: here the dataset is initialized AFTER the observable
-                    #has been first computed, but BEFORE save_prop() is called,
-                    #Hence, the dataset's shape is customized at will
         return msg
-
-# ========================================================================== #
-    def _initialize_hdf5_dataset(self, observable):
-        """Create hdf5 dataset corresponding to a calc property object"""
-        maxshape_val = (None,) + observable.shape
-        hpath = self.workdir / "HIST.hdf5"
-        hfile = h5py.File(hpath, "a")
-        dtst_path = self.folder + '/' + observable.label
-        #Some dummy data (with the correct shape) to initialize the dataset
-        dummy_init = np.ones(shape=(1,)+observable.shape)*-1
-        hfile.create_dataset(dtst_path, data=dummy_init, maxshape=maxshape_val)
-        hfile.close()
 
 # ========================================================================== #
     def calc_initialize(self, **kwargs):
@@ -96,191 +73,119 @@ class PropertyManager(Manager):
         for observable in self.manager:
             if observable.useatoms:
                 observable.get_atoms(kwargs['atoms'])
-                
-# ========================================================================== #        
+
+# ========================================================================== #
     def save_prop(self, step):
         """
         Save the values of observables contained in a PropertyManager object.
-        
-        If an observable is scalar, a .dat file is saved as:
-            1st col.: index of MLAS iteration
-            2nd col.: index of state at given MLAS iteration
-            3rd col.: value of observable
-            Columns are separated by blanks of 5 caracters.
 
         Parameters
         ----------
-        
+
         step: :class:`int`
             The index of MLAS iteration
-            
-        weighting_pol: :class:`WeightingPolicy`
-            WeightingPolicy class, Default: `None`.        
-        
         """
-        path_save = self.workdir / self.folder
-        for observable in self.manager:
-            to_be_saved = observable.new
+        ncpath = self.ncfile.ncpath
 
-            hpath = self.workdir / "HIST.hdf5"
-            hfile = h5py.File(hpath, "a")
-            
-            if observable.shape is not None:
-                
-                dataset_path = self.folder + '/' + observable.label
-                for idx,val_state in enumerate(to_be_saved):
-                    index_state = idx+1
-                    metadata = [observable.isfirstcomputation,
-                                index_state,
-                                dataset_path,
-                                ]
-                    self._append_array_to_hdf5(hfile, metadata, val_state)
-                
-                #scalar observables are saved in .dat files
-                observable_is_scalar = (len(observable.shape) == 0)
-                if observable_is_scalar:
-                    namefile = path_save / (observable.label + ".dat")
-                    for idx,value in enumerate(to_be_saved):
-                        index_state = idx+1
-                        row = [step, index_state, value]
-                        self._append_row_to_dat(namefile, row)
-                        
-            hfile.close()
-                                            
-# ========================================================================== #          
+        if self.manager is not None:
+            for observable in self.manager:
+                to_be_saved = observable.new
+                nc_name = observable.nc_name
+
+                if nc_name is not None:
+                    for idx, val_state in enumerate(to_be_saved):
+                        with nc.Dataset(ncpath, 'a') as ncfile:
+                            index_state = idx+1
+                            metadata = [step, index_state]
+                            idx_db = np.ma.count(ncfile[nc_name+'_meta'][:, 0])
+                            # idx_db is index of conf in dtbase for observable
+
+                            ncfile[nc_name][idx_db] = val_state
+                            ncfile[nc_name+'_meta'][idx_db] = metadata
+                            ncfile['mdtime'][idx_db] = idx_db + 1
+
+# ========================================================================== #
     def save_weighted_prop(self, step, weighting_pol):
         """
         For all observables in a PropertyManager object, save the values
         of the observables, weighted by the weighting policy.
-        
-        The .dat file is formatted as:
-            1st col.: index of MLAS iteration
-            2nd col.: number of configs used in the database
-            3rd col.: value of weighted observable
-            
-        Warning: At the first MLAS iteration, no weights are computed.
 
         Parameters
         ----------
-        
+
         step: :class:`int`
             The index of MLAS iteration
-            
+
         weighting_pol: :class:`WeightingPolicy`
-            WeightingPolicy class, Default: `None`.        
-        
+            WeightingPolicy class.
+
         """
-        path_save = self.workdir / self.folder
+        ncpath = self.ncfile.ncpath
+
         if weighting_pol is not None:
             for observable in self.manager:
+                nc_name = observable.nc_name
                 weights = weighting_pol.weight[2:]
-                observable_values = self._read_prop(observable)[:len(weights)]
-                nconfs_used = len(weights)
-                if len(weights) > 0:
-                    weighted_observable = np.sum(weights*observable_values)
-                    weighted_observable /= np.sum(weights)
-                    namefile = path_save / ('Weighted' + observable.label + \
-                                            ".dat")
-                    row = [step, nconfs_used, weighted_observable]
-                    self._append_row_to_dat(namefile, row)
 
-# ========================================================================== #        
-    def save_weights(self, step, weighting_pol):
+                obs = self.ncfile.read_obs(nc_name)
+                observable_values = obs[:len(weights)]
+
+                if len(weights) > 0:
+                    w_name = 'weighted_' + nc_name
+                    weights /= np.sum(weights)
+                    dim_array = np.array([1]*observable_values.ndim)
+                    dim_array[0] = -1
+                    r_weights = weights.reshape(dim_array)
+                    if r_weights.shape[0] == observable_values.shape[0]:
+                        weighted_observ = np.sum(r_weights*observable_values)
+                        with nc.Dataset(ncpath, 'a') as ncfile:
+                            ncfile[w_name][len(weights)-1] = weighted_observ
+
+# ========================================================================== #
+    def save_weights(self, step, weighting_pol, ncformat):
         """
         Save the MBAR weights.
-        
-        The .dat file is formatted as:
-            1st col.: index of MLAS iteration
-            2nd col.: index of config in database
-            3rd col.: weights
 
         Parameters
         ----------
-        
+
         step: :class:`int`
             The index of MLAS iteration
-            
+
         weighting_pol: :class:`WeightingPolicy`
-            WeightingPolicy class, Default: `None`.        
-        
+            WeightingPolicy class, Default: `None`.
+
+        ncformat: :class:`str`
+            The format of the *HIST.nc file. One of the five flavors of netCDF
+            files format available in netCDF4 python package 'NETCDF3_CLASSIC',
+            'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+            'NETCDF4'.
         """
-              
-        
+
         if weighting_pol is not None:
-            #The first two confs of self.mlip.weight.database are never used
-            #in the properties computations, so they are throwned out here
-            #by the slicing operator [2:]
+            # The first two confs of self.mlip.weight.database are never used
+            # in the properties computations, so they are throwned out here
+            # by the slicing operator [2:]
             weights = weighting_pol.weight[2:]
-        
-            path_save = self.workdir / self.folder
-            to_be_saved = weights
-            namefile = path_save / ('Weights' + ".dat")
-            #If the properties correspond to the nth MLAS cycle
-            #The weights correspond to the (n-1)th cycle
-            #Hence below the occurrence of step-1
-            for idx,value in enumerate(to_be_saved):
-                row = [step-1, idx+1, value]
-                self._append_row_to_dat(namefile, row)
+            if len(weights) > 0:
+                nb_effective_conf = np.sum(weights)**2 / np.sum(weights**2)
+            else:
+                nb_effective_conf = 0
+            nb_conf = len(weights)
 
-# ========================================================================== #                       
-    def _append_row_to_dat(self, namefile, row, hspace=" "*5):
-        """
-        Define format of .dat file.
-        
-        The .dat file is formatted as:
-            1st column: int [10 caract.]
-            2nd column: int [10 caract.]
-            3rd column: float [20 caract.]
-            Columns are separated by blanks of hspace caracters (default 5).
-        """
-        int1, int2, value = row
-        row_to_be_saved = f"{int1:10.0f}" + hspace
-        row_to_be_saved += f"{int2:10.0f}" + hspace
-        row_to_be_saved += f"{value:20.15f}" + hspace
-        row_to_be_saved += "\n"
-        with open(namefile, "a") as f:
-            f.write(row_to_be_saved) 
- 
-# ========================================================================== #        
-    def _read_prop(self, observable):
-        """
-        Read previous values of a given observable from .dat file.
-        """
-        path_save = self.workdir / self.folder
-        namefile = path_save / (observable.label + ".dat")
-        with open(namefile, "r") as f:
-            beingread = []
-            for line in f:
-                beingread.append(float(line[25:50]))
-        hasbeenread = np.array(beingread)
-        return hasbeenread         
+            # Save weights into HIST file
+            weights_ncpath = self.ncfile.ncpath
+            if 'NETCDF3' in ncformat:
+                weights_ncpath = weights_ncpath.replace('HIST', 'WEIGHTS')
+            with nc.Dataset(weights_ncpath, 'a') as ncfile:
+                idx_db = np.ma.count(ncfile['weights_meta'][:, 0])
+                for idx, value in enumerate(weights):
+                    ncfile['weights'][idx_db+idx] = value
+                    # weights_meta keeps track of db index for given cycle
+                    # and of number of effective configurations
+                    metadata = [idx + 1, nb_effective_conf, nb_conf]
+                    ncfile['weights_meta'][idx_db+idx] = metadata
 
-# ========================================================================== #
-    def _append_row_to_hdf5(self, hfile, dataset_path, row):
-        """
-        Append a new value to an .hdf5 dataset
-        The dataset has to be of shape (n,), i.e. the observable must be scalar
-        """
-        new_value = row[2]
-        current_data_length = hfile[dataset_path].shape[0]
-        hfile[dataset_path].resize((current_data_length + 1), axis=0)
-        hfile[dataset_path][-1:] = new_value
-
-# ========================================================================== #
-    def _append_array_to_hdf5(self, hfile, metadata, array):
-        """
-        Append a new array (of arbitrary shape) to an .hdf5 dataset
-        
-        Note:
-        Due to the initialization constraint on hdf5 datasets, an initial dummy
-        array is set for hfile[dataset_path][0], cf. _initialize_hdf5_dataset()
-        Hence, the very first call to _append_array_to_hdf5() replaces this 
-        dummy data, instead of being appended to it.
-        """
-        isfirstcomputation, index_state, dataset_path = metadata
-        if isfirstcomputation and index_state == 1 and self.isfirstlaunched:
-            hfile[dataset_path][0] = array
-        else:
-            current_data_length = hfile[dataset_path].shape[0]
-            hfile[dataset_path].resize((current_data_length + 1), axis=0)
-            hfile[dataset_path][-1:] = array
+            # Weight of first two confs (that are throwned out)
+            w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
+            return w_first2

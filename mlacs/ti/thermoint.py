@@ -1,7 +1,11 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (PR, GA, AC)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
@@ -66,22 +70,22 @@ class ThermodynamicIntegration(Manager):
         tasks = (self.ninstance * self.nstate)
         with save_cwd(), ThreadPoolExecutor(max_workers=tasks) as executor:
             for istate in range(self.nstate):
-                if self.ninstance > 1:
-                    for i in range(self.ninstance):
-                        executor.submit(self._run_one_state, istate, i)
-                        msg = f"State {istate+1}/{self.nstate} " + \
-                              f"instance_{i+1} launched\n"
-
-                        msg += "Working directory for this instance " + \
-                               f"of state : \n{self.state[istate].path}\n"
-                        self.log.logger_log.info(msg)
-                elif self.ninstance == 1:
-                    executor.submit(self._run_one_state, istate, i=1)
-                    msg = f"State {istate+1}/{self.nstate} launched\n"
-                    msg += "Working directory for this state " + \
-                           f": \n{self.state[istate].path}\n"
+                for i in range(self.ninstance):
+                    if self.ninstance > 1:
+                        stateworkdir = os.path.join(self.workdir,
+                                                    self.state[istate].get_workdir(),
+                                                    f"for_back_{i+1}/")
+                    elif self.ninstance == 1:
+                        stateworkdir = os.path.join(self.workdir,
+                                                    self.state[istate].get_workdir())
+                    os.makedirs(stateworkdir, exist_ok=True)
+                    future = executor.submit(self._run_one_state, istate, i)
+                    msg = f"State {istate + 1}/{self.nstate} instance_{i} launched\n"
+                    msg += f"Working directory for this instance: \n{stateworkdir}\n"
                     self.log.logger_log.info(msg)
-            executor.shutdown(wait=True)
+
+                    future.result()
+            # executor.shutdown(wait=True)
 
         if self.ninstance > 1:
             for istate in range(self.nstate):

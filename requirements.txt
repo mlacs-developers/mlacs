@@ -3,3 +3,4 @@ ase
 pymbar
 scikit-learn
 netCDF4
+pytest

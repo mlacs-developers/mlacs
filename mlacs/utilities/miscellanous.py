@@ -1,15 +1,18 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
+
 import os
 from pathlib import Path
 from contextlib import contextmanager
 import numpy as np
-import h5py
 
 from scipy import interpolate
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.optimize import minimize
 
 from ase.atoms import Atoms
@@ -295,7 +298,7 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
 
 
 # ========================================================================== #
-def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
+def normalized_integration(x, y, norm=1.0, scale=True, func=simpson):
     """
     Compute normalized integral of y to `norm`.
 
@@ -309,7 +312,7 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
         Scale x and y to the same order of magnitude to avoid numerical
         errors.
     func : :class:`scipy.integrate.func`
-        Scipy function for intergration (simps, trapz, ...).
+        Scipy function for intergration (simpson, trapz, ...).
 
     Return
     ------
@@ -408,42 +411,3 @@ def read_distribution_files(filename):
     _gmin = np.min(np.c_[yaxis, buf].T, axis=0)
     _gmax = np.max(np.c_[yaxis, buf].T, axis=0)
     return xaxis, _gav, _gmin, _gmax
-
-# ========================================================================== #
-def get_dataset_paths(obj, datasets_path = {}, key=''):
-    """
-    Obtain all "paths" of hdf5 datasets (recursively) in obj.
-    Return a dictionnary with 
-        'observable labels' as keys
-        'observable paths' as values
-        
-    Parameters
-    ----------
-
-    obj: :class:`h5py._hl.files.File`
-        HIST file of hdf5 format, where all data is gathered
-    """
-    if isinstance(obj, h5py.File) or isinstance(obj, h5py.Group):
-        for key in obj.keys():
-            get_dataset_paths(obj[key], datasets_path, key)
-    elif isinstance(obj, h5py.Dataset):
-        datasets_path[key.replace("_", " ")] = obj.name
-    return datasets_path
-
-# ========================================================================== #
-def get_array_from_hdf5(observable_label, hdf5file):
-    """
-    Return numpy array of given dataset from hdf5 file.
-    
-    Parameters
-    ----------
-
-    observable_label: :class:`str` 
-        Name of the observable
-
-    hdf5file: :class:`h5py._hl.files.File`
-        HIST file of hdf5 format, where all data is gathered
-    """
-    dict_dtst_path = get_dataset_paths(hdf5file)
-    obs = np.array(hdf5file[dict_dtst_path[observable_label]])
-    return obs    

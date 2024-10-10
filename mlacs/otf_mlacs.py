@@ -1,21 +1,25 @@
 """
-// (c) 2021 Aloïs Castellano
-// This code is licensed under MIT license (see LICENSE.txt for details)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON, CD)
+// This file is distributed under the terms of the
+// GNU General Public License, see LICENSE.md
+// or http://www.gnu.org/copyleft/gpl.txt .
+// For the initials of contributors, see CONTRIBUTORS.md
 """
-
-import h5py
 
 from .mlas import Mlas
 from .core import Manager
-from .properties import PropertyManager
-from .utilities.log import MlacsLog
-from .properties import CalcExecFunction, CalcRoutineFunction, CalcPressure
+from .utilities.io_abinit import HistFile
+from .properties import (PropertyManager,
+                         CalcRoutineFunction,
+                         CalcPressure,
+                         CalcAcell,
+                         CalcAngles)
 
 
 # ========================================================================== #
 # ========================================================================== #
 class OtfMlacs(Mlas, Manager):
-    """
+    r"""
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
 
@@ -57,15 +61,20 @@ class OtfMlacs(Mlas, Manager):
         when creating initial configurations.
         Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool` (optional)
+    keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF4``.
     """
     def __init__(self,
                  atoms,
@@ -77,86 +86,95 @@ class OtfMlacs(Mlas, Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 ntrymax=0,
-                 workdir=''):
-
+                 workdir='',
+                 ncprefix='',
+                 ncformat='NETCDF4'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip,
-                      workdir=workdir)
-
-        # Check if trajectory files already exists
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
+        
+        # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 
-        self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
-        self.logger = self.log.logger_log
-        msg = ""
-        for i in range(self.nstate):
-            msg += f"State {i+1}/{self.nstate} :\n"
-            msg += repr(self.state[i])
-        self.logger.info(msg)
-        msg = self.calc.log_recap_state()
-        self.logger.info(msg)
-        self.logger.info(repr(self.mlip))
-        
+        # Create Abinit-style *HIST.nc file of netcdf format
+        self.ncfile = HistFile(ncprefix=ncprefix,
+                               workdir=workdir,
+                               ncformat=ncformat,
+                               launched=self.launched,
+                               atoms=atoms)
+
         self._initialize_properties(prop)
         self._initialize_routine_properties()
 
 # ========================================================================== #
     def _initialize_properties(self, prop):
         """Create property object"""
-        if prop is None:
-            self.prop = PropertyManager(None)
-        elif isinstance(prop, PropertyManager):
-            self.prop = prop
-        else:
-            self.prop = PropertyManager(prop)
+        self.prop = PropertyManager(prop)
+
+        if not self.launched:
+            self.ncfile.create_nc_var(prop)
 
         self.prop.workdir = self.workdir
         if not self.prop.folder:
             self.prop.folder = 'Properties'
-        
+
         self.prop.isfirstlaunched = not self.launched
-                        
-# ========================================================================== #            
+        self.prop.ncfile = self.ncfile
+
+# ========================================================================== #
     def _initialize_routine_properties(self):
         """Create routine property object"""
-        label_list = ['Volume', 'Temperature', 'Potential_Energy', \
-                      'Kinetic_Energy', 'Total_Energy', 'Velocities', 'Forces']
+
+        # Get variables names, dimensions, and units
+        var_dim_dict, units_dict = self.ncfile.nc_routine_conv()
+
+        # Build a PropertyManager made of "routine" observables
         routine_prop_list = []
-        for x in label_list:
+        for x in var_dim_dict:
+            var_name, var_dim = var_dim_dict[x]
+            var_unit = units_dict[x]
             lammps_func = 'get_' + x.lower()
-            observable = CalcRoutineFunction(lammps_func, label=x, frequence=1)
+            observable = CalcRoutineFunction(lammps_func,
+                                             label=x,
+                                             nc_name=var_name,
+                                             nc_dim=var_dim,
+                                             nc_unit=var_unit,
+                                             frequence=1)
             routine_prop_list.append(observable)
-        
-        other_observables = [CalcPressure(label='Pressure', frequence=1)]
+        other_observables = [CalcPressure(), CalcAcell(), CalcAngles()]
         routine_prop_list += other_observables
-        
         self.routine_prop = PropertyManager(routine_prop_list)
+
+        if not self.launched:
+            self.ncfile.create_nc_var(routine_prop_list)
+
+        self.routine_prop.workdir = self.workdir
         self.routine_prop.folder = 'Properties/RoutineProperties'
-        
+
         self.routine_prop.isfirstlaunched = not self.launched
-        
-# ========================================================================== #                                
+        self.routine_prop.ncfile = self.ncfile
+
+# ========================================================================== #
     def _compute_properties(self):
         """
-        
+        Main method to compute/save properties of OtfMlacs objects.
         """
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
-            msg = self.prop.run(self.step,
-                                self.prop.workdir / self.prop.folder)
+            msg = self.prop.run(self.step)
             self.log.logger_log.info(msg)
+            self.prop.save_prop(self.step)
             if self.prop.check_criterion:
                 msg = "All property calculations are converged, " + \
                       "stopping MLACS ...\n"
                 self.log.logger_log.info(msg)
-        
-        #compute routine properties
+
+        # Compute routine properties
         self.routine_prop.calc_initialize(atoms=self.atoms)
-        msg = self.routine_prop.run(self.step,
-                            self.prop.workdir / self.routine_prop.folder)
+        msg = self.routine_prop.run(self.step)
         self.log.logger_log.info(msg)
-        self.routine_prop.save_prop(self.step) 
-        # self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
-        self.routine_prop.save_weights(self.step, self.mlip.weight)
+        self.routine_prop.save_prop(self.step)
+        self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
+        self.routine_prop.save_weights(self.step,
+                                       self.mlip.weight,
+                                       self.ncfile.ncformat)
