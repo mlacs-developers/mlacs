@@ -292,7 +292,6 @@ class HistPlot:
 
         if os.path.isfile(ncpath):
             ncfile = HistFile(ncpath=ncpath)
-            # var_names = ncfile.get_var_names()
             dict_var_units = ncfile.get_units()
             var_dim_dict = ncfile.nc_routine_conv()[0]
             dict_name_label = {x[0]: lab for lab, x in var_dim_dict.items()}
@@ -302,6 +301,11 @@ class HistPlot:
             self.dict_var_units = dict_var_units
             self.basic_obs = ['temper', 'etotal', 'press', 'vol']
             self.energy_obs = ['ekin', 'epot']
+
+            weights_ncpath = ncpath
+            if 'NETCDF3' in ncfile.ncformat:
+                weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
+            self.weights_ncfile = HistFile(ncpath=weights_ncpath)
         else:
             msg = '*HIST.nc file not found.'
             raise FileNotFoundError(msg)
@@ -315,6 +319,7 @@ class HistPlot:
         ncfile = self.ncfile
         dict_name_label = self.dict_name_label
         dict_var_units = self.dict_var_units
+        weights_ncfile = self.weights_ncfile
 
         observable = ncfile.read_obs(obs_name)
         obs_label = obs_name
@@ -322,8 +327,8 @@ class HistPlot:
             obs_label = dict_name_label[obs_name].replace("_", " ")
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
-
-        weights_meta = ncfile.read_obs('weights_meta')
+        
+        weights_meta = weights_ncfile.read_obs('weights_meta')
         weights_idx = weights_meta[:, 0]
         nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
         nb_conf = weights_meta[:, 2][weights_idx == 1.0]
@@ -382,9 +387,9 @@ class HistPlot:
 # ========================================================================== #
     def plot_neff(self, show=True, savename=''):
         """Plot Neff against Nconfs, and a few weigth distributions."""
-        ncfile = self.ncfile
-        weights = ncfile.read_obs('weights')
-        weights_meta = ncfile.read_obs('weights_meta')
+        weights_ncfile = self.weights_ncfile
+        weights = weights_ncfile.read_obs('weights')
+        weights_meta = weights_ncfile.read_obs('weights_meta')
         weights_idx = weights_meta[:, 0]
         nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
         nb_conf = weights_meta[:, 2][weights_idx == 1.0]
