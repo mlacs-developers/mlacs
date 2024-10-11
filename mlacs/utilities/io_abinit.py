@@ -45,6 +45,12 @@ def _set_from_outNC(results=dict()) -> Atoms:
                   energy=results['etotal'] * Hartree,
                   forces=results['fcart'] * Hartree / Bohr,
                   stress=results['strten'] * Hartree / Bohr**3)
+    if 'spinat' in results.keys():
+        sp = results['spinat'].reshape((nat, 3))
+        atoms.set_initial_magnetic_moments(sp)
+    else:
+        sp = np.zeros((nat, 3))
+        atoms.set_initial_magnetic_moments(sp)
     atoms.calc = calc
     return atoms
 
@@ -53,6 +59,7 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
     """Read results from GSR.nc"""
     Z = np.r_[[results['atomic_numbers'][i - 1]
                for i in results['atom_species']]]
+    nat = len(results['atom_species'])
     cell = results['primitive_vectors'] * Bohr
     positions = np.matmul(results['reduced_atom_positions'], cell)
     atoms = Atoms(numbers=Z,
@@ -64,6 +71,11 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
                   forces=results['cartesian_forces'] * Hartree/Bohr,
                   stress=results['cartesian_stress_tensor'] * Hartree/Bohr**3,
                   free_energy=results['entropy'] * Hartree)
+    if 'spinat' in results.keys():
+        atoms.set_initial_magnetic_moments(results['spinat'])
+    else:
+        sp = np.zeros((nat, 3))
+        atoms.set_initial_magnetic_moments(sp)
     atoms.calc = calc
     return atoms
 
@@ -142,7 +154,7 @@ class HistFile:
         workdir_loc = self.workdir
         if ncprefix_loc != '' and (not ncprefix_loc.endswith('_')):
             ncprefix_loc += '_'
-        
+
         # Obtain script name, including in case of pytest execution
         script_name = ncprefix_loc
         pytest_path = os.getenv('PYTEST_CURRENT_TEST')
