@@ -46,11 +46,9 @@ def _set_from_outNC(results=dict()) -> Atoms:
                   forces=results['fcart'] * Hartree / Bohr,
                   stress=results['strten'] * Hartree / Bohr**3)
     if 'spinat' in results.keys():
-        sp = results['spinat'].reshape((nat, 3))
-        atoms.set_initial_magnetic_moments(sp)
+        atoms.set_array('spinat', results['spinat'].reshape((nat, 3)))
     else:
-        sp = np.zeros((nat, 3))
-        atoms.set_initial_magnetic_moments(sp)
+        atoms.set_array('spinat', np.zeros((nat, 3)))
     atoms.calc = calc
     return atoms
 
@@ -72,10 +70,9 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
                   stress=results['cartesian_stress_tensor'] * Hartree/Bohr**3,
                   free_energy=results['entropy'] * Hartree)
     if 'spinat' in results.keys():
-        atoms.set_initial_magnetic_moments(results['spinat'])
+        atoms.set_array('spinat', results['spinat'])
     else:
-        sp = np.zeros((nat, 3))
-        atoms.set_initial_magnetic_moments(sp)
+        atoms.set_array('spinat', np.zeros((nat, 3)))
     atoms.calc = calc
     return atoms
 
