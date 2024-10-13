@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -15,6 +15,7 @@ import numpy as np
 from ..version import __version__
 
 logging.basicConfig(level=logging.INFO, format='%(message)s', force=True)
+_size_log = 79
 
 
 # ========================================================================== #
@@ -41,43 +42,98 @@ class MlacsLog:
             self.write_restart()
 
 # ========================================================================== #
-    def write_header(self):
-        msg = '============================================================\n'
-        msg += '    On-the-fly Machine-Learning Assisted Canonical Sampling\n'
-        msg += '                                                           \n'
-        msg += '           Copyright (C) 2022-2024 MLACS group.            \n'
-        msg += '        MLACS comes with ABSOLUTELY NO WARRANTY.           \n'
-        msg += '    This package is distributed under the terms of the     \n'
-        msg += '       GNU General Public License, see LICENSE.md          \n'
-        msg += '         or http://www.gnu.org/copyleft/gpl.txt .          \n'
-        msg += '                                                           \n'
-        msg += '           MLACS is a common project of the CEA,           \n'
-        msg += ' Universite de Liège, Université du Québec à Trois-Rivières\n'
-        msg += '       and other collaborators, see CONTRIBUTORS.md .      \n'
-        msg += '       Please read ACKNOWLEDGMENTS.md for suggested        \n'
-        msg += '           acknowledgments of the MLACS effort.            \n'
-        msg += '===========================================================\n'
-        msg += '                                                           \n'
-        msg += 'version: ' + str(__version__)
-        msg += '\n'
-        now = datetime.datetime.now()
-        msg += 'date: ' + now.strftime('%d-%m-%Y  %H:%M:%S')
-        msg += '\n'
-        msg += '\n'
+    def write(self, msg="", center=False, underline=False):
+        """
+        """
+        if underline:
+            ul = "*" * len(msg)
+        if center:
+            msg = msg.center(_size_log, " ").rstrip()
+            if underline:
+                ul = ul.center(_size_log, " ").rstrip()
+        if underline:
+            msg = msg + "\n" + ul
         self.logger_log.info(msg)
 
 # ========================================================================== #
-    def write_restart(self):
-        msg = '\n'
-        msg += '\n'
-        msg += '============================================================\n'
-        msg += '                 Restarting simulation\n'
-        msg += '============================================================\n'
+    def write_header(self):
+        self._delimiter()
+        self.write("On-the-fly Machine-Learning Assisted Canonical Sampling",
+                   True, True)
+        self.write()
+        self.write_copyright()
+        self.write("Please read ACKNOWLEDGMENTS.md for suggested", True)
+        self.write("acknowledgments of the MLACS effort.", True)
+        self._delimiter()
+        self.write()
+        self.write(f"version {__version__}")
+        self.write()
         now = datetime.datetime.now()
-        msg += 'date: ' + now.strftime('%d-%m-%Y  %H:%M:%S')
-        msg += '\n'
-        msg += '\n'
-        self.logger_log.info(msg)
+        self.write(f"date: {now.strftime('%d-%m-%Y %H:%M:%S')}")
+        self.write()
+        self.write()
+
+# ========================================================================== #
+    def write_restart(self):
+        self.write()
+        self._delimiter()
+        self.write("Restarting simulation", True)
+        self._delimiter()
+        now = datetime.datetime.now()
+        self.write(f"date: {now.strftime('%d-%m-%Y %H:%M:%S')}")
+        self.write()
+        self.write()
+
+# ========================================================================== #
+    def write_end(self, isearlystop=False):
+        """
+
+        """
+        self.write()
+        self._delimiter()
+        if isearlystop:
+            self.write("Convergence criteria reached, stoping the simulation",
+                       True)
+        else:
+            self.write("Max number of step reached, stoping the simulation",
+                       True)
+        self._delimiter()
+        self.write()
+
+# ========================================================================== #
+    def write_footer(self):
+        self._delimiter()
+        self.write_copyright()
+        self._delimiter()
+        self.write()
+        self._delimiter()
+        self.write("Suggested acknowledgments of the MLACS usage", True, True)
+        self.write()
+        self.write("The MLACS theory and algorithm")
+        msg = "A. Castellano, F. Bottin, J. Bouchet, A. Levitt, G. Stoltz" + \
+              "\nPhys. Rev. B 106, L161110 (2022)"
+        self.write(msg)
+        self.write()
+        self.write("The MLACS package")
+        msg = "A. Castellano, R. Béjaud, P. Richard, O. Nadeau, " + \
+              "G. Geneste, \nG. Antonius, J. Bouchet, A. Levitt, G. Stoltz" + \
+              ", F. Bottin\n" + \
+              "(To be submitted (2024))"
+        self.write(msg)
+        self._delimiter()
+
+# ========================================================================== #
+    def write_copyright(self):
+        self.write("Copyright (C) 2022-2024 MLACS group.", True)
+        self.write("MLACS comes with ABSOLUTELY NO WARRANTY.", True)
+        self.write("This package is distributed under the terms of the", True)
+        self.write("GNU General Public License, see LICENSE.md", True)
+        self.write("or http://www.gnu.org.copyleft/gpl.txt.", True)
+        self.write()
+        self.write("MLACS is common project of the CEA,", True)
+        self.write("Université de Liège, Université du Québec à Trois-Rivières",  # noqa
+                   True)
+        self.write("and other collaborators, see CONTRIBUTORS.md.", True)
 
 # ========================================================================== #
     def recap_mlip(self, mlip_params):
@@ -149,9 +205,15 @@ class MlacsLog:
 
 # ========================================================================== #
     def init_new_step(self, step):
-        msg = '============================================================\n'
-        msg += f'Step {step}'
-        self.logger_log.info(msg)
+        self._delimiter()
+        self.write(f"Step {step}")
+
+# ========================================================================== #
+    def _delimiter(self):
+        """
+        Just a function to delimitate iterations in the log
+        """
+        self.write("=" * _size_log)
 
 
 # ========================================================================== #

@@ -75,17 +75,17 @@ class MlMinimizer(Mlas):
         when creating initial configurations.
         Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool` (optional)
+    keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
     """
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
-                 keep_tmp_mlip=False):
+                 keep_tmp_mlip=False, workdir=''):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      keep_tmp_mlip=keep_tmp_mlip)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
 
         prop = []
         if etol is None:

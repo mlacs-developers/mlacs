@@ -6,7 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 from pathlib import Path
 from subprocess import run, PIPE
 

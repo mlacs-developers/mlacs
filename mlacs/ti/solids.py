@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (PR, AC)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,7 +10,6 @@ import numpy as np
 from ase.units import kB
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
                                 free_energy_com_harmonic_oscillator)
 from ..utilities.io_lammps import get_msd_input
@@ -368,11 +367,10 @@ class EinsteinSolidState(ThermoState):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
         """
         if self.trajfile:
-            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
             txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
             txt += "id type xu yu zu vx vy vz fx fy fz "
@@ -428,6 +426,13 @@ class EinsteinSolidState(ThermoState):
 
         return blocks
 
+        block4 = LammpsBlockInput("bwd", "Backward Integration")
+        block4("write bwd", "fix f4 all print 1 \"${dE} ${lambda}\" " + \
+                   "screen no append backward.dat title \"# pe  lambda\"")
+        blocks.append(block4)
+
+        return blocks
+    
 # ========================================================================== #
     def log_recap_state(self):
         """
@@ -450,3 +455,4 @@ class EinsteinSolidState(ThermoState):
                 msg += f"    For {e} :                   " + \
                        f"k = {self.k[iel]} eV/angs^2\n"
         return msg
+

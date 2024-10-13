@@ -1,7 +1,7 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (PR, AC)
 // This file is distributed under the terms of the
-// GNU General Public License, see LICENSE.md
+// GNU General Public License, see LICENSE.mdMana
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
@@ -11,7 +11,6 @@ from scipy.integrate import cumtrapz
 from ase.units import kB
 
 from ..core.manager import Manager
-from ..utilities.miscellanous import get_elements_Z_and_masses
 from ..utilities.io_lammps import LammpsBlockInput
 
 from .thermostate import ThermoState
@@ -291,11 +290,10 @@ class ReversibleScalingState(ThermoState):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
         """
         if self.trajfile:
-            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
             txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
             txt += "id type xu yu zu vx vy vz fx fy fz "

@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (PR, AC)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,7 +12,6 @@ from .thermostate import ThermoState
 from ..core.manager import Manager
 from ..utilities.thermo import (free_energy_uhlenbeck_ford,
                                 free_energy_ideal_gas)
-from ..utilities import get_elements_Z_and_masses
 
 from ..utilities.io_lammps import LammpsBlockInput
 
@@ -325,11 +324,10 @@ class UFLiquidState(ThermoState):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
         """
         if self.trajfile:
-            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
             txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
             txt += "id type xu yu zu vx vy vz fx fy fz "

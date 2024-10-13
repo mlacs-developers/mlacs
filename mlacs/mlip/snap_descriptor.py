@@ -1,17 +1,18 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
+import shutil
 import shlex
 from pathlib import Path
 from subprocess import run, PIPE
 
 import numpy as np
+from ase.atoms import Atoms
 from ase.io.lammpsdata import write_lammps_data
 
 from ..core.manager import Manager
@@ -146,6 +147,127 @@ class SnapDescriptor(Descriptor):
                    desc_f=amat_f,
                    desc_s=amat_s)
         return res
+
+# ========================================================================== #
+    @Manager.exec_from_path
+    def compute_descriptors(self, atoms, forces=True, stress=True):
+        """
+        Compute the descriptors of multiples structures in one Lammps launch
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+        if len(atoms) == 1:
+            return super().compute_descriptors(atoms,
+                                               forces=forces,
+                                               stress=stress)
+        if Path("Atoms").exists():
+            shutil.rmtree("Atoms")
+        Path("Atoms").mkdir()
+
+        for i, at in enumerate(atoms):
+            if np.any(at.get_pbc() != atoms[0].get_pbc()):
+                raise ValueError("PBC cannot change between states")
+            lmp_atfname = f"Atoms/atoms{i+1}.lmp"
+            write_lammps_data(lmp_atfname,
+                              at,
+                              specorder=self.elements.tolist())
+        self._write_mlip_params()
+        self._write_looping_lammps_input(atoms)
+
+        self._run_lammps(lmp_atfname)
+
+        desc = []
+        for idx in range(len(atoms)):
+            nat = len(atoms[idx])
+            chemsymb = np.array(atoms[idx].get_chemical_symbols())
+
+            amat_e = np.zeros((1, self.ncolumns))
+            amat_f = np.zeros((3 * nat, self.ncolumns))
+            amat_s = np.zeros((6, self.ncolumns))
+
+            bispectrum = np.loadtxt(f"descriptor{idx+1}.out",
+                                    skiprows=4)
+            bispectrum[-6:, 1:-1] /= -atoms[idx].get_volume()
+
+            amat_e[0, self.nel:] = bispectrum[0, 1:-1]
+            amat_f[:, self.nel:] = bispectrum[1:3*nat+1, 1:-1]
+            amat_s[:, self.nel:] = bispectrum[3*nat+1:, 1:-1]
+
+            for i, el in enumerate(self.elements):
+                amat_e[0, i] = np.count_nonzero(chemsymb == el)
+
+            desc.append(dict(desc_e=amat_e,
+                             desc_f=amat_f,
+                             desc_s=amat_s))
+        self.loop_cleanup(len(atoms))
+        return desc
+
+# ========================================================================== #
+    @Manager.exec_from_path
+    def loop_cleanup(self, nconf):
+        '''
+        Function to cleanup the LAMMPS files used
+        to extract the descriptor and gradient values
+        '''
+        Path("lmp.out").unlink(missing_ok=True)
+        Path("lammps_input.in").unlink(missing_ok=True)
+        shutil.rmtree("Atoms")
+        for i in range(nconf):
+            Path(f"descriptor{i+1}.out").unlink(missing_ok=True)
+
+# ========================================================================== #
+    @Manager.exec_from_path
+    def _write_looping_lammps_input(self, atoms):
+        """
+        Write one lammps file for all the config in atoms
+        """
+        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
+
+        # Write the input file
+        txt = "LAMMPS input file for extracting MLIP descriptors"
+        lmp_in = LammpsInput(txt)
+
+        block = LammpsBlockInput("init", "Initialization")
+        block("loop", f"variable a loop {len(atoms)}")
+        block("label", "label loopstart")
+
+        pbc_txt = "{0} {1} {2}".format(
+                *tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
+        block("boundary", f"boundary {pbc_txt}")
+        block("atom_style", "atom_style  atomic")
+        block("units", "units metal")
+        block("read_data", "read_data Atoms/atoms${a}.lmp")
+        for i, m in enumerate(masses):
+            block(f"mass{i}", f"mass   {i+1} {m}")
+        lmp_in("init", block)
+
+        block = LammpsBlockInput("interaction", "Interactions")
+        block("pair_style", f"pair_style zero {2*self.rcut}")
+        block("pair_coeff", "pair_coeff  * *")
+        lmp_in("interaction", block)
+
+        block = LammpsBlockInput("fake_dynamic", "Fake dynamic")
+        block("thermo", "thermo 100")
+        block("timestep", "timestep 0.005")
+        block("neighbor", "neighbor 1.0 bin")
+        block("neigh_modify", "neigh_modify once no every 1 delay 0 check yes")
+        lmp_in("fake_dynamic", block)
+
+        block = LammpsBlockInput("compute", "Compute")
+        block("compute", f"compute ml all snap {self._snap_opt_str()}")
+        block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
+              "file descriptor${a}.out mode vector")
+        block("run", "run 0")
+        lmp_in("compute", block)
+
+        block = LammpsBlockInput("loopback", "Loop Back")
+        block("clear data", "clear")
+        block("iterate", "next a")
+        block("loopend", "jump SELF loopstart")
+        lmp_in("loopback", block)
+
+        with open("lammps_input.in", "w") as fd:
+            fd.write(str(lmp_in))
 
 # ========================================================================== #
     def _write_lammps_input(self, masses, pbc):
@@ -288,7 +410,7 @@ class SnapDescriptor(Descriptor):
             filename = Path(self.get_filepath('.model'))
 
         if not filename.is_file():
-            filename = filename.absoluse()
+            filename = filename.absolute()
             raise FileNotFoundError(f"File {filename} does not exist")
 
         with open(filename, "r") as fd:

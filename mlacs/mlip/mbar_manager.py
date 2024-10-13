@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -100,7 +100,7 @@ class MbarManager(WeightingPolicy):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def compute_weight(self, coef, predict):
+    def compute_weight(self, coef, predict, docalc=True):
         """
         Save the MLIP coefficients and compute the Weight
         Compute the matrice Ukn of partition fonctions of shape [ndesc, nconf]
@@ -118,6 +118,9 @@ class MbarManager(WeightingPolicy):
         else:
             self.Nk = np.append(self.Nk, [len(self._newddb)])
         self._newddb = []
+
+        if not docalc:
+            return "_", "_"
 
         # Calculate ukn
         ukn = np.zeros([len(self.mlip_coef), len(self.database)])

@@ -6,8 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
-
 import numpy as np
 
 from ase.atoms import Atoms
@@ -21,8 +19,6 @@ from ..core.manager import Manager
 from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput,
                                    get_lammps_command)
-
-from ..utilities import get_elements_Z_and_masses
 
 from ..utilities.io_lammps import write_lammps_NEB_ASCIIfile
 
@@ -159,13 +155,11 @@ class NebLammpsState(BaseLammpsState):
                                    self.patoms.final)
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("units", "units metal")
@@ -185,7 +179,7 @@ class NebLammpsState(BaseLammpsState):
         return EmptyLammpsBlockInput("empty_thermostat")
 
 # ========================================================================== #
-    def _get_block_lastdump(self, atoms, eq):
+    def _get_block_lastdump(self, el, eq):
         return EmptyLammpsBlockInput("empty_lastdump")
 
 # ========================================================================== #

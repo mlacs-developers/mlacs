@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -159,7 +159,7 @@ class MlipManager(Manager, ABC):
                         #    However, one might want to restart a calculation
                         #    on a different machine than the one it started on.
                         #    TODO: Get directories by inspection instead.
-                        #
+                        # ON: I agree
                         err = "Some parent MLIP are missing. "
                         err += "Rerun MLACS with DatabaseCalculator and "
                         err += "OtfMlacs.keep_tmp_files=True on your traj"
@@ -184,11 +184,12 @@ class MlipManager(Manager, ABC):
 
         # GA: Passing names like this is a bit shady. TODO: clean up.
         mlip_fn = self.descriptor.write_mlip(mlip_coef)
-        _, weight_fn = self.weight.compute_weight(mlip_coef, self.predict)
+        _, __ = self.weight.compute_weight(mlip_coef,
+                                           self.predict,
+                                           docalc=False)
         prefix = self.descriptor.prefix
 
         # GA: Not sure why we need to create a link here.
-        create_link(self.subsubdir/weight_fn, self.subdir/"MLIP.weight")
         create_link(self.subsubdir/mlip_fn, self.subdir/f"{prefix}.model")
 
 # ========================================================================== #

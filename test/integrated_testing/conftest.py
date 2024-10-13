@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, CD)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,7 +19,7 @@ def root():
 
 @pytest.fixture(autouse=True)
 def expected_folder_base():
-    folder = ["MolecularDynamics", "Snap"]
+    folder = ["MolecularDynamics", "Snap", "Properties"]
     return folder
 
 
@@ -73,3 +73,12 @@ def langevin_treelink(root, expected_folder, expected_files):
 
     for f in expected_files:
         (root / f).unlink()
+
+
+@pytest.fixture(autouse=True)
+def clean_up_hist(root):
+    for filename in root.rglob("*_HIST.nc"):
+        filename.unlink()
+    yield
+    for filename in root.rglob("*_HIST.nc"):
+        filename.unlink()
