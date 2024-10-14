@@ -358,7 +358,7 @@ class HistFile:
                       'Scaled_Positions': 'dimensionless',
                       'Temperature': 'K',
                       'Volume': 'Ang^3',
-                      'Stress': 'eV/Ang^3',
+                      'Stress': 'GPa',
                       'Cell': 'Ang',
                       }
 
@@ -445,14 +445,40 @@ class AbinitNC:
         return self.dataset[value][:].data
 
 # ========================================================================== #
+    def _check_end_of_dataset(self, _str, consecutive_empty_spaces):
+        """
+        Return True if end of dataset has been reached.
+        In particular, this function handles the dataset named 'input_string',
+        which corresponds to the Abinit input file, but also contains unwanted
+        (i.e., not encoded in UTF-8) information at the bottom.
+        """
+        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory'
+        last_Lammps_line += ' terminates after the current SCF'
+        if last_Lammps_line in _str[-len(last_Lammps_line):]:
+            return True
+        return False
+        large_blank = ' '*80
+        if large_blank == _str[-len(large_blank):]:
+            return True
+        if consecutive_empty_spaces == 80:
+            return True
+
+# ========================================================================== #
     def _decodeattr(self, value) -> str:
-        # Weird thing to check the end of the file, don't ask ...
-        _chk = ''.join([' ' for i in range(80)])
         _str = ''
-        for s in value.tolist():
-            if _chk == _str[-80:]:
+        consec_empty_spaces = 0
+        for idx, s in enumerate(value.tolist()):
+            if self._check_end_of_dataset(_str, consec_empty_spaces) is True:
                 break
-            _str += bytes.decode(s)
+            try:
+                _str += bytes.decode(s)
+                if len(bytes.decode(s)) == 0:
+                    consec_empty_spaces += 1
+                else:
+                    consec_empty_spaces = 0
+            except UnicodeDecodeError:
+                # Just to be on the safe side.
+                break
         return _str.strip()
 
 # ========================================================================== #

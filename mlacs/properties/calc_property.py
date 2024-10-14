@@ -13,6 +13,7 @@ import numpy as np
 from operator import attrgetter
 
 from ase.atoms import Atoms
+from ase.units import GPa
 
 from ..core.manager import Manager
 from ..utilities.io_lammps import LammpsBlockInput
@@ -450,7 +451,8 @@ class CalcExecFunction(CalcProperty):
                  use_atoms=True,
                  gradient=False,
                  criterion=0.001,
-                 frequence=1):
+                 frequence=1,
+                 nc_unit=''):
         CalcProperty.__init__(self, args, None, 'max', criterion, frequence)
 
         self._func = function
@@ -462,6 +464,7 @@ class CalcExecFunction(CalcProperty):
         self.isgradient = gradient
         self.label = function
         self.shape = None
+        self.nc_unit = nc_unit
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -473,6 +476,11 @@ class CalcExecFunction(CalcProperty):
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
+        if self.nc_unit == 'GPa':
+            # Evaluation of _f(...) returns LAMMPS natural units, which are
+            # eV/Angs^3 for stresses. Here, conversion to GPa
+            self.new /= GPa
+        
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
@@ -536,8 +544,8 @@ class CalcRoutineFunction(CalcExecFunction):
                  gradient=False,
                  criterion=None,
                  frequence=1):
-        CalcExecFunction.__init__(self, function, dict(), None,
-                                  True, gradient, criterion, frequence)
+        CalcExecFunction.__init__(self, function, dict(), None, True,
+                                  gradient, criterion, frequence, nc_unit)
         self.weight = weight
         self.label = label
         self.nc_name = nc_name
@@ -589,7 +597,7 @@ class CalcPressure(CalcRoutineFunction):
         label = 'Pressure'
         nc_name = 'press'
         nc_dim = ('time',)
-        nc_unit = 'eV/Ang^3'
+        nc_unit = 'GPa'
         CalcRoutineFunction.__init__(self,
                                      'get_stress',
                                      label,
@@ -603,7 +611,7 @@ class CalcPressure(CalcRoutineFunction):
         """
         if self.use_atoms:
             self._function = [getattr(_, self._func) for _ in self.atoms]
-            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])
+            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])/GPa
                               for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
