@@ -349,7 +349,7 @@ class HistFile:
                       'Scaled_Positions': 'dimensionless',
                       'Temperature': 'K',
                       'Volume': 'Ang^3',
-                      'Stress': 'eV/Ang^3',
+                      'Stress': 'GPa',
                       'Cell': 'Ang',
                       }
 
