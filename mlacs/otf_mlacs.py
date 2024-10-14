@@ -13,7 +13,8 @@ from .properties import (PropertyManager,
                          CalcRoutineFunction,
                          CalcPressure,
                          CalcAcell,
-                         CalcAngles)
+                         CalcAngles,
+                         CalcSpinAt)
 
 
 # ========================================================================== #
@@ -141,7 +142,8 @@ class OtfMlacs(Mlas, Manager):
                                              nc_unit=var_unit,
                                              frequence=1)
             routine_prop_list.append(observable)
-        other_observables = [CalcPressure(), CalcAcell(), CalcAngles()]
+        other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),
+                             CalcSpinAt()]
         routine_prop_list += other_observables
         self.routine_prop = PropertyManager(routine_prop_list)
 

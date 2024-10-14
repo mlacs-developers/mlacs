@@ -346,7 +346,8 @@ class AbinitManager(CalcManager):
     def log_recap_state(self):
         """
         """
-        cmd = 'abinit --version'
+        cmd = self.abinit_cmd 
+        cmd += ' --version'
         version = check_output(cmd, shell=True).decode('utf-8')
         msg = "True potential parameters:\n"
         msg += f"Abinit : {version}\n"
