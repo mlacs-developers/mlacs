@@ -89,6 +89,7 @@ class AbinitManager(CalcManager):
     >>> pseudos = {'Cu': "/path/to/pseudo/Cu.LDA_PW-JTH.xml"}
     >>> calc = AbinitManager(parameters=variables, pseudos=pseudos)
     """
+
     def __init__(self,
                  parameters,
                  pseudos,
@@ -129,7 +130,7 @@ class AbinitManager(CalcManager):
     @staticmethod
     def submit_abinit_calc(cmd, logfile, errfile, cdir):
         with open(logfile, 'w') as lfile, \
-             open(errfile, 'w') as efile:
+                open(errfile, 'w') as efile:
             try:
                 process = Popen(cmd,
                                 cwd=cdir,
@@ -346,7 +347,8 @@ class AbinitManager(CalcManager):
     def log_recap_state(self):
         """
         """
-        cmd = 'abinit --version'
+        cmd = self.abinit_cmd
+        cmd += ' --version'
         version = check_output(cmd, shell=True).decode('utf-8')
         msg = "True potential parameters:\n"
         msg += f"Abinit : {version}\n"

@@ -18,6 +18,8 @@ from mlacs.properties.calc_property import (CalcPafi,
                                             CalcProperty,
                                             CalcAcell,
                                             CalcAngles,
+                                            CalcSpinAt,
+                                            CalcElectronicEntropy,
                                             )
 
 from .basic_function import (eos_fit,
@@ -35,5 +37,7 @@ __all__ = ['PropertyManager',
            'CalcPressure',
            'CalcAcell',
            'CalcAngles',
+           'CalcSpinAt',
+           'CalcElectronicEntropy',
            'eos_fit',
            ]
