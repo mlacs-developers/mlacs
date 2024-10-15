@@ -351,8 +351,7 @@ class HistPlot:
 
         if uniform_weight is False:
             ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar')
-        xlabel_str = 'Configuration index in database \n'
-        xlabel_str += '[training confs. excluded]'
+        xlabel_str = 'Configuration index in database'
         ax.set_xlabel(xlabel_str)
         par_title = (int(len(confs_idx)), int(max(state_idx)),)
         str_title = '# configurations: {}, # states: {}'.format(*par_title)

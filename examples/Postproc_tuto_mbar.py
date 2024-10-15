@@ -24,14 +24,24 @@ if os.path.isfile(ncpath):
     ncfile = HistFile(ncpath=ncpath)
     # print('HIST.nc file format: ', ncfile.ncformat)
 
+    weights_ncpath = ncpath
+    if 'NETCDF3' in ncfile.ncformat:
+        weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
+    weights_ncfile = HistFile(ncpath=weights_ncpath)
+
     var_names = ncfile.get_var_names()
     dict_var_units = ncfile.get_units()
     var_dim_dict = ncfile.nc_routine_conv()[0]
     dict_name_label = {x[0]: label for label, x in var_dim_dict.items()}
     # print('Variables names: ', var_names)
 
-    obs_name = 'temper'
-    # obs_name = 'press'
+    znucl = ncfile.read_obs('znucl')
+    typat = ncfile.read_obs('typat')
+    dtion = ncfile.read_obs('dtion')
+    amu = ncfile.read_obs('amu')
+
+    # obs_name = 'temper'
+    obs_name = 'press'
     # obs_name = 'vol'
     # obs_name = 'etotal'
     observable = ncfile.read_obs(obs_name)
@@ -58,8 +68,7 @@ if os.path.isfile(ncpath):
     ax1.plot(confs_idx, observable, label='raw data', alpha=0.7)
     ax1.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights')
     ax1.plot(w_obs_idx, w_obs_data, c='r',  label='mbar')
-    ax1.set_xlabel(
-        'Configuration index in database \n[training confs. excluded]')
+    ax1.set_xlabel('Configuration index in database')
     ylabel = obs_label
     try:
         obs_unit = dict_var_units[obs_name]
@@ -72,8 +81,8 @@ if os.path.isfile(ncpath):
     legend1 = ax1.legend(frameon=False, loc='best')
     legend1.get_frame().set_facecolor('none')
 
-    weights = ncfile.read_obs('weights')
-    weights_meta = ncfile.read_obs('weights_meta')
+    weights = weights_ncfile.read_obs('weights')
+    weights_meta = weights_ncfile.read_obs('weights_meta')
     weights_idx = weights_meta[:, 0]
     nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
     nb_conf = weights_meta[:, 2][weights_idx == 1.0]
