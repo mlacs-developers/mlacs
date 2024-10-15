@@ -765,7 +765,7 @@ class CalcElectronicEntropy(CalcRoutineFunction):
                  frequence=1):
 
         label = 'Electronic_Entropy'
-        nc_name = 'e_entropy'
+        nc_name = 'entropy'
         nc_dim = ('time',)
         nc_unit = ''
         CalcRoutineFunction.__init__(self,
