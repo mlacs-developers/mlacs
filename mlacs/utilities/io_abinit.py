@@ -212,6 +212,7 @@ class HistFile:
                     'six': 6,
                     'ntypat': ntypat,
                     'natom': natom,
+                    'totxyz': 3*natom,
                     }
         dict_var = {'typat': ('natom',),
                     'znucl': ('ntypat',),
