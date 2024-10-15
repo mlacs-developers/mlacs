@@ -212,6 +212,7 @@ class HistFile:
                     'six': 6,
                     'ntypat': ntypat,
                     'natom': natom,
+                    'totxyz': 3*natom,
                     }
         dict_var = {'typat': ('natom',),
                     'znucl': ('ntypat',),
@@ -296,7 +297,7 @@ class HistFile:
         """
         with nc.Dataset(self.ncpath, 'r') as ncfile:
             wobs_values = ncfile[obs_name][:]
-            weighted_obs_data = wobs_values[wobs_values.mask == False].data
+            weighted_obs_data = wobs_values[wobs_values.mask == False].data # noqa
             weighted_obs_idx = 1 + np.where(~wobs_values.mask)[0]
         return weighted_obs_data, weighted_obs_idx
 
@@ -452,7 +453,7 @@ class AbinitNC:
         which corresponds to the Abinit input file, but also contains unwanted
         (i.e., not encoded in UTF-8) information at the bottom.
         """
-        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory'
+        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory' # noqa
         last_Lammps_line += ' terminates after the current SCF'
         if last_Lammps_line in _str[-len(last_Lammps_line):]:
             return True
