@@ -480,7 +480,7 @@ class CalcExecFunction(CalcProperty):
             # Evaluation of _f(...) returns LAMMPS natural units, which are
             # eV/Angs^3 for stresses. Here, conversion to GPa
             self.new /= GPa
-        
+
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
@@ -742,7 +742,49 @@ class CalcSpinAt(CalcRoutineFunction):
             try:
                 self.new = np.r_[[_.get_array('spinat') for _ in self.atoms]]
             except KeyError:
-                self.new = np.r_[[np.zeros((len(_), 3))for _ in self.atoms]]
+                self.new = np.r_[[np.zeros((len(_), 3)) for _ in self.atoms]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcElectronicEntropy(CalcRoutineFunction):
+    """
+    Class to obtain the electronic entropy (as computed by Abinit)
+    from ASE's Atoms object.
+    """
+
+    def __init__(self,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+
+        label = 'Electronic_Entropy'
+        nc_name = 'e_entropy'
+        nc_dim = ('time',)
+        nc_unit = ''
+        CalcRoutineFunction.__init__(self,
+                                     '',
+                                     label,
+                                     nc_name,
+                                     nc_dim,
+                                     nc_unit)
+
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            try:
+                self.new = np.r_[[_.get_properties('')['free_energy']
+                                  for _ in self.atoms]]
+            except KeyError:
+                self.new = np.r_[[0.0 for _ in self.atoms]]
         else:
             self.new = self._function(**self.kwargs)
         if self.isfirst:

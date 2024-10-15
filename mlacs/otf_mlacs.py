@@ -14,7 +14,8 @@ from .properties import (PropertyManager,
                          CalcPressure,
                          CalcAcell,
                          CalcAngles,
-                         CalcSpinAt)
+                         CalcSpinAt,
+                         CalcElectronicEntropy)
 
 
 # ========================================================================== #
@@ -75,8 +76,9 @@ class OtfMlacs(Mlas, Manager):
         files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
         'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
         'NETCDF4'.
-        Default ``NETCDF4``.
+        Default ``NETCDF3_CLASSIC``.
     """
+
     def __init__(self,
                  atoms,
                  state,
@@ -89,11 +91,11 @@ class OtfMlacs(Mlas, Manager):
                  keep_tmp_mlip=True,
                  workdir='',
                  ncprefix='',
-                 ncformat='NETCDF4'):
+                 ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
-        
+
         # Check if trajectory files already exist
         self.launched = self._check_if_launched()
 
@@ -143,7 +145,7 @@ class OtfMlacs(Mlas, Manager):
                                              frequence=1)
             routine_prop_list.append(observable)
         other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),
-                             CalcSpinAt()]
+                             CalcSpinAt(), CalcElectronicEntropy()]
         routine_prop_list += other_observables
         self.routine_prop = PropertyManager(routine_prop_list)
 

@@ -97,7 +97,7 @@ class HistFile:
         files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
         'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
         'NETCDF4'.
-        Default ``NETCDF4``.
+        Default ``NETCDF3_CLASSIC``.
 
     launched: :class:`Bool` (optional)
         If True then is not the first MLACS start of the related Mlas instance,
@@ -118,7 +118,7 @@ class HistFile:
     def __init__(self,
                  ncprefix='',
                  workdir='',
-                 ncformat='NETCDF4',
+                 ncformat='NETCDF3_CLASSIC',
                  launched=True,
                  atoms=None,
                  ncpath=None):
