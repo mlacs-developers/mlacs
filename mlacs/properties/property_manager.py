@@ -24,18 +24,22 @@ class PropertyManager(Manager):
                  folder='Properties',
                  **kwargs):
 
-        Manager.__init__(self, folder=folder, **kwargs)
-
         if prop is None:
             self.check = [False]
             self.manager = None
-
+            folder = ''
         elif isinstance(prop, list):
             self.manager = prop
             self.check = [False for _ in range(len(prop))]
         else:
             self.manager = [prop]
             self.check = [False]
+
+        if prop is not None:
+            if any([prop.needdir for prop in self.manager]):
+                folder = ''
+
+        Manager.__init__(self, folder=folder, **kwargs)
 
 # ========================================================================== #
     @property

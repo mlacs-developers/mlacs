@@ -19,7 +19,7 @@ def root():
 
 @pytest.fixture(autouse=True)
 def expected_folder_base():
-    folder = ["MolecularDynamics", "Snap", "Properties"]
+    folder = ["MolecularDynamics", "Snap"]
     return folder
 
 
