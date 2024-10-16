@@ -8,7 +8,7 @@
 
 import shutil
 import pytest
-
+from itertools import chain
 from pathlib import Path
 
 
@@ -76,9 +76,11 @@ def langevin_treelink(root, expected_folder, expected_files):
 
 
 @pytest.fixture(autouse=True)
-def clean_up_hist(root):
-    for filename in root.rglob("*_HIST.nc"):
-        filename.unlink()
+def clean_up_nc(root):
+    def _clean_up():
+        patterns = [root.rglob("*_WEIGHTS.nc"), root.rglob("*_HIST.nc")]
+        for filename in chain(*patterns):
+            filename.unlink()
+    _clean_up()
     yield
-    for filename in root.rglob("*_HIST.nc"):
-        filename.unlink()
+    _clean_up()

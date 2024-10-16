@@ -378,7 +378,7 @@ class HistPlot:
         fig.tight_layout()
         if savename == '':
             savename = 'plot_thermo'
-        savename += '.jpeg'
+        savename += '.pdf'
         fig.savefig(savename, bbox_inches='tight')
         if show is True:
             os.system('xdg-open '+savename)
@@ -413,12 +413,13 @@ class HistPlot:
 
         def _plot_distribution(iter_loc):
             loc_weights_idx = dict_weights[iter_loc][0]
-            normalized_x = (loc_weights_idx-1)/(loc_weights_idx[-1]-1)
+            # normalized_x = (loc_weights_idx-1)/(loc_weights_idx[-1]-1)
+            normalized_x = (loc_weights_idx-1)
             loc_weights = dict_weights[iter_loc][1]
             normalized_y = loc_weights/np.mean(loc_weights)
             Nconfs_loc = np.round(nb_effective_conf[iter_loc-1], 1)
             lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
-            ax[1].step(normalized_x, normalized_y, where='mid', label=lab_str)
+            ax[1].step(normalized_x, normalized_y, where='mid', label=lab_str, zorder=10-iter_loc)
 
         if len(idx_bounds)-1 > 5:
             mlacs_iter_arr = np.geomspace(3, len(idx_bounds)-1, 4, dtype=int)
@@ -431,7 +432,7 @@ class HistPlot:
                           marker='s',
                           s=20)
 
-        ax[1].set_xlabel(r"Normalized config. index")
+        ax[1].set_xlabel(r"Number of configurations in database")
         ax[1].set_ylabel(r"Weights / $ \langle $Weights$ \rangle $")
         ax[1].set_title('Evolution of the distribution of weights',
                         fontsize=plt.rcParams["font.size"])
@@ -442,7 +443,7 @@ class HistPlot:
 
         if savename == '':
             savename = 'plot_neff'
-        savename += '.jpeg'
+        savename += '.pdf'
         fig.savefig(savename, bbox_inches='tight')
 
         if show is True:
