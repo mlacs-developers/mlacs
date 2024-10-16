@@ -65,6 +65,7 @@ class CalcProperty(Manager):
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        self.needdir = True
         self.label = 'Observable_Label'
         self.shape = None
         self.nc_name = None
@@ -460,6 +461,7 @@ class CalcExecFunction(CalcProperty):
             importlib.import_module(module)
             self._function = getattr(module, function)
         self.isfirst = True
+        self.needdir = False
         self.use_atoms = use_atoms
         self.isgradient = gradient
         self.label = function
@@ -548,6 +550,7 @@ class CalcRoutineFunction(CalcExecFunction):
                                   gradient, criterion, frequence, nc_unit)
         self.weight = weight
         self.label = label
+        self.needdir = False
         self.nc_name = nc_name
         self.nc_dim = nc_dim
         self.nc_unit = nc_unit
