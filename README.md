@@ -66,9 +66,9 @@ Installing packages using pip:
     $ pip install -r requirements.txt --find-links /packages_directory --no-index #No internet
 
 On calculator, the `--find-links` allows to specify the directory where the packages are, for that it is necessary to download them beforehand via a `pip download` or directly on `https://pypi.org/!`. The `--no-index` prevents pip from fetching packages from the online repository.
-Finally, you can install MLACS in editable version:
+Finally, you can install MLACS:
 
-    $ pip install -e /path_to/mlacs/ # Path to setup.py
+	$ pip install --upgrade . # In main directory /path_to/mlacs/
 
 At the end, we can check that the package is loaded:
 
@@ -159,7 +159,7 @@ Advanced fitting method provided by the Scikit Learn package can be used instead
 netCDF4:
 
 Python package to read netCDF binary format. This package can be really usefull when you are using Abinit as Calculator, since it output a lot of usefull informations in the netCDF outputs. 
-MLACS also outputs thermodynamics properties, trajectories and results of an applied weighting policy using this file format. The files can be visualized using the [qAgate](https://www.abinit.org/) visualization software or [AbiPy](https://www.abinit.org/) an open-source library for analyzing the results produced by ABINIT.
+MLACS also outputs thermodynamics properties, trajectories and results of an applied weighting policy using this file format. The files can be visualized using the [qAgate](https://github.com/piti-diablotin/qAgate) visualization software or [AbiPy](http://abinit.github.io/abipy/) an open-source library for analyzing the results produced by ABINIT.
 
 Highly Recomended Packages
 --------------------------
@@ -174,6 +174,18 @@ To use it you also need to recompile LAMMPS with the specific interface:
     $ git clone https://gitlab.com/ivannovikov/interface-lammps-mlip-3.git
 
 pyace:
+
+The [pyace](https://pacemaker.readthedocs.io/en/latest/) (aka python-ace) package is used within MLACS to fit interatomic potentials in a general nonlinear Atomic Cluster Expansion (ACE) form. It contains the ``pacemaker`` tools and other Python wrappers and utilities.
+
+    $ git clone https://github.com/ICAMS/python-ace
+
+To use it you also need to recompile LAMMPS with the specific [interface](https://github.com/ICAMS/lammps-user-pace), which can be obtained from the LAMMPS source directory:
+
+	$ cd lammps/src 
+	$ make lib-pace args="-b"
+	$ make yes-ml-pace
+	$ make mpi # or make serial
+
 
 Optional Packages
 -----------------
