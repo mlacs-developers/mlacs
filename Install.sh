@@ -1,3 +1,4 @@
+#!/bin/bash
 """
 // Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
