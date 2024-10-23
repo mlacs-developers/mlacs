@@ -253,16 +253,19 @@ class AceDescriptor(Descriptor):
         return str(filename)
 
 # ========================================================================== #
-    def prepare_wf(self, wf, natoms):
+    def prepare_wf(self, wf, forces):
         """
         Reshape wf from a flat array to a list of np.array where each
         np.array correspond to a conf i and is of size self.natoms[i]
         """
         new_wf = []
         curr_index = 0
-        for nat in natoms:
-            new_wf.append(wf[curr_index:nat+curr_index])
-            curr_index += nat
+        for f in forces :
+            new_wf.append(wf[curr_index:curr_index+len(f)*3])
+            curr_index += len(f)*3
+        
+        new_wf = [np.sum(np.reshape(new_wf[i], [-1,3]),axis=1) \
+                for i in range(len(new_wf))]
         return new_wf
 
 # ========================================================================== #
@@ -281,11 +284,18 @@ class AceDescriptor(Descriptor):
         nconfs = len(natoms)
         we = weights[:nconfs].tolist()
         wf = weights[nconfs:-(nconfs)*6]
-        wf = self.prepare_wf(wf, natoms)
+        wf = self.prepare_wf(wf, forces)
+
         atomic_env = self.compute_descriptors(atoms)
 
         # Dataframe preparation
         df = self.get_df()
+
+        print(f"DEBUG1 {nconfs} {len(weights)} {len(we)} {len(wf)}", file=sys.stderr)
+        print(np.sum(we) + np.sum(wf), file=sys.stderr)
+        print("DEBUG3", np.shape(forces), np.shape(wf), file=sys.stderr)
+        #print("WEIGHTS ENERGY", we, file=sys.stderr)
+        #print("WEIGHTS FORCES", wf, file=sys.stderr)
         df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
@@ -388,6 +398,11 @@ class AceDescriptor(Descriptor):
 
         self.callback = lambda val: check_conv(val)
         self.data = dict(filename=str(self.db_fn))
+
+        df = pd.read_pickle(self.db_fn, compression="gzip")
+        print("BIG DEBUG", file=sys.stderr)
+        print(np.shape(df['forces'][0]), np.shape(df['w_forces'][0]), file=sys.stderr)
+        print(df['w_forces'].map(sum).sum(), file=sys.stderr)
         self.acefit = GeneralACEFit(potential_config=self.bconf,
                                     fit_config=self.fitting,
                                     data_config=self.data,
