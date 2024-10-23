@@ -101,6 +101,7 @@ class Mlas(Manager):
 
         # Initialize working directory
         self.workdir.mkdir(exist_ok=True, parents=True)
+        self.ncfile = None
 
         ##############
         # Check inputs
@@ -109,7 +110,7 @@ class Mlas(Manager):
         self._initialize_state(state, atoms, neq)
         self._initialize_calc(calc)
         self._initialize_mlip(mlip)
-        self._initialize_property(prop)
+        self._initialize_properties(prop)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -488,7 +489,7 @@ class Mlas(Manager):
         self.mlip.subdir.mkdir(exist_ok=True, parents=True)
 
 # ========================================================================== #
-    def _initialize_property(self, prop):
+    def _initialize_properties(self, prop):
         """Create property object"""
         self.prop = PropertyManager(prop)
 

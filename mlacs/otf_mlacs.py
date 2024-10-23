@@ -97,7 +97,8 @@ class OtfMlacs(Mlas, Manager):
                       keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
 
         # Check if trajectory files already exist
-        self.launched = self._check_if_launched()
+        # RB: I think this not necessary anymore
+        # self.launched = self._check_if_launched()
 
         # Create Abinit-style *HIST.nc file of netcdf format
         self.ncfile = HistFile(ncprefix=ncprefix,
@@ -114,15 +115,17 @@ class OtfMlacs(Mlas, Manager):
         """Create property object"""
         self.prop = PropertyManager(prop)
 
-        if not self.launched:
-            self.ncfile.create_nc_var(prop)
+        if self.ncfile is not None:
+            if not self.launched:
+                self.ncfile.create_nc_var(self.prop.manager)
 
-        self.prop.workdir = self.workdir
-        if not self.prop.folder:
-            self.prop.folder = 'Properties'
+            self.prop.workdir = self.workdir
+            # RB: I think this not necessary anymore
+            # if not self.prop.folder:
+            #     self.prop.folder = 'Properties'
 
-        self.prop.isfirstlaunched = not self.launched
-        self.prop.ncfile = self.ncfile
+            self.prop.isfirstlaunched = not self.launched
+            self.prop.ncfile = self.ncfile
 
 # ========================================================================== #
     def _initialize_routine_properties(self):
@@ -153,7 +156,8 @@ class OtfMlacs(Mlas, Manager):
             self.ncfile.create_nc_var(routine_prop_list)
 
         self.routine_prop.workdir = self.workdir
-        self.routine_prop.folder = 'Properties/RoutineProperties'
+        # RB: I think this not necessary
+        # self.routine_prop.folder = 'Properties/RoutineProperties'
 
         self.routine_prop.isfirstlaunched = not self.launched
         self.routine_prop.ncfile = self.ncfile

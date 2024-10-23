@@ -6,7 +6,6 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 import copy
 import importlib
 import numpy as np
@@ -75,7 +74,7 @@ class CalcProperty(Manager):
             self.state = copy.deepcopy(state)
 
 # ========================================================================== #
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Dummy execution function.
         """
@@ -194,11 +193,13 @@ class CalcNeb(CalcProperty):
         CalcProperty.__init__(self, args, state, method, criterion, frequence)
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_path
+    def _exec(self):
         """
         Exec a NEB calculation with lammps. Use replicas.
         """
-        self.state.workdir = wdir / 'NEB_Calculation'
+        self.state.workdir = self.workdir
+        self.state.folder = 'NEB_Calculation'
         atoms = self.state.atoms[0]
         self.state.run_dynamics(atoms, **self.kwargs)
         self.state.extract_NEB_configurations()
@@ -247,13 +248,15 @@ class CalcRdf(CalcProperty):
             self.kwargs.pop('filename')
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_path
+    def _exec(self):
         """
         Exec a Rdf calculation with lammps.
         """
         from ..utilities.io_lammps import get_block_rdf
 
-        self.state.workdir = wdir / 'Rdf_Calculation'
+        self.state.workdir = self.workdir
+        self.state.folder = 'Rdf_Calculation'
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
             block("equilibrationrun", f"run {self.step}")
@@ -304,14 +307,16 @@ class CalcAdf(CalcProperty):
             self.kwargs.pop('filename')
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_path
+    def _exec(self):
         """
         Exec an Adf calculation with lammps.
         """
 
         from ..utilities.io_lammps import get_block_adf
 
-        self.state.workdir = wdir / 'Adf_Calculation'
+        self.state.workdir = self.workdir
+        self.state.folder = 'Adf_Calculation'
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
             block("equilibrationrun", f"run {self.step}")
@@ -381,17 +386,19 @@ class CalcTi(CalcProperty):
             self.state = UFLiquidState(**self.ti_state)
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_path
+    def _exec(self):
         """
         Exec a NETI calculation with lammps.
         """
         from mlacs.ti import ThermodynamicIntegration
+
         # Creation of ti object ---------------------------------------------
-        path = os.path.join(wdir, "TiCheckFe.log")
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
-                                           wdir,
-                                           logfile=path)
+                                           logfile="TiCheckFe.log")
+        self.ti.workdir = self.workdir
+        self.ti.folder = 'Neti_Calculation'
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
@@ -469,7 +476,7 @@ class CalcExecFunction(CalcProperty):
         self.nc_unit = nc_unit
 
 # ========================================================================== #
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -608,7 +615,7 @@ class CalcPressure(CalcRoutineFunction):
                                      nc_dim,
                                      nc_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -651,7 +658,7 @@ class CalcAcell(CalcRoutineFunction):
                                      nc_dim,
                                      nc_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -696,7 +703,7 @@ class CalcAngles(CalcRoutineFunction):
                                      nc_dim,
                                      nc_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -737,7 +744,7 @@ class CalcSpinAt(CalcRoutineFunction):
                                      nc_dim,
                                      nc_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -778,7 +785,7 @@ class CalcElectronicEntropy(CalcRoutineFunction):
                                      nc_dim,
                                      nc_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
