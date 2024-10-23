@@ -42,10 +42,6 @@ class FixedWeight(WeightingPolicy):
         self.static_weight = static_weight
         self.nstatic = len(static_weight)
         self.remaining = 1-np.sum(static_weight)
-
-        self.energy_coefficient = energy_coefficient
-        self.forces_coefficient = forces_coefficient
-        self.stress_coefficient = stress_coefficient
         self.matsize = []
         self.weight = np.array([])
 
@@ -54,6 +50,10 @@ class FixedWeight(WeightingPolicy):
                 energy_coefficient=energy_coefficient,
                 forces_coefficient=forces_coefficient,
                 stress_coefficient=stress_coefficient)
+        self.energy_coefficient = self.subweight.energy_coefficient
+        self.forces_coefficient = self.subweight.forces_coefficient
+        self.stress_coefficient = self.subweight.stress_coefficient
+
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir

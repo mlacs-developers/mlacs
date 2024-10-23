@@ -41,8 +41,8 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
 def linfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
-    TODO: Implement a weight to this function
     """
+    # TODO: Implement a weight to this function
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
     if not (isinstance(mlip, LinearPotential)
@@ -63,8 +63,8 @@ def linfit_traj(traj, mlip):
 def mtpfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
-    TODO: Implement a weight to this function
     """
+    # TODO: Implement a weight to this function
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
     if not isinstance(mlip, MomentTensorPotential):
