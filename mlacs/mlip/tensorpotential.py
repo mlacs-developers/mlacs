@@ -168,22 +168,9 @@ class TensorpotPotential(MlipManager):
 
         e_true = np.array([at.get_potential_energy()/len(at)
                           for at in self.atoms])
-        f_true = np.concatenate([at.get_forces().flatten() for at in self.atoms])
+        f_true = np.concatenate([at.get_forces().flatten()
+                                 for at in self.atoms])
         s_true = np.concatenate([at.get_stress() for at in self.atoms])
-
-        print(np.shape(e_true))
-        print(np.shape(f_true))
-        print(np.shape(s_true))
-        print(np.shape(e_mlip))
-        print(np.shape(f_mlip))
-        print(np.shape(s_mlip))
-
-        #print("MLIP_E:", np.shape(e_mlip))
-        #print("MLIP_F:", [np.shape(m) for m in f_mlip])
-        #print("MLIP_S:", [np.shape(m) for m in s_mlip])
-        #print("TRUE_E:", np.shape(e_true))
-        #print("TRUE_F:", [np.shape(m) for m in f_true])
-        #print("TRUE_S:", [np.shape(m) for m in s_true])
 
         w = None
         if len(self.weight.weight) > 0:

@@ -22,10 +22,9 @@ from ..utilities import make_dataframe
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
-from ase.data import atomic_masses, chemical_symbols 
+from ase.data import atomic_masses, chemical_symbols
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor
 from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
                                    get_lammps_command)
@@ -89,7 +88,7 @@ class AceDescriptor(Descriptor):
 
     Parameters
     ----------
-    atoms : :class:`ase.atoms` or list 
+    atoms : :class:`ase.atoms` or list
         Reference structure, with the elements for the descriptor
 
     free_at_e : :class:`dict`
@@ -185,7 +184,6 @@ class AceDescriptor(Descriptor):
             self.backend['parallel_mode'] = "process"
             self.backend['nworkers'] = nworkers
         if 'elements' not in self.loss:
-            #bconf['elements'] = np.unique(atoms.get_chemical_symbols())
             bconf['elements'] = self.elements
 
         # Set bconf['rcut'] according to rcut if rcut is given
@@ -260,12 +258,11 @@ class AceDescriptor(Descriptor):
         """
         new_wf = []
         curr_index = 0
-        for f in forces :
+        for f in forces:
             new_wf.append(wf[curr_index:curr_index+len(f)*3])
             curr_index += len(f)*3
-        
-        new_wf = [np.sum(np.reshape(new_wf[i], [-1,3]),axis=1) \
-                for i in range(len(new_wf))]
+        new_wf = [np.sum(np.reshape(new_wf[i], [-1, 3]), axis=1)
+                  for i in range(len(new_wf))]
         return new_wf
 
 # ========================================================================== #
@@ -291,11 +288,6 @@ class AceDescriptor(Descriptor):
         # Dataframe preparation
         df = self.get_df()
 
-        print(f"DEBUG1 {nconfs} {len(weights)} {len(we)} {len(wf)}", file=sys.stderr)
-        print(np.sum(we) + np.sum(wf), file=sys.stderr)
-        print("DEBUG3", np.shape(forces), np.shape(wf), file=sys.stderr)
-        #print("WEIGHTS ENERGY", we, file=sys.stderr)
-        #print("WEIGHTS FORCES", wf, file=sys.stderr)
         df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
@@ -399,10 +391,6 @@ class AceDescriptor(Descriptor):
         self.callback = lambda val: check_conv(val)
         self.data = dict(filename=str(self.db_fn))
 
-        df = pd.read_pickle(self.db_fn, compression="gzip")
-        print("BIG DEBUG", file=sys.stderr)
-        print(np.shape(df['forces'][0]), np.shape(df['w_forces'][0]), file=sys.stderr)
-        print(df['w_forces'].map(sum).sum(), file=sys.stderr)
         self.acefit = GeneralACEFit(potential_config=self.bconf,
                                     fit_config=self.fitting,
                                     data_config=self.data,
@@ -502,8 +490,7 @@ class AceDescriptor(Descriptor):
         Note : We need to use clear if the cell changes between atoms
                Else, we can use delete_atoms which doesn't reload potential
         """
-        # Note: if any of these changes between simulations, big problem ...
-        masses = [atomic_masses[chemical_symbols.index(el)]\
+        masses = [atomic_masses[chemical_symbols.index(el)]
                   for el in self.elements]
 
         # Write the input file

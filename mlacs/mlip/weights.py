@@ -54,7 +54,6 @@ class FixedWeight(WeightingPolicy):
         self.forces_coefficient = self.subweight.forces_coefficient
         self.stress_coefficient = self.subweight.stress_coefficient
 
-
 # ========================================================================== #
     @Manager.exec_from_subsubdir
     def compute_weight(self, coef=None, predict=None, **kwargs):

@@ -96,6 +96,7 @@ def test_linear_potential():
 
     elammps = np.array([at.get_potential_energy() for at in mlip_fakeat])
     flammps = np.array([at.get_forces() for at in mlip_fakeat])
+    flammps = np.reshape(flammps, np.shape(fmat))
     slammps = np.array([at.get_stress() for at in mlip_fakeat])
 
     # TODO check if it's a writing problem or if we have a slight difference in

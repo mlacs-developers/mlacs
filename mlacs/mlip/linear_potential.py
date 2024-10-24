@@ -152,26 +152,9 @@ class LinearPotential(MlipManager):
         if len(self.weight.weight) > 0:
             w = self.weight.weight
 
-        # Quickfix for variable number of atoms
         wf = np.array([])
         for i in range(len(w)):
             wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
-        # End of Quickfix
-
-        #print("MLIP_E:", np.shape(e_mlip))
-        #print("MLIP_F:", [np.shape(m) for m in f_mlip])
-        #print("MLIP_S:", [np.shape(m) for m in s_mlip])
-        print(np.shape(ymat_e))
-        print(np.shape(ymat_f))
-        print(np.shape(ymat_s))
-        print(np.shape(e_mlip))
-        print(np.shape(f_mlip))
-        print(np.shape(s_mlip))
-
-        exit()
-        print("TRUE_E:", np.shape(ymat_e))
-        print("TRUE_F:", [np.shape(m) for m in ymat_f])
-        print("TRUE_S:", [np.shape(m) for m in ymat_s])
 
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=wf)

@@ -117,14 +117,9 @@ def compute_correlation(data, weight=None):
     if weight is None:  # Uniform weighting
         nconf = np.shape(data)[0]
         weight = np.ones(nconf) / nconf
-    print(type(data))
-    print(np.shape(data))
-    print(np.shape(weight))
     datatrue = data[:, 0]
     datatest = data[:, 1]
 
-    print(np.shape(datatrue))
-    print(np.shape(datatest))
     assert len(datatrue) % len(weight) == 0, "Weights isn't a divisor of data"
     weight = np.repeat(weight, len(datatrue)//len(weight))
 

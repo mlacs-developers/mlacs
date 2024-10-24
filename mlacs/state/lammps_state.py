@@ -184,8 +184,8 @@ class BaseLammpsState(StateManager):
         """
 
         """
-        # Lammps Snap doesn't allow unused elements in pair_coeff
-        if pair_style.startswith("snap"):
+        # Snap/Pace doesn't allow unused elements in pair_coeff
+        if pair_style.startswith("snap") or pair_style.startswith("pace"):
             elems = set(atoms.get_chemical_symbols())
             fixed_pc, tmp_pc = [], ""
             for pc in pair_coeff:
