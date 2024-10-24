@@ -327,7 +327,7 @@ class HistPlot:
             obs_label = dict_name_label[obs_name].replace("_", " ")
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
-        
+
         weights_meta = weights_ncfile.read_obs('weights_meta')
         weights_idx = weights_meta[:, 0]
         nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
@@ -418,8 +418,11 @@ class HistPlot:
             loc_weights = dict_weights[iter_loc][1]
             normalized_y = loc_weights/np.mean(loc_weights)
             Nconfs_loc = np.round(nb_effective_conf[iter_loc-1], 1)
-            lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
-            ax[1].step(normalized_x, normalized_y, where='mid', label=lab_str, zorder=10-iter_loc)
+            # RB: Don't why but in some cases the \text don't work.
+            # lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
+            lab_str = r'$N_{eff} \simeq$'+'{}'.format(Nconfs_loc)
+            ax[1].step(normalized_x, normalized_y, where='mid',
+                       label=lab_str, zorder=10-iter_loc)
 
         if len(idx_bounds)-1 > 5:
             mlacs_iter_arr = np.geomspace(3, len(idx_bounds)-1, 4, dtype=int)
