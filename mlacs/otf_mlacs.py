@@ -90,14 +90,16 @@ class OtfMlacs(Mlas, Manager):
                  std_init=0.05,
                  keep_tmp_mlip=True,
                  workdir='',
+                 prefix='',
                  ncprefix='',
                  ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir,
+                      prefix=prefix)
 
         # Check if trajectory files already exist
-        # RB: I think this not necessary anymore
+        # RB: I think this is not necessary anymore
         # self.launched = self._check_if_launched()
 
         # Create Abinit-style *HIST.nc file of netcdf format
@@ -107,6 +109,7 @@ class OtfMlacs(Mlas, Manager):
                                launched=self.launched,
                                atoms=atoms)
 
+        # RB: Move the initialization of properties out of Mlas.
         self._initialize_properties(prop)
         self._initialize_routine_properties()
 

@@ -95,9 +95,10 @@ class Mlas(Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 workdir=''):
+                 workdir='',
+                 prefix=''):
 
-        Manager.__init__(self, workdir=workdir)
+        Manager.__init__(self, workdir=workdir, prefix=prefix)
 
         # Initialize working directory
         self.workdir.mkdir(exist_ok=True, parents=True)
@@ -107,10 +108,10 @@ class Mlas(Manager):
         # Check inputs
         ##############
         self.keep_tmp_mlip = keep_tmp_mlip
-        self._initialize_state(state, atoms, neq)
+        self._initialize_state(state, atoms, neq, prefix)
         self._initialize_calc(calc)
         self._initialize_mlip(mlip)
-        self._initialize_properties(prop)
+        # self._initialize_properties(prop)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()

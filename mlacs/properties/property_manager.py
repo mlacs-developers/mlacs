@@ -36,10 +36,15 @@ class PropertyManager(Manager):
             self.check = [False]
 
         if prop is not None:
-            if any([prop.needdir for prop in self.manager]):
+            if not any([prop.needdir for prop in self.manager]):
                 folder = ''
 
         Manager.__init__(self, folder=folder, **kwargs)
+        if self.manager is not None:
+            for observable in self.manager:
+                if observable.needdir:
+                    observable.workdir = self.workdir
+                    observable.folder = self.folder
 
 # ========================================================================== #
     @property
@@ -56,15 +61,20 @@ class PropertyManager(Manager):
         """
         Run property calculation.
         """
-        dircheck = False
-        for observable in self.manager:
-            if step % observable.freq == 0:
-                dircheck = True
-        if dircheck:
-            self.path.mkdir(exist_ok=True, parents=True)
+        # RB: Not needed anymore
+        # dircheck = False
+        # for observable in self.manager:
+        #     if step % observable.freq == 0:
+        #         dircheck = True
+        # if dircheck:
+        #     self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
+                if observable.needdir:
+                    observable.workdir = self.workdir
+                    observable.folder = self.folder
+                    observable.subfolder = f'Step{step}'
                 self.check[i] = observable._exec()
                 msg += repr(observable)
         return msg

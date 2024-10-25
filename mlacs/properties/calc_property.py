@@ -199,7 +199,7 @@ class CalcNeb(CalcProperty):
         Exec a NEB calculation with lammps. Use replicas.
         """
         self.state.workdir = self.workdir
-        self.state.folder = 'NEB_Calculation'
+        self.state.subfolder = 'NEB_Calculation'
         atoms = self.state.atoms[0]
         self.state.run_dynamics(atoms, **self.kwargs)
         self.state.extract_NEB_configurations()
@@ -246,25 +246,30 @@ class CalcRdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
+        self.state.folder = 'Rdf_Calculation'
 
 # ========================================================================== #
-    @Manager.exec_from_path
+    @Manager.exec_from_workdir
     def _exec(self):
         """
         Exec a Rdf calculation with lammps.
         """
         from ..utilities.io_lammps import get_block_rdf
 
-        self.state.workdir = self.workdir
-        self.state.folder = 'Rdf_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
             block("equilibrationrun", f"run {self.step}")
             block("reset_timestep", "reset_timestep 0")
             block.extend(get_block_rdf(self.step, self.filename))
             self.state._myblock = block
-        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
-        self.new = read_df(self.state.workdir / self.filename)[0]
+        mlip = self.kwargs['mlip']
+        self.state.run_dynamics(self.atoms[-1], mlip.pair_style,
+                                mlip.pair_coeff)
+        print(self.state.subsubdir)
+        self.new = read_df(self.state.subsubdir / self.filename)[0]
+        print(self.new)
         return self.isconverged
 
 # ========================================================================== #
@@ -316,7 +321,7 @@ class CalcAdf(CalcProperty):
         from ..utilities.io_lammps import get_block_adf
 
         self.state.workdir = self.workdir
-        self.state.folder = 'Adf_Calculation'
+        self.state.subfolder = 'Adf_Calculation'
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
             block("equilibrationrun", f"run {self.step}")
@@ -398,7 +403,7 @@ class CalcTi(CalcProperty):
                                            self.ninstance,
                                            logfile="TiCheckFe.log")
         self.ti.workdir = self.workdir
-        self.ti.folder = 'Neti_Calculation'
+        self.ti.subfolder = 'Neti_Calculation'
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
