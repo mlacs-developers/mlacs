@@ -149,17 +149,20 @@ class CalcPafi(CalcProperty):
                  **kwargs):
         CalcProperty.__init__(self, args, state, method, criterion, frequence,
                               **kwargs)
+        self.state.folder = 'PafiPath_Calculation'
 
 # ========================================================================== #
-    @Manager.exec_from_path
+    @Manager.exec_from_workdir
     def _exec(self):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.state.workdir = self.workdir
-        self.state.folder = 'PafiPath_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         atoms = self.state.path.atoms[0]
-        self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
+        mlip = self.kwargs['mlip']
+        self.new = self.state.run_pafipath_dynamics(
+                atoms, mlip.pair_style, mlip.pair_coeff)[1]
         return self.isconverged
 
 # ========================================================================== #
@@ -191,17 +194,19 @@ class CalcNeb(CalcProperty):
                  criterion=0.001,
                  frequence=1):
         CalcProperty.__init__(self, args, state, method, criterion, frequence)
+        self.state.folder = 'Neb_Calculation'
 
 # ========================================================================== #
-    @Manager.exec_from_path
+    @Manager.exec_from_workdir
     def _exec(self):
         """
         Exec a NEB calculation with lammps. Use replicas.
         """
-        self.state.workdir = self.workdir
-        self.state.subfolder = 'NEB_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         atoms = self.state.atoms[0]
-        self.state.run_dynamics(atoms, **self.kwargs)
+        mlip = self.kwargs['mlip']
+        self.state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
         self.state.extract_NEB_configurations()
         self.new = self.state.spline_energies
         return self.isconverged
@@ -254,6 +259,7 @@ class CalcRdf(CalcProperty):
         """
         Exec a Rdf calculation with lammps.
         """
+
         from ..utilities.io_lammps import get_block_rdf
 
         self.state.workdir = self.folder
@@ -267,9 +273,7 @@ class CalcRdf(CalcProperty):
         mlip = self.kwargs['mlip']
         self.state.run_dynamics(self.atoms[-1], mlip.pair_style,
                                 mlip.pair_coeff)
-        print(self.state.subsubdir)
         self.new = read_df(self.state.subsubdir / self.filename)[0]
-        print(self.new)
         return self.isconverged
 
 # ========================================================================== #
@@ -310,9 +314,10 @@ class CalcAdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
+        self.state.folder = 'Adf_Calculation'
 
 # ========================================================================== #
-    @Manager.exec_from_path
+    @Manager.exec_from_workdir
     def _exec(self):
         """
         Exec an Adf calculation with lammps.
@@ -320,16 +325,18 @@ class CalcAdf(CalcProperty):
 
         from ..utilities.io_lammps import get_block_adf
 
-        self.state.workdir = self.workdir
-        self.state.subfolder = 'Adf_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
             block("equilibrationrun", f"run {self.step}")
             block("reset_timestep", "reset_timestep 0")
             block.extend(get_block_adf(self.step, self.filename))
             self.state._myblock = block
-        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
-        self.new = read_df(self.state.workdir / self.filename)[0]
+        mlip = self.kwargs['mlip']
+        self.state.run_dynamics(self.atoms[-1], mlip.pair_style,
+                                mlip.pair_coeff)
+        self.new = read_df(self.state.subsubdir / self.filename)[0]
         return self.isconverged
 
 # ========================================================================== #
@@ -391,7 +398,7 @@ class CalcTi(CalcProperty):
             self.state = UFLiquidState(**self.ti_state)
 
 # ========================================================================== #
-    @Manager.exec_from_path
+    @Manager.exec_from_workdir
     def _exec(self):
         """
         Exec a NETI calculation with lammps.
@@ -402,8 +409,9 @@ class CalcTi(CalcProperty):
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
                                            logfile="TiCheckFe.log")
-        self.ti.workdir = self.workdir
-        self.ti.subfolder = 'Neti_Calculation'
+        self.ti.workdir = self.folder
+        self.ti.folder = 'Neti_Calculation'
+        self.ti.subfolder = self.subfolder
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
