@@ -42,7 +42,6 @@ def linfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
     """
-    # TODO: Implement a weight to this function
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
     if not (isinstance(mlip, LinearPotential)
@@ -64,7 +63,6 @@ def mtpfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
     """
-    # TODO: Implement a weight to this function
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
     if not isinstance(mlip, MomentTensorPotential):
@@ -114,12 +112,9 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
         if len(atoms) == len(weights):
             we, wf, ws = WeightingPolicy(database=atoms).build_W_efs(weights)
             weights = np.append(np.append(we, wf), ws)
-
     if initial_potential is not None:
-        if isinstance(initial_potential, str):
-            initial_potential = BBasisConfiguration(initial_potential)
-        mlip.descriptor.bconf.set_all_coeffs(
-                initial_potential.get_all_coeffs())
+        mlip.descriptor.bconf.load(initial_potential)
+        curr_fc = mlip.descriptor.bconf.metadata['_fit_cycles']
+        mlip.descriptor.fitting['fit_cycles'] = int(curr_fc) + 1
     mlip.descriptor.redirect_logger()
-
     mlip.descriptor.fit(weights=weights, atoms=atoms)
