@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, CD)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,9 +12,14 @@ from mlacs.properties.calc_property import (CalcPafi,
                                             CalcRdf,
                                             CalcAdf,
                                             CalcTi,
-                                            CalcTrueVolume,
                                             CalcExecFunction,
+                                            CalcRoutineFunction,
+                                            CalcPressure,
                                             CalcProperty,
+                                            CalcAcell,
+                                            CalcAngles,
+                                            CalcSpinAt,
+                                            CalcElectronicEntropy,
                                             )
 
 from .basic_function import (eos_fit,
@@ -28,6 +33,11 @@ __all__ = ['PropertyManager',
            'CalcAdf',
            'CalcTi',
            'CalcExecFunction',
-           'CalcTrueVolume',
+           'CalcRoutineFunction',
+           'CalcPressure',
+           'CalcAcell',
+           'CalcAngles',
+           'CalcSpinAt',
+           'CalcElectronicEntropy',
            'eos_fit',
            ]

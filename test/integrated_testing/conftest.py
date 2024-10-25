@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, CD)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -8,7 +8,7 @@
 
 import shutil
 import pytest
-
+from itertools import chain
 from pathlib import Path
 
 
@@ -73,3 +73,14 @@ def langevin_treelink(root, expected_folder, expected_files):
 
     for f in expected_files:
         (root / f).unlink()
+
+
+@pytest.fixture(autouse=True)
+def clean_up_nc(root):
+    def _clean_up():
+        patterns = [root.rglob("*_WEIGHTS.nc"), root.rglob("*_HIST.nc")]
+        for filename in chain(*patterns):
+            filename.unlink()
+    _clean_up()
+    yield
+    _clean_up()

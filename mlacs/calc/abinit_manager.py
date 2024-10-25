@@ -12,6 +12,7 @@ import shlex
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
 from subprocess import Popen
+from subprocess import check_output
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
@@ -88,6 +89,7 @@ class AbinitManager(CalcManager):
     >>> pseudos = {'Cu': "/path/to/pseudo/Cu.LDA_PW-JTH.xml"}
     >>> calc = AbinitManager(parameters=variables, pseudos=pseudos)
     """
+
     def __init__(self,
                  parameters,
                  pseudos,
@@ -101,6 +103,7 @@ class AbinitManager(CalcManager):
 
         CalcManager.__init__(self, "dummy", magmoms,
                              folder=folder, **kwargs)
+
         self.parameters = parameters
         if 'IXC' in self.parameters.keys():
             self.parameters['ixc'] = self.parameters['IXC']
@@ -127,7 +130,7 @@ class AbinitManager(CalcManager):
     @staticmethod
     def submit_abinit_calc(cmd, logfile, errfile, cdir):
         with open(logfile, 'w') as lfile, \
-             open(errfile, 'w') as efile:
+                open(errfile, 'w') as efile:
             try:
                 process = Popen(cmd,
                                 cwd=cdir,
@@ -339,3 +342,19 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinito_EIG")
         if os.path.exists(stateprefix + "abinito_EBANDS.agr"):
             os.remove(stateprefix + "abinito_EBANDS.agr")
+
+# ========================================================================== #
+    def log_recap_state(self):
+        """
+        """
+        cmd = self.abinit_cmd
+        cmd += ' --version'
+        version = check_output(cmd, shell=True).decode('utf-8')
+        msg = "True potential parameters:\n"
+        msg += f"Abinit : {version}\n"
+        dct = self.parameters
+        msg += "parameters :\n"
+        for key in dct.keys():
+            msg += "   " + key + "  {0}\n".format(dct[key])
+        msg += "\n"
+        return msg

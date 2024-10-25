@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC, RB)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, PR, CD)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,8 +10,10 @@ import os
 import copy
 import importlib
 import numpy as np
+from operator import attrgetter
 
 from ase.atoms import Atoms
+from ase.units import GPa
 
 from ..core.manager import Manager
 from ..utilities.io_lammps import LammpsBlockInput
@@ -63,6 +65,12 @@ class CalcProperty(Manager):
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        self.needdir = True
+        self.label = 'Observable_Label'
+        self.shape = None
+        self.nc_name = None
+        self.nc_dim = None
+        self.nc_unit = ''
         if state is not None:
             self.state = copy.deepcopy(state)
 
@@ -79,20 +87,13 @@ class CalcProperty(Manager):
         """
         Check if the property is converged.
         """
+        if not isinstance(self.new, np.ndarray):
+            self.new = np.r_[self.new]
         if self.isfirst:
-            if isinstance(self.new, np.ndarray):
-                self.old = np.zeros(self.new.shape)
-            else:
-                self.new = np.r_[self.new]
-                self.old = np.zeros(self.new.shape)
-            check = self._check
-            self.old = self.new
+            self.old = np.zeros(self.new.shape)
             self.isfirst = False
-        else:
-            check = self._check
-            if not isinstance(self.new, np.ndarray):
-                self.new = np.r_[self.new]
-            self.old = self.new
+        check = self._check
+        self.old = self.new
         return check
 
 # ========================================================================== #
@@ -101,10 +102,10 @@ class CalcProperty(Manager):
         """
         Check criterions.
         """
-        self.maxf = np.max(np.abs(self.new-self.old))
+        self.maxf = np.max(np.abs(self.new - self.old))
         if not self.isgradient:
             self.maxf = np.max(np.abs(self.new))
-        self.avef = np.average(np.abs(self.new-self.old))
+        self.avef = np.average(np.abs(self.new - self.old))
         if self.stop is None:
             return False
         elif self.method == 'max' and self.maxf < self.stop:
@@ -347,6 +348,7 @@ class CalcTi(CalcProperty):
         Structure of the system: solild or liquid.
         Set either the Einstein crystal as a reference system or the UF liquid.
     """
+
     def __init__(self,
                  args,
                  phase,
@@ -450,7 +452,8 @@ class CalcExecFunction(CalcProperty):
                  use_atoms=True,
                  gradient=False,
                  criterion=0.001,
-                 frequence=1):
+                 frequence=1,
+                 nc_unit=''):
         CalcProperty.__init__(self, args, None, 'max', criterion, frequence)
 
         self._func = function
@@ -458,8 +461,12 @@ class CalcExecFunction(CalcProperty):
             importlib.import_module(module)
             self._function = getattr(module, function)
         self.isfirst = True
+        self.needdir = False
         self.use_atoms = use_atoms
         self.isgradient = gradient
+        self.label = function
+        self.shape = None
+        self.nc_unit = nc_unit
 
 # ========================================================================== #
     def _exec(self, wdir=None):
@@ -471,6 +478,13 @@ class CalcExecFunction(CalcProperty):
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
+        if self.nc_unit == 'GPa':
+            # Evaluation of _f(...) returns LAMMPS natural units, which are
+            # eV/Angs^3 for stresses. Here, conversion to GPa
+            self.new /= GPa
+
+        if self.isfirst:
+            self.shape = self.new[0].shape
         return self.isconverged
 
 # ========================================================================== #
@@ -488,45 +502,294 @@ class CalcExecFunction(CalcProperty):
 
 # ========================================================================== #
 # ========================================================================== #
-class CalcTrueVolume(CalcExecFunction):
+class CalcRoutineFunction(CalcExecFunction):
     """
-    Class to compute the averaged volume of all configurations.
-    Warning: if you have multiple states, it will averaged all the states.
+    Class to routinely compute basic thermodynamic observables.
+
+    Parameters
+    ----------
+
+    function: :class:`str`
+        Name of Lammps function, e.g. `get_kinetic_energy'.
+
+    label: :class:`str`
+        Label of the function to be executed, e.g. `Kinetic_Energy`.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+
+    nc_name: :class:`str` (optional)
+        Name of the observable in *HIST.nc file, e.g. `ekin`.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        This name should follow Abinit conventions as much as possible.
+        Default ``None``.
+
+    nc_dim: :class:`str` (optional)
+        Name of the dimension of the observable in *HIST.nc file.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Default ``None``.
+
+    nc_unit: :class:`str` (optional)
+        Name of the unit of the observable in *HIST.nc file.
+        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Default ''.
+
+    weight: :class:`WeightingPolicy` (optional)
+        WeightingPolicy class, Default: `None`.
+    """
+
+    def __init__(self,
+                 function,
+                 label,
+                 nc_name=None,
+                 nc_dim=None,
+                 nc_unit='',
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        CalcExecFunction.__init__(self, function, dict(), None, True,
+                                  gradient, criterion, frequence, nc_unit)
+        self.weight = weight
+        self.label = label
+        self.needdir = False
+        self.nc_name = nc_name
+        self.nc_dim = nc_dim
+        self.nc_unit = nc_unit
+
+# ========================================================================== #
+    def __repr__(self):
+        """
+        Return a string for the log with informations of the calculated
+        routine property.
+        """
+        name_observable = self.label.lower().replace("_", " ")
+        unit = self.nc_unit
+        msg = f'Routine computation of the {name_observable}\n'
+        if len(self.shape) == 0:
+            if len(self.new > 0):
+                for idx_state, val in enumerate(self.new):
+                    msg += f'        - Value for state {idx_state+1} : '
+                    msg += '{:.5e}'.format(val) + ' ' + unit + ' \n'
+            else:
+                msg += f'        - Value for state 1  : {self.new}\n'
+        else:
+            # Too big to print, cf. *_HIST.nc file
+            msg = ''
+
+        return msg
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcPressure(CalcRoutineFunction):
+    """
+    Class to compute the hydrostatic pressure.
+
+    Parameters
+    ----------
+
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+
+    def __init__(self,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+
+        label = 'Pressure'
+        nc_name = 'press'
+        nc_dim = ('time',)
+        nc_unit = 'GPa'
+        CalcRoutineFunction.__init__(self,
+                                     'get_stress',
+                                     label,
+                                     nc_name,
+                                     nc_dim,
+                                     nc_unit)
+
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            self._function = [getattr(_, self._func) for _ in self.atoms]
+            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])/GPa
+                              for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcAcell(CalcRoutineFunction):
+    """
+    Class to compute the cell lengths.
 
     Parameters
     ----------
     weight: :class:`WeightingPolicy`
         WeightingPolicy class, Default: `None`.
     """
+
     def __init__(self,
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
-        CalcExecFunction.__init__(self, 'get_volume', dict(), None,
-                                  True, gradient, criterion, frequence)
-        self.weight = weight
+        label = 'Acell'
+        nc_name = 'acell'
+        nc_dim = ('time', 'xyz')
+        nc_unit = 'Ang'
+        CalcRoutineFunction.__init__(self,
+                                     'get_cell_lengths_and_angles',
+                                     label,
+                                     nc_name,
+                                     nc_dim,
+                                     nc_unit)
 
-# ========================================================================== #
     def _exec(self, wdir=None):
         """
         Execute function
         """
-        func = [getattr(_, self._func) for _ in self.weight.database]
-        volume = np.r_[[_f() for _f in func]]
-        volume = volume / len(self.weight.database[0])
-        w = np.ones(len(volume))
-        if self.weight is not None and not len(self.weight.weight) == 0:
-            w = self.weight.weight
-        self.new = np.average(volume, weights=w)
+        if self.use_atoms:
+            # Use of get_cell_lengths_and_angles is now deprecated in lammps
+            # self._function = [getattr(_, self._func) for _ in self.atoms]
+            attr = 'cell.cellpar'
+            self._function = [attrgetter(attr)(_) for _ in self.atoms]
+            self.new = np.r_[[_f(**self.kwargs)[:3] for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
         return self.isconverged
 
+
 # ========================================================================== #
-    def __repr__(self):
+# ========================================================================== #
+class CalcAngles(CalcRoutineFunction):
+    """
+    Class to compute the cell angles.
+
+    Parameters
+    ----------
+    weight: :class:`WeightingPolicy`
+        WeightingPolicy class, Default: `None`.
+    """
+
+    def __init__(self,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+        label = 'Angles'
+        nc_name = 'angl'
+        nc_dim = ('time', 'xyz')
+        nc_unit = 'deg'
+        CalcRoutineFunction.__init__(self,
+                                     'get_cell_lengths_and_angles',
+                                     label,
+                                     nc_name,
+                                     nc_dim,
+                                     nc_unit)
+
+    def _exec(self, wdir=None):
         """
-        Return a string for the log with informations of the calculated
-        property.
+        Execute function
         """
-        msg = 'Computing the averaged volume of all configurations.\n'
-        msg += f'        - vol/atom: {self.new[0]:10.5f} angs^3/at\n'
-        return msg
+        if self.use_atoms:
+            attr = 'cell.cellpar'
+            self._function = [attrgetter(attr)(_) for _ in self.atoms]
+            self.new = np.r_[[_f(**self.kwargs)[3:] for _f in self._function]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcSpinAt(CalcRoutineFunction):
+    """
+    Class to obtain the electronic spin-magnetization (as computed by Abinit)
+    from ASE's Atoms object.
+    See also mlacs.utilities.io_abinit.set_aseAtoms.py
+    """
+
+    def __init__(self,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+
+        label = 'Electronic_Spin_Magnetization'
+        nc_name = 'spinat'
+        nc_dim = ('time', 'natom', 'xyz',)
+        nc_unit = 'hbar/2'
+        CalcRoutineFunction.__init__(self,
+                                     '',
+                                     label,
+                                     nc_name,
+                                     nc_dim,
+                                     nc_unit)
+
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            try:
+                self.new = np.r_[[_.get_array('spinat') for _ in self.atoms]]
+            except KeyError:
+                self.new = np.r_[[np.zeros((len(_), 3)) for _ in self.atoms]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
+
+
+# ========================================================================== #
+# ========================================================================== #
+class CalcElectronicEntropy(CalcRoutineFunction):
+    """
+    Class to obtain the electronic entropy (as computed by Abinit)
+    from ASE's Atoms object.
+    """
+
+    def __init__(self,
+                 weight=None,
+                 gradient=False,
+                 criterion=None,
+                 frequence=1):
+
+        label = 'Electronic_Entropy'
+        nc_name = 'entropy'
+        nc_dim = ('time',)
+        nc_unit = ''
+        CalcRoutineFunction.__init__(self,
+                                     '',
+                                     label,
+                                     nc_name,
+                                     nc_dim,
+                                     nc_unit)
+
+    def _exec(self, wdir=None):
+        """
+        Execute function
+        """
+        if self.use_atoms:
+            try:
+                self.new = np.r_[[_.get_properties('')['free_energy']
+                                  for _ in self.atoms]]
+            except KeyError:
+                self.new = np.r_[[0.0 for _ in self.atoms]]
+        else:
+            self.new = self._function(**self.kwargs)
+        if self.isfirst:
+            self.shape = self.new[0].shape
+        return self.isconverged
