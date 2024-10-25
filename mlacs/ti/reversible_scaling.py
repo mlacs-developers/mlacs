@@ -1,7 +1,7 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (PR, AC)
 // This file is distributed under the terms of the
-// GNU General Public License, see LICENSE.md
+// GNU General Public License, see LICENSE.mdMana
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """

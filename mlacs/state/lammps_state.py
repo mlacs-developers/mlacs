@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON, PR)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -93,7 +93,7 @@ class BaseLammpsState(StateManager):
                          shell=True,
                          cwd=str(self.subsubdir),
                          stderr=PIPE)
-
+        
         if lmp_handle.returncode != 0:
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
@@ -116,6 +116,7 @@ class BaseLammpsState(StateManager):
                           atoms,
                           velocities=True,
                           atom_style=atom_style)
+
 
 # ========================================================================== #
     def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
