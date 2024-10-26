@@ -108,8 +108,6 @@ class PafiLammpsState(LammpsState):
             raise TypeError('A reaction path must be given!')
         self.mep.print = prt
 
-        self.mep.workdir = self.workdir
-        self.mep.folder = 'TransPath'
         self.print = prt
         self.maxjump = maxjump
 
@@ -129,6 +127,8 @@ class PafiLammpsState(LammpsState):
         """
 
         # Run NEB calculation.
+        self.mep.workdir = self.folder
+        self.mep.folder = 'TransPath'
         self.mep.run_dynamics(self.mep.patoms.initial,
                               pair_style, pair_coeff, model_post, atom_style)
         supercell = self.mep.patoms.splined
@@ -165,6 +165,8 @@ class PafiLammpsState(LammpsState):
         lfname = self.lammpsfname
 
         # Run NEB calculation.
+        self.mep.workdir = self.folder
+        self.mep.folder = 'TransPath'
         self.mep.run_dynamics(self.mep.patoms.initial,
                               pair_style, pair_coeff, model_post, atom_style)
         self.isrestart = False
@@ -321,7 +323,7 @@ class PafiLammpsState(LammpsState):
         Integrate the MFEP and compute the Free energy barrier.
         """
         temp = self.temperature
-        meff = self.mep.masses
+        meff = self.mep.patoms.masses
 
         self.pafi = []
         for rep in range(len(xi)):
