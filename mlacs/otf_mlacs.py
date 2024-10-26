@@ -68,6 +68,9 @@ class OtfMlacs(Mlas, Manager):
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
+    prefix: :class:`str` (optional)
+        The prefix to prepend the name of the States files.
+
     ncprefix: :class:`str` (optional)
         The prefix to prepend the name of the *HIST.nc file.
 
@@ -90,7 +93,7 @@ class OtfMlacs(Mlas, Manager):
                  std_init=0.05,
                  keep_tmp_mlip=True,
                  workdir='',
-                 prefix='',
+                 prefix='Trajectory',
                  ncprefix='',
                  ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
@@ -102,6 +105,8 @@ class OtfMlacs(Mlas, Manager):
         # RB: I think this is not necessary anymore
         # self.launched = self._check_if_launched()
 
+        # RB: We should merge ncprefix and prefix.
+        #     Default should be the script name, see HistFile._get_nc_path()
         # Create Abinit-style *HIST.nc file of netcdf format
         self.ncfile = HistFile(ncprefix=ncprefix,
                                workdir=workdir,
@@ -123,7 +128,7 @@ class OtfMlacs(Mlas, Manager):
                 self.ncfile.create_nc_var(self.prop.manager)
 
             self.prop.workdir = self.workdir
-            # RB: I think this not necessary anymore
+            # RB: I think this is not necessary anymore
             # if not self.prop.folder:
             #     self.prop.folder = 'Properties'
 
@@ -159,7 +164,7 @@ class OtfMlacs(Mlas, Manager):
             self.ncfile.create_nc_var(routine_prop_list)
 
         self.routine_prop.workdir = self.workdir
-        # RB: I think this not necessary
+        # RB: I think this is not necessary
         # self.routine_prop.folder = 'Properties/RoutineProperties'
 
         self.routine_prop.isfirstlaunched = not self.launched
