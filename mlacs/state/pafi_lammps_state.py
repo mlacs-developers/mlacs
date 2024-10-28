@@ -127,8 +127,9 @@ class PafiLammpsState(LammpsState):
         """
 
         # Run NEB calculation.
-        self.mep.workdir = self.folder
-        self.mep.folder = 'TransPath'
+        self.mep.workdir = self.workdir
+        self.mep.folder = self.folder
+        self.mep.subfolder = 'TransPath'
         self.mep.run_dynamics(self.mep.patoms.initial,
                               pair_style, pair_coeff, model_post, atom_style)
         supercell = self.mep.patoms.splined
