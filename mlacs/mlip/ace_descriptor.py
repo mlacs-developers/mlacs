@@ -158,7 +158,6 @@ class AceDescriptor(Descriptor):
                  bconf_dict=None, loss_dict=None, fitting_dict=None,
                  backend_dict=None, nworkers=None):
 
-
         self.cmd = get_lammps_command()
         self._verify_dependency()
 

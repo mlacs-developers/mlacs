@@ -54,9 +54,9 @@ def has_pyace():
     """
     try:
         import pyace  # noqa
-        return False
-    except ImportError:
         return True
+    except ImportError:
+        return False
 
 
 def has_netcdf():
