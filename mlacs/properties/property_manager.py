@@ -129,7 +129,7 @@ class PropertyManager(Manager):
         if weighting_pol is not None:
             for observable in self.manager:
                 nc_name = observable.nc_name
-                weights = weighting_pol.weight[2:]
+                weights = weighting_pol.weight.copy()[2:]
 
                 obs = self.ncfile.read_obs(nc_name)
                 observable_values = obs[:len(weights)]
@@ -170,7 +170,7 @@ class PropertyManager(Manager):
             # The first two confs of self.mlip.weight.database are never used
             # in the properties computations, so they are throwned out here
             # by the slicing operator [2:]
-            weights = weighting_pol.weight[2:]
+            weights = weighting_pol.weight[2:].copy()
             if len(weights) > 0:
                 nb_effective_conf = np.sum(weights)**2 / np.sum(weights**2)
             else:
