@@ -1,3 +1,8 @@
+"""
+Example of a MLACS simulation of Cu at 300 K.
+The true potential is the EMT as implemented in ASE.
+"""
+
 import os
 
 from ase.build import bulk
@@ -7,18 +12,14 @@ from mlacs.mlip import AceDescriptor, TensorpotPotential
 from mlacs.state.lammps_state import LammpsState
 from mlacs import OtfMlacs
 
-
-"""
-Example of a MLACS simulation of Cu at 300 K.
-The true potential is the EMT as implemented in ASE.
-"""
+workdir = os.path.basename(__file__).split('.')[0]
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 50        # Numbers of final configurations, also set the end of the 
+nconfs = 50        # Numbers of final configurations, also set the end of the
                    # simulation
-nsteps = 5      # Numbers of MD steps in the production phase.
-nsteps_eq = 5    # Numbers of MD steps in the equilibration phase.
-neq = 5            # Numbers of mlacs equilibration iterations. 
+nsteps = 5         # Numbers of MD steps in the production phase.
+nsteps_eq = 5      # Numbers of MD steps in the equilibration phase.
+neq = 5            # Numbers of mlacs equilibration iterations.
 # MD Parameters ---------------------------------------------------------------
 temperature = 300  # Temperature of the simulation in K.
 dt = 0.1           # Integration time in fs.
@@ -39,9 +40,9 @@ os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
 
 # Creation of the MLIP
 ace_descriptor = AceDescriptor(atoms=atoms,
-                               free_at_e={'Cu': 0}, 
+                               free_at_e={'Cu': 0},
                                rcut=rcut)
-mlip = TensorpotPotential(descriptor=ace_descriptor, 
+mlip = TensorpotPotential(descriptor=ace_descriptor,
                           nthrow=0,
                           parameters={},
                           energy_coefficient=1.0,
@@ -56,7 +57,7 @@ state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq)
 calc = EMT()
 
 # Creation of the OtfMLACS object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir=workdir)
 
 # Run the simulation
 sampling.run(nconfs)

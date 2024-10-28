@@ -1,6 +1,7 @@
 """
 Tutorial on mbar that serves at prerequisite for postprocessing example.
 """
+import os
 
 from mlacs.state import LammpsState
 from mlacs.mlip import MbarManager
@@ -11,10 +12,10 @@ from ase.calculators.emt import EMT
 from mlacs.mlip import LinearPotential, SnapDescriptor
 from mlacs import OtfMlacs
 
-workdir = 'run_tuto_mbar'
+workdir = os.path.basename(__file__).split('.')[0]
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 20        # Numbers of final configurations.
+nconfs = 10        # Numbers of final configurations.
 neq = 0           # Numbers of mlacs equilibration iterations.
 nsteps = 100      # Numbers of MD steps in the production phase.
 

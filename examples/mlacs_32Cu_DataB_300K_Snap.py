@@ -7,7 +7,6 @@ The true potential is from EMT as implemented in ASE.
 
 import numpy as np
 import os
-from ase.data import atomic_numbers
 from ase.build import bulk
 from ase.calculators.emt import EMT
 from mlacs.calc import DatabaseCalc
@@ -16,6 +15,9 @@ from mlacs.mlip import MliapDescriptor, LinearPotential
 from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
+workdir = os.path.basename(__file__).split('.')[0]
+os.mkdir(workdir)
+os.chdir(workdir)
 
 # MLACS Parameters ------------------------------------------------------------
 nconfs = 20         # Numbers of mlacs loop
@@ -61,23 +63,21 @@ nstate = 1
 for i in range(nstate):
     state.append(LammpsState(temperature, nsteps=nsteps,
                              nsteps_eq=nsteps_eq, dt=dt, damp=damp,
-                             folder = 'Database'))
+                             folder='Database'))
 
 # Create the database ---------------------------------------------------------
-os.mkdir("Creator")
-os.chdir("Creator")
 calc_emt = EMT()
-creator = OtfMlacs(atoms, state, calc_emt, mlip1, neq=neq, keep_tmp_mlip=False)
+creator = OtfMlacs(atoms, state, calc_emt, mlip1, neq=neq,
+                   workdir='Creator', keep_tmp_mlip=False)
 creator.run(nconfs)
 
 # Train the MLIP again using the database -------------------------------------
-os.mkdir("../Database")
-os.chdir("../Database")
-calc_db = DatabaseCalc(trajfile="../Creator/Database.traj",
-                       trainfile="../Creator/Training_configurations.traj")
+calc_db = DatabaseCalc(trajfile="Creator/Database.traj",
+                       trainfile="Creator/Training_configurations.traj")
 
 # The calculator is replaced with the database
-reader = OtfMlacs(atoms, state, calc_db, mlip2, neq=neq, keep_tmp_mlip=True)
+reader = OtfMlacs(atoms, state, calc_db, mlip2, neq=neq,
+                  workdir='Database', keep_tmp_mlip=True)
 reader.run(nconfs)
 
 # Compare the coefficients trained on-the-faly

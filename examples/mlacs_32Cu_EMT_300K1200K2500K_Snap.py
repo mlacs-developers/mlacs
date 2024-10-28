@@ -14,9 +14,10 @@ from mlacs.mlip import MliapDescriptor, LinearPotential
 from mlacs.state import LangevinState
 from mlacs import OtfMlacs
 
+workdir = os.path.basename(__file__).split('.')[0]
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 50
+nconfs = 10
 nsteps = 1000
 nsteps_eq = 100
 neq = 5
@@ -50,10 +51,10 @@ state = []
 for t in temperature:
     state.append(LangevinState(t, nsteps=nsteps, nsteps_eq=nsteps_eq,
                                dt=dt, friction=friction,
-                               subfolder = f"{t}K"))
+                               subfolder=f"{t}K"))
 
 # Creation of the OtfMlacs object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq)
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir=workdir)
 
 # Run the simulation ----------------------------------------------------------
 sampling.run(nconfs)

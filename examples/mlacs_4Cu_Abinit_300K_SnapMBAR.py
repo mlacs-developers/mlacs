@@ -27,14 +27,8 @@ from mlacs.state import LammpsState
 from mlacs import OtfMlacs
 
 MPI_RUNNER = "mpirun"
-ABI_PSPDIR = os.environ['ABI_PSPDIR']
-
 nproc = 4  # Each Abinit will run on 4 processors
-
-# ---------------------------------
-# The 2x2x2 supercell of Cu
-cell_size = 2
-atoms = bulk('Cu').repeat(cell_size)
+workdir = os.path.basename(__file__).split('.')[0]
 
 # MLACS Parameters -----------------------------------------------------------
 temp = 300  # K
@@ -42,31 +36,35 @@ nconfs = 5
 neq = 2
 nsteps = 50
 nsteps_eq = 15
-cell_size = 2
-rcut = 4.2  # ang
+
+# MD Parameters ---------------------------------------------------------------
 dt = 0.025  # fs
 damp = 100 * dt
+
+# MLIP Parameters -------------------------------------------------------------
+rcut = 4.2  # ang
 mlip_params = {"twojmax": 4}
 
-# Abinit Manager  ----------------------------------------------------------
+# Cell creation ----------------------------------------------------------
+atoms = bulk('Cu', cubic=True)
 
+# Abinit Manager  ----------------------------------------------------------
 # Dictionnary of Abinit Input
 variables = dict(
-    ixc=11,  # Important to explicitly state ixc
-    ecut=8*Ha2eV,   #  Testing only
+    ixc=11,               # Important to explicitly state ixc
+    ecut=8*Ha2eV,         # Testing only
+    pawecutdg=16*Ha2eV,
     tsmear=0.01*Ha2eV,
     occopt=3,
-    nband=82,
-    ngkpt=[1, 1, 1],   #  Testing only
+    nband=44,
+    ngkpt=[1, 1, 1],      # Testing only
     shiftk=[0, 0, 0],
     istwfk=1,
-    toldfe=1e-4,   #  Testing only
+    toldfe=1e-4,          # Testing only
     autoparal=1,
     nsym=1)
 
-pseudos = {"Cu": "Cu.psp8"}
-for key, val in pseudos.items():
-    pseudos[key] = os.path.join(ABI_PSPDIR, val)
+pseudos = {"Cu": f"{os.getcwd()}/filesforexamples/Cu.xml"}
 
 # Creation of the Abinit Calc Manager
 calc = AbinitManager(parameters=variables,
@@ -103,7 +101,7 @@ for i in range(nsim):
                              folder='Traj'))
 
 # Creation of the OtfMlacs object
-sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir='run_Cu')
+sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir=workdir)
 
 # Run the simulation
 sampling.run(nconfs)

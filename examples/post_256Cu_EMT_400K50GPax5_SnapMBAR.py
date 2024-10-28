@@ -1,6 +1,6 @@
 """
 Example of postprocessing with *HIST.nc file.
-Requires prior execution of tuto_mbar.py
+Requires prior execution of mlacs_256Cu_EMT_300K50GPax5_SnapMBAR.py
 """
 
 from mlacs.utilities.io_abinit import HistFile
@@ -13,12 +13,12 @@ plt.rcdefaults()
 plt.rcParams["font.size"] = 10
 plt.rcParams['figure.dpi'] = 300
 
-# Requires prior execution of tuto_mbar.py
-workdir = 'run_tuto_mbar'
+# Requires prior execution of mlacs_256Cu_EMT_300K50GPax5_SnapMBAR.py
+workdir = os.path.basename(__file__).split('.')[0].split('post_')[-1]
 path = Path().absolute()
-script_name = 'tuto_mbar'
-ncname = script_name + '_HIST.nc'
-ncpath = str(path / workdir / ncname)
+prefix = f'mlacs_{workdir}'
+ncname = f'mlacs_{workdir}_HIST.nc'
+ncpath = str(path / prefix / ncname)
 
 if os.path.isfile(ncpath):
     ncfile = HistFile(ncpath=ncpath)
@@ -134,9 +134,11 @@ if os.path.isfile(ncpath):
     legend3_1 = ax3[1].legend(frameon=False, loc='best', ncol=2)
     legend3_1.get_frame().set_facecolor('none')
     fig3.tight_layout()
+    plt.savefig(str(path / prefix / f'{workdir}_plot.pdf'))
 
 
 else:
     msg = '*HIST.nc file not found.\n'
-    msg += 'This example requires prior execution of tuto_mbar.py'
+    msg += 'This example requires prior execution of '
+    msg += 'mlacs_256Cu_EMT_300K50GPax5_SnapMBAR.py'
     raise FileNotFoundError(msg)
