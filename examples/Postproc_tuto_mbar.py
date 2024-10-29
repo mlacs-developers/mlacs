@@ -31,7 +31,7 @@ if os.path.isfile(ncpath):
 
     var_names = ncfile.get_var_names()
     dict_var_units = ncfile.get_units()
-    var_dim_dict = ncfile.nc_routine_conv()[0]
+    var_dim_dict = ncfile.var_dim_dict
     dict_name_label = {x[0]: label for label, x in var_dim_dict.items()}
     # print('Variables names: ', var_names)
 

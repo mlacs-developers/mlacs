@@ -128,6 +128,8 @@ class HistFile:
 
         self.ncprefix = ncprefix
         self.launched = launched
+        self._set_name_conventions()
+        self._set_unit_conventions()
 
         if ncpath is not None:
             # Initialize path in a post-processing usage, with given ncpath
@@ -296,7 +298,7 @@ class HistFile:
         """
         with nc.Dataset(self.ncpath, 'r') as ncfile:
             wobs_values = ncfile[obs_name][:]
-            weighted_obs_data = wobs_values[wobs_values.mask == False].data # noqa
+            weighted_obs_data = wobs_values[wobs_values.mask == False].data  # noqa
             weighted_obs_idx = 1 + np.where(~wobs_values.mask)[0]
         return weighted_obs_data, weighted_obs_idx
 
@@ -332,9 +334,9 @@ class HistFile:
         return res
 
 # ========================================================================== #
-    def nc_routine_conv(self):
-        """Define several conventions related to routine properties"""
-        # Variable names and dimensions are those produced by Abinit
+    def _set_name_conventions(self):
+        """Define naming conventions related to routine properties"""
+        # Variable names and dimensions as defined in Abinit
         var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
                         'Kinetic_Energy': ['ekin', ('time',)],
                         'Potential_Energy': ['epot', ('time',)],
@@ -347,22 +349,40 @@ class HistFile:
                         'Stress': ['strten', ('time', 'six')],
                         'Cell': ['rprimd', ('time', 'xyz', 'xyz')]
                         }
+        self.var_dim_dict = var_dim_dict
 
-        # Units correspond to those used in ASE
-        units_dict = {'Total_Energy': 'eV',
-                      'Kinetic_Energy': 'eV',
-                      'Potential_Energy': 'eV',
-                      'Velocities': '',
-                      'Forces': 'eV/Ang',
-                      'Positions': 'Ang',
-                      'Scaled_Positions': 'dimensionless',
-                      'Temperature': 'K',
-                      'Volume': 'Ang^3',
-                      'Stress': 'GPa',
-                      'Cell': 'Ang',
-                      }
+# ========================================================================== #
+    def _set_unit_conventions(self):
+        """Define unit conventions related to routine properties"""
+        # Dict whose keys are 'var names' and values are LAMMPS's 'metal' units
+        lammps_units_dict = {'Total_Energy': 'eV',
+                             'Kinetic_Energy': 'eV',
+                             'Potential_Energy': 'eV',
+                             'Velocities': '',
+                             'Forces': 'eV/Ang',
+                             'Positions': 'Ang',
+                             'Scaled_Positions': 'dimensionless',
+                             'Temperature': 'K',
+                             'Volume': 'Ang^3',
+                             'Stress': 'eV/Ang^3',
+                             'Cell': 'Ang',
+                             }
+        self.lammps_units_dict = lammps_units_dict
 
-        return var_dim_dict, units_dict
+        # Dict whose keys are 'var names' and values are Abinit units
+        abinit_units_dict = {'Total_Energy': 'Ha',
+                             'Kinetic_Energy': 'Ha',
+                             'Potential_Energy': 'Ha',
+                             'Velocities': '',
+                             'Forces': 'Ha/Bohr',
+                             'Positions': 'Bohr',
+                             'Scaled_Positions': 'dimensionless',
+                             'Temperature': 'K',
+                             'Volume': 'Bohr^3',
+                             'Stress': 'Ha/Bohr^3',
+                             'Cell': 'Bohr',
+                             }
+        self.abinit_units_dict = abinit_units_dict
 
 
 # ========================================================================== #
@@ -452,7 +472,7 @@ class AbinitNC:
         which corresponds to the Abinit input file, but also contains unwanted
         (i.e., not encoded in UTF-8) information at the bottom.
         """
-        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory' # noqa
+        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory'  # noqa
         last_Lammps_line += ' terminates after the current SCF'
         if last_Lammps_line in _str[-len(last_Lammps_line):]:
             return True

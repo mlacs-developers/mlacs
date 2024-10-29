@@ -128,20 +128,24 @@ class OtfMlacs(Mlas, Manager):
     def _initialize_routine_properties(self):
         """Create routine property object"""
 
-        # Get variables names, dimensions, and units
-        var_dim_dict, units_dict = self.ncfile.nc_routine_conv()
+        # Get variables names, dimensions, and units conventions
+        var_dim_dict = self.ncfile.var_dim_dict
+        lammps_units_dict = self.ncfile.lammps_units_dict
+        abinit_units_dict = self.ncfile.abinit_units_dict
 
         # Build a PropertyManager made of "routine" observables
         routine_prop_list = []
         for x in var_dim_dict:
             var_name, var_dim = var_dim_dict[x]
-            var_unit = units_dict[x]
+            var_abinit_unit = abinit_units_dict[x]
+            var_lammps_unit = lammps_units_dict[x]
             lammps_func = 'get_' + x.lower()
             observable = CalcRoutineFunction(lammps_func,
                                              label=x,
                                              nc_name=var_name,
                                              nc_dim=var_dim,
-                                             nc_unit=var_unit,
+                                             nc_unit=var_abinit_unit,
+                                             lammps_unit=var_lammps_unit,
                                              frequence=1)
             routine_prop_list.append(observable)
         other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),

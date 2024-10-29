@@ -13,6 +13,8 @@ from scipy.stats import gaussian_kde
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from ase.units import Bohr, Hartree, GPa
+
 from . import compute_correlation
 from mlacs.utilities.io_abinit import HistFile
 
@@ -293,7 +295,7 @@ class HistPlot:
         if os.path.isfile(ncpath):
             ncfile = HistFile(ncpath=ncpath)
             dict_var_units = ncfile.get_units()
-            var_dim_dict = ncfile.nc_routine_conv()[0]
+            var_dim_dict = ncfile.var_dim_dict
             dict_name_label = {x[0]: lab for lab, x in var_dim_dict.items()}
             dict_name_label['press'] = 'Pressure'
             self.ncfile = ncfile
@@ -311,6 +313,31 @@ class HistPlot:
             raise FileNotFoundError(msg)
 
 # ========================================================================== #
+    def _custom_unit_converter(self, obs_arr, obs_unit):
+        """
+        Convert units from *HIST.nc atomic units to following custom units:
+            energy: eV,
+            distance: Ang,
+            volume: Ang^3,
+            force: eV/Ang,
+            pressure/stress: GPa
+        """
+        Ha2eV = Hartree
+        Bohr2Ang = Bohr
+        # Format of dict below: {'atomic_unit': [conv_factor, 'custom_unit']}
+        unit_convert_dict = {'Ha': [Ha2eV, 'eV'],
+                             'Bohr': [Bohr2Ang, 'Ang'],
+                             'Ha/Bohr': [Ha2eV/Bohr2Ang, 'eV/Ang'],
+                             'Bohr^3': [Bohr2Ang**3, 'Ang^3'],
+                             'Ha/Bohr^3': [(Ha2eV/Bohr2Ang**3)/GPa, 'GPa'],
+                             }
+        if obs_unit in unit_convert_dict:
+            conv_factor, custom_unit = unit_convert_dict[obs_unit]
+            return obs_arr*conv_factor, custom_unit
+        else:
+            return obs_arr, ''
+
+# ========================================================================== #
     def _core_plot(self, obs_name, fig=None, ax=None):
         """Plot the observable named `obs_name` in the ncfile."""
         if None in (fig, ax):
@@ -321,13 +348,20 @@ class HistPlot:
         dict_var_units = self.dict_var_units
         weights_ncfile = self.weights_ncfile
 
-        observable = ncfile.read_obs(obs_name)
-        obs_label = obs_name
-        if obs_name in dict_name_label:
-            obs_label = dict_name_label[obs_name].replace("_", " ")
+        try:
+            nc_unit = dict_var_units[obs_name]
+        except KeyError:
+            msg = 'No unit found for ' + str(obs_name)
+            nc_unit = ''
+            raise KeyError(msg)
+
+        # Read atomic unit observable from *HIST.nc file
+        obs_au = ncfile.read_obs(obs_name)
+        # Convert to custom visualization units
+        observable, new_unit = self._custom_unit_converter(obs_au, nc_unit)
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
-        
+
         weights_meta = weights_ncfile.read_obs('weights_meta')
         weights_idx = weights_meta[:, 0]
         nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
@@ -342,27 +376,29 @@ class HistPlot:
         # Index of configuration in database
         confs_idx = np.array([i+1 for i in range(len(observable))])
 
-        w_obs_data, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
+        w_obs_au, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
+        w_obs_data, new_unit = self._custom_unit_converter(w_obs_au, nc_unit)
 
         uniform_obs = np.array([np.mean(observable[:i]) for i in w_obs_idx])
 
         ax.plot(confs_idx, observable, label='raw data', alpha=0.7)
-        ax.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights')
+        ax.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights',
+                marker='.')
 
         if uniform_weight is False:
-            ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar')
+            ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar',
+                    marker='.')
         xlabel_str = 'Configuration index in database'
         ax.set_xlabel(xlabel_str)
         par_title = (int(len(confs_idx)), int(max(state_idx)),)
         str_title = '# configurations: {}, # states: {}'.format(*par_title)
         fig.suptitle(str_title)
+        obs_label = obs_name
+        if obs_name in dict_name_label:
+            obs_label = dict_name_label[obs_name].replace("_", " ")
         ylabel = obs_label
-        try:
-            obs_unit = dict_var_units[obs_name]
-            ylabel += ' [' + obs_unit + ']'
-        except KeyError:
-            msg = 'No unit found for ' + str(obs_name)
-            raise KeyError(msg)
+        if new_unit != '':
+            ylabel += ' [' + new_unit + ']'
         ax.set_ylabel(ylabel)
 
         legend1 = ax.legend(frameon=False, loc='best')
@@ -413,13 +449,13 @@ class HistPlot:
 
         def _plot_distribution(iter_loc):
             loc_weights_idx = dict_weights[iter_loc][0]
-            # normalized_x = (loc_weights_idx-1)/(loc_weights_idx[-1]-1)
-            normalized_x = (loc_weights_idx-1)
+            normalized_x = loc_weights_idx-1
             loc_weights = dict_weights[iter_loc][1]
             normalized_y = loc_weights/np.mean(loc_weights)
             Nconfs_loc = np.round(nb_effective_conf[iter_loc-1], 1)
             lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
-            ax[1].step(normalized_x, normalized_y, where='mid', label=lab_str, zorder=10-iter_loc)
+            ax[1].step(normalized_x, normalized_y, where='mid',
+                       label=lab_str, zorder=10-iter_loc)
 
         if len(idx_bounds)-1 > 5:
             mlacs_iter_arr = np.geomspace(3, len(idx_bounds)-1, 4, dtype=int)
