@@ -15,7 +15,7 @@ from mlacs import OtfMlacs
 workdir = os.path.basename(__file__).split('.')[0]
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 50        # Numbers of final configurations, also set the end of the
+nconfs = 10        # Numbers of final configurations, also set the end of the
                    # simulation
 nsteps = 5         # Numbers of MD steps in the production phase.
 nsteps_eq = 5      # Numbers of MD steps in the equilibration phase.

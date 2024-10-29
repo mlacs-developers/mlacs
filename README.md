@@ -140,7 +140,7 @@ ASE:
 
 ASE is an atomic simulation environment, interfaced with several codes and written in order to set up, control and analyze atomic simulations. As mentioned previously, the correct version must be used for LAMMPS.
 
-    $ git clone -b 3.23.1 https://gitlab.com/ase/ase.git
+    $ git clone -b 3.23.0 https://gitlab.com/ase/ase.git
 
 Then in the package directory
 
