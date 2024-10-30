@@ -35,6 +35,7 @@ def expected_files(expected_files_base):
     return expected_files_base
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(context.has_pyace(), reason="Need Python-Ace to use ACE")
 def test_ace_restart(root, treelink):
     import pandas as pd

@@ -34,6 +34,7 @@ def expected_files():
     return files
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(context.has_lammps_nompi(),
                     reason="Lammps needs mpi to run PAFI")
 def test_mlacs_pafi_multi(root, treelink):

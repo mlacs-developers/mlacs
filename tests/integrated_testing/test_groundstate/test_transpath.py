@@ -40,6 +40,7 @@ def issame(a, b):
     return np.all(np.abs(a - b) < 1e-8)
 
 
+@pytest.mark.slow
 @pytest.mark.skipif(context.has_lammps_nompi(),
                     reason="Lammps needs mpi to run PAFI")
 def test_mlacs_nebstate_lammps(root, treelink):
@@ -147,6 +148,7 @@ def test_mlacs_linear_ase(root, treelink):
     assert len(state.patoms.splE) == len(xi)
 
 
+@pytest.mark.slow
 def test_mlacs_neb_ase(root, treelink):
 
     atoms = bulk("Ag", cubic=True).repeat(3)
@@ -194,6 +196,7 @@ def test_mlacs_neb_ase(root, treelink):
     assert len(state.patoms.splE) == len(xi)
 
 
+@pytest.mark.slow
 def test_mlacs_string_ase(root, treelink):
 
     atoms = bulk("Ag", cubic=True).repeat(3)

@@ -85,6 +85,7 @@ def test_mlacs_pafi_vanilla(root, treelink):
     assert state.mep.patoms.splD2R.shape == (natoms, 3)
 
 
+@pytest.mark.slow
 def test_mlacs_pafi_linear(root, treelink):
 
     atoms = bulk("Ag", cubic=True).repeat(3)

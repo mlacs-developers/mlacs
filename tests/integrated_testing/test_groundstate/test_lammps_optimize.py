@@ -47,6 +47,7 @@ def expected_files(files_with_prefix):
     return files
 
 
+@pytest.mark.slow
 def test_mlacs_optimize(root, treelink):
 
     atoms = bulk("Cu", cubic=True).repeat(2)

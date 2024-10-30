@@ -6,6 +6,7 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
+import pytest
 import numpy as np
 
 from ase.io import read
@@ -62,6 +63,7 @@ def test_path_atoms_xi(root):
         assert o.xi == o.splined.info['reaction_coordinate']
 
 
+@pytest.mark.slow
 def test_path_atoms_xi_array(root):
     """
     """
