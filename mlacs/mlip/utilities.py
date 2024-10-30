@@ -89,7 +89,6 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
         Useful to reconverge with a better precision on a parameter.
         Can be a filename (str) or a BBasisConfiguration
     """
-    from pyace.basis import BBasisConfiguration
     if isinstance(weights, list):
         weights = np.array(weights)
     if not isinstance(traj[0], Atoms):

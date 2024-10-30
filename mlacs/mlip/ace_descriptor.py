@@ -51,29 +51,30 @@ try:
     from pyace import create_multispecies_basis_config
     from pyace.metrics_aggregator import MetricsAggregator
     ispyace = True
-    def_bconf = {'deltaSplineBins': 0.001,
-                 'embeddings': {"ALL": {'npot': 'FinnisSinclairShiftedScaled',
-                                        'fs_parameters': [1, 1, 1, 0.5],
-                                        'ndensity': 2}},
-                 'bonds': {"ALL": {'radbase': 'ChebExpCos',
-                                   'NameOfCutoffFunction': 'cos',
-                                   'radparameters': [5.25],
-                                   'rcut': 7,
-                                   'dcut': 0.01}},
-                 'functions': {"ALL": {'nradmax_by_orders': [15, 3, 2],
-                                       'lmax_by_orders': [0, 2, 2]}}}
-
-    def_loss = {'kappa': 0.3, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12,
-                'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}
-
-    def_fitting = {'maxiter': 100, 'fit_cycles': 1, 'repulsion': 'auto',
-                   'optimizer': 'BFGS',
-                   'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}}
-
-    def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'serial',
-                   'batch_size': 100, 'display_step': 50}
 except ImportError:
     ispyace = False
+
+def_bconf = {'deltaSplineBins': 0.001,
+             'embeddings': {"ALL": {'npot': 'FinnisSinclairShiftedScaled',
+                                    'fs_parameters': [1, 1, 1, 0.5],
+                                    'ndensity': 2}},
+             'bonds': {"ALL": {'radbase': 'ChebExpCos',
+                               'NameOfCutoffFunction': 'cos',
+                               'radparameters': [5.25],
+                               'rcut': 7,
+                               'dcut': 0.01}},
+             'functions': {"ALL": {'nradmax_by_orders': [15, 3, 2],
+                                   'lmax_by_orders': [0, 2, 2]}}}
+
+def_loss = {'kappa': 0.3, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12,
+            'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}
+
+def_fitting = {'maxiter': 100, 'fit_cycles': 1, 'repulsion': 'auto',
+               'optimizer': 'BFGS',
+               'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}}
+
+def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'serial',
+               'batch_size': 100, 'display_step': 50}
 
 
 # ========================================================================== #
@@ -158,6 +159,8 @@ class AceDescriptor(Descriptor):
                  bconf_dict=None, loss_dict=None, fitting_dict=None,
                  backend_dict=None, nworkers=None):
 
+        if not ispyace:
+            raise ValueError("Could not import pyace")
 
         self.cmd = get_lammps_command()
         self._verify_dependency()
