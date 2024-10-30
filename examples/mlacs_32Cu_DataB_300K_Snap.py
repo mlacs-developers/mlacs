@@ -20,7 +20,7 @@ os.mkdir(workdir)
 os.chdir(workdir)
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 20         # Numbers of mlacs loop
+nconfs = 10         # Numbers of mlacs loop
 neq = 5             # Numbers of mlacs equilibration iterations.
 nsteps = 100        # Numbers of MD steps in the production phase.
 nsteps_eq = 50      # Numbers of MD steps in the equilibration phase.

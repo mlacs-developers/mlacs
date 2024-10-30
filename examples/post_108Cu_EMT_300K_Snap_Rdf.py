@@ -19,6 +19,8 @@ workdir = os.path.basename(__file__).split('.')[0].split('post_')[-1]
 path = Path().absolute()
 prefix = f'mlacs_{workdir}'
 ncname = f'mlacs_{workdir}_HIST.nc'
+if os.getenv('PYTEST_CURRENT_TEST') is not None:  # Those lines are specific
+    ncname = 'test_examples_HIST.nc'              # for testing purpose.
 ncpath = str(path / prefix / ncname)
 
 if os.path.isfile(ncpath):

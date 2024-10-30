@@ -19,7 +19,7 @@ lmp_exe = 'lmp'
 os.environ["ASE_LAMMPSRUN_COMMAND"] = f'mpirun -n 1 {lmp_exe}'
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 20        # Numbers of final configurations, also set the end of the
+nconfs = 10        # Numbers of final configurations, also set the end of the
                    # simulation
 nsteps = 5000      # Numbers of MD steps in the production phase.
 nsteps_eq = 500    # Numbers of MD steps in the equilibration phase.
