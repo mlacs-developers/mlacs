@@ -82,12 +82,14 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
 class HistFile:
     """
     Class to handle Abinit-like *HIST.nc file.
+    The script name format is: `ncprefix + scriptname + '_HIST.nc'.`
 
     Parameters
     ----------
 
     ncprefix: :class:`str` (optional)
         The prefix to prepend the name of the *HIST.nc file.
+        Default `''`.
 
     workdir: :class:`str` (optional)
         The directory in which to run the calculation.
@@ -149,38 +151,31 @@ class HistFile:
 # ========================================================================== #
     def _get_nc_path(self):
         """Return netcdf path of Abinit-style HIST file"""
-        ncprefix_loc = self.ncprefix
-        workdir_loc = self.workdir
-        if ncprefix_loc != '' and (not ncprefix_loc.endswith('_')):
-            ncprefix_loc += '_'
+        ncpref = self.ncprefix
+        wdir = self.workdir
+        if ncpref and not ncpref.endswith('_'):
+            ncpref += '_'
 
-        # Obtain script name, including in case of pytest execution
-        script_name = ncprefix_loc
+        script_name = ncpref
         pytest_path = os.getenv('PYTEST_CURRENT_TEST')
-        if pytest_path is not None:
-            if str(workdir_loc) == '':
-                workdir_loc = Path(pytest_path).parents[0].absolute()
-            name1 = os.path.basename(pytest_path)
-            script_name += name1.partition('.py')[0]
+        if pytest_path:
+            wdir = wdir or Path(pytest_path).parents[0].absolute()
+            script_name += Path(pytest_path).stem
         else:
-            script_name += os.path.basename(sys.argv[0])
-        if script_name.endswith('.py'):
-            script_name = script_name[:-3]
+            script_name += Path(sys.argv[0]).stem
         ncname = script_name + "_HIST.nc"
 
-        ncpath = str(Path(workdir_loc).absolute() / ncname)
-        ncfile_exists = os.path.isfile(ncpath)
-        if ncfile_exists:
-            # if it is the first MLAS launch
-            if not self.launched:
-                S = 1
-                while ncfile_exists:
-                    ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
-                    ncpath = str(Path(workdir_loc) / ncname)
-                    ncfile_exists = os.path.isfile(ncpath)
-                    S += 1
+        # Deal with potential duplicates, i.e. existing files with ncname
+        ncpath = Path(wdir).absolute() / ncname
+        if ncpath.is_file():
+            if not self.launched:   # if first MLAS launch
+                suffix = 1
+                while ncpath.is_file():
+                    ncname = f"{script_name}_{suffix:04d}_HIST.nc"
+                    ncpath = Path(wdir) / ncname
+                    suffix += 1
 
-        return ncpath
+        return str(ncpath)
 
 # ========================================================================== #
     def _create_nc_file(self, atoms):

@@ -50,7 +50,7 @@ class CLICommand:
                        iteration; if no iteration is given, then the last one
                        if shown by default).
 
-    Example:
+    Examples:
 
         $ mlacs plot_weights MLIP.weights
         $ mlacs plot_weights example_HIST.nc

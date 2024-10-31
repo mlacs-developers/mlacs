@@ -70,6 +70,8 @@ class OtfMlacs(Mlas, Manager):
 
     ncprefix: :class:`str` (optional)
         The prefix to prepend the name of the *HIST.nc file.
+        Script name format: ncprefix + scriptname + '_HIST.nc'.
+        Default `''`.
 
     ncformat: :class:`str` (optional)
         The format of the *HIST.nc file. One of the five flavors of netCDF
