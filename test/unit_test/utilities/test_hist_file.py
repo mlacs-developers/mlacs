@@ -80,10 +80,10 @@ def test_basic_hist():
         assert isinstance(vol_var[:], np.ma.MaskedArray)
         assert isinstance(vol_data, np.ndarray)
         assert vol_data.shape == (nb_states*(nb_mlacs_iter1-1),)
-        assert vol_unit == 'Ang^3'
+        assert vol_unit == 'Bohr^3'
         etotal_var = ncfile['etotal']
         etotal_unit = etotal_var.unit
-        assert etotal_unit == 'eV'
+        assert etotal_unit == 'Ha'
 
     # Check that the HistFile class is running properly
     ncfile = HistFile(ncpath=path_name)
@@ -91,7 +91,7 @@ def test_basic_hist():
     assert isinstance(var_names, list)
     dict_var_units = ncfile.get_units()
     assert isinstance(dict_var_units, dict)
-    var_dim_dict = ncfile.nc_routine_conv()[0]
+    var_dim_dict = ncfile.var_dim_dict
     dict_name_label = {x[0]: label for label, x in var_dim_dict.items()}
     assert 'temper' in dict_name_label
 
