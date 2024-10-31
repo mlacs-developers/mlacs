@@ -3,14 +3,13 @@ Tutorial on mbar that serves at prerequisite for postprocessing example.
 """
 import os
 
-from mlacs.state import LammpsState
-from mlacs.mlip import MbarManager
-
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
 from mlacs.mlip import LinearPotential, SnapDescriptor
 from mlacs import OtfMlacs
+from mlacs.state import LammpsState
+from mlacs.mlip import MbarManager
 
 workdir = os.path.basename(__file__).split('.')[0]
 
@@ -24,7 +23,7 @@ temperature = 400  # Temperature of the simulation in K.
 pressure = 50  # GPa
 
 # Supercell creation ----------------------------------------------------------
-cell_size = 4      # Multiplicity of the supercell, here 2x2x2.
+cell_size = 5      # Multiplicity of the supercell, here 2x2x2.
 atoms = bulk('Cu', cubic=True).repeat(cell_size)
 
 parameters = {"twojmax": 6}
@@ -44,6 +43,7 @@ state = list(LammpsState(temperature, pressure, nsteps=nsteps)
 calc = EMT()
 
 # Creation of the OtfMLACS object
+# ncformat='NETCDF3_CLASSIC'
 sampling = OtfMlacs(atoms, state, calc, mlip, neq=neq, workdir=workdir)
 
 # Run the simulation ----------------------------------------------------------
