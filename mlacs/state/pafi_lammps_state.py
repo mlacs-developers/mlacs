@@ -123,21 +123,23 @@ class PafiLammpsState(LammpsState):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Run state function.
         """
 
         # Run NEB calculation.
         self.mep.run_dynamics(self.mep.patoms.initial,
-                              pair_style, pair_coeff, model_post, atom_style)
+                              pair_style, pair_coeff,
+                              model_post, atom_style, elements)
         supercell = self.mep.patoms.splined
         self.isrestart = False
 
         # Run Pafi dynamic at xi.
         atoms = LammpsState.run_dynamics(self, supercell,
                                          pair_style, pair_coeff, model_post,
-                                         atom_style, eq)
+                                         atom_style, eq, elements)
         return atoms.copy()
 
 # ========================================================================== #
@@ -152,7 +154,8 @@ class PafiLammpsState(LammpsState):
                               restart=0,
                               xi=None,
                               nsteps=10000,
-                              nthrow=2000):
+                              nthrow=2000,
+                              elements=None):
         """
         Run full Pafi path.
         """
@@ -166,7 +169,8 @@ class PafiLammpsState(LammpsState):
 
         # Run NEB calculation.
         self.mep.run_dynamics(self.mep.patoms.initial,
-                              pair_style, pair_coeff, model_post, atom_style)
+                              pair_style, pair_coeff,
+                              model_post, atom_style, elements)
         self.isrestart = False
 
         # Run Pafi dynamics.
@@ -182,7 +186,7 @@ class PafiLammpsState(LammpsState):
                 atoms.set_pbc([1, 1, 1])
                 executor.submit(LammpsState.run_dynamics,
                                 *(worker, atoms, pair_style, pair_coeff,
-                                  model_post, atom_style, False))
+                                  model_post, atom_style, False, elements))
             executor.shutdown(wait=True)
 
         # Reset some attributes.
@@ -193,7 +197,7 @@ class PafiLammpsState(LammpsState):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements=None):
         """
 
         """

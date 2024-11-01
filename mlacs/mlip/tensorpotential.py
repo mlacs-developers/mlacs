@@ -86,7 +86,6 @@ class TensorpotPotential(MlipManager):
         self.descriptor.subfolder = self.subfolder
 
         W = self.weight.get_weights()
-
         fitting_log = self.descriptor.log.handlers[0].baseFilename
         with open(fitting_log, "a") as f:
             sys.stdout = f
@@ -156,31 +155,35 @@ class TensorpotPotential(MlipManager):
                                                   self.predict,
                                                   docalc=False)
 
-        create_link(mlip_coef + "/" + "ACE.yace", self.subdir/"ACE.yace")
+        if isinstance(mlip_coef, str):
+            mlip_coef = Path(mlip_coef)
+        create_link(mlip_coef / "ACE.yace", self.subdir/"ACE.yace")
 
 # ========================================================================== #
     def compute_tests(self):
         """
         Compute the weighted RMSE and MAE
         """
-        mlip_e, mlip_f, mlip_s = self.predict(desc=self.atoms)
-        true_e = np.array([at.get_potential_energy()/len(at)
-                          for at in self.atoms])
-        true_f = [at.get_forces() for at in self.atoms]
-        true_s = [at.get_stress() for at in self.atoms]
+        e_mlip, f_mlip, s_mlip = self.predict(atoms=self.atoms)
+        f_mlip = np.concatenate([f.flatten() for f in f_mlip])
+        s_mlip = np.concatenate(s_mlip)
 
-        mlip_f = np.reshape(mlip_f, [-1])
-        mlip_s = np.reshape(mlip_s, [-1])
-        true_f = np.reshape(true_f, [-1])
-        true_s = np.reshape(true_s, [-1])
+        e_true = np.array([at.get_potential_energy()/len(at)
+                          for at in self.atoms])
+        f_true = np.concatenate([at.get_forces().flatten()
+                                 for at in self.atoms])
+        s_true = np.concatenate([at.get_stress() for at in self.atoms])
 
         w = None
         if len(self.weight.weight) > 0:
             w = self.weight.weight
+        wf = np.array([])
+        for i in range(len(w)):
+            wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
 
-        res_E = compute_correlation(np.c_[true_e, mlip_e], weight=w)
-        res_F = compute_correlation(np.c_[true_f, mlip_f], weight=w)
-        res_S = compute_correlation(np.c_[true_s, mlip_s]/GPa, weight=w)
+        res_E = compute_correlation(np.c_[e_true, e_mlip], weight=w)
+        res_F = compute_correlation(np.c_[f_true, f_mlip], weight=wf)
+        res_S = compute_correlation(np.c_[s_true, s_mlip]/GPa, weight=w)
         r = np.c_[res_E, res_F, res_S]
         self.fit_res = r
 
@@ -189,20 +192,20 @@ class TensorpotPotential(MlipManager):
                  f"Weighted mae: {self.fit_res[1, 0]:.6f} eV/at\n" + \
                  " True Energy           Predicted Energy"
         np.savetxt("MLIP-Energy_comparison.dat",
-                   np.c_[true_e, mlip_e],
+                   np.c_[e_true, e_mlip],
                    header=header, fmt="%25.20f  %25.20f")
         header = f"Weighted rmse: {self.fit_res[0, 1]:.6f} eV/angs   " + \
                  f"Weighted mae: {self.fit_res[1, 1]:.6f} eV/angs\n" + \
                  " True Forces           Predicted Forces"
 
         np.savetxt("MLIP-Forces_comparison.dat",
-                   np.c_[true_f, mlip_f],
+                   np.c_[f_true, f_mlip],
                    header=header, fmt="%25.20f  %25.20f")
         header = f"Weighted rmse: {self.fit_res[0, 2]:.6f} GPa       " + \
                  f"Weighted mae: {self.fit_res[1, 2]:.6f} GPa\n" + \
                  " True Stress           Predicted Stress"
         np.savetxt("MLIP-Stress_comparison.dat",
-                   np.c_[true_s, mlip_s] / GPa,
+                   np.c_[s_true, s_mlip] / GPa,
                    header=header, fmt="%25.20f  %25.20f")
 
         # Message to Mlacs.log
@@ -224,7 +227,7 @@ class TensorpotPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, desc, coef=None):
+    def predict(self, atoms, coef=None):
         """
         Give the energy forces stress of atoms according to the potential.
         """
@@ -232,7 +235,7 @@ class TensorpotPotential(MlipManager):
             coef = self.coefficients
         if isinstance(coef, str):
             coef = Path(coef)
-        return self.descriptor.predict(desc, coef, folder=self.subdir)
+        return self.descriptor.predict(atoms, coef, folder=self.subdir)
 
 # ========================================================================== #
     def __str__(self):

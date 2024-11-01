@@ -83,13 +83,12 @@ class LinearPotential(MlipManager):
         self.descriptor.subfolder = self.subfolder
 
         msg = ''
-        idx_e, idx_f, idx_s = self._get_idx_fit()
-        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
-        amat_f = self.amat_f[idx_f:]
-        amat_s = self.amat_s[idx_s:]
-        ymat_e = np.copy(self.ymat_e[idx_e:]) / self.natoms[idx_e:]
-        ymat_f = self.ymat_f[idx_f:]
-        ymat_s = self.ymat_s[idx_s:]
+        amat_e = self.amat_e / self.natoms[:, None]
+        amat_f = self.amat_f
+        amat_s = self.amat_s
+        ymat_e = np.copy(self.ymat_e) / self.natoms
+        ymat_f = self.ymat_f
+        ymat_s = self.ymat_s
 
         # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit
         # 1000x more on the stress than on the energy. Careful ymat/AMAT.std
@@ -122,9 +121,9 @@ class LinearPotential(MlipManager):
             raise ValueError(msg)
 
         msg += "\nNumber of configurations for training: " + \
-               f"{len(self.natoms[idx_e:]):}\n"
+               f"{len(self.natoms):}\n"
         msg += "Number of atomic environments for training: " + \
-               f"{self.natoms[idx_e:].sum():}\n\n"
+               f"{self.natoms.sum():}\n\n"
 
         tmp_msg, weight_fn = self.weight.compute_weight(
             self.coefficients,
@@ -153,11 +152,9 @@ class LinearPotential(MlipManager):
         if len(self.weight.weight) > 0:
             w = self.weight.weight
 
-        # Quickfix for variable number of atoms
         wf = np.array([])
         for i in range(len(w)):
             wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
-        # End of Quickfix
 
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=wf)
@@ -227,11 +224,8 @@ class LinearPotential(MlipManager):
 
         # We use the latest value coefficients to get the properties
         energy = np.einsum('nij,j->n',  amat_e, coef)
-        forces = np.einsum('nij,j->ni', amat_f, coef)
+        forces = [np.einsum('ij,j->i', conf_f, coef) for conf_f in amat_f]
         stress = np.einsum('nij,j->ni', amat_s, coef)
-
-        #  This line will cause problem if the number of atoms vary
-        forces = forces.reshape(len(energy), -1, 3)
 
         if len(energy) == 1:
             return energy[0], forces[0], stress[0]
