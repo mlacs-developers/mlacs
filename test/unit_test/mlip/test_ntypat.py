@@ -81,7 +81,6 @@ def generate_mlip(atoms, mlip_name):
         mtp_params = {"level": 6}
         mtp = MomentTensorPotential(atoms=atoms, mtp_parameters=mtp_params)
         return mtp
-
     # ACE
     if mlip_name == "ACE_HOC.yace":
         ace_desc = AceDescriptor(atoms, free_at_e={'C': 0, 'H': 0, 'O': 0},
