@@ -473,6 +473,13 @@ class CalcExecFunction(CalcProperty):
         """
         Execute function
         """
+        print(self.atoms)
+        print(type(self.atoms[0]))
+        print(dir(self.atoms[0]))
+        print(self.atoms[0].get_total_energy())
+        #print(self._function)
+        
+        print("What is that")
         if self.use_atoms:
             self._function = [getattr(_, self._func) for _ in self.atoms]
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]

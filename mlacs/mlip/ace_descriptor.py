@@ -356,8 +356,14 @@ class AceDescriptor(Descriptor):
         Restart the calculation with the coefficient from this folder.
         This is because we cannot get back the coefficients from ACE.yace
         """
-        fn = str(Path(mlip_subfolder).parent /
-                 "interim_potential_best_cycle.yaml")
+        if str(mlip_subfolder).endswith(".yace"):
+            path = Path(mlip_subfolder).with_suffix(".yaml")
+            if not path.exists():
+                new_fn = "interim_potential_best_cycle.yaml"
+                path = Path(mlip_subfolder).parent / new_fn
+            if not path.exists():
+                raise ValueError("Cannot find yaml file to get coefficients")
+        fn = str(path)
         self.bconf.load(fn)
         fc = int(pyace.BBasisConfiguration(fn).metadata["_fit_cycles"])
         self.fitting['fit_cycles'] = fc+1

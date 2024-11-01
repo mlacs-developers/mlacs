@@ -155,7 +155,9 @@ class TensorpotPotential(MlipManager):
                                                   self.predict,
                                                   docalc=False)
 
-        create_link(mlip_coef + "/" + "ACE.yace", self.subdir/"ACE.yace")
+        if isinstance(mlip_coef, str):
+            mlip_coef = Path(mlip_coef)
+        create_link(mlip_coef / "ACE.yace", self.subdir/"ACE.yace")
 
 # ========================================================================== #
     def compute_tests(self):

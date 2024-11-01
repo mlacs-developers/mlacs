@@ -247,7 +247,8 @@ class Mlas(Manager):
                                         self.mlip.pair_coeff,
                                         self.mlip.model_post,
                                         self.mlip.atom_style,
-                                        eq[istate]))
+                                        eq[istate],
+                                        self.mlip.get_elements()))
                 futures.append(exe)
                 self._write(f"State {istate+1}/{self.nstate} has been launched")  # noqa
             for istate, exe in enumerate(futures):

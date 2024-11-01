@@ -163,6 +163,14 @@ class OtfMlacs(Mlas, Manager):
         """
         Main method to compute/save properties of OtfMlacs objects.
         """
+        # ON : Does not seem possible to implement netcdf with a variable
+        #      number of atoms. qAgate is not made to study GCMC.
+        #      Maybe the conversion to netcdf could be done in post
+        #      processing. Else, we would need to make a clear separation
+        #      between netcdf and properties so I could skip netcdf.
+        if len(set([len(at) for at in self.atoms])) > 1:
+            return
+
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
             msg = self.prop.run(self.step)

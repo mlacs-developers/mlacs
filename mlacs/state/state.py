@@ -44,7 +44,8 @@ class StateManager(ABC, Manager):
                      pair_coeff,
                      model_post,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Run the dynamics for the state, during nsteps
         then return the last atoms of the simulation

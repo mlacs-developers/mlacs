@@ -233,12 +233,17 @@ class AbinitManager(CalcManager):
         original_pseudos = self.pseudos.copy()
         species = sorted(set(atoms.numbers))
         self._copy_pseudos()
+
+        unique_elements = set(atoms.get_chemical_symbols())
+        pseudos = [pseudo for pseudo, el in zip(self.pseudos, self.typat) if
+                   el in unique_elements]
+
         with open(self.get_filepath("abinit.abi"), "w") as fd:
             write_abinit_in(fd,
                             atoms,
                             self.parameters,
                             species,
-                            self.pseudos)
+                            pseudos)
         self.pseudos = original_pseudos
 
 # ========================================================================== #
@@ -312,6 +317,7 @@ class AbinitManager(CalcManager):
             pseudolist.append(pseudos[ityp])
         pseudolist = np.array(pseudolist)
 
+        self.typat = typat
         znucl = symbols2numbers(typat)
         idx = np.argsort(znucl)
         pseudolist = pseudolist[idx]
