@@ -188,6 +188,9 @@ class MlipManager(Manager, ABC):
                                            self.predict,
                                            docalc=False)
         prefix = self.descriptor.prefix
+        desc_fn = self.subdir/f"{prefix}.descriptor"
+        if not Path(desc_fn).exists():
+            self.descriptor._write_mlip_params()
 
         # GA: Not sure why we need to create a link here.
         create_link(self.subsubdir/mlip_fn, self.subdir/f"{prefix}.model")
@@ -288,6 +291,10 @@ class MlipManager(Manager, ABC):
     def _get_pair_coeff(self):
         self.descriptor.folder = self.folder
         return self.descriptor.get_pair_coeff()
+
+# ========================================================================== #
+    def get_elements(self):
+        return self.descriptor.elements
 
 
 # ========================================================================== #

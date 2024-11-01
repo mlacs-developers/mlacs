@@ -104,7 +104,8 @@ class OptimizeAseState(StateManager):
                      pair_coeff,
                      model_post,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Run state function.
         """

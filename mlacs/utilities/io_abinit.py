@@ -194,6 +194,7 @@ class HistFile:
         # Assume ntypat, natom, etc., are the same for all items in list
         if isinstance(atoms, list):
             atoms = atoms[0]
+
         atomic_numbers = list(atoms.get_atomic_numbers())
         atomic_masses = list(atoms.get_masses())
         natom = len(atoms)
