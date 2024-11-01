@@ -18,16 +18,22 @@ def main(args, parser):
     ncplot = HistPlot(ncpath=ncpath)
     boolean_no_show = args.noshow
     boolean_show = not boolean_no_show
+    if args.iteration is not None:
+        args.iteration = [int(x) for x in args.iteration]
 
-    ncplot.plot_neff(show=boolean_show, savename=args.save)
+    ncplot.plot_neff(show=boolean_show, savename=args.save,
+                     selected_iter=args.iteration)
 
 
 class CLICommand:
-    """Plot evolution of number of effective configurations, from HIST file.
+    """
+    Plot evolution of number of effective configurations, from HIST file.
 
-    Example:
+    Examples:
 
-        $ mlacs plot_neff *HIST.nc file
+        $ mlacs plot_neff *HIST.nc
+        $ mlacs plot_neff *HIST.nc  -i 3 4 5     [Plot distribution weights
+                                                  of MLACS iterations i=3,4,5]
     """
     @staticmethod
     def add_arguments(parser):
@@ -37,6 +43,8 @@ class CLICommand:
                                  "Default None")
         parser.add_argument("--noshow", action="store_true",
                             help="To disable the visualisation of the plot")
+        parser.add_argument('-i', '--iteration', nargs='+', default=None,
+                            help="List of MLACS iteration index ")
 
     @staticmethod
     def run(args, parser):
