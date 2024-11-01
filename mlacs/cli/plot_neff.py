@@ -12,7 +12,6 @@ from ..utilities.plots import HistPlot
 
 
 def main(args, parser):
-    
     ncname = args.file
     path = Path().absolute()
     ncpath = str(path / ncname)

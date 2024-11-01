@@ -164,7 +164,7 @@ class TensorpotPotential(MlipManager):
         """
         Compute the weighted RMSE and MAE
         """
-        e_mlip, f_mlip, s_mlip = self.predict(desc=self.atoms)
+        e_mlip, f_mlip, s_mlip = self.predict(atoms=self.atoms)
         f_mlip = np.concatenate([f.flatten() for f in f_mlip])
         s_mlip = np.concatenate(s_mlip)
 
@@ -227,7 +227,7 @@ class TensorpotPotential(MlipManager):
         return calc
 
 # ========================================================================== #
-    def predict(self, desc, coef=None):
+    def predict(self, atoms, coef=None):
         """
         Give the energy forces stress of atoms according to the potential.
         """
@@ -235,7 +235,7 @@ class TensorpotPotential(MlipManager):
             coef = self.coefficients
         if isinstance(coef, str):
             coef = Path(coef)
-        return self.descriptor.predict(desc, coef, folder=self.subdir)
+        return self.descriptor.predict(atoms, coef, folder=self.subdir)
 
 # ========================================================================== #
     def __str__(self):

@@ -197,7 +197,7 @@ class PafiLammpsState(LammpsState):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements=None):
         """
 
         """

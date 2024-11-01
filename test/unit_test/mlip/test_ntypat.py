@@ -92,8 +92,11 @@ def generate_mlip(atoms, mlip_name):
 
 @pytest.mark.parametrize("mlip_fn", ["SNAP_HOC.model", "MLIAP_HOC.model",
                                      "MTP_HOC.mtp", "ACE_HOC.yace"])
-def test_predict_varntypat(root, mlip_fn):
-    root = root.parents[1]  # Go up 2 folders to find reference_files
+def test_lammpsstate_varntypat(root, mlip_fn):
+    if not (Path(root) / "reference_files").exists():
+        root = root.parents[0]  # Go up 1 folders to find reference_files
+    if not (Path(root) / "reference_files").exists():
+        root = root.parents[0]  # Go up another folder to find reference_files
 
     atoms = generate_atoms()
     mlip = generate_mlip(atoms, mlip_fn)
@@ -131,20 +134,46 @@ def test_predict_varntypat(root, mlip_fn):
     shutil.rmtree(folder)
     shutil.rmtree("Trajectory")
 
-# def test_predict_varntypat():
-#    """
-#    Test that a MLIAP/SNAP/MTP/ACE can use the predict function
-#    for a variable natom/ntypat
-#    """
-#    pass
-#    atoms = create_h2()
-#    for i, at in enumerate(atoms):
-#        if np.any(at.get_pbc() != atoms[0].get_pbc()):
-#            raise ValueError("PBC cannot change between states")
-#        lmp_atfname = f"Atoms/atoms{i+1}.lmp"
-#        write_lammps_data(lmp_atfname,
-#                          at,
-#                          specorder=self.elements.tolist())
-#        self._write_mlip_params()
-#
-#    _write_looping_lammps_input(atoms)
+
+@pytest.mark.parametrize("mlip_fn", ["SNAP_HOC.model", "MLIAP_HOC.model",
+                                     "ACE_HOC.yace"])
+def test_predict_varntypat(root, mlip_fn):
+    """
+    Test that a MLIAP/SNAP/MTP/ACE can use the predict function
+    for a variable natom/ntypat
+    """
+    if not (Path(root) / "reference_files").exists():
+        root = root.parents[0]  # Go up 1 folders to find reference_files
+    if not (Path(root) / "reference_files").exists():
+        root = root.parents[0]  # Go up another folder to find reference_files
+
+    atoms = generate_atoms()
+    mlip = generate_mlip(atoms, mlip_fn)
+    fn = Path(root) / "reference_files" / "Pretrained-Potential" / mlip_fn
+    folder = "MLIP"
+
+    # The loading of MLIP to run_dynamics should be cleaned up
+    if fn.suffix == ".model":  # SNAP or MLIAP
+        coef = mlip.descriptor.get_coef(fn)
+        if "SNAP" in str(fn):
+            folder = "SNAP"
+        else:
+            folder = "MLIAP"
+    elif fn.suffix == ".mtp":  # MTP
+        folder = Path("MTP")
+        folder.mkdir(exist_ok=True)
+        mtp_fn = folder / fn.name
+        shutil.copy(fn, mtp_fn)
+        coef = fn
+        with open(folder / "mlip.ini", "w") as f:
+            f.write(f"mtp-filename    {mtp_fn.absolute()}\n")
+            f.write("select          FALSE")
+    elif fn.suffix == ".yace":  # ACE
+        coef = fn
+        folder = Path("ACE")
+        folder.mkdir(exist_ok=True)
+        shutil.copy(fn, folder / "ACE.yace")
+    mlip.next_coefs(coef)
+
+    mlip.predict(atoms)
+    shutil.rmtree(folder)

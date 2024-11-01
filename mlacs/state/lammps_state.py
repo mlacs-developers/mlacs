@@ -18,6 +18,7 @@ from ase.data import chemical_symbols, atomic_masses
 
 from .state import StateManager
 from ..core.manager import Manager
+from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
                                    EmptyLammpsBlockInput,
                                    LammpsBlockInput,
@@ -69,6 +70,10 @@ class BaseLammpsState(StateManager):
         Function to run the dynamics
         """
         atoms = supercell.copy()
+
+        if elements is None:
+            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+            elements = el
 
         initial_charges = atoms.get_initial_charges()
 
@@ -124,8 +129,6 @@ class BaseLammpsState(StateManager):
         """
 
         """
-        # el, Z, masses, charges = get_elements_Z_and_masses(atoms)
-        print(elements)
         masses = [atomic_masses[chemical_symbols.index(element)]
                   for element in elements]
 
