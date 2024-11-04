@@ -142,7 +142,6 @@ class PropertyManager(Manager):
             for observable in self.manager:
                 nc_name = observable.nc_name
                 weights = weighting_pol.weight[2:].copy()
-
                 obs = self.ncfile.read_obs(nc_name)
                 observable_values = obs[:len(weights)]
 

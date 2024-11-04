@@ -249,7 +249,8 @@ class Mlas(Manager):
                                         self.mlip.pair_coeff,
                                         self.mlip.model_post,
                                         self.mlip.atom_style,
-                                        eq[istate]))
+                                        eq[istate],
+                                        self.mlip.get_elements()))
                 futures.append(exe)
                 self._write(f"State {istate+1}/{self.nstate} has been launched")  # noqa
             for istate, exe in enumerate(futures):
@@ -536,7 +537,8 @@ class Mlas(Manager):
             for istate in range(self.nstate):
                 self.atoms.append(atoms.copy())
         elif isinstance(atoms, list):
-            assert len(atoms) == self.nstate
+            e = "You should have 1 atoms per state"
+            assert len(atoms) == self.nstate, e
             self.atoms = [at.copy() for at in atoms]
         else:
             msg = "atoms should be a ASE Atoms object or " + \
