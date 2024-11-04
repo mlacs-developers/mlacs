@@ -1,27 +1,26 @@
 """
 Example of postprocessing with *HIST.nc file.
-Requires prior execution of mlacs_108Cu_EMT_300K_Snap_Rdf.py
+Requires prior execution of mlacs_32Ag_EMT_300K10GPa_Snap.py
 """
 
-from mlacs.utilities.io_abinit import HistFile
-
 import os
-from pathlib import Path
-import matplotlib.pyplot as plt
+import glob
 import numpy as np
+import matplotlib.pyplot as plt
+
+from pathlib import Path
+from mlacs.utilities.io_abinit import HistFile
 
 plt.rcdefaults()
 plt.rcParams["font.size"] = 10
 plt.rcParams['figure.dpi'] = 300
 
-# Requires prior execution of mlacs_108Cu_EMT_300K_Snap_Rdf.py
+# Requires prior execution of mlacs_32Ag_EMT_300K10GPa_Snap.py
 workdir = os.path.basename(__file__).split('.')[0].split('post_')[-1]
 path = Path().absolute()
 prefix = f'mlacs_{workdir}'
-ncname = f'mlacs_{workdir}_HIST.nc'
-if os.getenv('PYTEST_CURRENT_TEST') is not None:  # Those lines are specific
-    ncname = 'test_examples_HIST.nc'              # for testing purpose.
-ncpath = str(path / prefix / ncname)
+ncname = glob.glob(f'{prefix}/*_HIST.nc')[0]
+ncpath = str(path / ncname)
 
 if os.path.isfile(ncpath):
     ncfile = HistFile(ncpath=ncpath)
@@ -34,7 +33,7 @@ if os.path.isfile(ncpath):
 
     var_names = ncfile.get_var_names()
     dict_var_units = ncfile.get_units()
-    var_dim_dict = ncfile.nc_routine_conv()[0]
+    var_dim_dict = ncfile.var_dim_dict
     dict_name_label = {x[0]: label for label, x in var_dim_dict.items()}
 
     obs_name = 'etotal'
@@ -81,5 +80,5 @@ if os.path.isfile(ncpath):
 else:
     msg = '*HIST.nc file not found.\n'
     msg += 'This example requires prior execution of '
-    msg += 'mlacs_108Cu_EMT_300K_Snap_Rdf.py'
+    msg += 'mlacs_32Ag_EMT_300K10GPa_Snap.py'
     raise FileNotFoundError(msg)

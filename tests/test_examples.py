@@ -16,7 +16,7 @@ from pathlib import Path
 def mlacs_examples():
     root = Path().absolute().parents[0] / 'examples'
     expls = [f.name for f in root.iterdir() if f.name.startswith('mlacs_')]
-    not_tested_expl = ['Abinit', 'QEspresso', '108Cu_EMT_300K_Snap_Rdf',
+    not_tested_expl = ['Abinit', 'QEspresso', '32Ag_EMT_300K10GPa_Snap',
                        '500Cu_EMT_400K50GPax5_SnapMBAR']
     for expl in expls:
         if any(_ in expl for _ in not_tested_expl):

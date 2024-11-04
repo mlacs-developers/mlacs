@@ -1,26 +1,26 @@
 """
 Example of postprocessing with *HIST.nc file.
-Requires prior execution of mlacs_256Cu_EMT_300K50GPax5_SnapMBAR.py
+Requires prior execution of mlacs_500Cu_EMT_300K50GPax5_SnapMBAR.py
 """
 
-from mlacs.utilities.io_abinit import HistFile
 import os
-from pathlib import Path
-import matplotlib.pyplot as plt
+import glob
 import numpy as np
+import matplotlib.pyplot as plt
+
+from pathlib import Path
+from mlacs.utilities.io_abinit import HistFile
 
 plt.rcdefaults()
 plt.rcParams["font.size"] = 10
 plt.rcParams['figure.dpi'] = 300
 
-# Requires prior execution of mlacs_256Cu_EMT_300K50GPax5_SnapMBAR.py
+# Requires prior execution of mlacs_500Cu_EMT_300K50GPax5_SnapMBAR.py
 workdir = os.path.basename(__file__).split('.')[0].split('post_')[-1]
 path = Path().absolute()
 prefix = f'mlacs_{workdir}'
-ncname = f'mlacs_{workdir}_HIST.nc'
-if os.getenv('PYTEST_CURRENT_TEST') is not None:  # Those lines are specific
-    ncname = 'test_examples_HIST.nc'              # for testing purpose.
-ncpath = str(path / prefix / ncname)
+ncname = glob.glob(f'{prefix}/*_HIST.nc')[0]
+ncpath = str(path / ncname)
 
 if os.path.isfile(ncpath):
     ncfile = HistFile(ncpath=ncpath)
@@ -142,5 +142,5 @@ if os.path.isfile(ncpath):
 else:
     msg = '*HIST.nc file not found.\n'
     msg += 'This example requires prior execution of '
-    msg += 'mlacs_256Cu_EMT_300K50GPax5_SnapMBAR.py'
+    msg += 'mlacs_500Cu_EMT_300K50GPax5_SnapMBAR.py'
     raise FileNotFoundError(msg)
