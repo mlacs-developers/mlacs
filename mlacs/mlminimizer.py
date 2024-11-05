@@ -80,12 +80,17 @@ class MlMinimizer(Mlas):
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
     """
+
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
                  keep_tmp_mlip=False, workdir=''):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
+
+        if set((etol, ftol, stol)) == {None}:
+            msg = "You need to set at least one of etol, ftol or stol"
+            raise ValueError(msg)
 
         prop = []
         if etol is None:
@@ -104,9 +109,7 @@ class MlMinimizer(Mlas):
             stol = 1e8
         prop.append(CalcExecFunction("get_stress", criterion=stol * GPa,
                                      frequence=1, gradient=True))
-        if etol == 1e8 and ftol == 1e8 and stol == 1e8:
-            msg = "You need to set at least one of etol, ftol or stol"
-            raise ValueError(msg)
+
         self.prop = PropertyManager(prop)
         self._etol = etol
         self._ftol = ftol
@@ -123,7 +126,7 @@ class MlMinimizer(Mlas):
 # ========================================================================== #
     def _compute_properties(self):
         """
-
+        Main method to compute/save properties of OtfMlacs objects.
         """
         self.prop.calc_initialize(atoms=self.atoms)
         msg = self.prop.run(self.step)
