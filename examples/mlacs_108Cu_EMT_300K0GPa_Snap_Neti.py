@@ -6,6 +6,8 @@ The true potential is from EMT as implemented in ASE.
 """
 # FIXME: Example is broken. Some file doesnt gets written.
 
+import os
+
 from ase.build import bulk
 from ase.calculators.emt import EMT
 
@@ -15,6 +17,8 @@ from mlacs.state import LammpsState
 
 from mlacs import OtfMlacs
 from mlacs.properties import CalcTi
+
+workdir = os.path.basename(__file__).split('.')[0]
 
 # MLACS Parameters ------------------------------------------------------------
 nconfs = 10        # Numbers of final configurations.
@@ -69,7 +73,8 @@ state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq, dt=dt,
                     damp=damp)
 
 # Creation of the OtfMLACS object
-sampling = OtfMlacs(atoms, state, calc, mlip, properties, neq=neq)
+sampling = OtfMlacs(atoms, state, calc, mlip, properties, neq=neq,
+                    workdir=workdir)
 
 # Run the simulation
 sampling.run(nconfs)
