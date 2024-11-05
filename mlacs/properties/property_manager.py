@@ -10,6 +10,12 @@ import numpy as np
 import netCDF4 as nc
 
 from ..core.manager import Manager
+from .calc_property import (CalcRoutineFunction,
+                            CalcPressure,
+                            CalcAcell,
+                            CalcAngles,
+                            CalcSpinAt,
+                            CalcElectronicEntropy)
 
 
 # ========================================================================== #
@@ -192,3 +198,45 @@ class PropertyManager(Manager):
             # Weight of first two confs (that are throwned out)
             w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
             return w_first2
+
+
+# ========================================================================== #
+# ========================================================================== #
+class RoutinePropertyManager(PropertyManager):
+    """
+    Class to handle the list of CalcRoutineFunction.
+
+    Parameters
+    ----------
+
+    ncfile: :class:`HistFile`
+        The netcdf *HIST.nc file.
+    """
+
+    def __init__(self, ncfile):
+
+        # Get variables names, dimensions, and units conventions
+        var_dim_dict = ncfile.var_dim_dict
+        lammps_units_dict = ncfile.lammps_units_dict
+        abinit_units_dict = ncfile.abinit_units_dict
+
+        # Build RoutinePropertyManager
+        routine_prop_list = []
+        for x in var_dim_dict:
+            var_name, var_dim = var_dim_dict[x]
+            var_abinit_unit = abinit_units_dict[x]
+            var_lammps_unit = lammps_units_dict[x]
+            lammps_func = 'get_' + x.lower()
+            observable = CalcRoutineFunction(lammps_func,
+                                             label=x,
+                                             nc_name=var_name,
+                                             nc_dim=var_dim,
+                                             nc_unit=var_abinit_unit,
+                                             lammps_unit=var_lammps_unit,
+                                             frequence=1)
+            routine_prop_list.append(observable)
+        other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),
+                             CalcSpinAt(), CalcElectronicEntropy()]
+        routine_prop_list += other_observables
+
+        PropertyManager.__init__(self, prop=routine_prop_list)

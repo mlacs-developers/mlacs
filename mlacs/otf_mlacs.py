@@ -8,14 +8,7 @@
 
 from .mlas import Mlas
 from .core import Manager
-from .utilities.io_abinit import HistFile
-from .properties import (PropertyManager,
-                         CalcRoutineFunction,
-                         CalcPressure,
-                         CalcAcell,
-                         CalcAngles,
-                         CalcSpinAt,
-                         CalcElectronicEntropy)
+from .properties import PropertyManager
 
 
 # ========================================================================== #
@@ -96,20 +89,10 @@ class OtfMlacs(Mlas, Manager):
                  ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
-
-        # Check if trajectory files already exist
-        self.launched = self._check_if_launched()
-
-        # Create Abinit-style *HIST.nc file of netcdf format
-        self.ncfile = HistFile(ncprefix=ncprefix,
-                               workdir=workdir,
-                               ncformat=ncformat,
-                               launched=self.launched,
-                               atoms=atoms)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir,
+                      ncprefix=ncprefix, ncformat=ncformat)
 
         self._initialize_properties(prop)
-        self._initialize_routine_properties()
 
 # ========================================================================== #
     def _initialize_properties(self, prop):
@@ -127,55 +110,10 @@ class OtfMlacs(Mlas, Manager):
         self.prop.ncfile = self.ncfile
 
 # ========================================================================== #
-    def _initialize_routine_properties(self):
-        """Create routine property object"""
-
-        # Get variables names, dimensions, and units conventions
-        var_dim_dict = self.ncfile.var_dim_dict
-        lammps_units_dict = self.ncfile.lammps_units_dict
-        abinit_units_dict = self.ncfile.abinit_units_dict
-
-        # Build a PropertyManager made of "routine" observables
-        routine_prop_list = []
-        for x in var_dim_dict:
-            var_name, var_dim = var_dim_dict[x]
-            var_abinit_unit = abinit_units_dict[x]
-            var_lammps_unit = lammps_units_dict[x]
-            lammps_func = 'get_' + x.lower()
-            observable = CalcRoutineFunction(lammps_func,
-                                             label=x,
-                                             nc_name=var_name,
-                                             nc_dim=var_dim,
-                                             nc_unit=var_abinit_unit,
-                                             lammps_unit=var_lammps_unit,
-                                             frequence=1)
-            routine_prop_list.append(observable)
-        other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),
-                             CalcSpinAt(), CalcElectronicEntropy()]
-        routine_prop_list += other_observables
-        self.routine_prop = PropertyManager(routine_prop_list)
-
-        if not self.launched:
-            self.ncfile.create_nc_var(routine_prop_list)
-
-        self.routine_prop.workdir = self.workdir
-        self.routine_prop.folder = 'Properties/RoutineProperties'
-
-        self.routine_prop.isfirstlaunched = not self.launched
-        self.routine_prop.ncfile = self.ncfile
-
-# ========================================================================== #
     def _compute_properties(self):
         """
         Main method to compute/save properties of OtfMlacs objects.
         """
-        # ON : Does not seem possible to implement netcdf with a variable
-        #      number of atoms. qAgate is not made to study GCMC.
-        #      Maybe the conversion to netcdf could be done in post
-        #      processing. Else, we would need to make a clear separation
-        #      between netcdf and properties so I could skip netcdf.
-        if len(set([len(at) for at in self.atoms])) > 1:
-            return
 
         if self.prop.manager is not None:
             self.prop.calc_initialize(atoms=self.atoms)
@@ -186,13 +124,3 @@ class OtfMlacs(Mlas, Manager):
                 msg = "All property calculations are converged, " + \
                       "stopping MLACS ...\n"
                 self.log.logger_log.info(msg)
-
-        # Compute routine properties
-        self.routine_prop.calc_initialize(atoms=self.atoms)
-        msg = self.routine_prop.run(self.step)
-        self.log.logger_log.info(msg)
-        self.routine_prop.save_prop(self.step)
-        self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
-        self.routine_prop.save_weights(self.step,
-                                       self.mlip.weight,
-                                       self.ncfile.ncformat)

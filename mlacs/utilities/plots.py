@@ -256,6 +256,8 @@ def init_rcParams():
     mpl.rcParams["lines.markersize"] = 25
     mpl.rcParams["lines.markeredgewidth"] = 5
 
+    mpl.rcParams['figure.dpi'] = 300
+
     mpl.rcParams["font.size"] = 30
 
     mpl.rcParams["axes.linewidth"] = 5

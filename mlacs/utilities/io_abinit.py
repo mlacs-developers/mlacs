@@ -140,12 +140,14 @@ class HistFile:
             with nc.Dataset(str(ncpath), 'r') as ncfile:
                 self.ncformat = ncfile.file_format
         else:
-            # Initialize path during MLACS execution:
-            # Compute the path itself, then create file if it doesn't exist
+            # Initialize path during MLACS execution
             self.ncformat = ncformat
             self.workdir = workdir
             self.ncpath = self._get_nc_path()
-            if not os.path.isfile(self.ncpath):
+            # Check if there is only one type of ase.Atoms objects
+            all_chem_symb = [at.get_chemical_formula() for at in atoms]
+            self.unique_atoms_type = len(set(all_chem_symb)) == 1
+            if not os.path.isfile(self.ncpath) and self.unique_atoms_type:
                 self._create_nc_file(atoms)
 
 # ========================================================================== #

@@ -20,10 +20,11 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from .core import Manager
 from .mlip import LinearPotential, MliapDescriptor
 from .calc import CalcManager
-from .properties import PropertyManager
 from .state import StateManager
 from .utilities.log import MlacsLog
 from .utilities import create_random_structures, save_cwd
+from .utilities.io_abinit import HistFile
+from .properties import PropertyManager, RoutinePropertyManager
 
 
 # ========================================================================== #
@@ -85,6 +86,7 @@ class Mlas(Manager):
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
     """
+
     def __init__(self,
                  atoms,
                  state,
@@ -95,7 +97,9 @@ class Mlas(Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 workdir=''):
+                 workdir='',
+                 ncprefix='',
+                 ncformat='NETCDF3_CLASSIC'):
 
         Manager.__init__(self, workdir=workdir)
 
@@ -120,6 +124,15 @@ class Mlas(Manager):
 
         # Check if trajectory files already exists
         self.launched = self._check_if_launched()
+
+        # Create Abinit-style *HIST.nc file of netcdf format
+        self.ncfile = HistFile(ncprefix=ncprefix,
+                               workdir=workdir,
+                               ncformat=ncformat,
+                               launched=self.launched,
+                               atoms=self.atoms)
+        if self.ncfile.unique_atoms_type:
+            self._initialize_routine_properties()
 
         self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
         self.logger = self.log.logger_log
@@ -311,7 +324,10 @@ class Mlas(Manager):
                              atmlip.get_potential_energy()))
                 self.nconfs[i] += 1
 
-        self._compute_properties()
+        # TODO: CD: Implement groups in netcdf for Atoms with difft chem. form.
+        if self.ncfile.unique_atoms_type:
+            self._compute_properties()
+            self._compute_routine_properties()
         self._execute_post_step()
 
         return True
@@ -492,6 +508,20 @@ class Mlas(Manager):
     def _initialize_property(self, prop):
         """Create property object"""
         self.prop = PropertyManager(prop)
+
+# ========================================================================== #
+    def _initialize_routine_properties(self):
+        """Create routine property object"""
+
+        # Build RoutinePropertyManager
+        self.routine_prop = RoutinePropertyManager(self.ncfile)
+
+        if not self.launched:
+            self.ncfile.create_nc_var(self.routine_prop.manager)
+
+        self.routine_prop.workdir = self.workdir
+        self.routine_prop.isfirstlaunched = not self.launched
+        self.routine_prop.ncfile = self.ncfile
 
 # ========================================================================== #
     def _initialize_momenta(self):
@@ -725,6 +755,18 @@ class Mlas(Manager):
         For example, CalcRdf, CalcTI ...
         """
         pass
+
+# ========================================================================== #
+    def _compute_routine_properties(self):
+        """Compute routine properties"""
+        self.routine_prop.calc_initialize(atoms=self.atoms)
+        msg = self.routine_prop.run(self.step)
+        self.log.logger_log.info(msg)
+        self.routine_prop.save_prop(self.step)
+        self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
+        self.routine_prop.save_weights(self.step,
+                                       self.mlip.weight,
+                                       self.ncfile.ncformat)
 
 # ========================================================================== #
     def _write(self, msg="", center=False, underline=False):
