@@ -80,6 +80,8 @@ def clean_up_nc(root):
     def _clean_up():
         patterns = [root.rglob("*_WEIGHTS.nc"), root.rglob("*_HIST.nc")]
         for filename in chain(*patterns):
+            if 'reference_files' in str(filename):
+                continue
             filename.unlink()
     _clean_up()
     yield

@@ -41,7 +41,7 @@ def test_mlacs_cli_comparison(option, script_runner: ScriptRunner) -> None:
 def test_mlacs_cli_weights(script_runner: ScriptRunner) -> None:
     refdir = Path().absolute() / 'reference_files' / 'Plot'
     result = script_runner.run(['mlacs', 'plot_neff', '--noshow',
-                                f'{refdir}/test_cli_WEIGHTS.nc'])
+                                f'{refdir}/test_CLI_WEIGHTS.nc'])
     assert result.returncode == 0
     assert result.stderr == ''
     assert (Path().absolute() / 'plot_neff.pdf').exists()
@@ -52,7 +52,7 @@ def test_mlacs_cli_weights(script_runner: ScriptRunner) -> None:
 def test_mlacs_cli_hist(option, script_runner: ScriptRunner) -> None:
     refdir = Path().absolute() / 'reference_files' / 'Plot'
     result = script_runner.run(['mlacs', option, '--noshow',
-                                f'{refdir}/test_cli_HIST.nc'])
+                                f'{refdir}/test_CLI_HIST.nc'])
     assert result.returncode == 0
     assert result.stderr == ''
     assert (Path().absolute() / f'{option}.pdf').exists()
