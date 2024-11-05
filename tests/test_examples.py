@@ -60,3 +60,23 @@ def test_mlacs_post_examples(example):
         f'The example {example} is broken, please check it.'
     assert (root / 'tests' / f'mlacs_{prefix}' / f'{prefix}_plot.pdf').exists()
     shutil.rmtree(root / 'tests' / f'mlacs_{prefix}')
+
+
+def ti_examples():
+    root = Path().absolute().parents[0] / 'examples'
+    expls = [f.name for f in root.iterdir() if f.name.startswith('neti_')
+             or f.name.startswith('rsti_')]
+    return expls
+
+
+@pytest.mark.examples
+@pytest.mark.parametrize("example", ti_examples())
+def test_ti_examples(example):
+    root = Path().absolute().parents[0]
+    file = root / 'examples' / example
+    exe = sys.executable
+    returncode = subprocess.call(f'{exe} {file}', shell=True)
+    assert returncode == 0, \
+        f'The example {example} is broken, please check it.'
+    assert (root / 'tests' / f'{example.replace(".py", "")}').exists()
+    shutil.rmtree(root / 'tests' / f'{example.replace(".py", "")}')

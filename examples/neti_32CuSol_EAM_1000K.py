@@ -43,7 +43,7 @@ state = EinsteinSolidState(atoms, pair_style, pair_coeff, temperature,
                            k=kcst, nsteps=nsteps, logfile='neti.log')
 
 # Creation of the TI object
-ti = ThermodynamicIntegration(state)
+ti = ThermodynamicIntegration(state, workdir=workdir)
 
 # Run the simulation
 ti.run()

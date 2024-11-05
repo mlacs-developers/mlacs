@@ -12,15 +12,13 @@ from ase.calculators.emt import EMT
 from mlacs.mlip import MliapDescriptor, LinearPotential
 from mlacs.state import LammpsState
 
-from mlacs.ti import ThermodynamicIntegration
-from mlacs.ti import EinsteinSolidState
 
 from mlacs import OtfMlacs
 from mlacs.properties import CalcTi
 
 # MLACS Parameters ------------------------------------------------------------
-nconfs = 20        # Numbers of final configurations.
-neq = 5            # Numbers of mlacs equilibration iterations. 
+nconfs = 10        # Numbers of final configurations.
+neq = 5            # Numbers of mlacs equilibration iterations.
 nsteps = 500       # Numbers of MD steps in the production phase.
 nsteps_eq = 100    # Numbers of MD steps in the equilibration phase.
 
@@ -45,11 +43,11 @@ atoms = bulk('Cu', cubic=True).repeat(cell_size)
 calc = EMT()
 
 # Creation of the MLIP Manager
-descriptor = MliapDescriptor(atoms=atoms, 
-                             rcut=rcut, 
-                             parameters=mlip_params, 
-                             model="linear", 
-                             style="snap", 
+descriptor = MliapDescriptor(atoms=atoms,
+                             rcut=rcut,
+                             parameters=mlip_params,
+                             model="linear",
+                             style="snap",
                              alpha="1.0")
 
 mlip = LinearPotential(descriptor)
@@ -58,8 +56,8 @@ neti_params = {'atoms': atoms,
                'temperature': temperature,
                'pressure': pressure,
                'dt': dt,
-               'nsteps':200,
-               'nsteps_eq':100,
+               'nsteps': 200,
+               'nsteps_eq': 100,
                'nsteps_msd': 100,
                'pair_style': mlip.pair_style,
                'pair_coeff': mlip.pair_coeff}
@@ -67,7 +65,8 @@ neti_params = {'atoms': atoms,
 properties = [CalcTi(neti_params, 'solid', ninstance=4, frequence=2)]
 
 # Creation of the State Manager
-state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq, dt=dt, damp=damp)
+state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq, dt=dt,
+                    damp=damp)
 
 # Creation of the OtfMLACS object
 sampling = OtfMlacs(atoms, state, calc, mlip, properties, neq=neq)
