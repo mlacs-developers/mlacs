@@ -172,8 +172,8 @@ class LinearInterpolation(BaseMepState):
                  model=None, interpolate='linear',
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         parameters, print, **kwargs)
 
 # ========================================================================== #
     def run_optimize(self, images):
@@ -228,8 +228,8 @@ class NebAseState(BaseMepState):
                  Kspring=0.1, optimizer=None, ftol=5.0e-2,
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         parameters, print, **kwargs)
 
         self.opt = optimizer
         self.criterions = ftol
@@ -298,9 +298,9 @@ class CiNebAseState(NebAseState):
                  Kspring=0.1, optimizer=None, ftol=5.0e-2,
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          Kspring, optimizer, ftol,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         Kspring, optimizer, ftol,
+                         parameters, print, **kwargs)
 
         self.parameters.update(dict(climb=True))
 
@@ -329,9 +329,9 @@ class StringMethodAseState(NebAseState):
                  Kspring=0.1, optimizer=None, ftol=5.0e-2,
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          Kspring, optimizer, ftol,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         Kspring, optimizer, ftol,
+                         parameters, print, **kwargs)
 
         self.parameters.update(dict(method='string'))
 
