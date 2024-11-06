@@ -288,6 +288,7 @@ def get_log_input(loginterval, logfile):
     return input_string
 
 
+# RB: This need to be remove.
 # ========================================================================== #
 def get_traj_input(loginterval, trajfile, elem):
     """
@@ -308,6 +309,7 @@ def get_traj_input(loginterval, trajfile, elem):
     return input_string
 
 
+# RB: This need to be remove.
 # ========================================================================== #
 def get_general_input(pbc,
                       masses,
@@ -340,47 +342,6 @@ def get_general_input(pbc,
         input_string += "mass      " + str(i + 1) + "  " + str(mass) + "\n"
     if nbeads > 1:
         input_string += f"variable ibead uloop {nbeads} pad\n"
-    input_string += "#####################################\n"
-    input_string += "\n\n\n"
-    return input_string
-
-
-# ========================================================================== #
-def get_pafi_input(dt,
-                   temperature,
-                   seed,
-                   damp=None,
-                   langevin=True):
-    """
-    Function to write the general parameters for PAFI dynamics
-    """
-    input_string = "#####################################\n"
-    input_string += "# Compute relevant field for PAFI simulation\n"
-    input_string += "#####################################\n"
-    input_string += f"timestep  {dt}\n"
-    input_string += "thermo    1\n"
-    input_string += "min_style fire\n"
-    input_string += "compute   1 all property/atom d_nx d_ny d_nz "
-    input_string += "d_dnx d_dny d_dnz d_ddnx d_ddny d_ddnz\n"
-    input_string += "run 0\n"
-    input_string += "\n"
-
-    input_string += "# Set up PAFI Langevin/Brownian integration\n"
-    if damp is None:
-        damp = "$(10*dt)"
-    if not langevin:
-        input_string += "fix       pafihp all pafi 1 " + \
-                        f"{temperature} {damp} {seed} " + \
-                        "overdamped yes com yes\n"
-    else:
-        input_string += "fix       pafihp all pafi 1 " + \
-                        f"{temperature} {damp} {seed} " + \
-                        "overdamped no com yes\n"
-    input_string += "\n"
-    input_string += "run 0\n"
-    input_string += "\n"
-    input_string += "minimize 0 0 250 250\n"
-    input_string += "reset_timestep  0\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
