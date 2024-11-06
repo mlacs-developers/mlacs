@@ -252,6 +252,7 @@ def get_block_diffusion(nsteps, filename='diffusion.dat'):
     return block
 
 
+# RB: This need to be remove, still use in mlip/spin_potential.py
 # ========================================================================== #
 def get_log_input(loginterval, logfile):
     """
@@ -282,39 +283,6 @@ def get_log_input(loginterval, logfile):
                     '${mypzz} ${mypxy} ${mypxz} ${mypyz}" ' + \
                     f'append {logfile} title "# Step  Vol  Etot  ' + \
                     'Epot  Ekin  Temp Press  Pxx  Pyy  Pzz  Pxy  Pxz  Pyz"\n'
-    input_string += "#####################################\n"
-    input_string += "\n\n\n"
-    return input_string
-
-
-# ========================================================================== #
-def get_pafi_log_input(rep=0,
-                       isappend=False):
-    """
-    Function to write several PAFI outputs
-    """
-    input_string = "#####################################\n"
-    input_string += "#          Logging\n"
-    input_string += "#####################################\n"
-    input_string += "variable    dU    equal f_pafihp[1]\n"
-    input_string += "variable    dUerr equal f_pafihp[2]\n"
-    input_string += "variable    psi   equal f_pafihp[3]\n"
-    input_string += "variable    err   equal f_pafihp[4]\n"
-    input_string += "compute     disp    all displace/atom\n"
-    input_string += "compute     maxdisp all reduce max c_disp[4]\n"
-    input_string += "variable    maxjump equal sqrt(c_maxdisp)\n"
-
-    if isappend:
-        input_string += 'fix logpafi all print 1 ' + \
-                        '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" ' + \
-                        f'append pafi.log.{rep} title ' + \
-                        '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
-    else:
-        input_string += 'fix logpafi all print 1 ' + \
-                        '"${dU}  ${dUerr} ${psi} ${err} ${maxjump}" ' + \
-                        f'file pafi.log.{rep} title ' + \
-                        '"# dU/dxi  (dU/dxi)^2  psi  err  maxjump"\n'
-    input_string += "\n"
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
