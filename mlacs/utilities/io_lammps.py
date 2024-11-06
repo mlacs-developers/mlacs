@@ -233,6 +233,7 @@ def get_block_adf(nsteps, filename='spce-adf.dat'):
     return block
 
 
+# RB: This could be done in a better way.
 # ========================================================================== #
 def get_block_diffusion(nsteps, filename='diffusion.dat'):
     """
@@ -252,7 +253,7 @@ def get_block_diffusion(nsteps, filename='diffusion.dat'):
     return block
 
 
-# RB: This need to be remove, still use in mlip/spin_potential.py
+# RB: This need to be remove but, still use in mlip/spin_potential.py
 # ========================================================================== #
 def get_log_input(loginterval, logfile):
     """
@@ -347,6 +348,7 @@ def get_general_input(pbc,
     return input_string
 
 
+# RB: This need to be remove.
 # ========================================================================== #
 def get_minimize_input(style,
                        criterions,
@@ -372,6 +374,7 @@ def get_minimize_input(style,
     return input_string
 
 
+# RB: This need to be remove but, still use in mlip/spin_potential.py
 # ========================================================================== #
 def get_interaction_input(pair_style,
                           pair_coeff,
@@ -397,6 +400,7 @@ def get_interaction_input(pair_style,
     return input_string
 
 
+# RB: This need to be remove but, still use in mlip/spin_potential.py
 # ========================================================================== #
 def get_last_dump_input(elem, nsteps, nbeads=1, with_delay=True):
     """
@@ -421,6 +425,7 @@ def get_last_dump_input(elem, nsteps, nbeads=1, with_delay=True):
     return input_string
 
 
+# RB: This need to be remove.
 # ========================================================================== #
 def get_diffusion_input(msdfile):
     """
@@ -444,6 +449,7 @@ def get_diffusion_input(msdfile):
     return input_string
 
 
+# RB: This need to be remove.
 # ========================================================================== #
 def get_rdf_input(rdffile, nsteps):
     """
@@ -462,30 +468,6 @@ def get_rdf_input(rdffile, nsteps):
     input_string += "#####################################\n"
     input_string += "\n\n\n"
     return input_string
-
-
-# ========================================================================== #
-def write_lammps_NEB_ASCIIfile(filename, supercell):
-    '''
-    Convert Ase Atoms into an ASCII file for lammps neb calculations.
-
-    Parameters
-    ----------
-    filename : :class:`str`
-        name of the output file
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        ASE atoms objects to be rattled
-
-    Return
-    ------
-       Final NEB configuration :class:`file`
-    '''
-    instr = '# Final coordinates of the NEB calculation.\n'
-    instr += '{0}\n'.format(len(supercell))
-    for atoms in supercell:
-        instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
-    with open(filename, "w") as w:
-        w.write(instr)
 
 
 # ========================================================================== #
