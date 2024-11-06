@@ -37,15 +37,25 @@ class PathAtoms:
         - ``rdm`` randomly return the coordinate of a splined images.
         - ``rdm_true`` randomly return the coordinate of an images.
         - ``rdm_memory`` homogeneously sample the splined reaction coordinate.
+        - ``gaussian`` Bayesian Inference sampling.
         Default ``saddle``
+
+    interval: :class:`list`
+        Define the interval limits to sample the reaction coordinate.
+        Take only two values [min, max].
+        Default ``[0, 1]``
+
+    fixcom: :class: `bool`
+        Include the center of mass displacement along the reaction coordinate.
+        Default ``True``
 
     """
     def __init__(self,
                  images,
                  xi=None,
                  mode="saddle",
-                 fixcom=True,
                  interval=None,
+                 fixcom=True,
                  **kwargs):
 
         self.mode = mode
