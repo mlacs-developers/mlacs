@@ -348,35 +348,6 @@ def get_general_input(pbc,
 
 
 # ========================================================================== #
-def get_neb_input(dt,
-                  Kspring,
-                  linear=False):
-    """
-    Function to write the general parameters for NEB
-    """
-    input_string = "#####################################\n"
-    input_string += "# Compute relevant field for NEB simulation\n"
-    input_string += "#####################################\n"
-    input_string += f"timestep    {dt}\n"
-    input_string += "thermo      1\n"
-    input_string += f"fix         neb all neb {Kspring} " + \
-                    "parallel ideal\n"
-    input_string += "run 100\n"
-    input_string += "reset_timestep  0\n\n"
-    input_string += "variable    i equal part\n"
-    input_string += "min_style   quickmin\n"
-    if linear:
-        input_string += "neb         0.0 0.001 1 1 1 "
-    else:
-        input_string += "neb         0.0 0.001 200 100 10 "
-    input_string += "final atoms-1.data\n"
-    input_string += "write_data  neb.$i\n"
-    input_string += "#####################################\n"
-    input_string += "\n\n\n"
-    return input_string
-
-
-# ========================================================================== #
 def get_minimize_input(style,
                        criterions,
                        nitmax,
