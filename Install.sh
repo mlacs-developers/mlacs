@@ -9,7 +9,7 @@
 
 nameofenv='venv'
 namedirlammps='lammps'
-listofpackage='ml-snap ml-iap manybody meam molecule class2 kspace replicate extra-fix extra-pair extra-compute extra-dump qtb'
+listofpackage='ml-snap ml-iap manybody meam molecule class2 kspace replica extra-fix extra-pair extra-compute extra-dump qtb'
 
 # This script can be used as a starting point for a quick installation.
 

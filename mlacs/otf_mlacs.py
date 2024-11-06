@@ -61,6 +61,9 @@ class OtfMlacs(Mlas, Manager):
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
+    prefix: :class:`str` (optional)
+        The prefix to prepend the name of the States files.
+
     ncprefix: :class:`str` (optional)
         The prefix to prepend the name of the *HIST.nc file.
         Script name format: ncprefix + scriptname + '_HIST.nc'.
@@ -85,13 +88,15 @@ class OtfMlacs(Mlas, Manager):
                  std_init=0.05,
                  keep_tmp_mlip=True,
                  workdir='',
+                 prefix='Trajectory',
                  ncprefix='',
                  ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
                       keep_tmp_mlip=keep_tmp_mlip, workdir=workdir,
-                      ncprefix=ncprefix, ncformat=ncformat)
+                      prefix=prefix, ncprefix=ncprefix, ncformat=ncformat)
 
+        # RB: Move the initialization of properties out of Mlas.
         self._initialize_properties(prop)
 
 # ========================================================================== #
@@ -99,15 +104,17 @@ class OtfMlacs(Mlas, Manager):
         """Create property object"""
         self.prop = PropertyManager(prop)
 
-        if not self.launched:
-            self.ncfile.create_nc_var(prop)
+        if self.ncfile is not None:
+            if not self.launched:
+                self.ncfile.create_nc_var(self.prop.manager)
 
-        self.prop.workdir = self.workdir
-        if not self.prop.folder:
-            self.prop.folder = 'Properties'
+            self.prop.workdir = self.workdir
+            # RB: I think this is not necessary anymore
+            # if not self.prop.folder:
+            #     self.prop.folder = 'Properties'
 
-        self.prop.isfirstlaunched = not self.launched
-        self.prop.ncfile = self.ncfile
+            self.prop.isfirstlaunched = not self.launched
+            self.prop.ncfile = self.ncfile
 
 # ========================================================================== #
     def _compute_properties(self):

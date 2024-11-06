@@ -429,6 +429,7 @@ class HistPlot:
         observable, new_unit = self._custom_unit_converter(obs_au, nc_unit)
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
+
         state_idx = obs_meta[:, 1]
         confs_idx = np.arange(1, len(observable)+1)
 

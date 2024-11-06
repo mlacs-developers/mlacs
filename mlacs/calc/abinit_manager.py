@@ -59,7 +59,7 @@ class AbinitManager(CalcManager):
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
 
-    workdir: :class:`str` (optional)
+    folder: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
 

@@ -143,7 +143,7 @@ ASE is an atomic simulation environment, interfaced with several codes and writt
 
 .. code:: bash
 
-    $ git clone -b 3.23.1 https://gitlab.com/ase/ase.git
+    $ git clone -b 3.23.0 https://gitlab.com/ase/ase.git
 
 Then in the package directory:
 

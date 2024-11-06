@@ -42,10 +42,15 @@ class PropertyManager(Manager):
             self.check = [False]
 
         if prop is not None:
-            if any([prop.needdir for prop in self.manager]):
+            if not any([prop.needdir for prop in self.manager]):
                 folder = ''
 
         Manager.__init__(self, folder=folder, **kwargs)
+        if self.manager is not None:
+            for observable in self.manager:
+                if observable.needdir:
+                    observable.workdir = self.workdir
+                    observable.folder = self.folder
 
 # ========================================================================== #
     @property
@@ -57,20 +62,25 @@ class PropertyManager(Manager):
         return np.all(self.check)
 
 # ========================================================================== #
-    @Manager.exec_from_workdir
+    @Manager.exec_from_subdir
     def run(self, step):
         """
         Run property calculation.
         """
-        dircheck = False
-        for observable in self.manager:
-            if step % observable.freq == 0:
-                dircheck = True
-        if dircheck:
-            self.path.mkdir(exist_ok=True, parents=True)
+        # RB: Not needed anymore
+        # dircheck = False
+        # for observable in self.manager:
+        #     if step % observable.freq == 0:
+        #         dircheck = True
+        # if dircheck:
+        #     self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
+                if observable.needdir:
+                    observable.workdir = self.workdir
+                    observable.folder = self.folder
+                    observable.subfolder = f'Step{step}'
                 self.check[i] = observable._exec()
                 msg += repr(observable)
         return msg
@@ -95,24 +105,26 @@ class PropertyManager(Manager):
         step: :class:`int`
             The index of MLAS iteration
         """
-        ncpath = self.ncfile.ncpath
 
         if self.manager is not None:
             for observable in self.manager:
-                to_be_saved = observable.new
-                nc_name = observable.nc_name
+                if step % observable.freq == 0:
+                    to_be_saved = observable.new
+                    nc_name = observable.nc_name
 
-                if nc_name is not None:
-                    for idx, val_state in enumerate(to_be_saved):
-                        with nc.Dataset(ncpath, 'a') as ncfile:
-                            index_state = idx+1
-                            metadata = [step, index_state]
-                            idx_db = np.ma.count(ncfile[nc_name+'_meta'][:, 0])
-                            # idx_db is index of conf in dtbase for observable
-
-                            ncfile[nc_name][idx_db] = val_state
-                            ncfile[nc_name+'_meta'][idx_db] = metadata
-                            ncfile['mdtime'][idx_db] = idx_db + 1
+                    if nc_name is not None:
+                        ncpath = self.ncfile.ncpath
+                        for idx, val_state in enumerate(to_be_saved):
+                            with nc.Dataset(ncpath, 'a') as ncfile:
+                                index_state = idx+1
+                                metadata = [step, index_state]
+                                idx_db = np.ma.count(
+                                        ncfile[nc_name+'_meta'][:, 0])
+                                # idx_db is index of conf in dtbase
+                                # for observable
+                                ncfile[nc_name][idx_db] = val_state
+                                ncfile[nc_name+'_meta'][idx_db] = metadata
+                                ncfile['mdtime'][idx_db] = idx_db + 1
 
 # ========================================================================== #
     def save_weighted_prop(self, step, weighting_pol):

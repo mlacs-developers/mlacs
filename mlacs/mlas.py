@@ -98,22 +98,24 @@ class Mlas(Manager):
                  std_init=0.05,
                  keep_tmp_mlip=True,
                  workdir='',
+                 prefix='',
                  ncprefix='',
                  ncformat='NETCDF3_CLASSIC'):
 
-        Manager.__init__(self, workdir=workdir)
+        Manager.__init__(self, workdir=workdir, prefix=prefix)
 
         # Initialize working directory
         self.workdir.mkdir(exist_ok=True, parents=True)
+        self.ncfile = None
 
         ##############
         # Check inputs
         ##############
         self.keep_tmp_mlip = keep_tmp_mlip
-        self._initialize_state(state, atoms, neq)
+        self._initialize_state(state, atoms, neq, prefix)
         self._initialize_calc(calc)
         self._initialize_mlip(mlip)
-        self._initialize_property(prop)
+        # self._initialize_properties(prop)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -505,7 +507,7 @@ class Mlas(Manager):
         self.mlip.subdir.mkdir(exist_ok=True, parents=True)
 
 # ========================================================================== #
-    def _initialize_property(self, prop):
+    def _initialize_properties(self, prop):
         """Create property object"""
         self.prop = PropertyManager(prop)
 
