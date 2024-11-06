@@ -387,7 +387,7 @@ class HistFile:
 # ========================================================================== #
 class AbinitNC:
     """
-    Class to handle all Abinit NetCDF files.
+    Class to read all Abinit NetCDF files.
 
     Parameters
     ----------

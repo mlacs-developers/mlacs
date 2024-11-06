@@ -530,6 +530,7 @@ def write_atoms_lammps_spin_style(fd, atoms, spin, velocities=True):
     fd.flush()
 
 
+# ========================================================================== #
 def reconstruct_mlmd_trajectory(trajfile, logfile):
     """
     Function to reconstruct a trajectory from LAMMPS
@@ -606,6 +607,7 @@ def reconstruct_mlmd_trajectory(trajfile, logfile):
     return traj
 
 
+# RB: msdfile variable probably not needed.
 # ========================================================================== #
 def get_msd_input(self, msdfile):
     """

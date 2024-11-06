@@ -13,6 +13,7 @@ functions for equations of state
 Vinet, Birch-Murnaghan, Murnaghan
 To be completed if needed
 '''
+# RB: Is this still needed ?
 
 
 def e_vinet(v, e0, b0, b0p, v0):
