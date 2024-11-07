@@ -31,13 +31,13 @@ class PathAtoms:
         Default ``None``
 
     mode: :class:`float` or :class:`string`
-        Value of the reaction coordinate or sampling mode:
-        - ``saddle`` return the saddle point.
-        - ``float`` sampling at a precise coordinate.
-        - ``rdm`` randomly return the coordinate of a splined images.
-        - ``rdm_true`` randomly return the coordinate of an images.
-        - ``rdm_memory`` homogeneously sample the splined reaction coordinate.
-        - ``gaussian`` Bayesian Inference sampling.
+        Value of the reaction coordinate or sampling mode
+            - ``saddle`` return the saddle point.
+            - ``float`` sampling at a precise coordinate.
+            - ``rdm`` randomly return the coordinate of a splined images.
+            - ``rdm_true`` randomly return the coordinate of an images.
+            - ``rdm_memory`` homogeneous sampling of splined images.
+            - ``gaussian`` Bayesian Inference sampling.
         Default ``saddle``
 
     interval: :class:`list`
