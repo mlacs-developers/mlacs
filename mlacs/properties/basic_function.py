@@ -14,6 +14,7 @@ from scipy.optimize import curve_fit
 Bohr_GPa = 29421.033
 
 
+# RB: don't know if we should keep this
 def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
     '''
     fit an eos from E(V) or P(V) on an isotherm
@@ -37,12 +38,6 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
         murnaghan
         vinet
 
-    Optionnal
-    ---------
-
-    plot:
-    save:
-    error:
     '''
 
     # get x and y from canonical sampling if not given
@@ -62,7 +57,7 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
         if eos == 'murnaghan':
             fitted_params, ecov_ = curve_fit(eos_functions.e_murnaghan, x, y,
                                              bounds=bounds)
-        if eos == 'bm':
+        if eos == 'birch-murnaghan':
             fitted_params, ecov_ = curve_fit(eos_functions.e_bm, x, y,
                                              bounds=bounds)
 
@@ -82,7 +77,7 @@ def eos_fit(x=None, y=None, y_type='presssure', eos='vinet', **kwargs):
         if eos == 'murnaghan':
             fitted_params, pcov_ = curve_fit(eos_functions.p_murnaghan, x, y,
                                              bounds=bounds)
-        if eos == 'bm':
+        if eos == 'birch-murnaghan':
             fitted_params, pcov_ = curve_fit(eos_functions.p_bm, x, y,
                                              bounds=bounds)
 
