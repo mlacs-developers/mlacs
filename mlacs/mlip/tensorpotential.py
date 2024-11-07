@@ -27,11 +27,27 @@ class TensorpotPotential(MlipManager):
 
     Parameters
     ----------
+
     descriptor: :class:`Descriptor`
         The descriptor used in the model.
+
     weight: :class:`WeightingPolicy`
         Weight used for the fitting and calculation of properties.
         Default :class:`None`
+
+    Examples
+    --------
+
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import AceDescriptor, TensorpotPotential
+    >>> desc = AceDescriptor(confs[0], free_at_e={'Cu': 0}, rcut=rcut)
+    >>> mlip = TensorpotPotential(desc, folder="ACE")
+    >>>
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
+
     """
     def __init__(self,
                  descriptor,

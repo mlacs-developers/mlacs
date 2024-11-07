@@ -80,6 +80,11 @@ MomentTensorPotential
 
 .. autoclass:: MomentTensorPotential
 
+TensorpotPotential
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: TensorpotPotential
+
 DeltaLearningPotential
 ~~~~~~~~~~~~~~~~~~~~~~
 

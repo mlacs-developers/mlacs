@@ -42,13 +42,7 @@ os.environ["ASE_LAMMPSRUN_COMMAND"] = f'{lmp_exe}'
 ace_descriptor = AceDescriptor(atoms=atoms,
                                free_at_e={'Cu': 0},
                                rcut=rcut)
-mlip = TensorpotPotential(descriptor=ace_descriptor,
-                          nthrow=0,
-                          parameters={},
-                          energy_coefficient=1.0,
-                          forces_coefficient=1.0,
-                          folder="ACE",
-                          mbar=None)
+mlip = TensorpotPotential(descriptor=ace_descriptor, folder="ACE")
 
 # Creation of the State Manager
 state = LammpsState(temperature, nsteps=nsteps, nsteps_eq=nsteps_eq)
