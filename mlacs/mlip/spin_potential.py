@@ -42,10 +42,13 @@ class SpinLatticePotential(DeltaLearningPotential):
 
     exchange: :class:`list`
         The parameters of the exchange/spin pair_style
+        (Work in progress)
 
     anisotropy: :class:`list`
         The value of the anisotropy. Uses the precession/spin anisotropy
         fix of the SPIN package in LAMMPS
+        (Work in progress)
+
     """
     def __init__(self,
                  model,
