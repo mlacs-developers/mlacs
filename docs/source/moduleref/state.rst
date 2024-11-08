@@ -35,6 +35,11 @@ PafiLammpsState
 
 .. autoclass:: PafiLammpsState
 
+SpinLammpsState
+~~~~~~~~~~~~~~~
+
+.. autoclass:: SpinLammpsState
+
 Ground states
 *************
 
