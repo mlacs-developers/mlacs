@@ -149,7 +149,25 @@ class AbinitManager(CalcManager):
                                subfolder: [str],
                                step: [int]):
         """
-        Compute the energy of given configurations with Abinit.
+        Compute the energy/forces/stress of given configurations with Abinit.
+
+        Parameters
+        ----------
+        confs: :class:`list` of :class:`ase.Atoms`
+            The input list of atom objects.
+
+        subfolder: :class:`list` of :class:`str` (optional)
+            Subfolder in which the properties are saved.
+
+        step: :class:`list` of :class:`int`  (optional)
+            The list of configuration indices.
+
+        Returns
+        -------
+        result_confs: :class:`list` of :class:`ase.Atoms`
+            The output list of atom objects, with corresponding
+            SinglePointCalculator resulting from true potential calculation.
+            See also _read_output() where SinglePointCalculator() is called.
         """
         assert len(confs) == len(subfolder) == len(step)
         nparal = self.nproc // self.nproc_per_task

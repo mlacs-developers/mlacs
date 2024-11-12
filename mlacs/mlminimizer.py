@@ -68,7 +68,7 @@ class MlMinimizer(Mlas):
         The configurations are created by rattling the first structure
         if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
         computed in order to create the initial training configurations
-        Default ``1``.
+        Default ``None``.
 
     std_init: :class:`float` (optional)
         Variance (in :math:`\mathring{a}^2`) of the displacement

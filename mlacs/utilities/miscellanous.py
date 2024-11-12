@@ -64,7 +64,7 @@ def get_elements_Z_and_masses(supercell):
 # ========================================================================== #
 def create_random_structures(atoms, std, nconfs):
     """
-    Create n random structures by displacing atoms around position
+    Create nconfs random structures by displacing atoms around positions.
 
     Parameters
     ----------
