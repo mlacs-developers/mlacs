@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import numpy as np
 
 from scipy import interpolate
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.optimize import minimize
 
 from ase.atoms import Atoms
@@ -298,7 +298,7 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
 
 
 # ========================================================================== #
-def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
+def normalized_integration(x, y, norm=1.0, scale=True, func=):
     """
     Compute normalized integral of y to `norm`.
 
@@ -312,7 +312,7 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
         Scale x and y to the same order of magnitude to avoid numerical
         errors.
     func : :class:`scipy.integrate.func`
-        Scipy function for intergration (simps, trapz, ...).
+        Scipy function for intergration (, trapz, ...).
 
     Return
     ------
