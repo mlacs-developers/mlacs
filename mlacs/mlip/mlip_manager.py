@@ -67,6 +67,38 @@ class MlipManager(Manager, ABC):
 # ========================================================================== #
     def update_matrices(self, atoms):
         """
+        Update database, feature matrix and label vector with new configs.
+
+        Parameters
+        -----
+
+        atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+            New configuration(s) to be added to the database.
+
+        Notes
+        -----
+
+        Feature matrix `amat_i` and label vector `ymat_i` are separated into
+        blocks i=e,f,s, representing energy, forces and stresses, respectively.
+
+        Attribute dimensions after update:
+        - `self.amat_e`: ndarray of shape (N, K)
+            Block matrix representing the descriptors
+        - `self.amat_f`: ndarray of shape (3*Nat*N, K)
+            Block matrix representing the gradient of descr. wrt positions
+        - `self.amat_s`: ndarray of shape (6*N, K)
+            Block matrix representing the gradient of descr. wrt strains
+        - `self.ymat_e`: ndarray of shape (N,)
+            Label vector representing the energies
+        - `self.ymat_f`: ndarray of shape (3*Nat*N,)
+            Label vector representing the forces
+        - `self.ymat_s`: ndarray of shape (6*N,)
+            Label vector representing the stresses
+
+        Where:
+            - `K` is the number of descriptor components (features)
+            - `N` is the number of configurations in database (after update)
+            - `Nat` is the number of atoms in each cell
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
@@ -77,10 +109,7 @@ class MlipManager(Manager, ABC):
         amat_all = self.descriptor.compute_descriptors(atoms)
 
         energy = np.array([at.get_potential_energy() for at in atoms])
-        forces = []
-        for at in atoms:
-            forces.extend(at.get_forces().flatten())
-        forces = np.array(forces)
+        forces = np.array([at.get_forces() for at in atoms]).flatten()
         stress = np.array([at.get_stress() for at in atoms]).flatten()
         nat = np.array([len(at) for at in atoms])
 

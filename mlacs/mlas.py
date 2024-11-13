@@ -252,7 +252,7 @@ class Mlas(Manager):
                 atoms_mlip[istate] = self.atoms_start[istate].copy()
                 self.state[istate].initialize_momenta(atoms_mlip[istate])
 
-        # With those thread, we can execute all the states in parallell
+        # With those threads, we can execute all the states in parallel
         futures = []
         with save_cwd(), ThreadPoolExecutor() as executor:
             for istate in range(self.nstate):

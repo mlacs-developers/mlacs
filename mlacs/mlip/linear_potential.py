@@ -74,6 +74,33 @@ class LinearPotential(MlipManager):
 # ========================================================================== #
     def train_mlip(self):
         """
+        Compute the coefficients of the MLIP, then write MLIP.
+
+        Notes
+        -----
+
+        Local variables:
+        - `amat`: ndarray of shape ((7+3*Nat)*N, K)
+            Feature matrix
+        - `ymat`: ndarray of shape ((7+3*Nat)*N,)
+            Label vector
+        - `W`: ndarray of shape ((7+3*Nat)*N,)
+            Weighting matrix
+
+        Where:
+            - `K` is the number of descriptor components
+            - `N` is the number of configurations
+            - `Nat` is the number of atoms in each cell
+
+        var = `amat`, `ymat`, `W` have a stacked structure
+            +-------+
+            |   e   |  <-- energy block
+            +-------+
+            |   f   |  <-- forces block
+            +-------+
+            |   s   |  <-- stresses block
+            +-------+
+        where each block has the shape of var_i, with i=e,f,s
         """
         self.weight.workdir = self.workdir
         self.weight.folder = self.folder
