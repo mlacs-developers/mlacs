@@ -23,8 +23,6 @@ from mlacs.properties.calc_property import (CalcPafi,
                                             CalcElectronicEntropy,
                                             )
 
-from .basic_function import (eos_fit,
-                             )
 
 __all__ = ['PropertyManager',
            'RoutinePropertyManager',
@@ -40,5 +38,4 @@ __all__ = ['PropertyManager',
            'CalcAcell',
            'CalcAngles',
            'CalcElectronicEntropy',
-           'eos_fit',
            ]
