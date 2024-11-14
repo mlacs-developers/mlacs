@@ -52,10 +52,6 @@ class UFLiquidState(ThermoState):
         to be added to the results.
         If ``None``, no value is added. Default ``None``.
 
-    equilibrate: :class:`Bool` (optional)
-        Equilibrate the ideal strucutre at zero or finite pressure.
-        Default ``True``
-
     p: :class:`int`
         p parameter of the Uhlenbeck-Ford potential.
         Should be ``1``, ``25``, ``50``, ``75`` or ``100``. Default ``50``
@@ -69,6 +65,10 @@ class UFLiquidState(ThermoState):
     damp : :class:`float` (optional)
         Damping parameter.
         If ``None``, a damping parameter of 100 x dt is used.
+
+    pdamp: :class:`float` (optional)
+        Pressure damping parameter, used is the pressure is not `None`
+        By default, this correspond to 1000 times the timestep.
 
     nsteps: :class:`int` (optional)
         Number of production steps. Default ``10000``.
@@ -102,7 +102,6 @@ class UFLiquidState(ThermoState):
 
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-
     """
     def __init__(self,
                  atoms,

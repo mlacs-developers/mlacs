@@ -24,11 +24,14 @@ class ThermodynamicIntegration(Manager):
     Parameters
     ----------
     thermostate: :class:`thermostate` or :class:`list` of :class:`thermostate`
-        State for which the thermodynamic integration should be performed
+        State(s) for which the thermodynamic integration should be performed
     ninstance: : class:`int`
-        Numer of forward and backward to be performed, default 1
+        Numer of forward and backward to be performed per state, default 1
     logfile: :class:`str` (optional)
         Name of the logfile. Default ``\"ThermoInt.log\"``
+    workdir: :class:`str`(optional)
+        Name of the root folder in which the simulations will be performed.
+        Default `ThermoInt`
     """
     def __init__(self,
                  thermostate,

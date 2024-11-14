@@ -56,9 +56,16 @@ class ReversibleScalingState(ThermoState):
     fe_init: :class:`float` (optional)
         Free energy of the initial temperature, in eV/at. Default ``None``.
 
+    phase: :class:`str`
+        The phase of the system for which the free energy is computed.
+        This input is used to compute the reference free energy at the
+        starting pressure using a EinsteinSolidState object for solids
+        and a UFLiquidState object for liquids. Can be either 'solid'
+        or 'liquid'
+
     ninstance: :class:`int` (optional)
-        If Free energy calculation has to be done before temperature sweep
-        Settles the number of forward and backward runs. Default ``1``.
+        If Free energy calculation has to be done before temperature sweep,
+        settles the number of forward and backward runs. Default ``1``.
 
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
@@ -82,9 +89,16 @@ class ReversibleScalingState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
 
+    gjf: :class:`bool`
+        Whether to use the GJF integrator, if the Langevin thermostat is used.
+        Default `True`
+
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
+
+    langevin: :class:`bool`
+        Whether to use a langevin thermostat. Default `True`
 
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.

@@ -89,6 +89,21 @@ class PressureScalingState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
 
+    nsteps_averaging: :class:`int` (optional)
+        Number of steps done to equilibrate the system at the start pressure.
+        Default `10000`
+
+    gjf: :class:`bool`
+        Whether to use the GJF integrator, if the Langevin thermostat is used.
+        Default `True`
+
+    rng: :class:`RNG object`
+        Rng object to be used with the Langevin thermostat.
+        Default correspond to :class:`numpy.random.default_rng()`
+
+    langevin: :class:`bool`
+        Whether to use a langevin thermostat. Default `True`
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.

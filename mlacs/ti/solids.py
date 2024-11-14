@@ -60,10 +60,6 @@ class EinsteinSolidState(ThermoState):
         If ``None``, a short simulation is run to determine the optimal value.
         Default ``None``
 
-    equilibrate: :class:`Bool` (optional)
-        Equilibrate the ideal strucutre at zero or finite pressure.
-        Default ``True``
-
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1``
 
@@ -71,11 +67,19 @@ class EinsteinSolidState(ThermoState):
         Damping parameter.
         If ``None``, a damping parameter of  1000 x dt is used.
 
+    pdamp: :class:`float` (optional)
+        Pressure damping parameter, used is the pressure is not `None`
+        By default, this correspond to 1000 times the timestep.
+
     nsteps: :class:`int` (optional)
         Number of production steps. Default ``10000``.
 
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
+
+    nsteps_md: :class:`int` (optional)
+        Number of steps used to compute the spring constants.
+        Default `25000`
 
     nsteps_averaging: :class:`int` (optional)
         Number of step for equilibrate ideal structure
@@ -85,6 +89,10 @@ class EinsteinSolidState(ThermoState):
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
+
+    langevin: :class:`bool`
+        Whether to use a langevin thermostat. Default `True`
+
     logfile : :class:`Bool` (optional)
         Activate file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
@@ -99,7 +107,6 @@ class EinsteinSolidState(ThermoState):
 
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-
     """
     def __init__(self,
                  atoms,
