@@ -5,10 +5,9 @@
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
-
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
 
 from ..core import Manager
 from ..utilities import save_cwd
@@ -68,24 +67,18 @@ class ThermodynamicIntegration(Manager):
         Launch the simulation
         """
         tasks = (self.ninstance * self.nstate)
+        nstate = self.nstate
         with save_cwd(), ThreadPoolExecutor(max_workers=tasks) as executor:
             for istate in range(self.nstate):
                 for i in range(self.ninstance):
                     if self.ninstance > 1:
-                        stateworkdir = os.path.join(self.workdir,
-                                                    self.state[istate].get_workdir(),
-                                                    f"for_back_{i+1}/")
-                    elif self.ninstance == 1:
-                        stateworkdir = os.path.join(self.workdir,
-                                                    self.state[istate].get_workdir())
-                    os.makedirs(stateworkdir, exist_ok=True)
+                        self.state[istate].subfolder = f"for_back_{i+1}"
                     future = executor.submit(self._run_one_state, istate, i)
-                    msg = f"State {istate + 1}/{self.nstate} instance_{i} launched\n"
-                    msg += f"Working directory for this instance: \n{stateworkdir}\n"
+                    msg = f"State {istate+1}/{nstate} instance_{i} launched\n"
                     self.log.logger_log.info(msg)
 
                     future.result()
-            # executor.shutdown(wait=True)
+            executor.shutdown(wait=True)
 
         if self.ninstance > 1:
             for istate in range(self.nstate):

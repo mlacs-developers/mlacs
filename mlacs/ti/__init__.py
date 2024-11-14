@@ -10,6 +10,7 @@ from .thermoint import ThermodynamicIntegration
 from .solids import EinsteinSolidState
 from .liquids import UFLiquidState
 from .reversible_scaling import ReversibleScalingState
+from .pressure_scaling import PressureScalingState
 from .helpers import prepare_ti
 from .gpthermoint import GpThermoIntT, GpThermoIntVT
 
@@ -17,6 +18,7 @@ __all__ = ["ThermodynamicIntegration",
            "EinsteinSolidState",
            "UFLiquidState",
            "ReversibleScalingState",
+           "PressureScalingState",
            "prepare_ti",
            "GpThermoIntT",
            "GpThermoIntVT"]

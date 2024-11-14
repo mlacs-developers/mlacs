@@ -381,7 +381,7 @@ class UFLiquidState(ThermoState):
         if len(self.pair_coeff) == 1:
             txt = "pair_style hybrid/scaled " + \
                   f"v_lambda_true {pair_style[0]} " + \
-                  "v_lambda_ufm ufm ${{rc}}\n"
+                  "v_lambda_ufm ufm ${rc}\n"
             block2("scaling pair_style", txt)
             txt = "pair_coeff " + hybrid_pair_coeff
             block2("true_pair_coeff", txt)
@@ -431,7 +431,7 @@ class UFLiquidState(ThermoState):
         if len(self.pair_coeff) == 1:
             txt = "pair_style hybrid/scaled " + \
                   f"v_lambda_true {pair_style[0]} " + \
-                  "v_lambda_ufm ufm ${{rc}}\n"
+                  "v_lambda_ufm ufm ${rc}\n"
             block4("scaling pair_style", txt)
             txt = "pair_coeff " + hybrid_pair_coeff
             block4("true_pair_coeff", txt)

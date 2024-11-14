@@ -7,7 +7,7 @@
 """
 
 import numpy as np
-from ase.units import kB
+from ase.units import kB, GPa
 
 from ..core.manager import Manager
 from ..utilities.thermo import (free_energy_harmonic_oscillator,
@@ -17,10 +17,6 @@ from ..utilities.io_lammps import LammpsBlockInput
 
 from ..state.lammps_state import LammpsState
 from .thermostate import ThermoState
-
-eV = 1.602176634e-19  # eV
-hbar = 6.582119514e-16  # hbar
-amu = 1.6605390666e-27  # atomic mass constant
 
 
 # ========================================================================== #
@@ -274,7 +270,7 @@ class EinsteinSolidState(ThermoState):
             free_energy_corrected += self.fcorr2
 
         if self.pressure is not None:
-            pv = self.pressure/(160.21766208)*vol/nat_tot
+            pv = self.pressure*GPa*vol/nat_tot
         else:
             pv = 0.0
         with open("free_energy.dat", "w") as f:
@@ -427,12 +423,12 @@ class EinsteinSolidState(ThermoState):
         return blocks
 
         block4 = LammpsBlockInput("bwd", "Backward Integration")
-        block4("write bwd", "fix f4 all print 1 \"${dE} ${lambda}\" " + \
-                   "screen no append backward.dat title \"# pe  lambda\"")
+        block4("write bwd", "fix f4 all print 1 \"${dE} ${lambda}\" " +
+               "screen no append backward.dat title \"# pe  lambda\"")
         blocks.append(block4)
 
         return blocks
-    
+
 # ========================================================================== #
     def log_recap_state(self):
         """
@@ -455,4 +451,3 @@ class EinsteinSolidState(ThermoState):
                 msg += f"    For {e} :                   " + \
                        f"k = {self.k[iel]} eV/angs^2\n"
         return msg
-

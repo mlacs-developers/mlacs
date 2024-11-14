@@ -179,8 +179,10 @@ class ReversibleScalingState(ThermoState):
         """
         """
 
-        if self.fe_init is None:
+        if self.fe_init is None and self.phase is not None:
             self.run_single_ti()
+        else:
+            self.fe_init = 0.0
 
         self.run_dynamics(self.atoms, self.pair_style, self.pair_coeff)
 
