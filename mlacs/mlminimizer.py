@@ -57,11 +57,6 @@ class MlMinimizer(Mlas):
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
 
-    prefix_output: :class:`str` (optional)
-        Prefix for the output files of the simulation.
-        If several states are used, this input can be a list of :class:`str`.
-        Default ``\"Trajectory\"``.
-
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
         if :class:`int`: Number of configuirations used
         to train a preliminary MLIP
@@ -79,14 +74,34 @@ class MlMinimizer(Mlas):
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
+
+    workdir: :class:`str` (optional)
+        The directory in which to run the calculation.
+
+    prefix: :class:`str` (optional)
+        The prefix to prepend the name of the States files.
+
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+        Script name format: ncprefix + scriptname + '_HIST.nc'.
+        Default `''`.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF3_CLASSIC``.
     """
 
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
-                 keep_tmp_mlip=False, workdir=''):
+                 keep_tmp_mlip=False, workdir='', prefix='Trajectory',
+                 ncprefix='', ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir,
+                      prefix=prefix, ncprefix=ncprefix, ncformat=ncformat)
 
         if set((etol, ftol, stol)) == {None}:
             msg = "You need to set at least one of etol, ftol or stol"

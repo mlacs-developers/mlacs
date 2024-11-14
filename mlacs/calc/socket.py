@@ -17,6 +17,7 @@ from mlacs.calc.calc_manager import CalcManager
 class SocketCalcManager(CalcManager):
     """
     Class for managing the true potential through the SocketIO calculator
+    Work in progress.
 
     Parameters
     ----------

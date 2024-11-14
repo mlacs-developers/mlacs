@@ -16,7 +16,7 @@ from .weighting_policy import WeightingPolicy
 
 def split_dataset(confs, train_ratio=0.5, rng=None):
     """
-
+    Split the dataset into a train set and a test set.
     """
     if rng is None:
         rng = np.random.default_rng()
