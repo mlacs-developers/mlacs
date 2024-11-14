@@ -13,7 +13,6 @@ from .snap_descriptor import SnapDescriptor
 from .mtp_model import MomentTensorPotential
 from .linear_potential import LinearPotential
 from .delta_learning import DeltaLearningPotential
-from .spin_potential import SpinLatticePotential
 from .mbar_manager import MbarManager
 from .ace_descriptor import AceDescriptor
 from .tensorpotential import TensorpotPotential
@@ -30,7 +29,6 @@ __all__ = ['MlipManager',
            'LinearPotential',
            'MomentTensorPotential',
            'DeltaLearningPotential',
-           'SpinLatticePotential',
            'MbarManager',
            'UniformWeight',
            'EnergyBasedWeight',

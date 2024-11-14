@@ -33,6 +33,10 @@ class DeltaLearningPotential(MlipManager):
     pair_coeff: :class:`list` of :class:`str`
         The pair_coeff of the LAMMPS reference potential.
 
+    folder: :class:`str` (optional)
+        The root for the directory in which the MLIP are stored.
+        Default 'MLIP'
+
     Examples
     --------
 

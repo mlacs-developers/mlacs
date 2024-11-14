@@ -42,10 +42,6 @@ class FixedWeight(WeightingPolicy):
         self.static_weight = static_weight
         self.nstatic = len(static_weight)
         self.remaining = 1-np.sum(static_weight)
-
-        self.energy_coefficient = energy_coefficient
-        self.forces_coefficient = forces_coefficient
-        self.stress_coefficient = stress_coefficient
         self.matsize = []
         self.weight = np.array([])
 
@@ -54,6 +50,9 @@ class FixedWeight(WeightingPolicy):
                 energy_coefficient=energy_coefficient,
                 forces_coefficient=forces_coefficient,
                 stress_coefficient=stress_coefficient)
+        self.energy_coefficient = self.subweight.energy_coefficient
+        self.forces_coefficient = self.subweight.forces_coefficient
+        self.stress_coefficient = self.subweight.stress_coefficient
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
@@ -169,14 +168,14 @@ class UniformWeight(WeightingPolicy):
 
     Parameters
     ----------
+
     nthrow: :class:`int`
         Number of configurations to ignore when doing the fit.
-        Three cases :
+        Three cases:
 
         1. If nconf > 2*nthrow, remove the nthrow first configuration
         2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
         3. If nconf < nthrow, keep all conf
-
     """
 
     def __init__(self, nthrow=0, energy_coefficient=1.0,
@@ -232,9 +231,13 @@ class IncreasingWeight(WeightingPolicy):
     in MLACS.
     This weighting policy has been though for structural optimization.
 
-    nthrow: :class: int
+    Parameters
+    ----------
+
+    nthrow: :class:`int`
         Number of configurations to ignore when doing the fit.
         Three cases :
+
          1. If nconf > 2*nthrow, remove the nthrow first configuration
          2. If nthrow < nconf < 2*nthrow, remove the nconf-nthrow first conf
          3. If nconf < nthrow, keep all conf

@@ -12,6 +12,7 @@ __pycache__/
 # local files
 /token
 *.swp
+tags
 
 # Jupyter notebook
 .ipynb_checkpoints

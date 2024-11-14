@@ -14,6 +14,7 @@ import numpy as np
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.data import chemical_symbols, atomic_masses
 
 from .state import StateManager
 from ..core.manager import Manager
@@ -63,16 +64,21 @@ class BaseLammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Function to run the dynamics
         """
         atoms = supercell.copy()
 
+        if elements is None:
+            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+            elements = el
+
         initial_charges = atoms.get_initial_charges()
 
         blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
-                                        model_post, atom_style, eq)
+                                        model_post, atom_style, eq, elements)
         if self.neti is False:
             txt = "Lammps input to run MlMD created by MLACS"
             lmp_input = LammpsInput(txt)
@@ -85,14 +91,14 @@ class BaseLammpsState(StateManager):
         with open(self.subsubdir / self.lammpsfname, "w") as fd:
             fd.write(str(lmp_input))
 
-        self._write_lammps_atoms(atoms, atom_style)
+        self._write_lammps_atoms(atoms, atom_style, elements)
 
         lmp_cmd = self._get_lammps_command()
         lmp_handle = run(lmp_cmd,
                          shell=True,
                          cwd=str(self.subsubdir),
                          stderr=PIPE)
-        
+
         if lmp_handle.returncode != 0:
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
@@ -107,43 +113,46 @@ class BaseLammpsState(StateManager):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements):
         """
 
         """
         write_lammps_data(str(self.subsubdir / self.atomsfname),
                           atoms,
                           velocities=True,
-                          atom_style=atom_style)
-
+                          atom_style=atom_style,
+                          specorder=elements.tolist())
 
 # ========================================================================== #
     def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
-                          atom_style, eq):
+                          atom_style, eq, elements):
         """
 
         """
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+        masses = [atomic_masses[chemical_symbols.index(element)]
+                  for element in elements]
+
         pbc = atoms.get_pbc()
         if self.eq_mass_md:
             masses = np.ones(np.shape(masses))
 
         blocks = []
-        blocks.append(self._get_block_init(atom_style, pbc, el, masses))
+        blocks.append(self._get_block_init(atom_style, pbc, elements, masses))
         blocks.append(self._get_block_interactions(pair_style, pair_coeff,
-                                                   model_post, atom_style))
+                                                   model_post, atom_style,
+                                                   atoms))
         blocks.append(self._get_block_thermostat(eq))
         if self.logfile is not None:
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
-            blocks.append(self._get_block_traj(el))
+            blocks.append(self._get_block_traj(elements))
         if isinstance(self._get_block_custom(), list):
             blocks.extend(self._get_block_custom())
         else:
             blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
         if self.neti is False:
-            blocks.append(self._get_block_lastdump(el, eq))
+            blocks.append(self._get_block_lastdump(elements, eq))
         return blocks
 
 # ========================================================================== #
@@ -179,10 +188,11 @@ class BaseLammpsState(StateManager):
 
 # ========================================================================== #
     def _get_block_interactions(self, pair_style, pair_coeff, model_post,
-                                atom_style):
+                                atom_style, atoms):
         """
 
         """
+        # Write lammps input
         block = LammpsBlockInput("interaction", "Interaction")
         block("pair_style", f"pair_style {pair_style}")
         for i, pair in enumerate(pair_coeff):

@@ -22,9 +22,9 @@ from ..utilities import make_dataframe
 
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
+from ase.data import atomic_masses, chemical_symbols
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor
 from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
                                    get_lammps_command)
@@ -51,29 +51,30 @@ try:
     from pyace import create_multispecies_basis_config
     from pyace.metrics_aggregator import MetricsAggregator
     ispyace = True
-    def_bconf = {'deltaSplineBins': 0.001,
-                 'embeddings': {"ALL": {'npot': 'FinnisSinclairShiftedScaled',
-                                        'fs_parameters': [1, 1, 1, 0.5],
-                                        'ndensity': 2}},
-                 'bonds': {"ALL": {'radbase': 'ChebExpCos',
-                                   'NameOfCutoffFunction': 'cos',
-                                   'radparameters': [5.25],
-                                   'rcut': 7,
-                                   'dcut': 0.01}},
-                 'functions': {"ALL": {'nradmax_by_orders': [15, 3, 2],
-                                       'lmax_by_orders': [0, 2, 2]}}}
-
-    def_loss = {'kappa': 0.3, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12,
-                'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}
-
-    def_fitting = {'maxiter': 100, 'fit_cycles': 1, 'repulsion': 'auto',
-                   'optimizer': 'BFGS',
-                   'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}}
-
-    def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'serial',
-                   'batch_size': 100, 'display_step': 50}
 except ImportError:
     ispyace = False
+
+def_bconf = {'deltaSplineBins': 0.001,
+             'embeddings': {"ALL": {'npot': 'FinnisSinclairShiftedScaled',
+                                    'fs_parameters': [1, 1, 1, 0.5],
+                                    'ndensity': 2}},
+             'bonds': {"ALL": {'radbase': 'ChebExpCos',
+                               'NameOfCutoffFunction': 'cos',
+                               'radparameters': [5.25],
+                               'rcut': 7,
+                               'dcut': 0.01}},
+             'functions': {"ALL": {'nradmax_by_orders': [15, 3, 2],
+                                   'lmax_by_orders': [0, 2, 2]}}}
+
+def_loss = {'kappa': 0.3, 'L1_coeffs': 1e-12, 'L2_coeffs': 1e-12,
+            'w0_rad': 1e-12, 'w1_rad': 1e-12, 'w2_rad': 1e-12}
+
+def_fitting = {'maxiter': 100, 'fit_cycles': 1, 'repulsion': 'auto',
+               'optimizer': 'BFGS',
+               'optimizer_options': {'disp': True, 'gtol': 0, 'xrtol': 0}}
+
+def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'serial',
+               'batch_size': 100, 'display_step': 50}
 
 
 # ========================================================================== #
@@ -88,7 +89,7 @@ class AceDescriptor(Descriptor):
 
     Parameters
     ----------
-    atoms : :class:`ase.atoms`
+    atoms : :class:`ase.atoms` or list
         Reference structure, with the elements for the descriptor
 
     free_at_e : :class:`dict`
@@ -158,6 +159,8 @@ class AceDescriptor(Descriptor):
                  bconf_dict=None, loss_dict=None, fitting_dict=None,
                  backend_dict=None, nworkers=None):
 
+        if not ispyace:
+            raise ValueError("Could not import pyace")
 
         self.cmd = get_lammps_command()
         self._verify_dependency()
@@ -185,7 +188,7 @@ class AceDescriptor(Descriptor):
             self.backend['parallel_mode'] = "process"
             self.backend['nworkers'] = nworkers
         if 'elements' not in self.loss:
-            bconf['elements'] = np.unique(atoms.get_chemical_symbols())
+            bconf['elements'] = self.elements
 
         # Set bconf['rcut'] according to rcut if rcut is given
         if rcut is not None:
@@ -252,16 +255,18 @@ class AceDescriptor(Descriptor):
         return str(filename)
 
 # ========================================================================== #
-    def prepare_wf(self, wf, natoms):
+    def prepare_wf(self, wf, forces):
         """
         Reshape wf from a flat array to a list of np.array where each
         np.array correspond to a conf i and is of size self.natoms[i]
         """
         new_wf = []
         curr_index = 0
-        for nat in natoms:
-            new_wf.append(wf[curr_index:nat+curr_index])
-            curr_index += nat
+        for f in forces:
+            new_wf.append(wf[curr_index:curr_index+len(f)*3])
+            curr_index += len(f)*3
+        new_wf = [np.sum(np.reshape(new_wf[i], [-1, 3]), axis=1)
+                  for i in range(len(new_wf))]
         return new_wf
 
 # ========================================================================== #
@@ -280,11 +285,13 @@ class AceDescriptor(Descriptor):
         nconfs = len(natoms)
         we = weights[:nconfs].tolist()
         wf = weights[nconfs:-(nconfs)*6]
-        wf = self.prepare_wf(wf, natoms)
+        wf = self.prepare_wf(wf, forces)
+
         atomic_env = self.compute_descriptors(atoms)
 
         # Dataframe preparation
         df = self.get_df()
+
         df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
@@ -349,8 +356,14 @@ class AceDescriptor(Descriptor):
         Restart the calculation with the coefficient from this folder.
         This is because we cannot get back the coefficients from ACE.yace
         """
-        fn = str(Path(mlip_subfolder).parent /
-                 "interim_potential_best_cycle.yaml")
+        if str(mlip_subfolder).endswith(".yace"):
+            path = Path(mlip_subfolder).with_suffix(".yaml")
+            if not path.exists():
+                new_fn = "interim_potential_best_cycle.yaml"
+                path = Path(mlip_subfolder).parent / new_fn
+            if not path.exists():
+                raise ValueError("Cannot find yaml file to get coefficients")
+        fn = str(path)
         self.bconf.load(fn)
         fc = int(pyace.BBasisConfiguration(fn).metadata["_fit_cycles"])
         self.fitting['fit_cycles'] = fc+1
@@ -387,6 +400,7 @@ class AceDescriptor(Descriptor):
 
         self.callback = lambda val: check_conv(val)
         self.data = dict(filename=str(self.db_fn))
+
         self.acefit = GeneralACEFit(potential_config=self.bconf,
                                     fit_config=self.fitting,
                                     data_config=self.data,
@@ -460,10 +474,10 @@ class AceDescriptor(Descriptor):
             e_correction = self.calc_free_e(at)  # To only get cohesion energy
             bar2GPa = 1e-4
             e.append((float(thermo[2]) + e_correction)/len(at))
-            f.append(read(f'forces{i+1}.out',
-                     format='lammps-dump-text').get_forces())
+            f.append(np.array(read(f'forces{i+1}.out',
+                              format='lammps-dump-text').get_forces()))
             s.append(np.loadtxt(f'stress{i+1}.out', skiprows=4)[:, 1]*bar2GPa)
-        return np.array(e), np.array(f), np.array(s)
+        return e, f, s
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -487,8 +501,8 @@ class AceDescriptor(Descriptor):
         Note : We need to use clear if the cell changes between atoms
                Else, we can use delete_atoms which doesn't reload potential
         """
-        # Note: if any of these changes between simulations, big problem ...
-        _, _, masses, _ = get_elements_Z_and_masses(atoms[0])
+        masses = [atomic_masses[chemical_symbols.index(el)]
+                  for el in self.elements]
 
         # Write the input file
         txt = "LAMMPS input file for extracting MLIP E, F, S"

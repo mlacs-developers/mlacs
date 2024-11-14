@@ -12,6 +12,7 @@ import shlex
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
 from subprocess import Popen
+from subprocess import check_output
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
@@ -58,7 +59,7 @@ class AbinitManager(CalcManager):
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
 
-    workdir: :class:`str` (optional)
+    folder: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
 
@@ -88,6 +89,7 @@ class AbinitManager(CalcManager):
     >>> pseudos = {'Cu': "/path/to/pseudo/Cu.LDA_PW-JTH.xml"}
     >>> calc = AbinitManager(parameters=variables, pseudos=pseudos)
     """
+
     def __init__(self,
                  parameters,
                  pseudos,
@@ -95,12 +97,15 @@ class AbinitManager(CalcManager):
                  mpi_runner="mpirun",
                  magmoms=None,
                  folder='DFT',
+                 logfile="abinit.log",
+                 errfile="abinit.err",
                  nproc=1,
                  nproc_per_task=None,
                  **kwargs):
 
         CalcManager.__init__(self, "dummy", magmoms,
                              folder=folder, **kwargs)
+
         self.parameters = parameters
         if 'IXC' in self.parameters.keys():
             self.parameters['ixc'] = self.parameters['IXC']
@@ -119,15 +124,15 @@ class AbinitManager(CalcManager):
             nproc_per_task = self.nproc
         self.nproc_per_task = nproc_per_task
 
-        self.log_suffix = "abinit.log"
-        self.err_suffix = "abinit.eff"
+        self.log = logfile
+        self.err = errfile
         self.ncfile = AbinitNC()
 
 # ========================================================================== #
     @staticmethod
     def submit_abinit_calc(cmd, logfile, errfile, cdir):
         with open(logfile, 'w') as lfile, \
-             open(errfile, 'w') as efile:
+                open(errfile, 'w') as efile:
             try:
                 process = Popen(cmd,
                                 cwd=cdir,
@@ -176,8 +181,8 @@ class AbinitManager(CalcManager):
                 command = self._make_command()
                 executor.submit(self.submit_abinit_calc,
                                 command,
-                                self.get_filepath('abinit.log'),
-                                self.get_filepath('abinit.err'),
+                                self.get_filepath(self.log),
+                                self.get_filepath(self.err),
                                 cdir=str(self.subsubdir))
             executor.shutdown(wait=True)
 
@@ -230,12 +235,17 @@ class AbinitManager(CalcManager):
         original_pseudos = self.pseudos.copy()
         species = sorted(set(atoms.numbers))
         self._copy_pseudos()
+
+        unique_elements = set(atoms.get_chemical_symbols())
+        pseudos = [pseudo for pseudo, el in zip(self.pseudos, self.typat) if
+                   el in unique_elements]
+
         with open(self.get_filepath("abinit.abi"), "w") as fd:
             write_abinit_in(fd,
                             atoms,
                             self.parameters,
                             species,
-                            self.pseudos)
+                            pseudos)
         self.pseudos = original_pseudos
 
 # ========================================================================== #
@@ -309,6 +319,7 @@ class AbinitManager(CalcManager):
             pseudolist.append(pseudos[ityp])
         pseudolist = np.array(pseudolist)
 
+        self.typat = typat
         znucl = symbols2numbers(typat)
         idx = np.argsort(znucl)
         pseudolist = pseudolist[idx]
@@ -323,8 +334,8 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinit.abi")
         if os.path.exists(stateprefix + "abinit.abo"):
             os.remove(stateprefix + "abinit.abo")
-        if os.path.exists(stateprefix + "abinit.log"):
-            os.remove(stateprefix + "abinit.log")
+        if os.path.exists(stateprefix + self.log):
+            os.remove(stateprefix + self.log)
         if os.path.exists(stateprefix + "abinito_GSR.nc"):
             os.remove(stateprefix + "abinito_GSR.nc")
         if os.path.exists(stateprefix + "abinito_OUT.nc"):
@@ -339,3 +350,19 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinito_EIG")
         if os.path.exists(stateprefix + "abinito_EBANDS.agr"):
             os.remove(stateprefix + "abinito_EBANDS.agr")
+
+# ========================================================================== #
+    def log_recap_state(self):
+        """
+        """
+        cmd = self.abinit_cmd
+        cmd += ' --version'
+        version = check_output(cmd, shell=True).decode('utf-8')
+        msg = "True potential parameters:\n"
+        msg += f"Abinit : {version}\n"
+        dct = self.parameters
+        msg += "parameters :\n"
+        for key in dct.keys():
+            msg += "   " + key + "  {0}\n".format(dct[key])
+        msg += "\n"
+        return msg

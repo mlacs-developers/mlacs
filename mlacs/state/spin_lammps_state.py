@@ -25,18 +25,14 @@ _default_params = dict(temperature=300,
 # ========================================================================== #
 class SpinLammpsState(BaseLammpsState):
     """
-    Class to manage PIMD simulations with LAMMPS
+    Class to manage magnetic spin simulations with LAMMPS and the SPIN package.
 
+    Tranchida, et al., Journal of Computational Physics, 372, 406-425, (2018).
 
     Parameters
     ----------
     temperature: :class:`float`
         Temperature of the simulation, in Kelvin.
-
-    pressure: :class:`float` or ``None`` (optional)
-        Pressure of the simulation, in GPa.
-        If ``None``, no barostat is applied and
-        the simulation is in the NVT ensemble. Default ``None``
 
     t_stop: :class:`float` or ``None`` (optional)
         When this input is not ``None``, the temperature of
@@ -44,22 +40,7 @@ class SpinLammpsState(BaseLammpsState):
         in a range between `temperature` and `t_stop`.
         Default ``None``
 
-    p_stop: :class:`float` or ``None`` (optional)
-        When this input is not ``None``, the pressure of
-        the molecular dynamics simulations is randomly chosen
-        in a range between `pressure` and `p_stop`.
-        Naturally, the `pressure` input has to be set.
-        Default ``None``
-
     damp: :class:`float` or ``None`` (optional)
-
-    pdamp: :class:`float` or ``None`` (optional)
-        Damping parameter for the barostat.
-        If ``None``, apply a damping parameter of
-        1000 times the timestep of the simulation. Default ``None``
-
-    ptype: ``iso`` or ``aniso`` (optional)
-        Handle the type of pressure applied. Default ``iso``
 
     dt : :class:`float` (optional)
         Timestep, in fs. Default ``1.5`` fs.
@@ -83,14 +64,6 @@ class SpinLammpsState(BaseLammpsState):
 
     loginterval : :class:`int` (optional)
         Number of steps between MLMD logging. Default ``50``.
-
-    msdfile : :class:`str` (optional)
-        Name of the file for diffusion coefficient calculation.
-        If ``None``, no file is created. Default ``None``.
-
-    rdffile : :class:`str` (optional)
-        Name of the file for radial distribution function calculation.
-        If ``None``, no file is created. Default ``None``.
 
     rng : RNG object (optional)
         Rng object to be used with the Langevin thermostat.
@@ -234,7 +207,7 @@ class SpinLammpsState(BaseLammpsState):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements=None):
         """
 
         """
