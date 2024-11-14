@@ -188,6 +188,9 @@ class MlipManager(Manager, ABC):
                                            self.predict,
                                            docalc=False)
         prefix = self.descriptor.prefix
+        desc_fn = self.subdir/f"{prefix}.descriptor"
+        if not Path(desc_fn).exists():
+            self.descriptor._write_mlip_params()
 
         # GA: Not sure why we need to create a link here.
         create_link(self.subsubdir/mlip_fn, self.subdir/f"{prefix}.model")
@@ -271,14 +274,6 @@ class MlipManager(Manager, ABC):
         return msg
 
 # ========================================================================== #
-    def _get_idx_fit(self):
-        """
-        """
-        idx_e = 0
-        idx_f = 3 * self.natoms[:idx_e].sum()
-        idx_s = idx_e * 6
-        return idx_e, idx_f, idx_s
-
     @property
     def pair_style(self):
         return self._get_pair_style()
@@ -296,6 +291,10 @@ class MlipManager(Manager, ABC):
     def _get_pair_coeff(self):
         self.descriptor.folder = self.folder
         return self.descriptor.get_pair_coeff()
+
+# ========================================================================== #
+    def get_elements(self):
+        return self.descriptor.elements
 
 
 # ========================================================================== #

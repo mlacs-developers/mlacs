@@ -6,14 +6,13 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 import copy
 import importlib
 import numpy as np
 from operator import attrgetter
 
 from ase.atoms import Atoms
-from ase.units import GPa
+from ase.units import Hartree, Bohr
 
 from ..core.manager import Manager
 from ..utilities.io_lammps import LammpsBlockInput
@@ -36,11 +35,11 @@ class CalcProperty(Manager):
 
     Parameters
     ----------
-    method: :class:`str` type of criterion.
+    method: :class:`str`
+    Type of criterion.
         - max, maximum difference between to consecutive step < criterion
         - ave, average difference between to consecutive step < criterion
-
-        Default ``max``
+    Default ``max``
 
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``
@@ -65,6 +64,7 @@ class CalcProperty(Manager):
         self.isfirst = True
         self.isgradient = True
         self.useatoms = True
+        self.needdir = True
         self.label = 'Observable_Label'
         self.shape = None
         self.nc_name = None
@@ -74,7 +74,7 @@ class CalcProperty(Manager):
             self.state = copy.deepcopy(state)
 
 # ========================================================================== #
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Dummy execution function.
         """
@@ -149,17 +149,20 @@ class CalcPafi(CalcProperty):
                  **kwargs):
         CalcProperty.__init__(self, args, state, method, criterion, frequence,
                               **kwargs)
+        self.state.folder = 'PafiPath_Calculation'
 
 # ========================================================================== #
-    @Manager.exec_from_path
+    @Manager.exec_from_workdir
     def _exec(self):
         """
         Exec a MFEP calculation with lammps. Use replicas.
         """
-        self.state.workdir = self.workdir
-        self.state.folder = 'PafiPath_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         atoms = self.state.path.atoms[0]
-        self.new = self.state.run_pafipath_dynamics(atoms, **self.kwargs)[1]
+        mlip = self.kwargs['mlip']
+        self.new = self.state.run_pafipath_dynamics(
+                atoms, mlip.pair_style, mlip.pair_coeff)[1]
         return self.isconverged
 
 # ========================================================================== #
@@ -191,15 +194,19 @@ class CalcNeb(CalcProperty):
                  criterion=0.001,
                  frequence=1):
         CalcProperty.__init__(self, args, state, method, criterion, frequence)
+        self.state.folder = 'Neb_Calculation'
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_workdir
+    def _exec(self):
         """
         Exec a NEB calculation with lammps. Use replicas.
         """
-        self.state.workdir = wdir / 'NEB_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         atoms = self.state.atoms[0]
-        self.state.run_dynamics(atoms, **self.kwargs)
+        mlip = self.kwargs['mlip']
+        self.state.run_dynamics(atoms, mlip.pair_style, mlip.pair_coeff)
         self.state.extract_NEB_configurations()
         self.new = self.state.spline_energies
         return self.isconverged
@@ -244,23 +251,29 @@ class CalcRdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
+        self.state.folder = 'Rdf_Calculation'
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_workdir
+    def _exec(self):
         """
         Exec a Rdf calculation with lammps.
         """
+
         from ..utilities.io_lammps import get_block_rdf
 
-        self.state.workdir = wdir / 'Rdf_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc RDF", "Calculation of the RDF")
             block("equilibrationrun", f"run {self.step}")
             block("reset_timestep", "reset_timestep 0")
             block.extend(get_block_rdf(self.step, self.filename))
             self.state._myblock = block
-        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
-        self.new = read_df(self.state.workdir / self.filename)[0]
+        mlip = self.kwargs['mlip']
+        self.state.run_dynamics(self.atoms[-1], mlip.pair_style,
+                                mlip.pair_coeff)
+        self.new = read_df(self.state.subsubdir / self.filename)[0]
         return self.isconverged
 
 # ========================================================================== #
@@ -301,24 +314,29 @@ class CalcAdf(CalcProperty):
         if 'filename' in self.kwargs.keys():
             self.filename = self.kwargs['filename']
             self.kwargs.pop('filename')
+        self.state.folder = 'Adf_Calculation'
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_workdir
+    def _exec(self):
         """
         Exec an Adf calculation with lammps.
         """
 
         from ..utilities.io_lammps import get_block_adf
 
-        self.state.workdir = wdir / 'Adf_Calculation'
+        self.state.workdir = self.folder
+        self.state.subfolder = self.subfolder
         if self.state._myblock is None:
             block = LammpsBlockInput("Calc ADF", "Calculation of the ADF")
             block("equilibrationrun", f"run {self.step}")
             block("reset_timestep", "reset_timestep 0")
             block.extend(get_block_adf(self.step, self.filename))
             self.state._myblock = block
-        self.state.run_dynamics(self.atoms[-1], **self.kwargs)
-        self.new = read_df(self.state.workdir / self.filename)[0]
+        mlip = self.kwargs['mlip']
+        self.state.run_dynamics(self.atoms[-1], mlip.pair_style,
+                                mlip.pair_coeff)
+        self.new = read_df(self.state.subsubdir / self.filename)[0]
         return self.isconverged
 
 # ========================================================================== #
@@ -380,17 +398,20 @@ class CalcTi(CalcProperty):
             self.state = UFLiquidState(**self.ti_state)
 
 # ========================================================================== #
-    def _exec(self, wdir):
+    @Manager.exec_from_workdir
+    def _exec(self):
         """
         Exec a NETI calculation with lammps.
         """
         from mlacs.ti import ThermodynamicIntegration
+
         # Creation of ti object ---------------------------------------------
-        path = os.path.join(wdir, "TiCheckFe.log")
         self.ti = ThermodynamicIntegration(self.state,
                                            self.ninstance,
-                                           wdir,
-                                           logfile=path)
+                                           logfile="TiCheckFe.log")
+        self.ti.workdir = self.folder
+        self.ti.folder = 'Neti_Calculation'
+        self.ti.subfolder = self.subfolder
 
         # Run the simu ------------------------------------------------------
         self.ti.run()
@@ -442,6 +463,18 @@ class CalcExecFunction(CalcProperty):
 
     useatoms: :class:`bool`
         True if the function is called from an ase.Atoms object.
+
+    nc_unit: :class:`str` (optional)
+        Unit of the observable saved in *HIST.nc file.
+        These units are derived from the atomic unit system: Bohr, Ha, etc.
+        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Default ''.
+
+    lammps_unit: :class:`str` (optional)
+        Unit of the observable as computed from LAMMPS.
+        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        These units are expected to be the `metal` units, cf. ase.units.py.
+        Default ''.
     """
 
     def __init__(self,
@@ -452,7 +485,8 @@ class CalcExecFunction(CalcProperty):
                  gradient=False,
                  criterion=0.001,
                  frequence=1,
-                 nc_unit=''):
+                 nc_unit='',
+                 lammps_unit=''):
         CalcProperty.__init__(self, args, None, 'max', criterion, frequence)
 
         self._func = function
@@ -460,14 +494,38 @@ class CalcExecFunction(CalcProperty):
             importlib.import_module(module)
             self._function = getattr(module, function)
         self.isfirst = True
+        self.needdir = False
         self.use_atoms = use_atoms
         self.isgradient = gradient
         self.label = function
         self.shape = None
         self.nc_unit = nc_unit
+        self.lammps_unit = lammps_unit
 
 # ========================================================================== #
-    def _exec(self, wdir=None):
+    def _unit_converter(self):
+        """
+        Convert units from LAMMPS's `metal` convention to Abinit's, i.e.,
+        the result self.new of the _exec() routine is expressed in atomic unit
+        """
+        eV2Ha = 1/Hartree
+        Ang2Bohr = 1/Bohr
+        # Dictionary that maps Lammps units to the corresponding multiplication
+        # factors that convert them to Abinit units system.
+        # Example: if a = 100 eV then a*unit_convert_dict['eV'] is 3.67 Hartree
+        unit_convert_dict = {'eV': eV2Ha,
+                             'Ang': Ang2Bohr,
+                             'eV/Ang': eV2Ha/Ang2Bohr,
+                             'Ang^3': Ang2Bohr**3,
+                             'eV/Ang^3': eV2Ha/Ang2Bohr**3,
+                             }
+
+        # Proceed with the conversion itself
+        if hasattr(self, 'new') and self.lammps_unit in unit_convert_dict:
+            self.new *= unit_convert_dict[self.lammps_unit]
+
+# ========================================================================== #
+    def _exec(self):
         """
         Execute function
         """
@@ -476,11 +534,7 @@ class CalcExecFunction(CalcProperty):
             self.new = np.r_[[_f(**self.kwargs) for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
-        if self.nc_unit == 'GPa':
-            # Evaluation of _f(...) returns LAMMPS natural units, which are
-            # eV/Angs^3 for stresses. Here, conversion to GPa
-            self.new /= GPa
-
+        self._unit_converter()
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
@@ -522,12 +576,19 @@ class CalcRoutineFunction(CalcExecFunction):
 
     nc_dim: :class:`str` (optional)
         Name of the dimension of the observable in *HIST.nc file.
-        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Cf. mlacs.utilities.io_abinit.HistFile._set_name_conventions().
         Default ``None``.
 
     nc_unit: :class:`str` (optional)
-        Name of the unit of the observable in *HIST.nc file.
-        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Unit of the observable saved in *HIST.nc file.
+        These units are derived from the atomic unit system: Bohr, Ha, etc.
+        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Default ''.
+
+    lammps_unit: :class:`str` (optional)
+        Unit of the observable as computed from LAMMPS.
+        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        These units are expected to be the `metal` units, cf. ase.units.py.
         Default ''.
 
     weight: :class:`WeightingPolicy` (optional)
@@ -540,17 +601,18 @@ class CalcRoutineFunction(CalcExecFunction):
                  nc_name=None,
                  nc_dim=None,
                  nc_unit='',
+                 lammps_unit='',
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
-        CalcExecFunction.__init__(self, function, dict(), None, True,
-                                  gradient, criterion, frequence, nc_unit)
+        CalcExecFunction.__init__(self, function, dict(), None, True, gradient,
+                                  criterion, frequence, nc_unit, lammps_unit)
         self.weight = weight
         self.label = label
+        self.needdir = False
         self.nc_name = nc_name
         self.nc_dim = nc_dim
-        self.nc_unit = nc_unit
 
 # ========================================================================== #
     def __repr__(self):
@@ -597,24 +659,27 @@ class CalcPressure(CalcRoutineFunction):
         label = 'Pressure'
         nc_name = 'press'
         nc_dim = ('time',)
-        nc_unit = 'GPa'
+        nc_unit = 'Ha/Bohr^3'
+        lammps_unit = 'eV/Ang^3'
         CalcRoutineFunction.__init__(self,
                                      'get_stress',
                                      label,
                                      nc_name,
                                      nc_dim,
-                                     nc_unit)
+                                     nc_unit,
+                                     lammps_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
         if self.use_atoms:
             self._function = [getattr(_, self._func) for _ in self.atoms]
-            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])/GPa
+            self.new = np.r_[[-np.mean(_f(**self.kwargs)[:3])
                               for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
+        self._unit_converter()
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
@@ -640,15 +705,17 @@ class CalcAcell(CalcRoutineFunction):
         label = 'Acell'
         nc_name = 'acell'
         nc_dim = ('time', 'xyz')
-        nc_unit = 'Ang'
+        nc_unit = 'Bohr'
+        lammps_unit = 'Ang'
         CalcRoutineFunction.__init__(self,
                                      'get_cell_lengths_and_angles',
                                      label,
                                      nc_name,
                                      nc_dim,
-                                     nc_unit)
+                                     nc_unit,
+                                     lammps_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -686,14 +753,16 @@ class CalcAngles(CalcRoutineFunction):
         nc_name = 'angl'
         nc_dim = ('time', 'xyz')
         nc_unit = 'deg'
+        lammps_unit = 'deg'
         CalcRoutineFunction.__init__(self,
                                      'get_cell_lengths_and_angles',
                                      label,
                                      nc_name,
                                      nc_dim,
-                                     nc_unit)
+                                     nc_unit,
+                                     lammps_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -703,6 +772,7 @@ class CalcAngles(CalcRoutineFunction):
             self.new = np.r_[[_f(**self.kwargs)[3:] for _f in self._function]]
         else:
             self.new = self._function(**self.kwargs)
+        self._unit_converter()
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
@@ -727,14 +797,16 @@ class CalcSpinAt(CalcRoutineFunction):
         nc_name = 'spinat'
         nc_dim = ('time', 'natom', 'xyz',)
         nc_unit = 'hbar/2'
+        lammps_unit = 'hbar/2'
         CalcRoutineFunction.__init__(self,
                                      '',
                                      label,
                                      nc_name,
                                      nc_dim,
-                                     nc_unit)
+                                     nc_unit,
+                                     lammps_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -745,6 +817,7 @@ class CalcSpinAt(CalcRoutineFunction):
                 self.new = np.r_[[np.zeros((len(_), 3)) for _ in self.atoms]]
         else:
             self.new = self._function(**self.kwargs)
+        self._unit_converter()
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged
@@ -768,14 +841,16 @@ class CalcElectronicEntropy(CalcRoutineFunction):
         nc_name = 'entropy'
         nc_dim = ('time',)
         nc_unit = ''
+        lammps_unit = ''
         CalcRoutineFunction.__init__(self,
                                      '',
                                      label,
                                      nc_name,
                                      nc_dim,
-                                     nc_unit)
+                                     nc_unit,
+                                     lammps_unit)
 
-    def _exec(self, wdir=None):
+    def _exec(self):
         """
         Execute function
         """
@@ -787,6 +862,7 @@ class CalcElectronicEntropy(CalcRoutineFunction):
                 self.new = np.r_[[0.0 for _ in self.atoms]]
         else:
             self.new = self._function(**self.kwargs)
+        self._unit_converter()
         if self.isfirst:
             self.shape = self.new[0].shape
         return self.isconverged

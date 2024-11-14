@@ -115,7 +115,8 @@ class LangevinState(StateManager):
                      model_post=None,
                      atom_style="atomic",
                      eq=False,
-                     nbeads=1):
+                     nbeads=1,
+                     elements=None):
         """
         """
         atoms = supercell.copy()

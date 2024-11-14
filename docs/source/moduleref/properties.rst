@@ -17,6 +17,9 @@ During a MLACS step, the Property manager start to initalize the :class:`CalcPro
 .. autoclass:: PropertyManager
    :members: calc_initialize, run, check_criterion
 
+.. autoclass:: RoutinePropertyManager
+   :members: calc_initialize, run, check_criterion
+
 CalcProperty
 ************
 
@@ -55,3 +58,32 @@ CalcExecFunction
 ~~~~~~~~~~~~~~~~
 
 .. autoclass:: CalcExecFunction
+
+CalcRoutineFunction
+*******************
+
+.. module:: mlacs.properties.calc_property
+
+.. autoclass:: CalcRoutineFunction
+   :members: isconverged
+
+CalcPressure
+~~~~~~~~~~~~
+
+.. autoclass:: CalcPressure
+
+CalcAcell
+~~~~~~~~~
+
+.. autoclass:: CalcAcell
+
+CalcAngles
+~~~~~~~~~~
+
+.. autoclass:: CalcAngles
+
+CalcElectronicEntropy
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: CalcElectronicEntropy
+

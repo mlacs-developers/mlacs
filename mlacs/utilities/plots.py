@@ -13,6 +13,8 @@ from scipy.stats import gaussian_kde
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from ase.units import Bohr, Hartree, GPa
+
 from . import compute_correlation
 from mlacs.utilities.io_abinit import HistFile
 
@@ -53,6 +55,8 @@ def plot_correlation(ax,
     color:
         The color of the marker in the scatter plot.
         Ignored if density is True.
+    marker:
+        Marker type in the scatter plot.
     datatype: `None` or `str`
         The type of data. Can be either "energy", "forces" or "stress"
     density: `Bool`
@@ -175,6 +179,30 @@ def plot_error(ax,
                showmae=True,
                showrsquared=True):
     """
+    Function to plot the error distribution between true and model data
+
+    Parameters:
+    -----------
+    ax: Axes.axes
+        The axes on which to plot the data
+    data: `np.ndarray`
+        The data to plot. Has to be of shape (n, 2)
+        with n the number of datapoint.
+    color:
+        The color of the marker in the scatter plot.
+        Ignored if density is True.
+    datatype: `None` or `str`
+        The type of data. Can be either "energy", "forces" or "stress"
+    showrmse: `Bool`
+        Whether to show the RMSE on the plot
+    showmae: `Bool`
+        Whether to show the MAE on the plot
+    showrsquared: `Bool`
+        Whether to show the R^2 on the plot
+
+    Returns:
+    --------
+    ax
     """
     dataerror = data[:, 0] - data[:, 1]
 
@@ -234,6 +262,23 @@ def plot_error(ax,
 
 
 def plot_weights(ax, weights, color=blue, fontsize=30):
+    """
+    Function to plot the error distribution between true and model data
+
+    Parameters:
+    -----------
+    ax: Axes.axes
+        The axes on which to plot the data
+    weights: `np.ndarray`
+        The weights to plot.
+    color:
+        The color of the marker in the scatter plot.
+        Ignored if density is True.
+
+    Returns:
+    --------
+    ax
+    """
     xrange = np.arange(len(weights))
     neff = np.sum(weights)**2 / np.sum(weights**2)
 
@@ -253,6 +298,8 @@ def init_rcParams():
     mpl.rcParams["lines.markeredgecolor"] = "k"
     mpl.rcParams["lines.markersize"] = 25
     mpl.rcParams["lines.markeredgewidth"] = 5
+
+    mpl.rcParams['figure.dpi'] = 300
 
     mpl.rcParams["font.size"] = 30
 
@@ -293,7 +340,7 @@ class HistPlot:
         if os.path.isfile(ncpath):
             ncfile = HistFile(ncpath=ncpath)
             dict_var_units = ncfile.get_units()
-            var_dim_dict = ncfile.nc_routine_conv()[0]
+            var_dim_dict = ncfile.var_dim_dict
             dict_name_label = {x[0]: lab for lab, x in var_dim_dict.items()}
             dict_name_label['press'] = 'Pressure'
             self.ncfile = ncfile
@@ -311,6 +358,98 @@ class HistPlot:
             raise FileNotFoundError(msg)
 
 # ========================================================================== #
+    def _custom_unit_converter(self, obs_arr, obs_unit):
+        """
+        Convert units from *HIST.nc atomic units to following custom units:
+            energy: eV,
+            distance: Ang,
+            volume: Ang^3,
+            force: eV/Ang,
+            pressure/stress: GPa
+        """
+        Ha2eV = Hartree
+        Bohr2Ang = Bohr
+        # Format of dict below: {'atomic_unit': [conv_factor, 'custom_unit']}
+        unit_convert_dict = {'Ha': [Ha2eV, 'eV'],
+                             'Bohr': [Bohr2Ang, 'Ang'],
+                             'Ha/Bohr': [Ha2eV/Bohr2Ang, 'eV/Ang'],
+                             'Bohr^3': [Bohr2Ang**3, 'Ang^3'],
+                             'Ha/Bohr^3': [(Ha2eV/Bohr2Ang**3)/GPa, 'GPa'],
+                             }
+        if obs_unit in unit_convert_dict:
+            conv_factor, custom_unit = unit_convert_dict[obs_unit]
+            return obs_arr*conv_factor, custom_unit
+        else:
+            return obs_arr, ''
+
+# ========================================================================== #
+    def _initialize_weights(self, get_dict_weights=False):
+        """
+        Initialize attributes that are relevant when weights are needed.
+        """
+        weights_ncfile = self.weights_ncfile
+        weights = weights_ncfile.read_obs('weights')
+        weights_meta = weights_ncfile.read_obs('weights_meta')
+        weights_idx = weights_meta[:, 0]
+        nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
+        nb_conf = weights_meta[:, 2][weights_idx == 1.0]
+
+        self.weights = weights
+        self.weights_idx = weights_idx
+        self.nb_effective_conf = nb_effective_conf
+        self.nb_conf = nb_conf
+        self.number_of_states = weights_meta[0][-1]
+
+        # Check if weights are uniform within tolerance
+        self.uniform_weight = np.allclose(nb_conf, nb_effective_conf,
+                                          atol=1e-10)
+
+# ========================================================================== #
+    def _get_dict_weights(self):
+        """
+        Compute a dictionary that maps MLACS iterations to weights data.
+        """
+        weights_idx = self.weights_idx
+        weights = self.weights
+
+        dict_weights = {}
+        idx_bounds = np.argwhere(weights_idx == 1.0)[:, 0]
+
+        for ii in range(len(idx_bounds)-1):
+            iter_mlacs = ii+1
+            i1, i2 = idx_bounds[ii], idx_bounds[ii+1]
+            dict_weights[iter_mlacs] = [weights_idx[i1:i2], weights[i1:i2]]
+        dict_weights[iter_mlacs+1] = [weights_idx[i2:], weights[i2:]]
+
+        self.dict_weights = dict_weights
+        self.available_iter = list(dict_weights.keys())
+
+# ========================================================================== #
+    def _plot_weight_distribution(self, iter_loc, ax_loc, normalize=True):
+        """
+        Plot the weight distribution for a specified MLACS iteration.
+        """
+        dict_weights = self.dict_weights
+        nb_effective_conf = self.nb_effective_conf
+
+        weights_idx = dict_weights[iter_loc][0]-1
+        weights = dict_weights[iter_loc][1]
+
+        xlabel = r"Number of configurations in database"
+        ylabel = r"Weights"
+        if normalize:
+            weights /= np.mean(weights)
+            ylabel += r"/ $ \langle $Weights$ \rangle $"
+
+        Nconfs_loc = np.round(nb_effective_conf[iter_loc-1], 1)
+        lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
+
+        ax_loc.step(weights_idx, weights, where='mid', label=lab_str,
+                    zorder=10-iter_loc)
+        ax_loc.set_xlabel(xlabel)
+        ax_loc.set_ylabel(ylabel)
+
+# ========================================================================== #
     def _core_plot(self, obs_name, fig=None, ax=None):
         """Plot the observable named `obs_name` in the ncfile."""
         if None in (fig, ax):
@@ -319,54 +458,50 @@ class HistPlot:
         ncfile = self.ncfile
         dict_name_label = self.dict_name_label
         dict_var_units = self.dict_var_units
-        weights_ncfile = self.weights_ncfile
 
-        observable = ncfile.read_obs(obs_name)
-        obs_label = obs_name
-        if obs_name in dict_name_label:
-            obs_label = dict_name_label[obs_name].replace("_", " ")
+        try:
+            nc_unit = dict_var_units[obs_name]
+        except KeyError:
+            msg = 'No unit found for ' + str(obs_name)
+            nc_unit = ''
+            raise KeyError(msg)
+
+        # Read atomic unit observable from *HIST.nc file
+        obs_au = ncfile.read_obs(obs_name)
+        # Convert to custom visualization units
+        observable, new_unit = self._custom_unit_converter(obs_au, nc_unit)
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
-        
-        weights_meta = weights_ncfile.read_obs('weights_meta')
-        weights_idx = weights_meta[:, 0]
-        nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
-        nb_conf = weights_meta[:, 2][weights_idx == 1.0]
-        if np.max(np.abs(nb_conf-nb_effective_conf)) > 10**-10:
-            uniform_weight = False
-        else:
-            uniform_weight = True
 
-        # Index of state
         state_idx = obs_meta[:, 1]
-        # Index of configuration in database
-        confs_idx = np.array([i+1 for i in range(len(observable))])
+        confs_idx = np.arange(1, len(observable)+1)
 
-        w_obs_data, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
+        w_obs_au, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
+        w_obs_data, new_unit = self._custom_unit_converter(w_obs_au, nc_unit)
 
         uniform_obs = np.array([np.mean(observable[:i]) for i in w_obs_idx])
 
         ax.plot(confs_idx, observable, label='raw data', alpha=0.7)
-        ax.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights')
+        ax.plot(w_obs_idx, uniform_obs, c='g', label='uniform weights',
+                marker='.')
 
-        if uniform_weight is False:
-            ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar')
-        xlabel_str = 'Configuration index in database'
-        ax.set_xlabel(xlabel_str)
+        self._initialize_weights()
+        if not self.uniform_weight:
+            ax.plot(w_obs_idx, w_obs_data, c='r', ls='-', label='mbar',
+                    marker='.')
+
+        ax.set_xlabel('Configuration index in database')
+        obs_label = obs_name
+        if obs_name in dict_name_label:
+            obs_label = dict_name_label[obs_name].replace("_", " ")
+        ylabel = obs_label
+        if new_unit != '':
+            ylabel += ' [' + new_unit + ']'
+        ax.set_ylabel(ylabel)
+        ax.legend(frameon=False, loc='best')
         par_title = (int(len(confs_idx)), int(max(state_idx)),)
         str_title = '# configurations: {}, # states: {}'.format(*par_title)
         fig.suptitle(str_title)
-        ylabel = obs_label
-        try:
-            obs_unit = dict_var_units[obs_name]
-            ylabel += ' [' + obs_unit + ']'
-        except KeyError:
-            msg = 'No unit found for ' + str(obs_name)
-            raise KeyError(msg)
-        ax.set_ylabel(ylabel)
-
-        legend1 = ax.legend(frameon=False, loc='best')
-        legend1.get_frame().set_facecolor('none')
 
 # ========================================================================== #
     def plot_thermo_basic(self, show=True, savename=''):
@@ -376,74 +511,107 @@ class HistPlot:
             obs_name = self.basic_obs[idx]
             self._core_plot(obs_name, fig, ax_loc)
         fig.tight_layout()
-        if savename == '':
-            savename = 'plot_thermo'
-        savename += '.jpeg'
-        fig.savefig(savename, bbox_inches='tight')
-        if show is True:
-            os.system('xdg-open '+savename)
+
+        dynamic_savename = f"{savename or 'plot_thermo'}.pdf"
+        fig.savefig(dynamic_savename, bbox_inches='tight')
+
+        if show:
+            os.system('xdg-open '+dynamic_savename)
 
 # ========================================================================== #
-    def plot_neff(self, show=True, savename=''):
-        """Plot Neff against Nconfs, and a few weigth distributions."""
-        weights_ncfile = self.weights_ncfile
-        weights = weights_ncfile.read_obs('weights')
-        weights_meta = weights_ncfile.read_obs('weights_meta')
-        weights_idx = weights_meta[:, 0]
-        nb_effective_conf = weights_meta[:, 1][weights_idx == 1.0]
-        nb_conf = weights_meta[:, 2][weights_idx == 1.0]
+    def plot_neff(self, show=True, savename='', selected_iter=None):
+        """Plot Neff against Nconfs, along with some weight distributions."""
+        self._initialize_weights()
+        self._get_dict_weights()
+        nb_conf = self.nb_conf
+        nb_effective_conf = self.nb_effective_conf
+        available_iter = self.available_iter
+        number_of_states = self.number_of_states
 
         fig, ax = plt.subplots(1, 2, figsize=(7, 3))
+
         ax[0].plot(nb_conf, nb_effective_conf)
         ax[0].plot(nb_conf, nb_conf, c='k', ls=':', label=r'$y=x$')
         ax[0].set_xlabel('Number of configurations in database')
         ax[0].set_ylabel('Number of effective configurations')
         ax[0].set_xscale('log')
         ax[0].set_yscale('log')
-        legend_0 = ax[0].legend(frameon=False, loc=4)
-        legend_0.get_frame().set_facecolor('none')
 
-        # dict_weights maps an Mlacs iteration index to its Mbar data
-        dict_weights = {}
-        idx_bounds = np.argwhere(weights_idx == 1.0)[:, 0]
-        for ii in range(len(idx_bounds)-1):
-            iter_mlacs = ii+1
-            i1, i2 = idx_bounds[ii], idx_bounds[ii+1]
-            dict_weights[iter_mlacs] = [weights_idx[i1:i2], weights[i1:i2]]
+        # Secondary x-axis for MLACS iterations
+        def f(x): return x/number_of_states
+        def g(x): return x*number_of_states
+        second_x_axis_0 = ax[0].secondary_xaxis("top", functions=(f, g))
+        second_x_axis_0.set_xlabel("MLACS iteration")
+        ax[0].legend(frameon=False, loc=4)
 
-        def _plot_distribution(iter_loc):
-            loc_weights_idx = dict_weights[iter_loc][0]
-            normalized_x = (loc_weights_idx-1)/(loc_weights_idx[-1]-1)
-            loc_weights = dict_weights[iter_loc][1]
-            normalized_y = loc_weights/np.mean(loc_weights)
-            Nconfs_loc = np.round(nb_effective_conf[iter_loc-1], 1)
-            lab_str = r'$N_{\text{eff}} \simeq$'+'{}'.format(Nconfs_loc)
-            ax[1].step(normalized_x, normalized_y, where='mid', label=lab_str)
-
-        if len(idx_bounds)-1 > 5:
-            mlacs_iter_arr = np.geomspace(3, len(idx_bounds)-1, 4, dtype=int)
+        # Identify MLACS iterations to plot
+        mlacs_iter_arr = [available_iter[-1]]
+        if selected_iter is None:
+            if len(available_iter) > 5:
+                mlacs_iter_arr = np.geomspace(3, available_iter[-1], 4,
+                                              dtype=int)
         else:
-            mlacs_iter_arr = [2]
+            if set(selected_iter) <= set(available_iter):
+                selected_iter.sort()
+                mlacs_iter_arr = np.array(selected_iter)
+            else:
+                s = sorted(set(selected_iter))
+                missing_iter = [x for x in s if x not in available_iter]
+                if len(missing_iter) > 0:
+                    raise ValueError(
+                        "The following iteration(s) are not available: "
+                        f"{missing_iter}. \n"
+                        f"Available iteration(s): {available_iter}")
+
+        # Plot weight distributions and pinpoint iterations on left panel
         for iter_mlacs in mlacs_iter_arr:
-            _plot_distribution(iter_mlacs)
+            self._plot_weight_distribution(iter_mlacs, ax[1])
             ax[0].scatter(nb_conf[iter_mlacs-1],
                           nb_effective_conf[iter_mlacs-1],
                           marker='s',
                           s=20)
 
-        ax[1].set_xlabel(r"Normalized config. index")
-        ax[1].set_ylabel(r"Weights / $ \langle $Weights$ \rangle $")
-        ax[1].set_title('Evolution of the distribution of weights',
-                        fontsize=plt.rcParams["font.size"])
-
-        legend_1 = ax[1].legend(frameon=False, loc='best', ncol=2)
-        legend_1.get_frame().set_facecolor('none')
+        ax[1].legend(frameon=False, loc='best', ncol=2)
         fig.tight_layout()
 
-        if savename == '':
-            savename = 'plot_neff'
-        savename += '.jpeg'
-        fig.savefig(savename, bbox_inches='tight')
+        dynamic_savename = f"{savename or 'plot_neff'}.pdf"
+        fig.savefig(dynamic_savename, bbox_inches='tight')
 
-        if show is True:
-            os.system('xdg-open '+savename)
+        if show:
+            os.system('xdg-open '+dynamic_savename)
+
+# ========================================================================== #
+    def plot_ith_weights(self, show=True, savename='', selected_iter=None):
+        """Plot MLACS weights distribution for iteration i."""
+        self._initialize_weights()
+        self._get_dict_weights()
+        available_iter = self.available_iter
+
+        # Identify MLACS iterations to plot
+        if selected_iter is None:
+            mlacs_iter_arr = [available_iter[-1]]
+        else:
+            if set(selected_iter) <= set(available_iter):
+                selected_iter.sort()
+                mlacs_iter_arr = np.array(selected_iter)
+            else:
+                s = sorted(set(selected_iter))
+                missing_iter = [x for x in s if x not in available_iter]
+                if len(missing_iter) > 0:
+                    raise ValueError(
+                        "The following iteration(s) are not available: "
+                        f"{missing_iter}. \n"
+                        f"Available iteration(s): {available_iter}")
+
+        # Plot weight distributions
+        fig, ax = plt.subplots(1, 1, figsize=(4, 3))
+        for iter_mlacs in mlacs_iter_arr:
+            self._plot_weight_distribution(iter_mlacs, ax, normalize=False)
+        ax.legend(frameon=False, loc='best')
+        fig.tight_layout()
+
+        dynamic_savename = f"{savename or 'plot_weights'}.pdf"
+        fig.savefig(dynamic_savename, bbox_inches='tight')
+
+        if show:
+            os.system('xdg-open '+dynamic_savename)

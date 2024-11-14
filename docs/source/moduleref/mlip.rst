@@ -29,13 +29,33 @@ MliapDescriptor
 
 .. autoclass:: MliapDescriptor
 
+AceDescriptor
+~~~~~~~~~~~~~
+
+.. autoclass:: AceDescriptor
+
 Add a weighting policy
 **********************
+
+FixedWeight
+~~~~~~~~~~~
+
+.. autoclass:: FixedWeight
+
+EnergyBasedWeight
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: EnergyBasedWeight
 
 UniformWeight
 ~~~~~~~~~~~~~
 
 .. autoclass:: UniformWeight
+
+IncreasingWeight
+~~~~~~~~~~~~~~~~
+
+.. autoclass:: IncreasingWeight
 
 MbarManager
 ~~~~~~~~~~~
@@ -60,12 +80,18 @@ MomentTensorPotential
 
 .. autoclass:: MomentTensorPotential
 
+TensorpotPotential
+~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: TensorpotPotential
+
 DeltaLearningPotential
 ~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: DeltaLearningPotential
 
-SpinLatticePotential
-~~~~~~~~~~~~~~~~~~~~
+MlipCalculator
+**************
 
-.. autoclass:: SpinLatticePotential
+.. module:: mlacs.mlip.calculator
+.. autoclass:: MlipCalculator

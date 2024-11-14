@@ -82,12 +82,14 @@ def _set_from_gsrNC(results=dict()) -> Atoms:
 class HistFile:
     """
     Class to handle Abinit-like *HIST.nc file.
+    The script name format is: `ncprefix + scriptname + '_HIST.nc'.`
 
     Parameters
     ----------
 
     ncprefix: :class:`str` (optional)
         The prefix to prepend the name of the *HIST.nc file.
+        Default `''`.
 
     workdir: :class:`str` (optional)
         The directory in which to run the calculation.
@@ -128,6 +130,8 @@ class HistFile:
 
         self.ncprefix = ncprefix
         self.launched = launched
+        self._set_name_conventions()
+        self._set_unit_conventions()
 
         if ncpath is not None:
             # Initialize path in a post-processing usage, with given ncpath
@@ -136,49 +140,44 @@ class HistFile:
             with nc.Dataset(str(ncpath), 'r') as ncfile:
                 self.ncformat = ncfile.file_format
         else:
-            # Initialize path during MLACS execution:
-            # Compute the path itself, then create file if it doesn't exist
+            # Initialize path during MLACS execution
             self.ncformat = ncformat
             self.workdir = workdir
             self.ncpath = self._get_nc_path()
-            if not os.path.isfile(self.ncpath):
+            # Check if there is only one type of ase.Atoms objects
+            all_chem_symb = [at.get_chemical_formula() for at in atoms]
+            self.unique_atoms_type = len(set(all_chem_symb)) == 1
+            if not os.path.isfile(self.ncpath) and self.unique_atoms_type:
                 self._create_nc_file(atoms)
 
 # ========================================================================== #
     def _get_nc_path(self):
         """Return netcdf path of Abinit-style HIST file"""
-        ncprefix_loc = self.ncprefix
-        workdir_loc = self.workdir
-        if ncprefix_loc != '' and (not ncprefix_loc.endswith('_')):
-            ncprefix_loc += '_'
+        ncpref = self.ncprefix
+        wdir = self.workdir
+        if ncpref and not ncpref.endswith('_'):
+            ncpref += '_'
 
-        # Obtain script name, including in case of pytest execution
-        script_name = ncprefix_loc
+        script_name = ncpref
         pytest_path = os.getenv('PYTEST_CURRENT_TEST')
-        if pytest_path is not None:
-            if str(workdir_loc) == '':
-                workdir_loc = Path(pytest_path).parents[0].absolute()
-            name1 = os.path.basename(pytest_path)
-            script_name += name1.partition('.py')[0]
+        if pytest_path:
+            wdir = wdir or Path(pytest_path).parents[0].absolute()
+            script_name += Path(pytest_path).stem
         else:
-            script_name += os.path.basename(sys.argv[0])
-        if script_name.endswith('.py'):
-            script_name = script_name[:-3]
+            script_name += Path(sys.argv[0]).stem
         ncname = script_name + "_HIST.nc"
 
-        ncpath = str(Path(workdir_loc).absolute() / ncname)
-        ncfile_exists = os.path.isfile(ncpath)
-        if ncfile_exists:
-            # if it is the first MLAS launch
-            if not self.launched:
-                S = 1
-                while ncfile_exists:
-                    ncname = script_name + '_{:04d}'.format(S) + "_HIST.nc"
-                    ncpath = str(Path(workdir_loc) / ncname)
-                    ncfile_exists = os.path.isfile(ncpath)
-                    S += 1
+        # Deal with potential duplicates, i.e. existing files with ncname
+        ncpath = Path(wdir).absolute() / ncname
+        if ncpath.is_file():
+            if not self.launched:   # if first MLAS launch
+                suffix = 1
+                while ncpath.is_file():
+                    ncname = f"{script_name}_{suffix:04d}_HIST.nc"
+                    ncpath = Path(wdir) / ncname
+                    suffix += 1
 
-        return ncpath
+        return str(ncpath)
 
 # ========================================================================== #
     def _create_nc_file(self, atoms):
@@ -194,6 +193,7 @@ class HistFile:
         # Assume ntypat, natom, etc., are the same for all items in list
         if isinstance(atoms, list):
             atoms = atoms[0]
+
         atomic_numbers = list(atoms.get_atomic_numbers())
         atomic_masses = list(atoms.get_masses())
         natom = len(atoms)
@@ -296,7 +296,7 @@ class HistFile:
         """
         with nc.Dataset(self.ncpath, 'r') as ncfile:
             wobs_values = ncfile[obs_name][:]
-            weighted_obs_data = wobs_values[wobs_values.mask == False].data # noqa
+            weighted_obs_data = wobs_values[wobs_values.mask == False].data  # noqa
             weighted_obs_idx = 1 + np.where(~wobs_values.mask)[0]
         return weighted_obs_data, weighted_obs_idx
 
@@ -332,9 +332,9 @@ class HistFile:
         return res
 
 # ========================================================================== #
-    def nc_routine_conv(self):
-        """Define several conventions related to routine properties"""
-        # Variable names and dimensions are those produced by Abinit
+    def _set_name_conventions(self):
+        """Define naming conventions related to routine properties"""
+        # Variable names and dimensions as defined in Abinit
         var_dim_dict = {'Total_Energy': ['etotal', ('time',)],
                         'Kinetic_Energy': ['ekin', ('time',)],
                         'Potential_Energy': ['epot', ('time',)],
@@ -347,29 +347,47 @@ class HistFile:
                         'Stress': ['strten', ('time', 'six')],
                         'Cell': ['rprimd', ('time', 'xyz', 'xyz')]
                         }
+        self.var_dim_dict = var_dim_dict
 
-        # Units correspond to those used in ASE
-        units_dict = {'Total_Energy': 'eV',
-                      'Kinetic_Energy': 'eV',
-                      'Potential_Energy': 'eV',
-                      'Velocities': '',
-                      'Forces': 'eV/Ang',
-                      'Positions': 'Ang',
-                      'Scaled_Positions': 'dimensionless',
-                      'Temperature': 'K',
-                      'Volume': 'Ang^3',
-                      'Stress': 'GPa',
-                      'Cell': 'Ang',
-                      }
+# ========================================================================== #
+    def _set_unit_conventions(self):
+        """Define unit conventions related to routine properties"""
+        # Dict whose keys are 'var names' and values are LAMMPS's 'metal' units
+        lammps_units_dict = {'Total_Energy': 'eV',
+                             'Kinetic_Energy': 'eV',
+                             'Potential_Energy': 'eV',
+                             'Velocities': '',
+                             'Forces': 'eV/Ang',
+                             'Positions': 'Ang',
+                             'Scaled_Positions': 'dimensionless',
+                             'Temperature': 'K',
+                             'Volume': 'Ang^3',
+                             'Stress': 'eV/Ang^3',
+                             'Cell': 'Ang',
+                             }
+        self.lammps_units_dict = lammps_units_dict
 
-        return var_dim_dict, units_dict
+        # Dict whose keys are 'var names' and values are Abinit units
+        abinit_units_dict = {'Total_Energy': 'Ha',
+                             'Kinetic_Energy': 'Ha',
+                             'Potential_Energy': 'Ha',
+                             'Velocities': '',
+                             'Forces': 'Ha/Bohr',
+                             'Positions': 'Bohr',
+                             'Scaled_Positions': 'dimensionless',
+                             'Temperature': 'K',
+                             'Volume': 'Bohr^3',
+                             'Stress': 'Ha/Bohr^3',
+                             'Cell': 'Bohr',
+                             }
+        self.abinit_units_dict = abinit_units_dict
 
 
 # ========================================================================== #
 # ========================================================================== #
 class AbinitNC:
     """
-    Class to handle all Abinit NetCDF files.
+    Class to read all Abinit NetCDF files.
 
     Parameters
     ----------
@@ -452,7 +470,7 @@ class AbinitNC:
         which corresponds to the Abinit input file, but also contains unwanted
         (i.e., not encoded in UTF-8) information at the bottom.
         """
-        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory' # noqa
+        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory'  # noqa
         last_Lammps_line += ' terminates after the current SCF'
         if last_Lammps_line in _str[-len(last_Lammps_line):]:
             return True

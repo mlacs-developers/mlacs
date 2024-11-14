@@ -83,7 +83,8 @@ class MbarManager(WeightingPolicy):
                                  stress_coefficient=stress_coefficient,
                                  **kwargs)
 
-        self.database = []
+        if self.database is None:
+            self.database = []
         self.parameters = default_parameters
         self.parameters.update(parameters)
         self.Nk = []

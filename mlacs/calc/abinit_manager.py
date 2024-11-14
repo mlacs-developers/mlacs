@@ -59,7 +59,7 @@ class AbinitManager(CalcManager):
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
 
-    workdir: :class:`str` (optional)
+    folder: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
 
@@ -97,6 +97,8 @@ class AbinitManager(CalcManager):
                  mpi_runner="mpirun",
                  magmoms=None,
                  folder='DFT',
+                 logfile="abinit.log",
+                 errfile="abinit.err",
                  nproc=1,
                  nproc_per_task=None,
                  **kwargs):
@@ -122,8 +124,8 @@ class AbinitManager(CalcManager):
             nproc_per_task = self.nproc
         self.nproc_per_task = nproc_per_task
 
-        self.log_suffix = "abinit.log"
-        self.err_suffix = "abinit.eff"
+        self.log = logfile
+        self.err = errfile
         self.ncfile = AbinitNC()
 
 # ========================================================================== #
@@ -179,8 +181,8 @@ class AbinitManager(CalcManager):
                 command = self._make_command()
                 executor.submit(self.submit_abinit_calc,
                                 command,
-                                self.get_filepath('abinit.log'),
-                                self.get_filepath('abinit.err'),
+                                self.get_filepath(self.log),
+                                self.get_filepath(self.err),
                                 cdir=str(self.subsubdir))
             executor.shutdown(wait=True)
 
@@ -233,12 +235,17 @@ class AbinitManager(CalcManager):
         original_pseudos = self.pseudos.copy()
         species = sorted(set(atoms.numbers))
         self._copy_pseudos()
+
+        unique_elements = set(atoms.get_chemical_symbols())
+        pseudos = [pseudo for pseudo, el in zip(self.pseudos, self.typat) if
+                   el in unique_elements]
+
         with open(self.get_filepath("abinit.abi"), "w") as fd:
             write_abinit_in(fd,
                             atoms,
                             self.parameters,
                             species,
-                            self.pseudos)
+                            pseudos)
         self.pseudos = original_pseudos
 
 # ========================================================================== #
@@ -312,6 +319,7 @@ class AbinitManager(CalcManager):
             pseudolist.append(pseudos[ityp])
         pseudolist = np.array(pseudolist)
 
+        self.typat = typat
         znucl = symbols2numbers(typat)
         idx = np.argsort(znucl)
         pseudolist = pseudolist[idx]
@@ -326,8 +334,8 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinit.abi")
         if os.path.exists(stateprefix + "abinit.abo"):
             os.remove(stateprefix + "abinit.abo")
-        if os.path.exists(stateprefix + "abinit.log"):
-            os.remove(stateprefix + "abinit.log")
+        if os.path.exists(stateprefix + self.log):
+            os.remove(stateprefix + self.log)
         if os.path.exists(stateprefix + "abinito_GSR.nc"):
             os.remove(stateprefix + "abinito_GSR.nc")
         if os.path.exists(stateprefix + "abinito_OUT.nc"):

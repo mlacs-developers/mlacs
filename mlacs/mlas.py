@@ -20,16 +20,17 @@ from ase.calculators.singlepoint import SinglePointCalculator
 from .core import Manager
 from .mlip import LinearPotential, MliapDescriptor
 from .calc import CalcManager
-from .properties import PropertyManager
 from .state import StateManager
 from .utilities.log import MlacsLog
 from .utilities import create_random_structures, save_cwd
+from .utilities.io_abinit import HistFile
+from .properties import PropertyManager, RoutinePropertyManager
 
 
 # ========================================================================== #
 # ========================================================================== #
 class Mlas(Manager):
-    """
+    r"""
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
 
@@ -53,20 +54,14 @@ class Mlas(Manager):
         Default is a LammpsMlip object with a snap descriptor,
         ``5.0`` angstrom rcut with ``8`` twojmax.
 
+    prop: :class:`PropertyManager` or :class:`list` or :class:`CalcProperty`
+    (optional)
+        Object managing the MLIP to approximate the real distribution
+        Default is a LammpsMlip object with a snap descriptor,
+        ``5.0`` angstrom rcut with ``8`` twojmax.
+
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
-
-    nbeads: :class:`int` (optional)
-        The number of beads to use from Path-Integral simulations.
-        This value has to be lower than the number of beads used
-        in the State object, or equal to it.
-        If it is lower, this number indicates the number of beads
-        for which a trajectory will be created and computed
-        with the reference potential.
-        Default ``1``, ignored for non-path integral States
-
-    workdir: :class:`str` (optional)
-        The directory in which to run the calculation.
 
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
         If :class:`int`, Number of configurations used to train a preliminary
@@ -76,15 +71,34 @@ class Mlas(Manager):
         Default ``1``.
 
     std_init: :class:`float` (optional)
-        Variance (in :math:`Ang^2`) of the displacement
+        Variance (in :math:`\mathring{a}^2`) of the displacement
         when creating initial configurations.
-        Default :math:`0.05 Ang^2`
+        Default :math:`0.05 \mathring{a}^2`
 
     keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
+
+    workdir: :class:`str` (optional)
+        The directory in which to run the calculation.
+
+    prefix: :class:`str` (optional)
+        The prefix to prepend the name of the States files.
+
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+        Script name format: ncprefix + scriptname + '_HIST.nc'.
+        Default `''`.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF3_CLASSIC``.
     """
+
     def __init__(self,
                  atoms,
                  state,
@@ -95,21 +109,25 @@ class Mlas(Manager):
                  confs_init=None,
                  std_init=0.05,
                  keep_tmp_mlip=True,
-                 workdir=''):
+                 workdir='',
+                 prefix='',
+                 ncprefix='',
+                 ncformat='NETCDF3_CLASSIC'):
 
-        Manager.__init__(self, workdir=workdir)
+        Manager.__init__(self, workdir=workdir, prefix=prefix)
 
         # Initialize working directory
         self.workdir.mkdir(exist_ok=True, parents=True)
+        self.ncfile = None
 
         ##############
         # Check inputs
         ##############
         self.keep_tmp_mlip = keep_tmp_mlip
-        self._initialize_state(state, atoms, neq)
+        self._initialize_state(state, atoms, neq, prefix)
         self._initialize_calc(calc)
         self._initialize_mlip(mlip)
-        self._initialize_property(prop)
+        # self._initialize_properties(prop)
 
         # Miscellanous initialization
         self.rng = np.random.default_rng()
@@ -120,6 +138,15 @@ class Mlas(Manager):
 
         # Check if trajectory files already exists
         self.launched = self._check_if_launched()
+
+        # Create Abinit-style *HIST.nc file of netcdf format
+        self.ncfile = HistFile(ncprefix=ncprefix,
+                               workdir=workdir,
+                               ncformat=ncformat,
+                               launched=self.launched,
+                               atoms=self.atoms)
+        if self.ncfile.unique_atoms_type:
+            self._initialize_routine_properties()
 
         self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
         self.logger = self.log.logger_log
@@ -247,7 +274,8 @@ class Mlas(Manager):
                                         self.mlip.pair_coeff,
                                         self.mlip.model_post,
                                         self.mlip.atom_style,
-                                        eq[istate]))
+                                        eq[istate],
+                                        self.mlip.get_elements()))
                 futures.append(exe)
                 self._write(f"State {istate+1}/{self.nstate} has been launched")  # noqa
             for istate, exe in enumerate(futures):
@@ -310,7 +338,10 @@ class Mlas(Manager):
                              atmlip.get_potential_energy()))
                 self.nconfs[i] += 1
 
-        self._compute_properties()
+        # TODO: CD: Implement groups in netcdf for Atoms with difft chem. form.
+        if self.ncfile.unique_atoms_type:
+            self._compute_properties()
+            self._compute_routine_properties()
         self._execute_post_step()
 
         return True
@@ -488,9 +519,23 @@ class Mlas(Manager):
         self.mlip.subdir.mkdir(exist_ok=True, parents=True)
 
 # ========================================================================== #
-    def _initialize_property(self, prop):
+    def _initialize_properties(self, prop):
         """Create property object"""
         self.prop = PropertyManager(prop)
+
+# ========================================================================== #
+    def _initialize_routine_properties(self):
+        """Create routine property object"""
+
+        # Build RoutinePropertyManager
+        self.routine_prop = RoutinePropertyManager(self.ncfile)
+
+        if not self.launched:
+            self.ncfile.create_nc_var(self.routine_prop.manager)
+
+        self.routine_prop.workdir = self.workdir
+        self.routine_prop.isfirstlaunched = not self.launched
+        self.routine_prop.ncfile = self.ncfile
 
 # ========================================================================== #
     def _initialize_momenta(self):
@@ -534,7 +579,8 @@ class Mlas(Manager):
             for istate in range(self.nstate):
                 self.atoms.append(atoms.copy())
         elif isinstance(atoms, list):
-            assert len(atoms) == self.nstate
+            e = "You should have 1 atoms per state"
+            assert len(atoms) == self.nstate, e
             self.atoms = [at.copy() for at in atoms]
         else:
             msg = "atoms should be a ASE Atoms object or " + \
@@ -723,6 +769,18 @@ class Mlas(Manager):
         For example, CalcRdf, CalcTI ...
         """
         pass
+
+# ========================================================================== #
+    def _compute_routine_properties(self):
+        """Compute routine properties"""
+        self.routine_prop.calc_initialize(atoms=self.atoms)
+        msg = self.routine_prop.run(self.step)
+        self.log.logger_log.info(msg)
+        self.routine_prop.save_prop(self.step)
+        self.routine_prop.save_weighted_prop(self.step, self.mlip.weight)
+        self.routine_prop.save_weights(self.step,
+                                       self.mlip.weight,
+                                       self.ncfile.ncformat)
 
 # ========================================================================== #
     def _write(self, msg="", center=False, underline=False):

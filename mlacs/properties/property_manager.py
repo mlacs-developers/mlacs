@@ -10,6 +10,12 @@ import numpy as np
 import netCDF4 as nc
 
 from ..core.manager import Manager
+from .calc_property import (CalcRoutineFunction,
+                            CalcPressure,
+                            CalcAcell,
+                            CalcAngles,
+                            CalcSpinAt,
+                            CalcElectronicEntropy)
 
 
 # ========================================================================== #
@@ -24,18 +30,27 @@ class PropertyManager(Manager):
                  folder='Properties',
                  **kwargs):
 
-        Manager.__init__(self, folder=folder, **kwargs)
-
         if prop is None:
             self.check = [False]
             self.manager = None
-
+            folder = ''
         elif isinstance(prop, list):
             self.manager = prop
             self.check = [False for _ in range(len(prop))]
         else:
             self.manager = [prop]
             self.check = [False]
+
+        if prop is not None:
+            if not any([prop.needdir for prop in self.manager]):
+                folder = ''
+
+        Manager.__init__(self, folder=folder, **kwargs)
+        if self.manager is not None:
+            for observable in self.manager:
+                if observable.needdir:
+                    observable.workdir = self.workdir
+                    observable.folder = self.folder
 
 # ========================================================================== #
     @property
@@ -47,20 +62,25 @@ class PropertyManager(Manager):
         return np.all(self.check)
 
 # ========================================================================== #
-    @Manager.exec_from_workdir
+    @Manager.exec_from_subdir
     def run(self, step):
         """
         Run property calculation.
         """
-        dircheck = False
-        for observable in self.manager:
-            if step % observable.freq == 0:
-                dircheck = True
-        if dircheck:
-            self.path.mkdir(exist_ok=True, parents=True)
+        # RB: Not needed anymore
+        # dircheck = False
+        # for observable in self.manager:
+        #     if step % observable.freq == 0:
+        #         dircheck = True
+        # if dircheck:
+        #     self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
+                if observable.needdir:
+                    observable.workdir = self.workdir
+                    observable.folder = self.folder
+                    observable.subfolder = f'Step{step}'
                 self.check[i] = observable._exec()
                 msg += repr(observable)
         return msg
@@ -85,24 +105,26 @@ class PropertyManager(Manager):
         step: :class:`int`
             The index of MLAS iteration
         """
-        ncpath = self.ncfile.ncpath
 
         if self.manager is not None:
             for observable in self.manager:
-                to_be_saved = observable.new
-                nc_name = observable.nc_name
+                if step % observable.freq == 0:
+                    to_be_saved = observable.new
+                    nc_name = observable.nc_name
 
-                if nc_name is not None:
-                    for idx, val_state in enumerate(to_be_saved):
-                        with nc.Dataset(ncpath, 'a') as ncfile:
-                            index_state = idx+1
-                            metadata = [step, index_state]
-                            idx_db = np.ma.count(ncfile[nc_name+'_meta'][:, 0])
-                            # idx_db is index of conf in dtbase for observable
-
-                            ncfile[nc_name][idx_db] = val_state
-                            ncfile[nc_name+'_meta'][idx_db] = metadata
-                            ncfile['mdtime'][idx_db] = idx_db + 1
+                    if nc_name is not None:
+                        ncpath = self.ncfile.ncpath
+                        for idx, val_state in enumerate(to_be_saved):
+                            with nc.Dataset(ncpath, 'a') as ncfile:
+                                index_state = idx+1
+                                metadata = [step, index_state]
+                                idx_db = np.ma.count(
+                                        ncfile[nc_name+'_meta'][:, 0])
+                                # idx_db is index of conf in dtbase
+                                # for observable
+                                ncfile[nc_name][idx_db] = val_state
+                                ncfile[nc_name+'_meta'][idx_db] = metadata
+                                ncfile['mdtime'][idx_db] = idx_db + 1
 
 # ========================================================================== #
     def save_weighted_prop(self, step, weighting_pol):
@@ -125,8 +147,7 @@ class PropertyManager(Manager):
         if weighting_pol is not None:
             for observable in self.manager:
                 nc_name = observable.nc_name
-                weights = weighting_pol.weight[2:]
-
+                weights = weighting_pol.weight[2:].copy()
                 obs = self.ncfile.read_obs(nc_name)
                 observable_values = obs[:len(weights)]
 
@@ -166,7 +187,7 @@ class PropertyManager(Manager):
             # The first two confs of self.mlip.weight.database are never used
             # in the properties computations, so they are throwned out here
             # by the slicing operator [2:]
-            weights = weighting_pol.weight[2:]
+            weights = weighting_pol.weight[2:].copy()
             if len(weights) > 0:
                 nb_effective_conf = np.sum(weights)**2 / np.sum(weights**2)
             else:
@@ -189,3 +210,45 @@ class PropertyManager(Manager):
             # Weight of first two confs (that are throwned out)
             w_first2 = abs(np.sum(weighting_pol.weight) - np.sum(weights))
             return w_first2
+
+
+# ========================================================================== #
+# ========================================================================== #
+class RoutinePropertyManager(PropertyManager):
+    """
+    Class to handle the list of CalcRoutineFunction.
+
+    Parameters
+    ----------
+
+    ncfile: :class:`HistFile`
+        The netcdf *HIST.nc file.
+    """
+
+    def __init__(self, ncfile):
+
+        # Get variables names, dimensions, and units conventions
+        var_dim_dict = ncfile.var_dim_dict
+        lammps_units_dict = ncfile.lammps_units_dict
+        abinit_units_dict = ncfile.abinit_units_dict
+
+        # Build RoutinePropertyManager
+        routine_prop_list = []
+        for x in var_dim_dict:
+            var_name, var_dim = var_dim_dict[x]
+            var_abinit_unit = abinit_units_dict[x]
+            var_lammps_unit = lammps_units_dict[x]
+            lammps_func = 'get_' + x.lower()
+            observable = CalcRoutineFunction(lammps_func,
+                                             label=x,
+                                             nc_name=var_name,
+                                             nc_dim=var_dim,
+                                             nc_unit=var_abinit_unit,
+                                             lammps_unit=var_lammps_unit,
+                                             frequence=1)
+            routine_prop_list.append(observable)
+        other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),
+                             CalcSpinAt(), CalcElectronicEntropy()]
+        routine_prop_list += other_observables
+
+        PropertyManager.__init__(self, prop=routine_prop_list)
