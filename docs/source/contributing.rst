@@ -83,7 +83,9 @@ Merge your developments
   anyone with push access can merge your pull request and it will now be part
   of the main branch
 
-* After the merge-request is approved, delete the branch locally::
+* After the merge-request is approved, delete the branch locally
+
+.. code:: bash
 
         $ git branch -D add-contribute-rst
 
@@ -183,5 +185,5 @@ Conventions PEPs, clarified and extended as follows:
   comprehensions instead.
 
 * Use ``'single quotes'`` for string literals, and ``"""triple double
-  quotes"""`` for :term:`docstring`\ s.  Double quotes are OK for
+  quotes"""`` for docstrings.  Double quotes are OK for
   something like ``"don't"``.
