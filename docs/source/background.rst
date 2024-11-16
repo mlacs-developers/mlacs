@@ -6,16 +6,16 @@ Background
 ##########
 
 
-Considering an arbitrary system of :math:`N_\mathrm{at}` atoms at a temperature :math:`T`, and subject to a potential :math:`V(\mathbf{R})`, the classical average of an observable :math:`O(\mathbf{R})` is written
+Considering an arbitrary system of :math:`N_\mathrm{at}` atoms at a temperature :math:`T` inducing a potential :math:`V(\mathbf{R})`, the classical average of an observable :math:`O(\mathbf{R})` is
 
 .. math::
    \langle O(\mathbf{R}) \rangle = \int d \mathbf{R}  O(\mathbf{R}) p(\mathbf{R}) \approx \sum_n w_n O(\mathbf{R}_n)
 
-where :math:`p(\mathbf{R}) = e^{-\beta V(\mathbf{R})}/\mathcal{Z}` is the Boltzmann weight, with :math:`\mathcal{Z}=\int e^{-\beta V(\mathbf{R})}` the partition function and :math:`w_i` is the weight of configuration :math:`i` in the approximation involving a limited number of sample.
+with :math:`p(\mathbf{R}) = e^{-\beta V(\mathbf{R})}/\mathcal{Z}` the Boltzmann weight, :math:`\mathcal{Z}=\int d\mathbf{R} e^{-\beta V(\mathbf{R})}` the partition function and :math:`w_n` the weight of configuration :math:`n` such as :math:`\sum_n w_n=1`.
 
-In the context of *ab initio* simulations, obtaining the canonical distribution :math:`p(\mathbf{R})` entails costly *Ab Initio* Molecular Dynamics (AIMD), which can be challenging to perform or even beyond reach.
+In the context of *ab initio* simulations, obtaining the canonical distribution :math:`p(\mathbf{R})` entails costly *Ab Initio* Molecular Dynamics (AIMD), which can be challenging to perform or even out of reach.
 
-The goal of the Machine-Learning Assisted Canonical Sampling approach is to produce a reduced set of configurations and their associated weight using a Machine-Learning Interatomic Potential (MLIP) in order to approximate the canonical distribution and allow the computation of finite-temperature property in an *ab initio* setting.
+The goal of the Machine-Learning Assisted Canonical Sampling approach is to produce a reduced set of configurations and their associated weight using a Machine-Learning Interatomic Potential (MLIP) in order to approximate the equilibrium canonical distribution and to allow the computation of finite-temperature properties in an *ab initio* setting.
 
 
 Theory
@@ -24,24 +24,24 @@ Theory
 Machine-Learning Assisted Canonical Sampling
 --------------------------------------------
 
-MLACS is built upon the Kullback-Leibler divergence, whose goal is to give a measure of the discrepancy between two distribution :math:`p(\mathbf{R})` and :math:`\widetilde{q}_\gamma(\mathbf{R})` and is written
+MLACS is built upon the Kullback--Leibler divergence, whose goal is to give a measure of the discrepancy between two distributions :math:`p(\mathbf{R})` and :math:`\widetilde{q}_\gamma(\mathbf{R})` and is written
 
 .. math::
    \mathcal{D}_{KL}(\widetilde{q}_\gamma \Vert p) = \int d\mathbf{R} \widetilde{q}_\gamma(\mathbf{R}) \ln\bigg(\frac{\widetilde{q}_\gamma(\mathbf{R})}{p(\mathbf{R})}\bigg) \geq 0
 
-In our case, :math:`p(\mathbf{R})` is the Boltzmann weight while :math:`\widetilde{q}_\gamma(\mathbf{R}) = \frac{1}{\widetilde{\mathcal{Z}}} e^{-\beta \widetilde{V}_\gamma(\mathbf{R})}` is a surrogate distribution, associated with a MLIP giving a potential :math:`\widetilde{V}_\gamma(\mathbf{R})`.
+with :math:`\widetilde{q}_\gamma(\mathbf{R}) = \frac{1}{\widetilde{\mathcal{Z}}} e^{-\beta \widetilde{V}_\gamma(\mathbf{R})}` the surrogate distribution induced by the MLIP potential :math:`\widetilde{V}_\gamma(\mathbf{R})`.
 An important feature of the surrogate potential is its parametrization, indicated by the subscript :math:`\gamma`, meaning that its shape can be modified by adjusting the parameter :math:`\boldsymbol{\gamma}`.
 
-With some reorganization, the Kullback-Leibler divergence inequality can be reformulated in term of free energies known as the Gibbs-Bogoliubov inequality
+With some reorganization, the Kullback--Leibler divergence inequality can be reformulated in term of free energies known as the Gibbs--Bogoliubov inequality
 
 .. math::
-   \mathcal{F} \leq \widetilde{\mathcal{F}}_\gamma + \langle \mathcal{F} - \widetilde{\mathcal{F}}_\gamma \rangle_\gamma
+   \mathcal{F} \leq \widetilde{\mathcal{F}}_\gamma^0 + \langle \mathcal{V}(\mathbf{R}) - \widetilde{\mathcal{V}}_\gamma (\mathbf{R}) \rangle_\gamma
 
-where :math:`\mathcal{F} = -k_BT \ln(\mathcal{Z})` and :math:`\widetilde{\mathcal{F}}_\gamma = -k_BT \ln(\widetilde{\mathcal{Z}}_\gamma)` are the free energy associated with respectively the true and MLIP potential, and :math:`\langle \rangle_\gamma` indicate an average take with the surrogate potential :math:`\widetilde{V}_\gamma(\mathbf{R})`.
+where :math:`\mathcal{F} = -k_BT \ln(\mathcal{Z})` and :math:`\widetilde{\mathcal{F}}_\gamma = -k_BT \ln(\widetilde{\mathcal{Z}}_\gamma)` are the free energies associated with respectively the target and surrogate potentials, and :math:`\langle \rangle_\gamma` is the canonical average for the surrogate potential :math:`\widetilde{V}_\gamma(\mathbf{R})`.
 
 This inequality is at the foundation of the MLACS method.
-It indicates that by minimizing its right hand side with respect to the parameters :math:`\boldsymbol{\gamma}` of the surrogate distribution, one can obtain an optimal approximation for the free energy of the system.
-Moreover, due to the relation between the Gibbs-Bogoliubov inequality and the Kullback-Leibler divergence, this optimal free energy approximation also correspond to an optimal approximation of the canonical distribution of the system.
+It indicates that by minimizing its right hand side with respect to the parameters :math:`\boldsymbol{\gamma}` of the surrogate distribution, one can obtain an optimal approximation for the free energy of the target system.
+Moreover, due to the relation between the Gibbs--Bogoliubov inequality and the Kullback--Leibler divergence, this optimal free energy approximation also corresponds to an optimal measure of the equilibrium canonical distribution of the target system.
 Thus, the goal of the MLACS approach is to perform this minimization.
 
 .. image:: pictures/kld.png
@@ -49,32 +49,31 @@ Thus, the goal of the MLACS approach is to perform this minimization.
    :alt: Measure of the similarity between two distributions :math:`p(\mathbf{R})` and :math:`\widetilde{q}_\gamma(\mathbf{R})` based on the Kullback–Leibler divergence :math:`\mathcal{D}_{KL}(\widetilde{q}_\gamma \vert p)`
    :align: center
 
-We will assume a potential linearly related to the parameters, with a potential energy written :math:`\widetilde{V}_\gamma(\mathbf{R}) = \sum_n \gamma_n \widetilde{D}_n(\mathbf{R})`.
-This correspond to class of widely used MLIP, the most known being SNAP, ACE or MTP.
-For such potentials, the minima is obtained by a self-consistent least-squares
+If we assume a linear dependece between the descriptors :math:`\widetilde{\mathbf{D}}(\mathbf{R})` and the surrogate potential, the latter writes :math:`\widetilde{V}_\gamma(\mathbf{R}) = \sum_n \gamma_n \widetilde{D}_n(\mathbf{R})`.
+This enables a large variety of MLIP, the most known being SNAP, ACE or MTP.
+By minimizing the Gibbs--Bogoliubov free energy, we obtain the following nontrivial least-squares solution for the optimal parameters
 
 .. math::
    \boldsymbol{\gamma} = \langle \widetilde{D}_\gamma(\mathbf{R})^T \widetilde{D}_\gamma(\mathbf{R}) \rangle^{-1} \langle \widetilde{D}_\gamma(\mathbf{R})^T V(\mathbf{R}) \rangle_\gamma
 
-The self consistency comes from the dependence of the optimal parameters to the average in the surrogate ensemble.
+with a circular dependency over :math:`\mathbf{\gamma}`, which can be solved using a self consistent procedure.
 
 
 Free energy computation
 -----------------------
 
-As explained in the previous section MLACS allows to optimize an approximation for the free energy of the system.
-However, the computation of this approximation necessitate to know the free energy associated with the surrogate model, which generally cannot be obtained analytically.
+As explained in the previous section, MLACS allows to best approximate the free energy of the system.
+However, the computation of this approximation necessitates to know the free energy associated with the surrogate model, which generally cannot be obtained analytically.
 Fortunately, the surrogate free energy :math:`\widetilde{\mathcal{F}}_\gamma` can be computed numerically by means of Thermodynamic Integration (TI).
 
-Let's introduce a reference system with a Hamiltonian :math:`H_\mathrm{ref}` for which the free energy :math:`\mathcal{F}_\mathrm{ref}` is known.
-Then, one can build a parametrized Hamiltonaian :math:`H(\lambda) = \lambda \widetilde{H}_\gamma + (1 - \lambda)H_\mathrm{ref}` and it can be shown that the free energy difference :math:`\Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} = \widetilde{\mathcal{F}}_\gamma - \mathcal{F}_\mathrm{ref}` between the reference and surrogate potential is given by
+Let us introduce a reference system with a Hamiltonian :math:`H_\mathrm{ref}`, for which the free energy :math:`\mathcal{F}_\mathrm{ref}` is known, and a parametrized Hamiltonian :math:`H(\lambda) = \lambda \widetilde{H}_\gamma + (1 - \lambda)H_\mathrm{ref}` with :math:`\widetilde{H}_\gamma` the Hamiltonian of the surrogate system. It can be shown that the free energy difference :math:`\Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} = \widetilde{\mathcal{F}}_\gamma - \mathcal{F}_\mathrm{ref}` between the reference and surrogate potentials is given by
 
 .. math::
    \Delta \mathcal{F}_{\mathrm{ref}\rightarrow \gamma} = \int_0^1 d\lambda \bigg\langle \frac{\partial H(\lambda)}{\partial \lambda} \bigg\rangle_\lambda
 
-where :math:`\langle \rangle_\lambda` correspond to an average with the Hamiltonian :math:`H(\lambda)`.
-Using Jarzinsky's identity, it can be shown that this integral can be computed using the irreversible work generated during a non-equilibrium simulation starting from one state and ending in the other.
-The irreversible work is written
+where :math:`\langle \rangle_\lambda` is the canonical average for the Hamiltonian :math:`H(\lambda)`.
+Using Jarzynski's identity, it can be shown that this free energy difference can be computed as an average over various realizations of the irreducible work generated during a non-equilibrium simulation starting from one state and ending in the other.
+The irreversible work is written as
 
 .. math::
    W_{\mathrm{irr}} = \lim_{t_s\rightarrow \infty}\int_0^{t_s} dt \frac{\partial\lambda(t)}{\partial t} \frac{\partial H(\lambda)}{\partial \lambda}
