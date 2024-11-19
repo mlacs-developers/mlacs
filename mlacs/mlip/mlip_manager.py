@@ -81,19 +81,19 @@ class MlipManager(Manager, ABC):
         Feature matrix `amat_i` and label vector `ymat_i` are separated into
         blocks i=e,f,s, representing energy, forces and stresses, respectively.
 
-        Attribute dimensions after update:
-        - `self.amat_e`: ndarray of shape (N, K)
-            Block matrix representing the descriptors
-        - `self.amat_f`: ndarray of shape (3*Nat*N, K)
-            Block matrix representing the gradient of descr. wrt positions
-        - `self.amat_s`: ndarray of shape (6*N, K)
-            Block matrix representing the gradient of descr. wrt strains
-        - `self.ymat_e`: ndarray of shape (N,)
-            Label vector representing the energies
-        - `self.ymat_f`: ndarray of shape (3*Nat*N,)
-            Label vector representing the forces
-        - `self.ymat_s`: ndarray of shape (6*N,)
-            Label vector representing the stresses
+        Attribute dimensions after update
+            - `self.amat_e`: ndarray of shape (N, K)
+                Block matrix representing the descriptors
+            - `self.amat_f`: ndarray of shape (3*Nat*N, K)
+                Block matrix representing the gradient of descr. wrt positions
+            - `self.amat_s`: ndarray of shape (6*N, K)
+                Block matrix representing the gradient of descr. wrt strains
+            - `self.ymat_e`: ndarray of shape (N,)
+                Label vector representing the energies
+            - `self.ymat_f`: ndarray of shape (3*Nat*N,)
+                Label vector representing the forces
+            - `self.ymat_s`: ndarray of shape (6*N,)
+                Label vector representing the stresses
 
         Where:
             - `K` is the number of descriptor components (features)
@@ -133,6 +133,7 @@ class MlipManager(Manager, ABC):
             self.ymat_f = np.r_[self.ymat_f, forces]
             self.ymat_s = np.r_[self.ymat_s, stress]
             self.natoms = np.append(self.natoms, [nat])
+
         self.nconfs += len(atoms)
 
 # ========================================================================== #

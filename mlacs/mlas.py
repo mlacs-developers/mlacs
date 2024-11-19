@@ -156,12 +156,17 @@ class Mlas(Manager):
         self._write(repr(self.mlip))
         self._write()
 
-        # We initialize momenta and parameters for training configurations
+        # Initialize momenta and parameters for initial/training configs
         if not self.launched:
             self._initialize_momenta()
-            self.confs_init = confs_init
+            self.traj = []
+            self.confs_init = confs_init or []
             self.std_init = std_init
             self.nconfs = [0] * self.nstate
+            self.uniq_at = None
+            self.idx_computed = None
+            self.nb_distinct_conf = None
+
         # Reinitialize everything from the trajectories
         # Compute fitting data - get trajectories - get current configurations
         else:
@@ -337,95 +342,59 @@ class Mlas(Manager):
 # ========================================================================== #
     def _run_initial_step(self):
         """
-        Run the initial step, where no MLIP or configurations are available.
+        Run the initial step.
 
-        Consist in two main stages:
-            (1) Compute potential energy for (unique) initial configurations.
-                Write the computed configs. in *.traj file.
+        Notes
+        -----
 
-            (2) Compute potential for nconfs_init training configurations.
-                Update fitting matrices.
+        This routine unfolds in three stages.
+
+            (i) Compute initial configurations.
+            `Initial` refers to the atomic configurations `atoms` given
+            as a parameter to the `Mlas` object. These confs are assigned to
+            self.atoms and self.uniq_at, and get stored in `Trajectory.traj` at
+            the end of the routine.
+
+                NB: `Trajectory.traj` becomes `Trajectory_i.traj` if there are
+                several states, or more generally `prefix.traj` as defined in
+                _initialize_state().
+
+            (ii) [Conditionnal] Compute training configurations.
+            `Training` refers to configurations that serve as complementary
+            configurations ensuring the database is large enough to fit an
+            MLIP. These confs are assigned to self.confs_init and are saved in
+            `Training_configurations.traj`.
+
+                NB: This stage is only executed if the MLIP is empty. This is
+                intentional, as MLACS enables a non-empty MLIP to be loaded at
+                the start of the calculation (independently of restarts). Note
+                how, in that case, the `initial` configs are still computed.
+
+                NB: There are several options to set these training confs. One
+                of them is to load them from an existing *.traj file.
+
+            (iii) Update MLIP object with new confs from step (i) and (ii).
         """
-
         self._write("\nRunning initial step")
 
-        uniq_at = self._get_unique_atoms()
+        # Compute initial configurations
+        self._get_unique_atoms()
+        self._compute_initial_confs()
+        self._distribute_atoms()
+        self._create_initial_traj()
 
-        # Compute true potential properties of unique atoms
-        subfolder_l = ["Initial"] * self.nb_distinct_conf
-        istep = np.arange(self.nb_distinct_conf, dtype=int)
-        # XXX: CD: Maybe these logging operations could be included in
-        # compute_true_potential()? Same remark for other calls of this method.
-        self._write("Computing true potential energy [initial configs]")
-        uniq_at = self.calc.compute_true_potential(uniq_at, subfolder_l, istep)
-        self.uniq_at = uniq_at
-        self._write("Computation done")
-
-        self._distribute_unique_atoms()
-
-        # RB: Don't now why but computing desc is different in run_initial
-        #     than in run_steps
-        # self.atoms = self.add_traj_descriptors(self.atoms)
-        # XXX: [CD] I could not reproduce the behavior mentioned above. What
-        # was the pb here?
-
-        # Write the initial configurations to the *.traj files
-        self._write("Creating trajectories")
-        self.traj = []
-        for istate in range(self.nstate):
-            prefix = self.state[istate].prefix
-            self.traj.append(Trajectory(prefix + ".traj", mode="w"))
-            self.traj[istate].write(self.atoms[istate])
-            self.nconfs[istate] += 1
-
-        # If there are no training configurations in the database,
-        # we need to create some and run the true potential
-        nb_existing_confs = self.mlip.nconfs
-        if nb_existing_confs == 0:
+        # Load/compute training configurations (if empty MLIP)
+        if self.mlip.nconfs == 0:
             conf_fname = str(self.workdir / "Training_configurations.traj")
-
-            if self._is_existing_conf_file(conf_fname):
-                confs_init = self._load_confs_init(conf_fname)
-                for conf in confs_init:
-                    self.mlip.update_matrices(conf)
-                    # XXX CD: Question: In which cases do we have
-                    # nb_existing_confs == 0 and at the same time
-                    # self._is_existing_conf_file(conf_fname) is True?
-
+            if self._is_traj_file(conf_fname):
+                self._load_training_confs(conf_fname)
             else:
-                confs_init = self._initialize_training_confs()
-                # Distribute state training
-                nstate = len(confs_init)
-                subfolder_l = ["Training"] * nstate
-                istep = np.arange(nstate, dtype=int)
-                self._write("\nComputing true potential energy [training configs]")
-                confs_init = self.calc.compute_true_potential(confs_init,
-                                                              subfolder_l,
-                                                              istep)
-                self._write("Computation done")
-                # RB: Same comment
-                # confs_init = self.add_traj_descriptors(confs_init)
-                init_traj = Trajectory(conf_fname, mode="w")
-                for i, conf in enumerate(confs_init):
-                    if conf is None:
-                        msg = "True potential calculation failed or " + \
-                              "didn't converge"
-                        raise TruePotentialError(msg)
-                    self.mlip.update_matrices(conf)
-                    init_traj.write(conf)
-                # We dont need the initial configurations anymore
-                del self.confs_init
-            self._write()
-        else:
-            msg = f"There are already {nb_existing_confs} configurations " + \
-                  "in the database, no need to start training computations\n"
-            self._write(msg)
+                self._initialize_training_confs()
+                self._compute_training_confs()
+                self._create_training_traj()
 
-        # And now we add the starting configurations in the fit matrices
-        # XXX: Ideally, these two lines would be in the block above,
-        # since uniq_at has been defined at the beginning. Some consideration
-        # should be given to self.mlip.nconfs
-        for at in uniq_at:
+        # Add initial/training configurations to database
+        for at in self.confs_init + self.uniq_at:
             self.mlip.update_matrices(at)
 
         self.launched = True
@@ -519,7 +488,7 @@ class Mlas(Manager):
         self.atoms = []
         # Create list of atoms
         if isinstance(atoms, Atoms):
-            for istate in range(self.nstate):
+            for _ in range(self.nstate):
                 self.atoms.append(atoms.copy())
         elif isinstance(atoms, list):
             e = "You should have 1 atoms per state"
@@ -548,26 +517,52 @@ class Mlas(Manager):
         Function to check simulation restarts:
          - Check if trajectory files exist and are not empty.
          - Check if the number of configuration found is at least two.
+
+        Returns
+        ----------
+
+        `bool`
+            Boolean indicating if the conditions are met.
         """
-        _nat_init = 0
+        # Build a list of all *.traj files to test
+        all_traj_files = [str(self.workdir / "Training_configurations.traj")]
         for i in range(self._nmax):
             traj_fname = str(self.workdir / (self.state[i].prefix + ".traj"))
-            if os.path.isfile(traj_fname):
-                try:
-                    _nat_init += len(read(traj_fname, index=':'))
-                except UnknownFileTypeError:
-                    return False
+            all_traj_files.append(traj_fname)
+
+        # Check all possible *.traj files
+        _nat_init = 0
+        for traj_fname in all_traj_files:
+            if self._is_traj_file(traj_fname):
+                _nat_init += len(read(traj_fname, index=':'))
             else:
                 return False
-        traj_fname = str(self.workdir / "Training_configurations.traj")
-        if os.path.isfile(traj_fname):
-            try:
-                _nat_init += len(read(traj_fname, index=':'))
-            except UnknownFileTypeError:
-                return False
-        if 1 < _nat_init:
+
+        return _nat_init >= 2
+
+# ========================================================================== #
+    def _is_traj_file(self, trajname):
+        """
+        Check if Trajectory file exists and is readable.
+
+        Parameters
+        ----------
+
+        trajname: :class:`str`
+            The *.traj file being tested.
+
+        Returns
+        ----------
+
+        `bool`
+            Boolean indicating if the conditions are met.
+        """
+        if not os.path.isfile(trajname):
+            return False
+        try:
+            read(trajname, index=":")
             return True
-        else:
+        except UnknownFileTypeError:
             return False
 
 # ========================================================================== #
@@ -730,6 +725,9 @@ class Mlas(Manager):
         """
         Compute list of unique atoms and corresponding indices.
 
+        Notes
+        -----
+
         The initial `atoms` list, self.atoms, may be redundant (e.g., if state-
         averaging is sought during MD). To avoid calculating the same true
         potential several times, a list of `unique` configurations (two-by-two
@@ -746,14 +744,16 @@ class Mlas(Manager):
                 idx_computed.append([istate])
         self.idx_computed = idx_computed
         self.nb_distinct_conf = len(uniq_at)
+        self.uniq_at = uniq_at
 
         self._write(f"Number of distinct config.: {self.nb_distinct_conf}")
 
-        return uniq_at
-
 # ========================================================================== #
-    def _distribute_unique_atoms(self):
-        """Distribute unique atoms properties to all atoms"""
+    def _distribute_atoms(self):
+        """
+        Update `self.atoms` with computed properties gathered in `uniq_at`, by
+        distributing unique atoms properties to all atoms.
+        """
         for iun, at in enumerate(self.uniq_at):
             if at is None:
                 msg = "True potential calculation failed or didn't converge"
@@ -776,47 +776,91 @@ class Mlas(Manager):
                 # all the tests.
 
 # ========================================================================== #
-    def _is_existing_conf_file(self, fname):
+    def _create_initial_traj(self):
         """
-        Check if a configurations file exists and is readable.
+        Create the .traj files.
+        Write the initial configurations (stored in self.atoms) in .traj files.
         """
-        if not os.path.isfile(fname):
-            return False
-        try:
-            read(fname, index=":")
-            return True
-        except UnknownFileTypeError:
-            return False
+        self._write("Creating trajectories")
+        for istate in range(self.nstate):
+            prefix = self.state[istate].prefix
+            self.traj.append(Trajectory(prefix + ".traj", mode="w"))  # Create
+            self.traj[istate].write(self.atoms[istate])  # Update
+            self.nconfs[istate] += 1
 
 # ========================================================================== #
-    def _load_confs_init(self, fname):
+    def _compute_initial_confs(self):
         """
-        Check if a configurations file exists and is readable.
+        Compute true potential properties of (unique) initial configurations.
         """
-        self.log._delimiter()
-        self._write("Training configurations found")
-        self._write("Adding them to the training data")
-
-        confs_init = read(fname, index=":")
-        return confs_init
+        subfolder_l = ["Initial"] * self.nb_distinct_conf
+        istep = np.arange(self.nb_distinct_conf, dtype=int)
+        self._write("Computing true potential energy [initial configs]")
+        self.uniq_at = self.calc.compute_true_potential(self.uniq_at,
+                                                        subfolder_l,
+                                                        istep)
+        self._write("Computation done")
 
 # ========================================================================== #
     def _initialize_training_confs(self):
-        """Create or load training configurations"""
-        if self.confs_init is None:
+        """Create training configurations"""
+        if self.confs_init == []:
             # By default, only one training configuration is created
-            confs_init = create_random_structures(self.uniq_at,
-                                                  self.std_init,
-                                                  1)
+            self.confs_init = create_random_structures(self.uniq_at,
+                                                       self.std_init,
+                                                       1)
         elif isinstance(self.confs_init, (int, float)):
             # XXX: why should it be self.atoms[0] that is passed as an
             # arg here to create_random_structures, and not uniq_at?
-            confs_init = create_random_structures(self.atoms[0],
-                                                  self.std_init,
-                                                  self.confs_init)
-        elif isinstance(self.confs_init, list):
-            confs_init = self.confs_init
-        return confs_init
+            self.confs_init = create_random_structures(self.atoms[0],
+                                                       self.std_init,
+                                                       self.confs_init)
+
+# ========================================================================== #
+    def _load_training_confs(self, conf_fname):
+        """Load and log training configurations."""
+
+        self.confs_init = read(conf_fname, index=":")
+        nb_confs_found = len(self.confs_init)
+
+        # self.log._delimiter()
+        self._write(f"{nb_confs_found} training configurations found")
+        self._write("Adding them to the training data")
+
+        if nb_confs_found >= 2:
+            self._write("\tNo need to start new training computations\n")
+        self._write()
+
+# ========================================================================== #
+    def _compute_training_confs(self):
+        """
+        Compute true potential properties of training configurations.
+        """
+        # Distribute state training
+        nstate = len(self.confs_init)
+        subfolder_l = ["Training"] * nstate
+        istep = np.arange(nstate, dtype=int)
+        self._write("\nComputing true potential energy [training configs]")
+        self.confs_init = self.calc.compute_true_potential(self.confs_init,
+                                                           subfolder_l,
+                                                           istep)
+        self._write("Computation done")
+
+# ========================================================================== #
+    def _create_training_traj(self):
+        """
+        Create the training *.traj file.
+        Write the initial configurations (stored in self.confs_init) in *.traj.
+        """
+        conf_fname = str(self.workdir / "Training_configurations.traj")
+        init_traj = Trajectory(conf_fname, mode="w")
+        for conf in self.confs_init:
+            if conf is None:
+                msg = "True potential calculation failed or " + \
+                      "didn't converge"
+                raise TruePotentialError(msg)
+            init_traj.write(conf)
+        self._write()
 
 # ========================================================================== #
     def _write(self, msg="", center=False, underline=False):

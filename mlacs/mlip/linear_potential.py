@@ -80,12 +80,12 @@ class LinearPotential(MlipManager):
         -----
 
         Local variables:
-        - `amat`: ndarray of shape ((7+3*Nat)*N, K)
-            Feature matrix
-        - `ymat`: ndarray of shape ((7+3*Nat)*N,)
-            Label vector
-        - `W`: ndarray of shape ((7+3*Nat)*N,)
-            Weighting matrix
+            - `amat`: ndarray of shape ((7+3*Nat)*N, K)
+                Feature matrix
+            - `ymat`: ndarray of shape ((7+3*Nat)*N,)
+                Label vector
+            - `W`: ndarray of shape ((7+3*Nat)*N,)
+                Weighting matrix
 
         Where:
             - `K` is the number of descriptor components
