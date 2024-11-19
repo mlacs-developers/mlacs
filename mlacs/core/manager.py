@@ -15,19 +15,43 @@ class Manager:
     """
     Base class for managing computation files and logs,
 
-    workdir: The working directory.
-             It is fixed, and may be shared with other managers writing in it.
+    Parameters
+    ----------
 
-    folder: A folder inside the working directory, specific to this object.
-            Its name is relative to workdir, and its absolute path is accessed
-            with the subdir property.
+    workdir: :class:`str`
+        The working directory.
+        It is fixed, and may be shared with other managers writing in it.
 
-    subfolder: A subfolder inside the folder directory.
-            Its name is relative to subdir, and its absolute path is accessed
-            with the subsubdir property.
-            It can be dynamic, e.g. if we perform multiple calculations.
+    folder: :class:`str`
+        A folder inside the working directory, specific to this object.
+        Its name is relative to workdir, and its absolute path is accessed
+        with the subdir property.
 
-    prefix: A prefix for making file names.
+    subfolder: :class:`str`
+        A subfolder inside the folder directory.
+        Its name is relative to subdir, and its absolute path is accessed
+        with the subsubdir property.
+        It can be dynamic, e.g. if we perform multiple calculations.
+
+    prefix: :class:`str`
+        A prefix for making file names.
+
+
+    Examples
+    --------
+
+    workdir/prefix.traj
+    ├─ folder1/
+    │  ├─ subfolder1/prefix.traj
+    ├─ folder2/
+    │  ├─ subfolder1/
+    │  ├─ subfolder2/
+
+    path -> /workdir/folder1/subfolder2/
+    filepath -> /workdir/folder1/subfolder2/prefix.traj
+
+    subdir -> /workdir/folder1/
+    subsubdir -> /workdir/folder1/subfolder2/
     """
 
     _workdir = Path('')

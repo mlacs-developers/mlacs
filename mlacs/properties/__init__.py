@@ -14,11 +14,15 @@ from mlacs.properties.calc_property import (CalcPafi,
                                             CalcRdf,
                                             CalcAdf,
                                             CalcTi,
+                                            CalcProperty,
                                             CalcExecFunction,
+                                            CalcRoutineFunction,
+                                            CalcPressure,
+                                            CalcAcell,
+                                            CalcAngles,
+                                            CalcElectronicEntropy,
                                             )
 
-from .basic_function import (eos_fit,
-                             )
 
 __all__ = ['PropertyManager',
            'RoutinePropertyManager',
@@ -29,5 +33,9 @@ __all__ = ['PropertyManager',
            'CalcAdf',
            'CalcTi',
            'CalcExecFunction',
-           'eos_fit',
+           'CalcRoutineFunction',
+           'CalcPressure',
+           'CalcAcell',
+           'CalcAngles',
+           'CalcElectronicEntropy',
            ]

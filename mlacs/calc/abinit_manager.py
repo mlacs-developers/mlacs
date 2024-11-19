@@ -97,6 +97,8 @@ class AbinitManager(CalcManager):
                  mpi_runner="mpirun",
                  magmoms=None,
                  folder='DFT',
+                 logfile="abinit.log",
+                 errfile="abinit.err",
                  nproc=1,
                  nproc_per_task=None,
                  **kwargs):
@@ -122,8 +124,8 @@ class AbinitManager(CalcManager):
             nproc_per_task = self.nproc
         self.nproc_per_task = nproc_per_task
 
-        self.log_suffix = "abinit.log"
-        self.err_suffix = "abinit.eff"
+        self.log = logfile
+        self.err = errfile
         self.ncfile = AbinitNC()
 
 # ========================================================================== #
@@ -197,8 +199,8 @@ class AbinitManager(CalcManager):
                 command = self._make_command()
                 executor.submit(self.submit_abinit_calc,
                                 command,
-                                self.get_filepath('abinit.log'),
-                                self.get_filepath('abinit.err'),
+                                self.get_filepath(self.log),
+                                self.get_filepath(self.err),
                                 cdir=str(self.subsubdir))
             executor.shutdown(wait=True)
 
@@ -350,8 +352,8 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinit.abi")
         if os.path.exists(stateprefix + "abinit.abo"):
             os.remove(stateprefix + "abinit.abo")
-        if os.path.exists(stateprefix + "abinit.log"):
-            os.remove(stateprefix + "abinit.log")
+        if os.path.exists(stateprefix + self.log):
+            os.remove(stateprefix + self.log)
         if os.path.exists(stateprefix + "abinito_GSR.nc"):
             os.remove(stateprefix + "abinito_GSR.nc")
         if os.path.exists(stateprefix + "abinito_OUT.nc"):

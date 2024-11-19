@@ -35,11 +35,11 @@ class CalcProperty(Manager):
 
     Parameters
     ----------
-    method: :class:`str` type of criterion.
+    method: :class:`str`
+    Type of criterion.
         - max, maximum difference between to consecutive step < criterion
         - ave, average difference between to consecutive step < criterion
-
-        Default ``max``
+    Default ``max``
 
     criterion: :class:`float`
         Stopping criterion value (eV). Default ``0.001``

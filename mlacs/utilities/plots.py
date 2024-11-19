@@ -55,6 +55,8 @@ def plot_correlation(ax,
     color:
         The color of the marker in the scatter plot.
         Ignored if density is True.
+    marker:
+        Marker type in the scatter plot.
     datatype: `None` or `str`
         The type of data. Can be either "energy", "forces" or "stress"
     density: `Bool`
@@ -177,6 +179,30 @@ def plot_error(ax,
                showmae=True,
                showrsquared=True):
     """
+    Function to plot the error distribution between true and model data
+
+    Parameters:
+    -----------
+    ax: Axes.axes
+        The axes on which to plot the data
+    data: `np.ndarray`
+        The data to plot. Has to be of shape (n, 2)
+        with n the number of datapoint.
+    color:
+        The color of the marker in the scatter plot.
+        Ignored if density is True.
+    datatype: `None` or `str`
+        The type of data. Can be either "energy", "forces" or "stress"
+    showrmse: `Bool`
+        Whether to show the RMSE on the plot
+    showmae: `Bool`
+        Whether to show the MAE on the plot
+    showrsquared: `Bool`
+        Whether to show the R^2 on the plot
+
+    Returns:
+    --------
+    ax
     """
     dataerror = data[:, 0] - data[:, 1]
 
@@ -236,6 +262,23 @@ def plot_error(ax,
 
 
 def plot_weights(ax, weights, color=blue, fontsize=30):
+    """
+    Function to plot the error distribution between true and model data
+
+    Parameters:
+    -----------
+    ax: Axes.axes
+        The axes on which to plot the data
+    weights: `np.ndarray`
+        The weights to plot.
+    color:
+        The color of the marker in the scatter plot.
+        Ignored if density is True.
+
+    Returns:
+    --------
+    ax
+    """
     xrange = np.arange(len(weights))
     neff = np.sum(weights)**2 / np.sum(weights**2)
 

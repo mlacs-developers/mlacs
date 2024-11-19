@@ -45,6 +45,15 @@ class LinearPotential(MlipManager):
     Examples
     --------
 
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(confs[0], rcut=6.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
+    >>>
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
     def __init__(self,
                  descriptor,

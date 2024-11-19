@@ -30,6 +30,10 @@ class CalcManager(Manager):
         An array for the initial magnetic moments for each computation
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
+
+    folder: :class:`str` (optional)
+        The root for the directory in which the computation are to be done
+        Default 'Calc'
     """
 
     def __init__(self,

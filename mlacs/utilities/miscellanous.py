@@ -174,10 +174,13 @@ def compute_averaged(traj, weights=None):
                            axis=0, weights=weights)
     energy = np.average([at.get_potential_energy() for at in traj],
                         weights=weights)
-    atoms = _create_ASE_object(Z=Z,
-                               positions=positions,
-                               cell=cell,
-                               energy=energy)
+    atoms = Atoms(numbers=Z,
+                  positions=positions,
+                  cell=cell,
+                  pbc=True)
+    calc = SPC(atoms=atoms,
+               energy=energy)
+    atoms.calc = calc
     return atoms.copy()
 
 

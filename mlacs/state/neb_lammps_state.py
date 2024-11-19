@@ -20,8 +20,6 @@ from ..utilities.io_lammps import (LammpsBlockInput,
                                    EmptyLammpsBlockInput,
                                    get_lammps_command)
 
-from ..utilities.io_lammps import write_lammps_NEB_ASCIIfile
-
 
 # ========================================================================== #
 # ========================================================================== #
@@ -151,8 +149,12 @@ class NebLammpsState(BaseLammpsState):
                           self.patoms.initial,
                           velocities=False,
                           atom_style=atom_style)
-        write_lammps_NEB_ASCIIfile("atoms-1.data",
-                                   self.patoms.final)
+        instr = '# Final coordinates of the NEB calculation.\n'
+        instr += '{0}\n'.format(len(self.patoms.final))
+        for atoms in self.patoms.final:
+            instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
+        with open("atoms-1.data", "w") as w:
+            w.write(instr)
 
 # ========================================================================== #
     def _get_block_init(self, atom_style, pbc, el, masses):

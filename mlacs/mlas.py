@@ -30,7 +30,7 @@ from .properties import PropertyManager, RoutinePropertyManager
 # ========================================================================== #
 # ========================================================================== #
 class Mlas(Manager):
-    """
+    r"""
     A Learn on-the-fly simulation constructed in order to sample approximate
     distribution
 
@@ -54,20 +54,14 @@ class Mlas(Manager):
         Default is a LammpsMlip object with a snap descriptor,
         ``5.0`` angstrom rcut with ``8`` twojmax.
 
+    prop: :class:`PropertyManager` or :class:`list` or :class:`CalcProperty`
+    (optional)
+        Object managing the MLIP to approximate the real distribution
+        Default is a LammpsMlip object with a snap descriptor,
+        ``5.0`` angstrom rcut with ``8`` twojmax.
+
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
-
-    nbeads: :class:`int` (optional)
-        The number of beads to use from Path-Integral simulations.
-        This value has to be lower than the number of beads used
-        in the State object, or equal to it.
-        If it is lower, this number indicates the number of beads
-        for which a trajectory will be created and computed
-        with the reference potential.
-        Default ``1``, ignored for non-path integral States
-
-    workdir: :class:`str` (optional)
-        The directory in which to run the calculation.
 
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
         If :class:`int`, Number of configurations used to train a preliminary
@@ -77,14 +71,32 @@ class Mlas(Manager):
         Default ``None``.
 
     std_init: :class:`float` (optional)
-        Variance (in :math:`Ang^2`) of the displacement
+        Variance (in :math:`\mathring{a}^2`) of the displacement
         when creating initial configurations.
-        Default :math:`0.05 Ang^2`
+        Default :math:`0.05 \mathring{a}^2`
 
     keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
+
+    workdir: :class:`str` (optional)
+        The directory in which to run the calculation.
+
+    prefix: :class:`str` (optional)
+        The prefix to prepend the name of the States files.
+
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+        Script name format: ncprefix + scriptname + '_HIST.nc'.
+        Default `''`.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF3_CLASSIC``.
     """
 
     def __init__(self,

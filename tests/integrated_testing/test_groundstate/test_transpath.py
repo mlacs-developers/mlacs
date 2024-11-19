@@ -217,7 +217,8 @@ def test_mlacs_string_ase(root, treelink):
 
     mode = "rdm_memory"
     nimages = 6
-    state = StringMethodAseState(nebat, nimages=6, mode=mode, model=dmlip)
+    state = StringMethodAseState(nebat, nimages=6, mode=mode, model=dmlip,
+                                 ftol=1e-1)
 
     # Check that the same Atoms are used
     assert nebat[0] == state.patoms.initial
