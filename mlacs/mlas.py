@@ -78,7 +78,7 @@ class Mlas(Manager):
     keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
-        Default ``False``.
+        Default ``True``.
 
     workdir: :class:`str` (optional)
         The directory in which to run the calculation.
@@ -132,10 +132,6 @@ class Mlas(Manager):
         # Miscellanous initialization
         self.rng = np.random.default_rng()
 
-        #######################
-        # Initialize everything
-        #######################
-
         # Check if trajectory files already exists
         self.launched = self._check_if_launched()
 
@@ -148,25 +144,7 @@ class Mlas(Manager):
         if self.ncfile.unique_atoms_type:
             self._initialize_routine_properties()
 
-        self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
-        self.logger = self.log.logger_log
-        self._write()
-        self.log._delimiter()
-        self._write("Recap of the simulation parameters", True)
-        self._write()
-        self._write("Recap of the states", False, True)
-        for i in range(self.nstate):
-            self._write(f"State {i+1}/{self.nstate} :")
-            self._write(repr(self.state[i]))
-            self._write()
-        self._write()
-        self._write("Recap of the calculator", False, True)
-        msg = self.calc.log_recap_state()
-        self._write(msg)
-        self._write()
-        self._write("Recap of the MLIP", False, True)
-        self._write(repr(self.mlip))
-        self._write()
+        self._initialize_logger()
 
         # Initialize momenta and parameters for initial/training configs
         if not self.launched:
@@ -241,15 +219,11 @@ class Mlas(Manager):
 
         # Training MLIP
         self._write("Training new MLIP")
-
         if self.keep_tmp_mlip:
             self.mlip.subfolder = f"Coef{max(self.nconfs)}"
         else:
             self.mlip.subfolder = ''
-
-        # TODO GA: mlip object should be logging instead
-        msg = self.mlip.train_mlip()
-        self._write(msg)
+        self.mlip.train_mlip()
 
         # Create MLIP atoms object
         atoms_mlip = []
@@ -387,7 +361,7 @@ class Mlas(Manager):
 
             (iii) Update MLIP object with new confs from step (i) and (ii).
         """
-        self._write("\nRunning initial step")
+        self._write("\nRunning initial step\n")
 
         # Compute initial configurations
         self._get_unique_atoms()
@@ -522,6 +496,34 @@ class Mlas(Manager):
         else:
             msg = "neq should be an integer or a list of integers"
             raise TypeError(msg)
+
+# ========================================================================== #
+    def _initialize_logger(self):
+        """Initialize logger."""
+        self.log = MlacsLog(str(self.workdir / "MLACS.log"), self.launched)
+        # XXX: self.logger: useless line?
+        # self.logger = self.log.logger_log
+        self._write()
+        self.log._delimiter()
+        self._write("Recap of the simulation parameters", True)
+        self._write()
+        self._write("Recap of the states", False, True)
+        for i in range(self.nstate):
+            self._write(f"State {i+1}/{self.nstate} :")
+            self._write(repr(self.state[i]))
+            self._write()
+        self._write()
+        self._write("Recap of the calculator", False, True)
+        msg = self.calc.log_recap_state()
+        self._write(msg)
+        self._write()
+        self._write("Recap of the MLIP", False, True)
+        self._write(repr(self.mlip))
+        self._write()
+
+        # Share logger instance to mlip and calc objects.
+        self.mlip.logger = self.log
+        self.calc.logger = self.log
 
 # ========================================================================== #
     def _check_if_launched(self):
@@ -767,9 +769,6 @@ class Mlas(Manager):
         distributing unique atoms properties to all atoms.
         """
         for iun, at in enumerate(self.uniq_at):
-            if at is None:
-                msg = "True potential calculation failed or didn't converge"
-                raise TruePotentialError(msg)
             for icop in self.idx_computed[iun]:
                 # All atoms/calc are reinstantiated
                 newat = at.copy()
@@ -811,6 +810,9 @@ class Mlas(Manager):
         self.uniq_at = self.calc.compute_true_potential(self.uniq_at,
                                                         subfolder_l,
                                                         istep)
+        if any(at is None for at in self.uniq_at):
+            msg = "True potential calculation failed or didn't converge"
+            raise TruePotentialError(msg)
         self._write("Computation done")
 
 # ========================================================================== #
@@ -835,7 +837,6 @@ class Mlas(Manager):
         self.confs_init = read(conf_fname, index=":")
         nb_confs_found = len(self.confs_init)
 
-        # self.log._delimiter()
         self._write(f"{nb_confs_found} training configurations found")
         self._write("Adding them to the training data")
 
@@ -848,7 +849,6 @@ class Mlas(Manager):
         """
         Compute true potential properties of training configurations.
         """
-        # Distribute state training
         nstate = len(self.confs_init)
         subfolder_l = ["Training"] * nstate
         istep = np.arange(nstate, dtype=int)
@@ -856,6 +856,9 @@ class Mlas(Manager):
         self.confs_init = self.calc.compute_true_potential(self.confs_init,
                                                            subfolder_l,
                                                            istep)
+        if any(at is None for at in self.confs_init):
+            msg = "True potential calculation failed or didn't converge"
+            raise TruePotentialError(msg)
         self._write("Computation done")
 
 # ========================================================================== #
@@ -867,10 +870,6 @@ class Mlas(Manager):
         conf_fname = str(self.workdir / "Training_configurations.traj")
         init_traj = Trajectory(conf_fname, mode="w")
         for conf in self.confs_init:
-            if conf is None:
-                msg = "True potential calculation failed or " + \
-                      "didn't converge"
-                raise TruePotentialError(msg)
             init_traj.write(conf)
         self._write()
 

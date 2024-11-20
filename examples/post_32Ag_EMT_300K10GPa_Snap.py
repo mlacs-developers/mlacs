@@ -15,12 +15,15 @@ plt.rcdefaults()
 plt.rcParams["font.size"] = 10
 plt.rcParams['figure.dpi'] = 300
 
-# Requires prior execution of mlacs_32Ag_EMT_300K10GPa_Snap.py
 workdir = os.path.basename(__file__).split('.')[0].split('post_')[-1]
 path = Path().absolute()
 prefix = f'mlacs_{workdir}'
-ncname = glob.glob(f'{prefix}/*_HIST.nc')[0]
-ncpath = str(path / ncname)
+try:
+    ncname = glob.glob(f'{prefix}/*_HIST.nc')[0]
+    ncpath = str(path / ncname)
+except IndexError as e:
+    msg = 'Requires prior execution of mlacs_32Ag_EMT_300K10GPa_Snap.py'
+    raise Exception(msg) from e
 
 if os.path.isfile(ncpath):
     ncfile = HistFile(ncpath=ncpath)

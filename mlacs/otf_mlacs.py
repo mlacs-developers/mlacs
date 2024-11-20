@@ -59,7 +59,7 @@ class OtfMlacs(Mlas, Manager):
     keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
-        Default ``False``.
+        Default ``True``.
 
     prefix: :class:`str` (optional)
         The prefix to prepend the name of the States files.
