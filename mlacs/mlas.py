@@ -195,55 +195,33 @@ class Mlas(Manager):
 # ========================================================================== #
     def _run_step(self):
         """
-        Run one step of the algorithm
+        Run a regular step of the algorithm.
 
-        One step consist in:
-           fit of the MLIP
-           nsteps of MLMD
-           true potential computation
+        A regular step consists in:
+           - Train (fit) the MLIP,
+           - Run MLMD with trained MLIP during nsteps,
+           - Compute the true potential energy/forces/stresses,
+           - Update database and save new configs.
+
+        Returns
+        ----------
+
+        `partial_success`: :class:`bool`
+            `True` if at least one state has been successfully computed by the
+            true potential after MLMD, `False` otherwise.
+            See also _handle_potential_error() method.
         """
-        # Check if this is an equilibration or normal step for the mlmd
-        self._write()
-        eq = []
-        for istate in range(self.nstate):
-            trajstep = self.nconfs[istate]
-            if self.nconfs[istate] < self.neq[istate]:
-                eq.append(True)
-                msg = f"Equilibration step for state {istate+1}, "
-            else:
-                eq.append(False)
-                msg = f"Production step for state {istate+1}, "
-            msg += f"configurations {trajstep} for this state"
-            self._write(msg)
-        self._write()
 
-        # Training MLIP
+        eq = self._is_eq_step()
+
+        # Train MLIP
         self._write("Training new MLIP")
-        if self.keep_tmp_mlip:
-            self.mlip.subfolder = f"Coef{max(self.nconfs)}"
-        else:
-            self.mlip.subfolder = ''
+        self._set_mlip_subfolder()
         self.mlip.train_mlip()
 
-        # Create MLIP atoms object
-        atoms_mlip = []
-        for i in range(self._nmax):
-            at = self.atoms[i].copy()
-            atoms_mlip.append(at)
-
-        # SinglePointCalculator to bypass the calc attach to atoms thing of ase
-        sp_calc_mlip = []
-
-        # Run the actual MLMD
+        # Run MLMD with as many threads as there are states
         self._write("Running MLMD")
-
-        for istate in range(self.nstate):
-            if self.state[istate].isrestart or eq[istate]:
-                self._write(" -> Starting from first atomic configuration")
-                atoms_mlip[istate] = self.atoms_start[istate].copy()
-                self.state[istate].initialize_momenta(atoms_mlip[istate])
-
-        # With those threads, we can execute all the states in parallel
+        atoms_mlip = self._create_mlip_atoms(eq)
         futures = []
         with save_cwd(), ThreadPoolExecutor() as executor:
             for istate in range(self.nstate):
@@ -256,7 +234,8 @@ class Mlas(Manager):
                                         eq[istate],
                                         self.mlip.get_elements()))
                 futures.append(exe)
-                self._write(f"State {istate+1}/{self.nstate} has been launched")  # noqa
+                msg = f"State {istate+1}/{self.nstate} has been launched"
+                self._write(msg)
             for istate, exe in enumerate(futures):
                 atoms_mlip[istate] = exe.result()
                 if self.keep_tmp_mlip:
@@ -266,9 +245,6 @@ class Mlas(Manager):
 
         # Computing energy with true potential
         self._write("Computing energy with the True potential")
-        atoms_true = []
-        nerror = 0  # Handling of calculator error / non-convergence
-
         # TODO GA: Might be better to do the threading at this level,
         #          up from calc.compute_true_potential.
         subfolder_l = [s.subfolder for s in self.state]
@@ -276,32 +252,17 @@ class Mlas(Manager):
         atoms_true = self.calc.compute_true_potential(atoms_mlip,
                                                       subfolder_l,
                                                       step=step_l)
+        partial_success = self._handle_potential_error(atoms_true)
 
-        for i, at in enumerate(atoms_mlip):
+        # SinglePointCalculator to bypass the calc attach to atoms thing of ase
+        for at in atoms_mlip:
             at.calc = self.mlip.get_calculator()
-            sp_calc_mlip.append(SinglePointCalculator(
-                                at,
-                                energy=at.get_potential_energy(),
-                                forces=at.get_forces(),
-                                stress=at.get_stress()))
-            at.calc = sp_calc_mlip[i]
+            at.calc = SinglePointCalculator(at.copy(),
+                                            energy=at.get_potential_energy(),
+                                            forces=at.get_forces(),
+                                            stress=at.get_stress())
 
-        for i, at in enumerate(atoms_true):
-            if at is None:
-                msg = f"For state {i+1}/{self._nmax} calculation with " + \
-                       "the true potential resulted in error " + \
-                       "or didn't converge"
-                self._write(msg)
-                nerror += 1
-
-        # True potential error handling
-        if nerror == self.nstate:
-            msg = "All true potential calculations failed, " + \
-                  "restarting the step"
-            self._write(msg)
-            return False
-
-        # And now we can write the configurations in the trajectory files
+        # Update database / Save new configs in trajectory files
         attrue = self.add_traj_descriptors(atoms_true)
         for i, (attrue, atmlip) in enumerate(zip(atoms_true, atoms_mlip)):
             if attrue is not None:
@@ -323,7 +284,7 @@ class Mlas(Manager):
             self._compute_routine_properties()
         self._execute_post_step()
 
-        return True
+        return partial_success
 
 # ========================================================================== #
     def _run_initial_step(self):
@@ -553,6 +514,104 @@ class Mlas(Manager):
                 return False
 
         return _nat_init >= 2
+
+# ========================================================================== #
+    def _is_eq_step(self):
+        """
+        Distinguish between equilibration and production steps for the MLMD.
+
+        Returns
+        ----------
+
+        `eq`: :class:`list` of :class:`bool`
+            Element in `eq` is True if this is an equilibration step.
+        """
+        self._write()
+        eq = []
+        for istate in range(self.nstate):
+            trajstep = self.nconfs[istate]
+            if self.nconfs[istate] < self.neq[istate]:
+                eq.append(True)
+                msg = f"Equilibration step for state {istate+1}, "
+            else:
+                eq.append(False)
+                msg = f"Production step for state {istate+1}, "
+            msg += f"{trajstep} configurations for this state"
+            self._write(msg)
+        self._write()
+        return eq
+
+# ========================================================================== #
+    def _set_mlip_subfolder(self):
+        """
+        Set mlip subfolder.
+
+        Notes
+        ----------
+
+        The branching here results from two situations:
+
+        (1) One wants to keep all MLIP data (i.e., for each step),
+
+        (2) One is only interested in the last MLIP data, and therefore
+            routinely overwritting MLIP data is fine.
+        """
+        if self.keep_tmp_mlip:
+            self.mlip.subfolder = f"Coef{max(self.nconfs)}"
+        else:
+            self.mlip.subfolder = ''
+
+# ========================================================================== #
+    def _create_mlip_atoms(self, eq):
+        """
+        Create MLIP atoms object.
+
+        Returns
+        ----------
+
+        `atoms_mlip` :class:`list` of :class:`ase.Atoms`
+            The list of Atoms objects on which MLMD will be performed.
+            Can be either
+                - the initial configs (if restart or equilibration steps)
+                - the last `self.atoms` configs (reinstantiated for precaution)
+        """
+        atoms_mlip = [None]*self.nstate
+        for istate in range(self.nstate):
+            if self.state[istate].isrestart or eq[istate]:
+                self._write(" -> Starting from first atomic configuration")
+                atoms_mlip[istate] = self.atoms_start[istate].copy()
+                self.state[istate].initialize_momenta(atoms_mlip[istate])
+            else:
+                atoms_mlip[istate] = self.atoms[istate].copy()
+        return atoms_mlip
+
+# ========================================================================== #
+    def _handle_potential_error(self, atoms_true):
+        """
+        True potential error handling.
+
+        Returns
+        ----------
+
+        `bool`
+            `True` if at least one state has been successfully computed by the
+            true potential after MLMD, `False` otherwise.
+        """
+        partial_success = True
+        nerror = 0
+        for i, at in enumerate(atoms_true):
+            if at is None:
+                msg = f"For state {i+1}/{self._nmax} calculation with " + \
+                       "the true potential resulted in error " + \
+                       "or didn't converge"
+                self._write(msg)
+                nerror += 1
+        if nerror == self.nstate:
+            msg = "All true potential calculations failed, " + \
+                  "restarting the step"
+            self._write(msg)
+            partial_success = False
+        return partial_success
 
 # ========================================================================== #
     def _is_traj_file(self, trajname):
