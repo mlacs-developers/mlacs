@@ -335,13 +335,16 @@ class AbinitManager(CalcManager):
         for ityp in pseudos.keys():
             typat.append(ityp)
             pseudolist.append(pseudos[ityp])
+        typat = np.array(typat)
         pseudolist = np.array(pseudolist)
 
         self.typat = typat
         znucl = symbols2numbers(typat)
         idx = np.argsort(znucl)
-        pseudolist = pseudolist[idx]
-        self.pseudos = pseudolist
+
+        # Reorder in increasing Z
+        self.typat = typat[idx]
+        self.pseudos = pseudolist[idx]
 
 # ========================================================================== #
     def _remove_previous_run(self, stateprefix):
