@@ -784,7 +784,7 @@ class CalcSpinAt(CalcRoutineFunction):
     """
     Class to obtain the electronic spin-magnetization (as computed by Abinit)
     from ASE's Atoms object.
-    See also mlacs.utilities.io_abinit.set_aseAtoms.py
+    See also mlacs.utilities.io_abinit.py: set_aseAtoms
     """
 
     def __init__(self,

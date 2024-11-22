@@ -8,12 +8,16 @@
 
 import os
 import sys
-import numpy as np
 from pathlib import Path
+
+import numpy as np
 
 from ase import Atoms
 from ase.units import Bohr, Hartree
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
+
+from mlacs.utilities.miscellanous import create_ASE_object
+from mlacs.utilities.units import unit_converter
 
 try:
     import netCDF4 as nc
@@ -411,6 +415,7 @@ class AbinitNC:
 
         self.ncfile = self.workdir + f'{prefix}o_GSR.nc'
         self.results = {}
+        self.atoms_list = []
 
 # ========================================================================== #
     def read(self, filename=None):
@@ -507,3 +512,69 @@ class AbinitNC:
             return self._decodeattr(value)
         else:
             return np.r_[[self._decodeattr(v) for v in value]]
+
+# ========================================================================== #
+    def convert_to_atoms(self):
+        """
+        Convert the dictionary `self.results` representing Abinit HIST.nc file
+        to a list of ASE Atoms objects.
+
+        Notes
+        ----------
+
+        In the process, atomic units (Abinit) become `metal` units (LAMMPS).
+
+        Returns
+        -------
+
+        atoms_list: :class:`list` of :class:`ase.Atoms`
+            The list of configurations in ASE format.
+
+        Example
+        -------
+        ::
+
+           hist = AbinitNC()
+           hist.ncfile = '/path/to/HIST.nc'
+           atoms_list = hist.convert_to_atoms()
+        """
+
+        # Ensure Abinit *HIST.nc file has been read
+        if not self.results:
+            self.read()
+        hist_dict = self.results
+
+        typat = hist_dict['typat'].astype(int)
+        znucl = hist_dict['znucl'].astype(int)
+        atomic_numbers = np.array([znucl[i - 1] for i in typat])
+        nb_confs = len(hist_dict['etotal'])
+
+        dict_obs_unit = {'xcart': 'Bohr',
+                         'acell': 'Bohr',
+                         'etotal': 'Ha',
+                         'fcart': 'Ha/Bohr',
+                         'strten': 'Ha/Bohr^3',
+                         }
+
+        atoms_list = []
+        for idx_conf in range(nb_confs):
+
+            # Convert atomic units to metal units
+            dict_new_arr = {}
+            for obs_name, unit in dict_obs_unit.items():
+                obs_arr = hist_dict[obs_name][idx_conf]
+                obs_unit = unit
+                new_arr = unit_converter(obs_arr, obs_unit, style='metal')[0]
+                dict_new_arr[obs_name] = new_arr
+
+            atoms = create_ASE_object(atomic_numbers,
+                                      positions=dict_new_arr['xcart'],
+                                      cell=dict_new_arr['acell'],
+                                      energy=dict_new_arr['etotal'],
+                                      forces=dict_new_arr['fcart'],
+                                      stresses=dict_new_arr['strten'])
+
+            atoms_list.append(atoms)
+
+        self.atoms_list = atoms_list
+        return atoms_list

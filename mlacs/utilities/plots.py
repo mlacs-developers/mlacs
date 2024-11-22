@@ -13,10 +13,9 @@ from scipy.stats import gaussian_kde
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-from ase.units import Bohr, Hartree, GPa
-
 from . import compute_correlation
 from mlacs.utilities.io_abinit import HistFile
+from mlacs.utilities.units import unit_converter
 
 cyan = "#17becf"
 blue = "#1f77b4"
@@ -358,31 +357,6 @@ class HistPlot:
             raise FileNotFoundError(msg)
 
 # ========================================================================== #
-    def _custom_unit_converter(self, obs_arr, obs_unit):
-        """
-        Convert units from *HIST.nc atomic units to following custom units:
-            energy: eV,
-            distance: Ang,
-            volume: Ang^3,
-            force: eV/Ang,
-            pressure/stress: GPa
-        """
-        Ha2eV = Hartree
-        Bohr2Ang = Bohr
-        # Format of dict below: {'atomic_unit': [conv_factor, 'custom_unit']}
-        unit_convert_dict = {'Ha': [Ha2eV, 'eV'],
-                             'Bohr': [Bohr2Ang, 'Ang'],
-                             'Ha/Bohr': [Ha2eV/Bohr2Ang, 'eV/Ang'],
-                             'Bohr^3': [Bohr2Ang**3, 'Ang^3'],
-                             'Ha/Bohr^3': [(Ha2eV/Bohr2Ang**3)/GPa, 'GPa'],
-                             }
-        if obs_unit in unit_convert_dict:
-            conv_factor, custom_unit = unit_convert_dict[obs_unit]
-            return obs_arr*conv_factor, custom_unit
-        else:
-            return obs_arr, ''
-
-# ========================================================================== #
     def _initialize_weights(self, get_dict_weights=False):
         """
         Initialize attributes that are relevant when weights are needed.
@@ -469,7 +443,7 @@ class HistPlot:
         # Read atomic unit observable from *HIST.nc file
         obs_au = ncfile.read_obs(obs_name)
         # Convert to custom visualization units
-        observable, new_unit = self._custom_unit_converter(obs_au, nc_unit)
+        observable, new_unit = unit_converter(obs_au, nc_unit, style='custom')
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
 
@@ -477,7 +451,9 @@ class HistPlot:
         confs_idx = np.arange(1, len(observable)+1)
 
         w_obs_au, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
-        w_obs_data, new_unit = self._custom_unit_converter(w_obs_au, nc_unit)
+        w_obs_data, new_unit = unit_converter(w_obs_au,
+                                              nc_unit,
+                                              style='custom')
 
         uniform_obs = np.array([np.mean(observable[:i]) for i in w_obs_idx])
 

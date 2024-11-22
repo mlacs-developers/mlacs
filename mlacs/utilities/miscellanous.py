@@ -133,17 +133,23 @@ def compute_correlation(data, weight=None):
 
 
 # ========================================================================== #
-def _create_ASE_object(Z, positions, cell, energy):
+def create_ASE_object(atomic_numbers,
+                      positions,
+                      cell,
+                      energy=None,
+                      forces=None,
+                      stresses=None):
     """
     Create ASE Atoms object.
     """
-    atoms = Atoms(numbers=Z,
+    atoms = Atoms(numbers=atomic_numbers,
                   positions=positions,
                   cell=cell,
                   pbc=True)
-    calc = SPC(atoms=atoms,
-               energy=energy)
-    atoms.calc = calc
+    atoms.calc = SPC(atoms=atoms,
+                     energy=energy,
+                     forces=forces,
+                     stress=stresses)
     return atoms
 
 
