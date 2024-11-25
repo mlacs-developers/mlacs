@@ -9,12 +9,9 @@
 import os
 import sys
 from pathlib import Path
+from subprocess import check_output
 
 import numpy as np
-
-from ase import Atoms
-from ase.units import Bohr, Hartree
-from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
 
 from mlacs.utilities.miscellanous import create_ASE_object
 from mlacs.utilities.units import unit_converter
@@ -23,62 +20,6 @@ try:
     import netCDF4 as nc
 except ImportError:
     nc = None
-
-
-def set_aseAtoms(results=dict()) -> Atoms:
-    """Read results dictionary to construct Ase Atoms object"""
-    if 'reduced_atom_positions' in results.keys():
-        return _set_from_gsrNC(results)
-    elif 'xred' in results.keys():
-        return _set_from_outNC(results)
-    else:
-        msg = 'No atomic positions found in dictionary'
-        raise AttributeError(msg)
-
-
-def _set_from_outNC(results=dict()) -> Atoms:
-    """Read results from OUT.nc"""
-    Z = np.r_[[results['znucl'][i - 1] for i in results['typat']]]
-    nat = len(results['typat'])
-    cell = results['acell'] * np.reshape(results['rprim'], (3, 3)) * Bohr
-    atoms = Atoms(numbers=Z,
-                  cell=cell,
-                  positions=np.reshape(results['xangst'], (nat, 3)),
-                  pbc=True)
-    calc = SPCalc(atoms,
-                  energy=results['etotal'] * Hartree,
-                  forces=results['fcart'] * Hartree / Bohr,
-                  stress=results['strten'] * Hartree / Bohr**3)
-    if 'spinat' in results.keys():
-        atoms.set_array('spinat', results['spinat'].reshape((nat, 3)))
-    else:
-        atoms.set_array('spinat', np.zeros((nat, 3)))
-    atoms.calc = calc
-    return atoms
-
-
-def _set_from_gsrNC(results=dict()) -> Atoms:
-    """Read results from GSR.nc"""
-    Z = np.r_[[results['atomic_numbers'][i - 1]
-               for i in results['atom_species']]]
-    nat = len(results['atom_species'])
-    cell = results['primitive_vectors'] * Bohr
-    positions = np.matmul(results['reduced_atom_positions'], cell)
-    atoms = Atoms(numbers=Z,
-                  cell=cell,
-                  positions=positions,
-                  pbc=True)
-    calc = SPCalc(atoms,
-                  energy=results['etotal'] * Hartree,
-                  forces=results['cartesian_forces'] * Hartree/Bohr,
-                  stress=results['cartesian_stress_tensor'] * Hartree/Bohr**3,
-                  free_energy=results['entropy'] * Hartree)
-    if 'spinat' in results.keys():
-        atoms.set_array('spinat', results['spinat'])
-    else:
-        atoms.set_array('spinat', np.zeros((nat, 3)))
-    atoms.calc = calc
-    return atoms
 
 
 # ========================================================================== #
@@ -393,14 +334,36 @@ class AbinitNC:
     """
     Class to read all Abinit NetCDF files.
 
+    Can also convert to list of ASE Atoms objects, cf. convert_to_atoms().
+
     Parameters
     ----------
+
     workdir: :class:`str` (optional)
         The root for the directory.
         Default 'DFT'
+
+    prefix: :class:`str` (optional)
+        The prefix of Abinit nc file, i.e. str before o_{suffix}.nc.
+
+    suffix: :class:`str` (optional)
+        'HIST' or 'GSR' or 'OUT'.
+
+    Examples
+    -------
+    ::
+
+       hist = AbinitNC()
+       hist.ncfile = '/path/to/HIST.nc'
+       atoms_list = hist.convert_to_atoms()
+
+    ::
+
+        gsr = AbinitNC(workdir=workdir, prefix=prefix, suffix='GSR')
+        atoms_list = gsr.convert_to_atoms()
     """
 
-    def __init__(self, workdir=None, prefix='abinit'):
+    def __init__(self, workdir=None, prefix='abinit', suffix=None):
 
         if nc is None:
             raise ImportError("You need Netcdf4 to use the AbinitNC class")
@@ -413,13 +376,28 @@ class AbinitNC:
         if not os.path.exists(self.workdir):
             self.workdir = ''
 
-        self.ncfile = self.workdir + f'{prefix}o_GSR.nc'
+        self.ncfile = f'{workdir}{prefix}o_{suffix}.nc'
         self.results = {}
         self.atoms_list = []
+        self.suffix = suffix
 
 # ========================================================================== #
     def read(self, filename=None):
-        """Read NetCDF output of Abinit"""
+        """
+        Read NetCDF output of Abinit from netCDF4 library.
+
+        Parameters
+        ----------
+
+        filename: :class:`str` (optional)
+            The name of netCDF file.
+
+        Returns
+        -------
+
+        self.results: :class:`dict`
+            The dictionary mapping netCDF variables names to their values.
+        """
 
         if filename is not None:
             self.dataset = nc.Dataset(filename)
@@ -428,7 +406,7 @@ class AbinitNC:
         else:
             raise FileNotFoundError('No NetCDF file defined')
 
-        self._keyvar = [_ for _ in self.dataset.variables]
+        self._keyvar = list(self.dataset.variables)
         self._defattr()
         if not hasattr(self, 'results'):
             self.results = {}
@@ -437,8 +415,21 @@ class AbinitNC:
 
 # ========================================================================== #
     def ncdump(self, filename=None) -> str:
-        """Read NetCDF output of Abinit"""
-        from subprocess import check_output
+        """
+        Read netCDF output of Abinit from command-line ncdump tool.
+
+        Parameters
+        ----------
+
+        filename: :class:`str` (optional)
+            The name of netCDF file.
+
+        Returns
+        -------
+
+        :class:`str` (optional)
+            The output of the `ncdump` command.
+        """
         return check_output(['ncdump', filename])
 
 # ========================================================================== #
@@ -449,7 +440,7 @@ class AbinitNC:
             value = getattr(self, attr)
             if isinstance(value, (int, float, str)):
                 continue
-            elif isinstance(value, np.ndarray):
+            if isinstance(value, np.ndarray):
                 setattr(self, attr, self._decodearray(value))
             elif isinstance(value, memoryview):
                 if () == value.shape:
@@ -475,9 +466,9 @@ class AbinitNC:
         which corresponds to the Abinit input file, but also contains unwanted
         (i.e., not encoded in UTF-8) information at the bottom.
         """
-        last_Lammps_line = 'chkexit 1 # abinit.exit file in the running directory'  # noqa
-        last_Lammps_line += ' terminates after the current SCF'
-        if last_Lammps_line in _str[-len(last_Lammps_line):]:
+        last_lammps_line = 'chkexit 1 # abinit.exit file in the running directory'  # noqa
+        last_lammps_line += ' terminates after the current SCF'
+        if last_lammps_line in _str[-len(last_lammps_line):]:
             return True
         return False
         large_blank = ' '*80
@@ -490,7 +481,7 @@ class AbinitNC:
     def _decodeattr(self, value) -> str:
         _str = ''
         consec_empty_spaces = 0
-        for idx, s in enumerate(value.tolist()):
+        for s in value.tolist():
             if self._check_end_of_dataset(_str, consec_empty_spaces) is True:
                 break
             try:
@@ -508,72 +499,148 @@ class AbinitNC:
     def _decodearray(self, value):
         if 'S1' != value.dtype:
             return value
-        elif 1 == len(value.shape):
+        if 1 == len(value.shape):
             return self._decodeattr(value)
+        return np.r_[[self._decodeattr(v) for v in value]]
+
+# ========================================================================== #
+    def _extract_out_data(self, results):
+        """
+        Extract data from Abinit's OUT.nc.
+        """
+        typat = results['typat'].astype(int)
+        znucl = results['znucl'].astype(int)
+        atomic_numbers = znucl[typat-1]
+        nat = len(typat)
+        rprim = np.reshape(results['rprim'], (3, 3))
+        cell = results['acell'] * rprim
+        positions = np.reshape(results['xcart'], (nat, 3))
+        structural_data = [atomic_numbers, positions, cell]
+
+        energy = results['etotal']
+        forces = results['fcart']
+        stress = results['strten']
+        main_properties = [energy, forces, stress]
+
+        free_energy = None
+        if 'spinat' in results:
+            spinat = results['spinat'].reshape((nat, 3))
         else:
-            return np.r_[[self._decodeattr(v) for v in value]]
+            spinat = None
+        others = [free_energy, spinat]
+
+        return structural_data, main_properties, others
+
+# ========================================================================== #
+    def _extract_gsr_data(self, results):
+        """
+        Extract data from Abinit's GSR.nc.
+        """
+        typat = results['atom_species'].astype(int)
+        znucl = results['atomic_numbers'].astype(int)
+        atomic_numbers = znucl[typat-1]
+        cell = results['primitive_vectors']
+        positions = results['reduced_atom_positions'] @ cell
+        structural_data = [atomic_numbers, positions, cell]
+
+        energy = results['etotal']
+        forces = results['cartesian_forces']
+        stress = results['cartesian_stress_tensor']
+        main_properties = [energy, forces, stress]
+
+        free_energy = results['entropy']
+        if 'spinat' in results:
+            spinat = results['spinat']
+        else:
+            spinat = None
+        others = [free_energy, spinat]
+
+        return structural_data, main_properties, others
+
+# ========================================================================== #
+    def _extract_hist_data(self, results):
+        """
+        Extract data from Abinit's HIST.nc.
+        """
+        typat = results['typat'].astype(int)
+        znucl = results['znucl'].astype(int)
+        atomic_numbers = znucl[typat-1]
+        cell = results['rprimd']
+        positions = results['xcart']
+        structural_data = [atomic_numbers, positions, cell]
+
+        energy = results['etotal']
+        forces = results['fcart']
+        stress = results['strten']
+        main_properties = [energy, forces, stress]
+
+        free_energy = None
+        spinat = None
+        others = [free_energy, spinat]
+
+        return structural_data, main_properties, others
 
 # ========================================================================== #
     def convert_to_atoms(self):
         """
-        Convert the dictionary `self.results` representing Abinit HIST.nc file
-        to a list of ASE Atoms objects.
+        Convert Abinit *.nc file to a list of ASE Atoms objects.
 
         Notes
         ----------
 
-        In the process, atomic units (Abinit) become `metal` units (LAMMPS).
+        In the process, atomic units (Abinit) are converted to ASE units.
 
         Returns
         -------
 
         atoms_list: :class:`list` of :class:`ase.Atoms`
             The list of configurations in ASE format.
-
-        Example
-        -------
-        ::
-
-           hist = AbinitNC()
-           hist.ncfile = '/path/to/HIST.nc'
-           atoms_list = hist.convert_to_atoms()
         """
 
-        # Ensure Abinit *HIST.nc file has been read
+        # Ensure Abinit *.nc file has been read
         if not self.results:
             self.read()
-        hist_dict = self.results
+        res_dict = self.results
 
-        typat = hist_dict['typat'].astype(int)
-        znucl = hist_dict['znucl'].astype(int)
-        atomic_numbers = np.array([znucl[i - 1] for i in typat])
-        nb_confs = len(hist_dict['etotal'])
+        if self.suffix == 'HIST':
+            struct_data, main_prop, others = self._extract_hist_data(res_dict)
+        elif self.suffix == 'OUT':
+            struct_data, main_prop, others = self._extract_out_data(res_dict)
+        elif self.suffix == 'GSR':
+            struct_data, main_prop, others = self._extract_gsr_data(res_dict)
 
-        dict_obs_unit = {'xcart': 'Bohr',
-                         'acell': 'Bohr',
-                         'etotal': 'Ha',
-                         'fcart': 'Ha/Bohr',
-                         'strten': 'Ha/Bohr^3',
-                         }
+        atomic_numbers, positions, cell = struct_data
+        energy, forces, stress = main_prop
+        free_energy, spinat = others
+        if spinat is None:
+            spinat = np.zeros((len(atomic_numbers), 3))
 
+        # Add new axis to arrays to uniformize shapes with 'HIST'
+        # such that array.shape becomes (nb_confs, array.shape)
+        if self.suffix in ['OUT', 'GSR']:
+            positions = np.expand_dims(positions, axis=0)
+            cell = np.expand_dims(cell, axis=0)
+            energy = np.expand_dims(energy, axis=0)
+            forces = np.expand_dims(forces, axis=0)
+            stress = np.expand_dims(stress, axis=0)
+
+        nb_confs = len(energy)
         atoms_list = []
-        for idx_conf in range(nb_confs):
-
-            # Convert atomic units to metal units
-            dict_new_arr = {}
-            for obs_name, unit in dict_obs_unit.items():
-                obs_arr = hist_dict[obs_name][idx_conf]
-                obs_unit = unit
-                new_arr = unit_converter(obs_arr, obs_unit, style='metal')[0]
-                dict_new_arr[obs_name] = new_arr
+        for i in range(nb_confs):
+            # Convert atomic units to ASE units
+            conv_p = unit_converter(positions[i], 'Bohr', target='ASE')[0]
+            conv_c = unit_converter(cell[i], 'Bohr', target='ASE')[0]
+            conv_e = unit_converter(energy[i], 'Ha', target='ASE')[0]
+            conv_f = unit_converter(forces[i], 'Ha/Bohr', target='ASE')[0]
+            conv_s = unit_converter(stress[i], 'Ha/Bohr^3', target='ASE')[0]
 
             atoms = create_ASE_object(atomic_numbers,
-                                      positions=dict_new_arr['xcart'],
-                                      cell=dict_new_arr['acell'],
-                                      energy=dict_new_arr['etotal'],
-                                      forces=dict_new_arr['fcart'],
-                                      stresses=dict_new_arr['strten'])
-
+                                      positions=conv_p,
+                                      cell=conv_c,
+                                      energy=conv_e,
+                                      forces=conv_f,
+                                      stresses=conv_s)
+            atoms.set_array('spinat', spinat)
             atoms_list.append(atoms)
 
         self.atoms_list = atoms_list

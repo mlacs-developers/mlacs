@@ -25,8 +25,7 @@ from ase.io.abinit import (write_abinit_in,
 from ..core.manager import Manager
 from .calc_manager import CalcManager
 from ..utilities import save_cwd
-from ..utilities.io_abinit import (AbinitNC,
-                                   set_aseAtoms)
+from ..utilities.io_abinit import AbinitNC
 
 
 # ========================================================================== #
@@ -302,9 +301,9 @@ class AbinitManager(CalcManager):
         """
         results = {}
         if self.ncfile is not None:
-            dct = self.ncfile.read(self.get_filepath("abinito_GSR.nc"))
-            results.update(dct)
-            atoms = set_aseAtoms(results)
+            ncpath = self.get_filepath("abinito_GSR.nc")
+            self.ncfile.read(filename=ncpath)
+            atoms = self.ncfile.convert_to_atoms()[0]
             atoms.set_velocities(at.get_velocities())
             return atoms
 

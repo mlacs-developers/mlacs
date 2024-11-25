@@ -443,7 +443,7 @@ class HistPlot:
         # Read atomic unit observable from *HIST.nc file
         obs_au = ncfile.read_obs(obs_name)
         # Convert to custom visualization units
-        observable, new_unit = unit_converter(obs_au, nc_unit, style='custom')
+        observable, new_unit = unit_converter(obs_au, nc_unit, target='custom')
 
         obs_meta = ncfile.read_obs(obs_name + '_meta')
 
@@ -453,7 +453,7 @@ class HistPlot:
         w_obs_au, w_obs_idx = ncfile.read_weighted_obs('weighted_'+obs_name)
         w_obs_data, new_unit = unit_converter(w_obs_au,
                                               nc_unit,
-                                              style='custom')
+                                              target='custom')
 
         uniform_obs = np.array([np.mean(observable[:i]) for i in w_obs_idx])
 
