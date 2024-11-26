@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from pathlib import Path
-from mlacs.utilities.io_abinit import HistFile
+from mlacs.utilities.io_abinit import MlacsHist
 
 plt.rcdefaults()
 plt.rcParams["font.size"] = 10
@@ -26,13 +26,13 @@ except IndexError as e:
     raise Exception(msg) from e
 
 if os.path.isfile(ncpath):
-    ncfile = HistFile(ncpath=ncpath)
+    ncfile = MlacsHist(ncpath=ncpath)
     # print('HIST.nc file format: ', ncfile.ncformat)
 
     weights_ncpath = ncpath
     if 'NETCDF3' in ncfile.ncformat:
         weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
-    weights_ncfile = HistFile(ncpath=weights_ncpath)
+    weights_ncfile = MlacsHist(ncpath=weights_ncpath)
 
     var_names = ncfile.get_var_names()
     dict_var_units = ncfile.get_units()

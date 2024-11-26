@@ -467,12 +467,12 @@ class CalcExecFunction(CalcProperty):
     nc_unit: :class:`str` (optional)
         Unit of the observable saved in *HIST.nc file.
         These units are derived from the atomic unit system: Bohr, Ha, etc.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         Default ''.
 
     lammps_unit: :class:`str` (optional)
         Unit of the observable as computed from LAMMPS.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         These units are expected to be the `metal` units, cf. ase.units.py.
         Default ''.
     """
@@ -508,6 +508,7 @@ class CalcExecFunction(CalcProperty):
         Convert units from LAMMPS's `metal` convention to Abinit's, i.e.,
         the result self.new of the _exec() routine is expressed in atomic unit
         """
+        # TODO: Move this routine to utilities.units.py
         eV2Ha = 1/Hartree
         Ang2Bohr = 1/Bohr
         # Dictionary that maps Lammps units to the corresponding multiplication
@@ -566,28 +567,28 @@ class CalcRoutineFunction(CalcExecFunction):
 
     label: :class:`str`
         Label of the function to be executed, e.g. `Kinetic_Energy`.
-        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Cf. mlacs.utilities.io_abinit.MlacsHist.nc_routine_conv().
 
     nc_name: :class:`str` (optional)
         Name of the observable in *HIST.nc file, e.g. `ekin`.
-        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Cf. mlacs.utilities.io_abinit.MlacsHist.nc_routine_conv().
         This name should follow Abinit conventions as much as possible.
         Default ``None``.
 
     nc_dim: :class:`str` (optional)
         Name of the dimension of the observable in *HIST.nc file.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_name_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_name_conventions().
         Default ``None``.
 
     nc_unit: :class:`str` (optional)
         Unit of the observable saved in *HIST.nc file.
         These units are derived from the atomic unit system: Bohr, Ha, etc.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         Default ''.
 
     lammps_unit: :class:`str` (optional)
         Unit of the observable as computed from LAMMPS.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         These units are expected to be the `metal` units, cf. ase.units.py.
         Default ''.
 

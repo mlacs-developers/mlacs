@@ -14,7 +14,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from . import compute_correlation
-from mlacs.utilities.io_abinit import HistFile
+from mlacs.utilities.io_abinit import MlacsHist
 from mlacs.utilities.units import unit_converter
 
 cyan = "#17becf"
@@ -337,7 +337,7 @@ class HistPlot:
         mpl.rcParams['figure.dpi'] = 300
 
         if os.path.isfile(ncpath):
-            ncfile = HistFile(ncpath=ncpath)
+            ncfile = MlacsHist(ncpath=ncpath)
             dict_var_units = ncfile.get_units()
             var_dim_dict = ncfile.var_dim_dict
             dict_name_label = {x[0]: lab for lab, x in var_dim_dict.items()}
@@ -351,7 +351,7 @@ class HistPlot:
             weights_ncpath = ncpath
             if 'NETCDF3' in ncfile.ncformat:
                 weights_ncpath = ncpath.replace('HIST', 'WEIGHTS')
-            self.weights_ncfile = HistFile(ncpath=weights_ncpath)
+            self.weights_ncfile = MlacsHist(ncpath=weights_ncpath)
         else:
             msg = '*HIST.nc file not found.'
             raise FileNotFoundError(msg)

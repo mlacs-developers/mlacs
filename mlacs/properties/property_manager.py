@@ -67,13 +67,6 @@ class PropertyManager(Manager):
         """
         Run property calculation.
         """
-        # RB: Not needed anymore
-        # dircheck = False
-        # for observable in self.manager:
-        #     if step % observable.freq == 0:
-        #         dircheck = True
-        # if dircheck:
-        #     self.path.mkdir(exist_ok=True, parents=True)
         msg = ""
         for i, observable in enumerate(self.manager):
             if step % observable.freq == 0:
@@ -221,7 +214,7 @@ class RoutinePropertyManager(PropertyManager):
     Parameters
     ----------
 
-    ncfile: :class:`HistFile`
+    ncfile: :class:`OtfMlacsHist`
         The netcdf *HIST.nc file.
     """
 
@@ -229,7 +222,7 @@ class RoutinePropertyManager(PropertyManager):
 
         # Get variables names, dimensions, and units conventions
         var_dim_dict = ncfile.var_dim_dict
-        lammps_units_dict = ncfile.lammps_units_dict
+        ase_units_dict = ncfile.ase_units_dict
         abinit_units_dict = ncfile.abinit_units_dict
 
         # Build RoutinePropertyManager
@@ -237,14 +230,14 @@ class RoutinePropertyManager(PropertyManager):
         for x in var_dim_dict:
             var_name, var_dim = var_dim_dict[x]
             var_abinit_unit = abinit_units_dict[x]
-            var_lammps_unit = lammps_units_dict[x]
+            var_ase_unit = ase_units_dict[x]
             lammps_func = 'get_' + x.lower()
             observable = CalcRoutineFunction(lammps_func,
                                              label=x,
                                              nc_name=var_name,
                                              nc_dim=var_dim,
                                              nc_unit=var_abinit_unit,
-                                             lammps_unit=var_lammps_unit,
+                                             lammps_unit=var_ase_unit,
                                              frequence=1)
             routine_prop_list.append(observable)
         other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),

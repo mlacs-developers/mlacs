@@ -23,7 +23,7 @@ from .calc import CalcManager
 from .state import StateManager
 from .utilities.log import MlacsLog
 from .utilities import create_random_structures, save_cwd
-from .utilities.io_abinit import HistFile
+from .utilities.io_abinit import OtfMlacsHist
 from .properties import PropertyManager, RoutinePropertyManager
 
 
@@ -136,11 +136,11 @@ class Mlas(Manager):
         self.launched = self._check_if_launched()
 
         # Create Abinit-style *HIST.nc file of netcdf format
-        self.ncfile = HistFile(ncprefix=ncprefix,
-                               workdir=workdir,
-                               ncformat=ncformat,
-                               launched=self.launched,
-                               atoms=self.atoms)
+        self.ncfile = OtfMlacsHist(ncprefix=ncprefix,
+                                   workdir=workdir,
+                                   ncformat=ncformat,
+                                   launched=self.launched,
+                                   atoms=self.atoms)
         if self.ncfile.unique_atoms_type:
             self._initialize_routine_properties()
 
