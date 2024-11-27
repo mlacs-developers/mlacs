@@ -71,6 +71,18 @@ class MlacsHist:
         dict_var_units = ncfile.get_units()
         var_dim_dict = ncfile.var_dim_dict
         energy_array = ncfile.read_obs('etotal')
+
+    Conversion of a list of ASE Atoms into HIST.nc:
+    ::
+
+        ncprefix = 'my_ncprefix'
+        workdir = '/path/to/workdir/'
+        obj = MlacsHist(ncprefix=ncprefix,
+                        workdir=workdir,
+                        atoms=list_of_ase_atoms)
+        obj.convert_to_hist()
+
+    The HIST.nc is saved in workdir with name f'{ncprefix}_HIST.nc'.
     """
 
     def __init__(self,
@@ -243,6 +255,7 @@ class MlacsHist:
 # ========================================================================== #
     def _set_unit_conventions(self):
         """Define unit conventions related to routine properties"""
+        # XXX : This should be moved to utilities.units.py
         # Dict whose keys are 'var names' and values are ASE units
         ase_units_dict = {'Total_Energy': 'eV',
                           'Kinetic_Energy': 'eV',
@@ -299,6 +312,35 @@ class MlacsHist:
                 if hasattr(variable, 'unit'):
                     res[name] = variable.unit
         return res
+
+# ========================================================================== #
+    def convert_to_hist(self):
+        """
+        Convert list of Ase's Atoms into HIST.nc respecting Abinit conventions.
+        """
+
+        # Ensure `self.atoms` is a list
+        if isinstance(self.atoms, Atoms):
+            atoms_list = [self.atoms]
+        atoms_list = self.atoms
+
+        # Initialize target HIST.nc file
+        ncname = self.ncprefix + "_HIST.nc"
+        ncpath = Path(self.workdir) / ncname
+        self.ncpath = ncpath
+        self._initialize_nc_file(atoms_list[0])
+
+        # Initialize list of properties
+        # TODO: Fix circular dependency of RoutinePropertyManager import
+        from mlacs.properties import RoutinePropertyManager
+        rout_prop_obj = RoutinePropertyManager(self, False)
+
+        # Emulate Mlas run
+        for idx, at in enumerate(atoms_list):
+            rout_prop_obj.calc_initialize(atoms=[at])
+            step = idx + 1
+            rout_prop_obj.run(step)
+            rout_prop_obj.save_prop(step)
 
 
 # ========================================================================== #
@@ -413,84 +455,6 @@ class OtfMlacsHist(MlacsHist):
 
 # ========================================================================== #
 # ========================================================================== #
-class AtomsToHist:
-    """
-    Convert list of Ase's Atoms into Abinit HIST.nc.
-
-    Parameters
-    ----------
-
-    atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
-        List of Atoms objects to be converted to HIST.nc.
-
-    ncprefix: :class:`str`
-        Prefix of the created HIST.nc file.
-
-    workdir: :class:`str` (optional)
-        The directory in which to run the calculation.
-        Default ``''``.
-
-    ncformat: :class:`str` (optional)
-        The format of the *HIST.nc file. One of the five flavors of netCDF
-        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
-        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
-        'NETCDF4'.
-        Default ``NETCDF3_CLASSIC``.
-
-    Notes
-    ----------
-
-    This class merely emulates a Mlas run, where `new` configurations are the
-    list of Ase's Atoms, attached to the RoutinePropertyManager observables
-    with the calc_initialize() subroutine.
-
-    Examples
-    -------
-    ::
-
-       ncprefix = 'myprefix'
-       AtomsToHist(list_of_ase_atoms, ncprefix)
-    """
-
-    def __init__(self,
-                 atoms,
-                 ncprefix,
-                 workdir='',
-                 ncformat='NETCDF3_CLASSIC'):
-
-        # Ensure `atoms` is a list
-        if isinstance(atoms, Atoms):
-            atoms_list = [atoms]
-        atoms_list = atoms
-
-        # Initialize target HIST.nc file
-        ncname = ncprefix + "_HIST.nc"
-        ncpath = Path(workdir) / ncname
-        self.histfile = MlacsHist(ncprefix=ncprefix,
-                                  workdir=workdir,
-                                  ncformat=ncformat,
-                                  atoms=atoms_list[0],
-                                  ncpath=ncpath)
-        self.histfile._initialize_nc_file(atoms_list[0])
-
-        # Initialize list of properties
-        # TODO: Fix circular dependency of RoutinePropertyManager import
-        from mlacs.properties import RoutinePropertyManager
-        self.routine_prop = RoutinePropertyManager(self.histfile)
-
-        self.histfile.create_nc_var(self.routine_prop.manager)
-        self.routine_prop.ncfile = self.histfile
-
-        # Emulate Mlas run
-        for idx, at in enumerate(atoms_list):
-            self.routine_prop.calc_initialize(atoms=[at])
-            step = idx + 1
-            self.routine_prop.run(step)
-            self.routine_prop.save_prop(step)
-
-
-# ========================================================================== #
-# ========================================================================== #
 class AbinitNC:
     """
     Class to read all netCDF files created by Abinit.
@@ -510,19 +474,39 @@ class AbinitNC:
 
     suffix: :class:`str` (optional)
         'HIST' or 'GSR' or 'OUT'.
+        If no suffix is given, it is set automatically by _update_suffix().
 
     Examples
     -------
+    netCDF files can be loaded by defining the `ncfile` attribute, here for
+    instance with a HIST.nc:
     ::
 
        hist = AbinitNC()
        hist.ncfile = '/path/to/HIST.nc'
        atoms_list = hist.convert_to_atoms()
 
+    Alternatively, one can directly pass workdir, prefix, suffix as parameters
+    of the AbinitNC class. The path of the ncfile must follow the syntax
+    f'{workdir}{prefix}o_{suffix}.nc'. For instance with a GSR.nc:
     ::
 
         gsr = AbinitNC(workdir=workdir, prefix=prefix, suffix='GSR')
         atoms_list = gsr.convert_to_atoms()
+
+    Once the netCDF files are loaded, the data can be extracted as a dictionary
+    where keys are Abinit variable names and values are arrays in atomic units:
+    ::
+
+        hist_results = hist.read()
+        energy = hist_results['etotal']  # Atomic units
+
+    Alternatively, conversion to a list of ASE atoms can also be achieved in
+    the following way:
+    ::
+
+        hist_atoms_list = hist.convert_to_atoms()  # ASE units
+        gsr_atoms_list = gsr.convert_to_atoms()  # ASE units
     """
 
     def __init__(self, workdir=None, prefix='abinit', suffix=None):

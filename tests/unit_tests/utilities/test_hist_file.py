@@ -22,7 +22,7 @@ from mlacs.mlip import MbarManager
 from mlacs.state import LammpsState
 from mlacs.properties import CalcExecFunction
 from mlacs import OtfMlacs
-from mlacs.utilities.io_abinit import MlacsHist, AbinitNC, AtomsToHist
+from mlacs.utilities.io_abinit import MlacsHist, AbinitNC
 
 
 from ... import context  # noqa
@@ -258,12 +258,16 @@ def test_hist_converter():
 
     # Convert ASE list of Atoms back into HIST.nc format
     ncprefix = 'myconverted'
-    AtomsToHist(hist_atoms, ncprefix)
-    nc_name = ncprefix + '_HIST.nc'
-    nc_path = Path('') / nc_name
+    workdir = Path('')
+    obj = MlacsHist(ncprefix=ncprefix,
+                    workdir=workdir,
+                    atoms=hist_atoms)
+    obj.convert_to_hist()
 
     # Check that created new HIST.nc is same as the reference one.
     hist_new = AbinitNC()
+    nc_name = ncprefix + '_HIST.nc'
+    nc_path = Path('') / nc_name
     hist_new.ncfile = str(nc_path)
     hist_new_results = hist_new.read()
     assert np.allclose(hist_new_results['znucl'],

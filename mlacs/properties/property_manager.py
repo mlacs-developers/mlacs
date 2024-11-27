@@ -218,7 +218,7 @@ class RoutinePropertyManager(PropertyManager):
         The netcdf *HIST.nc file.
     """
 
-    def __init__(self, ncfile):
+    def __init__(self, ncfile, launched):
 
         # Get variables names, dimensions, and units conventions
         var_dim_dict = ncfile.var_dim_dict
@@ -237,7 +237,7 @@ class RoutinePropertyManager(PropertyManager):
                                              nc_name=var_name,
                                              nc_dim=var_dim,
                                              nc_unit=var_abinit_unit,
-                                             lammps_unit=var_ase_unit,
+                                             ase_unit=var_ase_unit,
                                              frequence=1)
             routine_prop_list.append(observable)
         other_observables = [CalcPressure(), CalcAcell(), CalcAngles(),
@@ -245,3 +245,10 @@ class RoutinePropertyManager(PropertyManager):
         routine_prop_list += other_observables
 
         PropertyManager.__init__(self, prop=routine_prop_list)
+
+        if not launched:
+            ncfile.create_nc_var(self.manager)
+
+        self.workdir = self.workdir
+        self.isfirstlaunched = not launched
+        self.ncfile = ncfile

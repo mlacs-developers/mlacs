@@ -385,16 +385,8 @@ class Mlas(Manager):
 # ========================================================================== #
     def _initialize_routine_properties(self):
         """Create routine property object"""
-
-        # Build RoutinePropertyManager
-        self.routine_prop = RoutinePropertyManager(self.ncfile)
-
-        if not self.launched:
-            self.ncfile.create_nc_var(self.routine_prop.manager)
-
-        self.routine_prop.workdir = self.workdir
-        self.routine_prop.isfirstlaunched = not self.launched
-        self.routine_prop.ncfile = self.ncfile
+        self.routine_prop = RoutinePropertyManager(self.ncfile,
+                                                   self.launched)
 
 # ========================================================================== #
     def _initialize_momenta(self):
