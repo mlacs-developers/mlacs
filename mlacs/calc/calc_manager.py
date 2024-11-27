@@ -50,7 +50,25 @@ class CalcManager(Manager):
 # ========================================================================== #
     def compute_true_potential(self, confs, subfolder=None, step=None):
         """
-        Compute the energy of given configurations with an ASE calculator.
+        Compute the energy/forces/stress of given input configurations with an
+        ASE calculator.
+
+        Parameters
+        ----------
+        confs: :class:`list` of :class:`ase.Atoms`
+            The input list of atom objects.
+
+        subfolder: :class:`list` of :class:`str` (optional)
+            Subfolder in which the properties are saved.
+
+        step: :class:`list` of :class:`int`  (optional)
+            The list of configuration indices.
+
+        Returns
+        -------
+        result_confs: :class:`list` of :class:`ase.Atoms`
+            The output list of atom objects, with corresponding
+            SinglePointCalculator resulting from true potential calculation.
         """
         confs = [at.copy() for at in confs]
         result_confs = []

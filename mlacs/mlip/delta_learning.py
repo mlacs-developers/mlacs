@@ -259,7 +259,7 @@ class DeltaLearningPotential(MlipManager):
         """
         """
         self._set_directories()
-        return self.model.train_mlip()
+        self.model.train_mlip()
 
     # GA: Need to overwrite this abstract methods, but I'm not sure
     #     if it is used at all.

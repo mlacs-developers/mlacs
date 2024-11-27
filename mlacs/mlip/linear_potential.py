@@ -55,6 +55,7 @@ class LinearPotential(MlipManager):
     >>> mlip.update_matrices(confs)
     >>> mlip.train_mlip()
     """
+
     def __init__(self,
                  descriptor,
                  parameters={},
@@ -83,6 +84,33 @@ class LinearPotential(MlipManager):
 # ========================================================================== #
     def train_mlip(self):
         """
+        Compute the coefficients of the MLIP, then write MLIP.
+
+        Notes
+        -----
+
+        Local variables:
+            - `amat`: ndarray of shape ((7+3*Nat)*N, K)
+                Feature matrix
+            - `ymat`: ndarray of shape ((7+3*Nat)*N,)
+                Label vector
+            - `W`: ndarray of shape ((7+3*Nat)*N,)
+                Weighting matrix
+
+        Where:
+            - `K` is the number of descriptor components
+            - `N` is the number of configurations
+            - `Nat` is the number of atoms in each cell
+
+        var = `amat`, `ymat`, `W` have a stacked structure
+            +-------+
+            |   e   |  <-- energy block
+            +-------+
+            |   f   |  <-- forces block
+            +-------+
+            |   s   |  <-- stresses block
+            +-------+
+        where each block has the shape of var_i, with i=e,f,s
         """
         self.weight.workdir = self.workdir
         self.weight.folder = self.folder
@@ -134,9 +162,8 @@ class LinearPotential(MlipManager):
         msg += "Number of atomic environments for training: " + \
                f"{self.natoms.sum():}\n\n"
 
-        tmp_msg, weight_fn = self.weight.compute_weight(
-            self.coefficients,
-            self.predict)
+        tmp_msg, weight_fn = self.weight.compute_weight(self.coefficients,
+                                                        self.predict)
 
         msg += tmp_msg
         msg += self.compute_tests(amat_e, amat_f, amat_s,
@@ -145,7 +172,9 @@ class LinearPotential(MlipManager):
         mlip_fn = self.descriptor.write_mlip(self.coefficients)
         create_link(self.subsubdir / weight_fn, self.subdir / weight_fn)
         create_link(self.subsubdir / mlip_fn, self.subdir / mlip_fn)
-        return msg
+
+        if self.log:
+            self.log.write(msg)
 
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,

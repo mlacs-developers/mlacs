@@ -216,7 +216,9 @@ class MomentTensorPotential(SelfMlipManager):
         msg += "number of atomic environments for training: " + \
                f"{self.natoms.sum():}\n"
         msg += self._compute_test(msg)
-        return msg
+
+        if self.log:
+            self.log.write(msg)
 
 # ========================================================================== #
     def get_calculator(self):

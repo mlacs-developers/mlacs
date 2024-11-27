@@ -467,12 +467,12 @@ class CalcExecFunction(CalcProperty):
     nc_unit: :class:`str` (optional)
         Unit of the observable saved in *HIST.nc file.
         These units are derived from the atomic unit system: Bohr, Ha, etc.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         Default ''.
 
-    lammps_unit: :class:`str` (optional)
-        Unit of the observable as computed from LAMMPS.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+    ase_unit: :class:`str` (optional)
+        Unit of the observable (ASE convention).
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         These units are expected to be the `metal` units, cf. ase.units.py.
         Default ''.
     """
@@ -486,7 +486,7 @@ class CalcExecFunction(CalcProperty):
                  criterion=0.001,
                  frequence=1,
                  nc_unit='',
-                 lammps_unit=''):
+                 ase_unit=''):
         CalcProperty.__init__(self, args, None, 'max', criterion, frequence)
 
         self._func = function
@@ -500,17 +500,18 @@ class CalcExecFunction(CalcProperty):
         self.label = function
         self.shape = None
         self.nc_unit = nc_unit
-        self.lammps_unit = lammps_unit
+        self.ase_unit = ase_unit
 
 # ========================================================================== #
     def _unit_converter(self):
         """
-        Convert units from LAMMPS's `metal` convention to Abinit's, i.e.,
+        Convert units from ASE unit convention to Abinit's, i.e.,
         the result self.new of the _exec() routine is expressed in atomic unit
         """
+        # TODO: Move this routine to utilities.units.py
         eV2Ha = 1/Hartree
         Ang2Bohr = 1/Bohr
-        # Dictionary that maps Lammps units to the corresponding multiplication
+        # Dictionary that maps ASE units to the corresponding multiplication
         # factors that convert them to Abinit units system.
         # Example: if a = 100 eV then a*unit_convert_dict['eV'] is 3.67 Hartree
         unit_convert_dict = {'eV': eV2Ha,
@@ -521,8 +522,8 @@ class CalcExecFunction(CalcProperty):
                              }
 
         # Proceed with the conversion itself
-        if hasattr(self, 'new') and self.lammps_unit in unit_convert_dict:
-            self.new *= unit_convert_dict[self.lammps_unit]
+        if hasattr(self, 'new') and self.ase_unit in unit_convert_dict:
+            self.new *= unit_convert_dict[self.ase_unit]
 
 # ========================================================================== #
     def _exec(self):
@@ -566,28 +567,28 @@ class CalcRoutineFunction(CalcExecFunction):
 
     label: :class:`str`
         Label of the function to be executed, e.g. `Kinetic_Energy`.
-        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Cf. mlacs.utilities.io_abinit.MlacsHist.nc_routine_conv().
 
     nc_name: :class:`str` (optional)
         Name of the observable in *HIST.nc file, e.g. `ekin`.
-        Cf. mlacs.utilities.io_abinit.HistFile.nc_routine_conv().
+        Cf. mlacs.utilities.io_abinit.MlacsHist.nc_routine_conv().
         This name should follow Abinit conventions as much as possible.
         Default ``None``.
 
     nc_dim: :class:`str` (optional)
         Name of the dimension of the observable in *HIST.nc file.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_name_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_name_conventions().
         Default ``None``.
 
     nc_unit: :class:`str` (optional)
         Unit of the observable saved in *HIST.nc file.
         These units are derived from the atomic unit system: Bohr, Ha, etc.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         Default ''.
 
-    lammps_unit: :class:`str` (optional)
-        Unit of the observable as computed from LAMMPS.
-        Cf. mlacs.utilities.io_abinit.HistFile._set_unit_conventions().
+    ase_unit: :class:`str` (optional)
+        Unit of the observable (ASE convention).
+        Cf. mlacs.utilities.io_abinit.MlacsHist._set_unit_conventions().
         These units are expected to be the `metal` units, cf. ase.units.py.
         Default ''.
 
@@ -601,13 +602,13 @@ class CalcRoutineFunction(CalcExecFunction):
                  nc_name=None,
                  nc_dim=None,
                  nc_unit='',
-                 lammps_unit='',
+                 ase_unit='',
                  weight=None,
                  gradient=False,
                  criterion=None,
                  frequence=1):
         CalcExecFunction.__init__(self, function, dict(), None, True, gradient,
-                                  criterion, frequence, nc_unit, lammps_unit)
+                                  criterion, frequence, nc_unit, ase_unit)
         self.weight = weight
         self.label = label
         self.needdir = False
@@ -660,14 +661,14 @@ class CalcPressure(CalcRoutineFunction):
         nc_name = 'press'
         nc_dim = ('time',)
         nc_unit = 'Ha/Bohr^3'
-        lammps_unit = 'eV/Ang^3'
+        ase_unit = 'eV/Ang^3'
         CalcRoutineFunction.__init__(self,
                                      'get_stress',
                                      label,
                                      nc_name,
                                      nc_dim,
                                      nc_unit,
-                                     lammps_unit)
+                                     ase_unit)
 
     def _exec(self):
         """
@@ -706,22 +707,20 @@ class CalcAcell(CalcRoutineFunction):
         nc_name = 'acell'
         nc_dim = ('time', 'xyz')
         nc_unit = 'Bohr'
-        lammps_unit = 'Ang'
+        ase_unit = 'Ang'
         CalcRoutineFunction.__init__(self,
                                      'get_cell_lengths_and_angles',
                                      label,
                                      nc_name,
                                      nc_dim,
                                      nc_unit,
-                                     lammps_unit)
+                                     ase_unit)
 
     def _exec(self):
         """
         Execute function
         """
         if self.use_atoms:
-            # Use of get_cell_lengths_and_angles is now deprecated in lammps
-            # self._function = [getattr(_, self._func) for _ in self.atoms]
             attr = 'cell.cellpar'
             self._function = [attrgetter(attr)(_) for _ in self.atoms]
             self.new = np.r_[[_f(**self.kwargs)[:3] for _f in self._function]]
@@ -753,14 +752,14 @@ class CalcAngles(CalcRoutineFunction):
         nc_name = 'angl'
         nc_dim = ('time', 'xyz')
         nc_unit = 'deg'
-        lammps_unit = 'deg'
+        ase_unit = 'deg'
         CalcRoutineFunction.__init__(self,
                                      'get_cell_lengths_and_angles',
                                      label,
                                      nc_name,
                                      nc_dim,
                                      nc_unit,
-                                     lammps_unit)
+                                     ase_unit)
 
     def _exec(self):
         """
@@ -784,7 +783,7 @@ class CalcSpinAt(CalcRoutineFunction):
     """
     Class to obtain the electronic spin-magnetization (as computed by Abinit)
     from ASE's Atoms object.
-    See also mlacs.utilities.io_abinit.set_aseAtoms.py
+    See also AbinitNC class in mlacs.utilities.io_abinit.py
     """
 
     def __init__(self,
@@ -797,14 +796,14 @@ class CalcSpinAt(CalcRoutineFunction):
         nc_name = 'spinat'
         nc_dim = ('time', 'natom', 'xyz',)
         nc_unit = 'hbar/2'
-        lammps_unit = 'hbar/2'
+        ase_unit = 'hbar/2'
         CalcRoutineFunction.__init__(self,
                                      '',
                                      label,
                                      nc_name,
                                      nc_dim,
                                      nc_unit,
-                                     lammps_unit)
+                                     ase_unit)
 
     def _exec(self):
         """
@@ -841,14 +840,14 @@ class CalcElectronicEntropy(CalcRoutineFunction):
         nc_name = 'entropy'
         nc_dim = ('time',)
         nc_unit = ''
-        lammps_unit = ''
+        ase_unit = ''
         CalcRoutineFunction.__init__(self,
                                      '',
                                      label,
                                      nc_name,
                                      nc_dim,
                                      nc_unit,
-                                     lammps_unit)
+                                     ase_unit)
 
     def _exec(self):
         """
