@@ -92,10 +92,10 @@ class MlacsLog:
         self.write()
         self._delimiter()
         if isearlystop:
-            self.write("Convergence criteria reached, stoping the simulation",
+            self.write("Convergence criteria reached, stopping the simulation",
                        True)
         else:
-            self.write("Max number of step reached, stoping the simulation",
+            self.write("Max number of step reached, stopping the simulation",
                        True)
         self._delimiter()
         self.write()
@@ -130,7 +130,7 @@ class MlacsLog:
         self.write("GNU General Public License, see LICENSE.md", True)
         self.write("or http://www.gnu.org.copyleft/gpl.txt.", True)
         self.write()
-        self.write("MLACS is common project of the CEA,", True)
+        self.write("MLACS is a common project of the CEA,", True)
         self.write("Université de Liège, Université du Québec à Trois-Rivières",  # noqa
                    True)
         self.write("and other collaborators, see CONTRIBUTORS.md.", True)

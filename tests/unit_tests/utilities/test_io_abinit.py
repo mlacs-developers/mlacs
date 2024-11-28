@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ase.io.abinit import read_abinit_out
 from ase.calculators.singlepoint import SinglePointCalculator as SPCalc
-from mlacs.utilities import AbinitNC, set_aseAtoms
+from mlacs.utilities import AbinitNC
 
 from ... import context  # noqa
 
@@ -50,7 +50,8 @@ def test_atoms_from_ncfiles(root, build_ncobj):
     atoms.calc = calc
 
     for ncobj in build_ncobj:
-        ncatoms = set_aseAtoms(ncobj.read())
+        ncobj.read()
+        ncatoms = ncobj.convert_to_atoms()
         assert atoms == ncatoms
 
 

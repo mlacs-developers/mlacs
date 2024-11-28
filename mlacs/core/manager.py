@@ -64,14 +64,14 @@ class Manager:
                  folder='',
                  subfolder='',
                  prefix='',
-                 logger=None,
+                 log=None,
                  **kwargs):
 
         self.workdir = workdir
         self.folder = folder
         self.subfolder = subfolder
         self.prefix = prefix
-        self.logger = logger
+        self.log = log
 
     @property
     def workdir(self):
