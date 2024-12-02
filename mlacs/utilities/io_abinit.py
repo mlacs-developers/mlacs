@@ -778,6 +778,15 @@ class AbinitNC:
             forces = np.expand_dims(forces, axis=0)
             stress = np.expand_dims(stress, axis=0)
 
+        # If Abinit nimage > 1, only the result of the first image is kept
+        # XXX CD: in PIMD∕NEB calculations, this will need to be adapted
+        if cell[0].shape != (3, 3):
+            positions = positions[:, 0, ...]
+            cell = cell[:, 0, ...]
+            energy = energy[:, 0, ...]
+            forces = forces[:, 0, ...]
+            stress = stress[:, 0, ...]
+
         nb_confs = len(energy)
         atoms_list = []
         for i in range(nb_confs):
