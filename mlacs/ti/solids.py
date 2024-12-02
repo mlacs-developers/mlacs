@@ -213,7 +213,8 @@ class EinsteinSolidState(ThermoState):
                                 blocks=get_msd_input(self, 'msd.dat'),
                                 workdir=self.workdir,
                                 folder=self.folder,
-                                subfolder='MSD')
+                                subfolder='MSD',
+                                rng=self.rng)
 
         msd_state.run_dynamics(self.atoms,
                                self.pair_style,
@@ -328,15 +329,10 @@ class EinsteinSolidState(ThermoState):
                    f"{free_energy_corrected:10.6f} eV/at\n"
         # add Fe or Fe_corrected to return to be read for cv purpose and RS
         if self.fcorr1 is not None or self.fcorr2 is not None:
-            if self.pressure is None:
-                return msg, free_energy_corrected
-            else:
-                return msg, free_energy_corrected + pv
-        else:
-            if self.pressure is None:
-                return msg, free_energy
-            else:
-                return msg, free_energy + pv
+            free_energy = free_energy_corrected
+        if self.pressure:
+            free_energy += pv
+        return msg, free_energy
 
 # ========================================================================== #
     def _get_block_thermostat(self, eq):

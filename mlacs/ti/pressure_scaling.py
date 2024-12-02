@@ -197,6 +197,7 @@ class PressureScalingState(ThermoState):
         """
         Free energy calculation before sweep
         """
+        folder = "Fe_ref"
         if self.phase == 'solid':
             self.state = EinsteinSolidState(self.atoms,
                                             self.pair_style,
@@ -206,7 +207,8 @@ class PressureScalingState(ThermoState):
                                             self.fcorr1,
                                             self.fcorr2,
                                             k=None,
-                                            dt=self.dt)
+                                            dt=self.dt,
+                                            folder=folder)
         elif self.phase == 'liquid':
             self.state = UFLiquidState(self.atoms,
                                        self.pair_style,
@@ -215,23 +217,13 @@ class PressureScalingState(ThermoState):
                                        self.p_start,
                                        self.fcorr1,
                                        self.fcorr2,
-                                       dt=self.dt)
+                                       dt=self.dt,
+                                       folder=folder)
 
         self.ti = ThermodynamicIntegration(self.state,
                                            ninstance=self.ninstance,
                                            logfile='FreeEnergy.log')
-        self.ti.run()
-
-        # Get G
-        if self.ninstance == 1:
-            _, self.g_init = self.state.postprocess()
-        elif self.ninstance > 1:
-            tmp = []
-            for i in range(self.ninstance):
-                _, tmp_g_init = self.state.postprocess()
-                tmp.append(tmp_g_init)
-            self.g_init = np.mean(tmp)
-
+        self.g_init = self.ti.run().mean(axis=1)[0]
         return self.g_init
 
 # ========================================================================== #
@@ -280,18 +272,6 @@ class PressureScalingState(ThermoState):
         temp = self.temperature
 
         blocks = []
-        pair_style = self.pair_style.split()
-        if len(self.pair_coeff) == 1:
-            pair_coeff = self.pair_coeff[0].split()
-            hybrid_pair_coeff = " ".join([*pair_coeff[:2],
-                                          pair_style[0],
-                                          *pair_coeff[2:]])
-        else:
-            hybrid_pair_coeff = []
-            for pc in self.pair_coeff:
-                pc_ = pc.split()
-                hpc_ = " ".join([*pc_[:2], *pc_[2:]])
-                hybrid_pair_coeff.append(hpc_)
 
         block0 = LammpsBlockInput("eq fwd", "Equilibration before fwd rs")
         line = f"fix f1 all npt temp {temp} {temp} {self.damp} "

@@ -208,6 +208,7 @@ class ReversibleScalingState(ThermoState):
         """
         Free energy calculation before sweep
         """
+        folder = self.folder + "/Fe_ref"
         if self.phase == 'solid':
             self.state = EinsteinSolidState(self.atoms,
                                             self.pair_style,
@@ -219,8 +220,7 @@ class ReversibleScalingState(ThermoState):
                                             k=None,
                                             dt=self.dt,
                                             workdir=self.workdir,
-                                            folder=self.folder,
-                                            subfolder=self.subfolder)
+                                            folder=folder)
         elif self.phase == 'liquid':
             self.state = UFLiquidState(self.atoms,
                                        self.pair_style,
@@ -231,8 +231,7 @@ class ReversibleScalingState(ThermoState):
                                        fcorr2=self.fcorr2,
                                        dt=self.dt,
                                        workdir=self.workdir,
-                                       folder=self.folder,
-                                       subfolder=self.subfolder)
+                                       folder=folder)
 
         self.ti = ThermodynamicIntegration(self.state,
                                            ninstance=self.ninstance,
@@ -240,17 +239,7 @@ class ReversibleScalingState(ThermoState):
                                            folder=self.folder,
                                            subfolder=self.subfolder,
                                            logfile='FreeEnergy.log')
-        self.ti.run()
-        # Get Fe
-        if self.ninstance == 1:
-            _, self.fe_init = self.state.postprocess()
-        elif self.ninstance > 1:
-            tmp = []
-            for i in range(self.ninstance):
-                _, tmp_fe_init = self.state.postprocess()
-                tmp.append(tmp_fe_init)
-            self.fe_init = np.mean(tmp)
-
+        self.fe_init = self.ti.run().mean(axis=1)[0]
         return self.fe_init
 
 # ========================================================================== #
