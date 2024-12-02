@@ -14,6 +14,7 @@ import numpy as np
 
 from ase.build import bulk
 from ase.calculators.emt import EMT
+from ase.units import Bohr, Hartree
 
 from mlacs.mlip import SnapDescriptor
 from mlacs.mlip import LinearPotential
@@ -21,7 +22,7 @@ from mlacs.mlip import MbarManager
 from mlacs.state import LammpsState
 from mlacs.properties import CalcExecFunction
 from mlacs import OtfMlacs
-from mlacs.utilities.io_abinit import HistFile
+from mlacs.utilities.io_abinit import MlacsHist, AbinitNC
 
 
 from ... import context  # noqa
@@ -85,8 +86,8 @@ def test_basic_hist():
         etotal_unit = etotal_var.unit
         assert etotal_unit == 'Ha'
 
-    # Check that the HistFile class is running properly
-    ncfile = HistFile(ncpath=path_name)
+    # Check that the MlacsHist class is running properly
+    ncfile = MlacsHist(ncpath=path_name)
     var_names = ncfile.get_var_names()
     assert isinstance(var_names, list)
     dict_var_units = ncfile.get_units()
@@ -221,3 +222,102 @@ def test_restart_hist():
         vol_var = ncfile['vol']
         vol_data = vol_var[:].data
         assert vol_data.shape == (nb_states*(nb_mlacs_iter1-1+nb_mlacs_iter3),)
+
+
+@pytest.mark.skipif(context.has_netcdf(),
+                    reason="You need the netCDF4 package to run the test.")
+def test_hist_converter():
+    """
+    Check that
+        (1) converter from Abinit HIST.nc to list of ase.Atoms
+            [namely AbinitNC.convert_to_atoms()]
+        (2) converter from list of ase.Atoms to Abinit HIST.nc
+            [namely AtomsToHist]
+    are inverses of each other.
+    """
+    # Load a reference HIST.nc file from an Abinit calculation
+    workdir = str(Path() / 'reference_files/')
+    prefix = 'sqa'
+    suffix = 'HIST'
+    hist = AbinitNC(workdir=workdir, prefix=prefix, suffix=suffix)
+    hist_results = hist.read()
+    hist_cell = hist_results['rprimd']
+    hist_positions = hist_results['xcart']
+
+    # Convert to ASE list of Atoms
+    hist_atoms = hist.convert_to_atoms()
+
+    # Check the conversion of units (must be ASE units)
+    assert len(hist_atoms) == len(hist_positions)
+    ase_energy_first_conf = hist_atoms[0].get_total_energy()
+    abinit_energy_first_conf = hist_results['etotal'][0]*Hartree
+    assert ase_energy_first_conf == abinit_energy_first_conf
+    ase_cell_first_conf = np.array(hist_atoms[0].get_cell())
+    abinit_cell_first_conf = hist_cell[0]*Bohr
+    assert np.array_equal(ase_cell_first_conf, abinit_cell_first_conf)
+
+    # Convert ASE list of Atoms back into HIST.nc format
+    ncprefix = 'myconverted'
+    workdir = Path('')
+    obj = MlacsHist(ncprefix=ncprefix,
+                    workdir=workdir,
+                    atoms=hist_atoms)
+    obj.convert_to_hist()
+
+    # Check that created new HIST.nc is same as the reference one.
+    hist_new = AbinitNC()
+    nc_name = ncprefix + '_HIST.nc'
+    nc_path = Path('') / nc_name
+    hist_new.ncfile = str(nc_path)
+    hist_new_results = hist_new.read()
+    assert np.allclose(hist_new_results['znucl'],
+                       hist_results['znucl'],
+                       rtol=10**-8)
+    assert np.allclose(hist_new_results['etotal'],
+                       hist_results['etotal'],
+                       rtol=10**-8)
+    assert np.allclose(hist_new_results['xcart'],
+                       hist_results['xcart'],
+                       rtol=10**-8)
+    assert np.allclose(hist_new_results['fcart'],
+                       hist_results['fcart'],
+                       rtol=10**-8)
+    assert np.allclose(hist_new_results['strten'],
+                       hist_results['strten'],
+                       rtol=10**-8)
+
+    nc_path.unlink()
+
+
+@pytest.mark.skipif(context.has_netcdf(),
+                    reason="You need the netCDF4 package to run the test.")
+def test_gsr_out():
+    """
+    Check that reference GSR.nc/OUT.nc files can be read by AbinitNC class,
+    and converted to list of ase.Atoms in ASE units.
+    """
+
+    workdir = str(Path() / 'reference_files/')
+    prefix = 'abinit'
+
+    gsr = AbinitNC(workdir=workdir, prefix=prefix, suffix='GSR')
+    gsr.ncfile = '/home/duvalc/Documents/squaric_acid/pseudopot/sqao_GSR.nc'
+    gsr_atoms = gsr.convert_to_atoms()
+
+    out = AbinitNC(workdir=workdir, prefix=prefix, suffix='OUT')
+    out.ncfile = '/home/duvalc/Documents/squaric_acid/pseudopot/sqao_OUT.nc'
+    out_atoms = out.convert_to_atoms()
+
+    assert len(gsr_atoms) == 1
+    assert len(out_atoms) == 1
+
+    gsr_cell = np.array(gsr_atoms[0].get_cell())
+    gsr_results = gsr.read()
+    nc_gsr_cell = gsr_results['primitive_vectors']
+    assert np.allclose(gsr_cell, nc_gsr_cell*Bohr, rtol=10**-8)
+
+    out_cell = np.array(out_atoms[0].get_cell())
+    out_results = out.read()
+    out_rprim = np.reshape(out_results['rprim'], (3, 3))
+    nc_out_cell = out_results['acell'] * out_rprim
+    assert np.allclose(out_cell, nc_out_cell*Bohr, rtol=10**-8)

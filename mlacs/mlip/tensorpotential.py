@@ -124,7 +124,9 @@ class TensorpotPotential(MlipManager):
 
         create_link(self.subsubdir / weight_fn, self.subdir/weight_fn)
         create_link(self.subsubdir / coef_fn, self.subdir/coef_fn)
-        return msg
+
+        if self.log:
+            self.log.write(msg)
 
 # ========================================================================== #
     def read_parent_mlip(self, traj):

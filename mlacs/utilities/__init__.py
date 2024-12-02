@@ -19,8 +19,7 @@ from .miscellanous import (get_elements_Z_and_masses,
                            create_link,
                            )
 
-from .io_abinit import (AbinitNC,
-                        set_aseAtoms)
+from .io_abinit import (AbinitNC)
 
 from .io_pandas import (make_dataframe)
 
@@ -33,7 +32,6 @@ __all__ = ['compute_pdf',
            'integrate_points',
            'normalized_integration',
            'AbinitNC',
-           'set_aseAtoms',
            'execute_from',
            'save_cwd',
            'create_link',

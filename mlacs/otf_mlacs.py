@@ -49,7 +49,7 @@ class OtfMlacs(Mlas, Manager):
         MLIP. The configurations are created by rattling the first structure.
         If :class:`list` of :class:`ase.Atoms`, The atoms that are to be
         computed in order to create the initial training configurations.
-        Default ``1``.
+        Default ``None``.
 
     std_init: :class:`float` (optional)
         Variance (in :math:`\mathring{a}^2`) of the displacement
@@ -59,7 +59,7 @@ class OtfMlacs(Mlas, Manager):
     keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
-        Default ``False``.
+        Default ``True``.
 
     prefix: :class:`str` (optional)
         The prefix to prepend the name of the States files.

@@ -25,8 +25,7 @@ from ase.io.abinit import (write_abinit_in,
 from ..core.manager import Manager
 from .calc_manager import CalcManager
 from ..utilities import save_cwd
-from ..utilities.io_abinit import (AbinitNC,
-                                   set_aseAtoms)
+from ..utilities.io_abinit import AbinitNC
 
 
 # ========================================================================== #
@@ -151,7 +150,25 @@ class AbinitManager(CalcManager):
                                subfolder: [str],
                                step: [int]):
         """
-        Compute the energy of given configurations with Abinit.
+        Compute the energy/forces/stress of given configurations with Abinit.
+
+        Parameters
+        ----------
+        confs: :class:`list` of :class:`ase.Atoms`
+            The input list of atom objects.
+
+        subfolder: :class:`list` of :class:`str` (optional)
+            Subfolder in which the properties are saved.
+
+        step: :class:`list` of :class:`int`  (optional)
+            The list of configuration indices.
+
+        Returns
+        -------
+        result_confs: :class:`list` of :class:`ase.Atoms`
+            The output list of atom objects, with corresponding
+            SinglePointCalculator resulting from true potential calculation.
+            See also _read_output() where SinglePointCalculator() is called.
         """
         assert len(confs) == len(subfolder) == len(step)
         nparal = self.nproc // self.nproc_per_task
@@ -284,9 +301,9 @@ class AbinitManager(CalcManager):
         """
         results = {}
         if self.ncfile is not None:
-            dct = self.ncfile.read(self.get_filepath("abinito_GSR.nc"))
-            results.update(dct)
-            atoms = set_aseAtoms(results)
+            ncpath = self.get_filepath("abinito_GSR.nc")
+            self.ncfile.read(filename=ncpath)
+            atoms = self.ncfile.convert_to_atoms()[0]
             atoms.set_velocities(at.get_velocities())
             return atoms
 
@@ -317,13 +334,16 @@ class AbinitManager(CalcManager):
         for ityp in pseudos.keys():
             typat.append(ityp)
             pseudolist.append(pseudos[ityp])
+        typat = np.array(typat)
         pseudolist = np.array(pseudolist)
 
         self.typat = typat
         znucl = symbols2numbers(typat)
         idx = np.argsort(znucl)
-        pseudolist = pseudolist[idx]
-        self.pseudos = pseudolist
+
+        # Reorder in increasing Z
+        self.typat = typat[idx]
+        self.pseudos = pseudolist[idx]
 
 # ========================================================================== #
     def _remove_previous_run(self, stateprefix):
