@@ -430,10 +430,3 @@ def get_lammps_command():
         cmd = "lammps"
 
     return cmd
-=======
-        block("msd el", f"fix f{iel+3} {el} print 1 " + \
-                  f"\"${{msd{el}}}\" screen no append msd{el}.dat")
-    return block
-
-
->>>>>>> main

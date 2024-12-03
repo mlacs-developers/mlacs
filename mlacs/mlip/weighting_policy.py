@@ -5,8 +5,11 @@
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
+from pathlib import Path
 
 import numpy as np
+from ase.atoms import Atoms
+
 from ..core.manager import Manager
 
 
@@ -254,4 +257,3 @@ class IncreasingWeight(WeightingPolicy):
         if isinstance(atoms, Atoms):
             atoms = [atoms]
         self.matsize.extend([len(a) for a in atoms])
->>>>>>> main
