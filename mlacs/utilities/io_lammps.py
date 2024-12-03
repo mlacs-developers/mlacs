@@ -389,7 +389,6 @@ def reconstruct_mlmd_trajectory(trajfile, logfile):
         traj.append(newat)
     return traj
 
-
 # RB: msdfile variable probably not needed.
 # ========================================================================== #
 def get_msd_input(self, msdfile):
@@ -431,3 +430,10 @@ def get_lammps_command():
         cmd = "lammps"
 
     return cmd
+=======
+        block("msd el", f"fix f{iel+3} {el} print 1 " + \
+                  f"\"${{msd{el}}}\" screen no append msd{el}.dat")
+    return block
+
+
+>>>>>>> main

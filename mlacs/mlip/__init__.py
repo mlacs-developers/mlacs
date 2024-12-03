@@ -20,7 +20,6 @@ from .weights import (UniformWeight,
                       IncreasingWeight,
                       EnergyBasedWeight,
                       FixedWeight)
-
 __all__ = ['MlipManager',
            'Descriptor',
            'SumDescriptor',

@@ -123,6 +123,7 @@ class BaseLammpsState(StateManager):
                           atom_style=atom_style,
                           specorder=elements.tolist())
 
+
 # ========================================================================== #
     def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
                           atom_style, eq, elements):

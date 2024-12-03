@@ -5,7 +5,6 @@
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
-
 import numpy as np
 
 from .thermostate import ThermoState
