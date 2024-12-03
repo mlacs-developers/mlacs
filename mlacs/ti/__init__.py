@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (PR, AC)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,13 +10,10 @@ from .thermoint import ThermodynamicIntegration
 from .solids import EinsteinSolidState
 from .liquids import UFLiquidState
 from .reversible_scaling import ReversibleScalingState
-from .helpers import prepare_ti
-from .gpthermoint import GpThermoIntT, GpThermoIntVT
+from .pressure_scaling import PressureScalingState
 
 __all__ = ["ThermodynamicIntegration",
            "EinsteinSolidState",
            "UFLiquidState",
            "ReversibleScalingState",
-           "prepare_ti",
-           "GpThermoIntT",
-           "GpThermoIntVT"]
+           "PressureScalingState"]

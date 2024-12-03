@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -45,7 +45,17 @@ class LinearPotential(MlipManager):
     Examples
     --------
 
+    >>> from ase.io import read
+    >>> confs = read('Trajectory.traj', index=':')
+    >>>
+    >>> from mlacs.mlip import SnapDescriptor, LinearPotential
+    >>> desc = SnapDescriptor(confs[0], rcut=6.2, parameters=dict(twojmax=6))
+    >>> mlip = LinearPotential(desc)
+    >>>
+    >>> mlip.update_matrices(confs)
+    >>> mlip.train_mlip()
     """
+
     def __init__(self,
                  descriptor,
                  parameters={},
@@ -74,6 +84,33 @@ class LinearPotential(MlipManager):
 # ========================================================================== #
     def train_mlip(self):
         """
+        Compute the coefficients of the MLIP, then write MLIP.
+
+        Notes
+        -----
+
+        Local variables:
+            - `amat`: ndarray of shape ((7+3*Nat)*N, K)
+                Feature matrix
+            - `ymat`: ndarray of shape ((7+3*Nat)*N,)
+                Label vector
+            - `W`: ndarray of shape ((7+3*Nat)*N,)
+                Weighting matrix
+
+        Where:
+            - `K` is the number of descriptor components
+            - `N` is the number of configurations
+            - `Nat` is the number of atoms in each cell
+
+        var = `amat`, `ymat`, `W` have a stacked structure
+            +-------+
+            |   e   |  <-- energy block
+            +-------+
+            |   f   |  <-- forces block
+            +-------+
+            |   s   |  <-- stresses block
+            +-------+
+        where each block has the shape of var_i, with i=e,f,s
         """
         self.weight.workdir = self.workdir
         self.weight.folder = self.folder
@@ -83,13 +120,12 @@ class LinearPotential(MlipManager):
         self.descriptor.subfolder = self.subfolder
 
         msg = ''
-        idx_e, idx_f, idx_s = self._get_idx_fit()
-        amat_e = self.amat_e[idx_e:] / self.natoms[idx_e:, None]
-        amat_f = self.amat_f[idx_f:]
-        amat_s = self.amat_s[idx_s:]
-        ymat_e = np.copy(self.ymat_e[idx_e:]) / self.natoms[idx_e:]
-        ymat_f = self.ymat_f[idx_f:]
-        ymat_s = self.ymat_s[idx_s:]
+        amat_e = self.amat_e / self.natoms[:, None]
+        amat_f = self.amat_f
+        amat_s = self.amat_s
+        ymat_e = np.copy(self.ymat_e) / self.natoms
+        ymat_f = self.ymat_f
+        ymat_s = self.ymat_s
 
         # Division by amat.std : If de=1e2 and ds=1e5, we dont want to fit
         # 1000x more on the stress than on the energy. Careful ymat/AMAT.std
@@ -122,13 +158,12 @@ class LinearPotential(MlipManager):
             raise ValueError(msg)
 
         msg += "\nNumber of configurations for training: " + \
-               f"{len(self.natoms[idx_e:]):}\n"
+               f"{len(self.natoms):}\n"
         msg += "Number of atomic environments for training: " + \
-               f"{self.natoms[idx_e:].sum():}\n\n"
+               f"{self.natoms.sum():}\n\n"
 
-        tmp_msg, weight_fn = self.weight.compute_weight(
-            self.coefficients,
-            self.predict)
+        tmp_msg, weight_fn = self.weight.compute_weight(self.coefficients,
+                                                        self.predict)
 
         msg += tmp_msg
         msg += self.compute_tests(amat_e, amat_f, amat_s,
@@ -137,7 +172,9 @@ class LinearPotential(MlipManager):
         mlip_fn = self.descriptor.write_mlip(self.coefficients)
         create_link(self.subsubdir / weight_fn, self.subdir / weight_fn)
         create_link(self.subsubdir / mlip_fn, self.subdir / mlip_fn)
-        return msg
+
+        if self.log:
+            self.log.write(msg)
 
 # ========================================================================== #
     def compute_tests(self, amat_e, amat_f, amat_s,
@@ -153,11 +190,9 @@ class LinearPotential(MlipManager):
         if len(self.weight.weight) > 0:
             w = self.weight.weight
 
-        # Quickfix for variable number of atoms
         wf = np.array([])
         for i in range(len(w)):
             wf = np.append(wf, np.ones(self.natoms[i]*3)*(w[i]/3))
-        # End of Quickfix
 
         res_E = compute_correlation(np.c_[ymat_e, e_mlip], weight=w)
         res_F = compute_correlation(np.c_[ymat_f, f_mlip], weight=wf)
@@ -227,11 +262,8 @@ class LinearPotential(MlipManager):
 
         # We use the latest value coefficients to get the properties
         energy = np.einsum('nij,j->n',  amat_e, coef)
-        forces = np.einsum('nij,j->ni', amat_f, coef)
+        forces = [np.einsum('ij,j->i', conf_f, coef) for conf_f in amat_f]
         stress = np.einsum('nij,j->ni', amat_s, coef)
-
-        #  This line will cause problem if the number of atoms vary
-        forces = forces.reshape(len(energy), -1, 3)
 
         if len(energy) == 1:
             return energy[0], forces[0], stress[0]

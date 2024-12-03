@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -32,6 +32,10 @@ class DeltaLearningPotential(MlipManager):
 
     pair_coeff: :class:`list` of :class:`str`
         The pair_coeff of the LAMMPS reference potential.
+
+    folder: :class:`str` (optional)
+        The root for the directory in which the MLIP are stored.
+        Default 'MLIP'
 
     Examples
     --------
@@ -255,7 +259,7 @@ class DeltaLearningPotential(MlipManager):
         """
         """
         self._set_directories()
-        return self.model.train_mlip()
+        self.model.train_mlip()
 
     # GA: Need to overwrite this abstract methods, but I'm not sure
     #     if it is used at all.

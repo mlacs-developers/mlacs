@@ -1,12 +1,11 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON, PR)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 from subprocess import run, PIPE
 from abc import abstractmethod
 
@@ -15,13 +14,15 @@ import numpy as np
 from ase.io import read
 from ase.io.lammpsdata import write_lammps_data
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution
+from ase.data import chemical_symbols, atomic_masses
 
 from .state import StateManager
 from ..core.manager import Manager
 from ..utilities import get_elements_Z_and_masses
 from ..utilities.io_lammps import (LammpsInput,
                                    EmptyLammpsBlockInput,
-                                   LammpsBlockInput)
+                                   LammpsBlockInput,
+                                   get_lammps_command)
 
 
 class BaseLammpsState(StateManager):
@@ -29,11 +30,13 @@ class BaseLammpsState(StateManager):
     Base class to perform simulations with LAMMPS.
     """
     def __init__(self, nsteps, nsteps_eq, logfile, trajfile, loginterval=50,
-                 lammpsfname=None, blocks=None, neti=False, **kwargs):
+                 lammpsfname=None, blocks=None, neti=False, eq_mass_md=False,
+                 **kwargs):
 
         super().__init__(nsteps, nsteps_eq, logfile, trajfile, loginterval,
                          **kwargs)
 
+        self.eq_mass_md = eq_mass_md
         self.ispimd = False
         self.isrestart = False
         self.nbeads = 1  # Dummy nbeads to help
@@ -61,40 +64,46 @@ class BaseLammpsState(StateManager):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Function to run the dynamics
         """
         atoms = supercell.copy()
 
+        if elements is None:
+            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
+            elements = el
+
         initial_charges = atoms.get_initial_charges()
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         blocks = self._get_block_inputs(atoms, pair_style, pair_coeff,
-                                        model_post, atom_style, eq)
-        if self.neti == False:
-            lmp_input = LammpsInput("Lammps input to run MlMD created by MLACS")
+                                        model_post, atom_style, eq, elements)
+        if self.neti is False:
+            txt = "Lammps input to run MlMD created by MLACS"
+            lmp_input = LammpsInput(txt)
         else:
-            lmp_input = LammpsInput("Lammps input to run a NETI created by MLACS")
+            txt = "Lammps input to run a NETI created by MLACS"
+            lmp_input = LammpsInput(txt)
         for block in blocks:
             lmp_input(block.name, block)
 
         with open(self.subsubdir / self.lammpsfname, "w") as fd:
             fd.write(str(lmp_input))
 
-        self._write_lammps_atoms(atoms, atom_style)
+        self._write_lammps_atoms(atoms, atom_style, elements)
 
         lmp_cmd = self._get_lammps_command()
         lmp_handle = run(lmp_cmd,
                          shell=True,
                          cwd=str(self.subsubdir),
                          stderr=PIPE)
-        
+
         if lmp_handle.returncode != 0:
             msg = "LAMMPS stopped with the exit code \n" + \
                   f"{lmp_handle.stderr.decode()}"
             raise RuntimeError(msg)
-        if self.neti == False:
+        if self.neti is False:
             atoms = self._get_atoms_results(initial_charges)
 
         # Set the info of atoms
@@ -104,48 +113,55 @@ class BaseLammpsState(StateManager):
 
 # ========================================================================== #
     @Manager.exec_from_subsubdir
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements):
         """
 
         """
         write_lammps_data(str(self.subsubdir / self.atomsfname),
                           atoms,
                           velocities=True,
-                          atom_style=atom_style)
+                          atom_style=atom_style,
+                          specorder=elements.tolist())
 
 
 # ========================================================================== #
     def _get_block_inputs(self, atoms, pair_style, pair_coeff, model_post,
-                          atom_style, eq):
+                          atom_style, eq, elements):
         """
 
         """
+        masses = [atomic_masses[chemical_symbols.index(element)]
+                  for element in elements]
+
+        pbc = atoms.get_pbc()
+        if self.eq_mass_md:
+            masses = np.ones(np.shape(masses))
+
         blocks = []
-        blocks.append(self._get_block_init(atoms, atom_style))
+        blocks.append(self._get_block_init(atom_style, pbc, elements, masses))
         blocks.append(self._get_block_interactions(pair_style, pair_coeff,
-                                                   model_post, atom_style))
+                                                   model_post, atom_style,
+                                                   atoms))
         blocks.append(self._get_block_thermostat(eq))
         if self.logfile is not None:
             blocks.append(self._get_block_log())
         if self.trajfile is not None:
-            blocks.append(self._get_block_traj(atoms))
+            blocks.append(self._get_block_traj(elements))
         if isinstance(self._get_block_custom(), list):
             blocks.extend(self._get_block_custom())
         else:
             blocks.append(self._get_block_custom())
         blocks.append(self._get_block_run(eq))
-        if self.neti == False:
-            blocks.append(self._get_block_lastdump(atoms, eq))
+        if self.neti is False:
+            blocks.append(self._get_block_lastdump(elements, eq))
         return blocks
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("units", "units metal")
@@ -154,8 +170,8 @@ class BaseLammpsState(StateManager):
         block("read_data", f"read_data {self.atomsfname}")
         for i, mass in enumerate(masses):
             block(f"mass{i}", f"mass {i+1}  {mass}")
-        for iel, e in enumerate(el):                                                      
-            block("group", f"group {e} type {iel+1}") 
+        for iel, e in enumerate(el):
+            block("group", f"group {e} type {iel+1}")
         return block
 
 # ========================================================================== #
@@ -173,10 +189,11 @@ class BaseLammpsState(StateManager):
 
 # ========================================================================== #
     def _get_block_interactions(self, pair_style, pair_coeff, model_post,
-                                atom_style):
+                                atom_style, atoms):
         """
 
         """
+        # Write lammps input
         block = LammpsBlockInput("interaction", "Interaction")
         block("pair_style", f"pair_style {pair_style}")
         for i, pair in enumerate(pair_coeff):
@@ -209,11 +226,10 @@ class BaseLammpsState(StateManager):
         return block
 
 # ========================================================================== #
-    def _get_block_lastdump(self, atoms, eq):
+    def _get_block_lastdump(self, el, eq):
         """
 
         """
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
         block = LammpsBlockInput("lastdump", "Dump last configuration")
         txt = "dump last all custom 1 configurations.out " + \
               "id type xu yu zu vx vy vz fx fy fz element"
@@ -224,11 +240,10 @@ class BaseLammpsState(StateManager):
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
 
         """
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
         block = LammpsBlockInput("traj", "Dumping trajectory")
         txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
               "id type xu yu zu vx vy vz fx fy fz "
@@ -262,12 +277,9 @@ class BaseLammpsState(StateManager):
 # ========================================================================== #
     def _get_lammps_command(self):
         '''
-        Function to load the batch command to run LAMMPS
+        Function to load the bash command to run LAMMPS
         '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_serial"
+        cmd = get_lammps_command()
         return f"{cmd} -in {self.lammpsfname} -sc out.lmp"
 
 # ========================================================================== #
@@ -377,6 +389,10 @@ class LammpsState(BaseLammpsState):
     nsteps_eq : :class:`int` (optional)
         Number of MLMD steps for equilibration runs. Default ``100`` steps.
 
+    eq_mass_md : :class:`Bool` (optional)
+        If all atoms have the same mass for the MD. Default ``False``
+        If True, make sure your MLIP is also correctly parametrized
+
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
         If ``None``, no log file is created. Default ``None``.
@@ -421,6 +437,7 @@ class LammpsState(BaseLammpsState):
                  init_momenta=None,
                  nsteps=1000,
                  nsteps_eq=100,
+                 eq_mass_md=False,
                  logfile=None,
                  trajfile=None,
                  loginterval=50,
@@ -432,7 +449,7 @@ class LammpsState(BaseLammpsState):
 
         super().__init__(nsteps, nsteps_eq, logfile, trajfile,
                          loginterval=loginterval, blocks=blocks,
-                         folder=folder, **kwargs)
+                         eq_mass_md=eq_mass_md, folder=folder, **kwargs)
 
         self.temperature = temperature
         self.pressure = pressure
@@ -570,11 +587,10 @@ class LammpsState(BaseLammpsState):
                                   pressure=pressure)
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
 
         """
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
         block = LammpsBlockInput("traj", "Dumping trajectory")
         txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
               "id type xu yu zu vx vy vz fx fy fz "

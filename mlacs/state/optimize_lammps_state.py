@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -95,6 +95,7 @@ class OptimizeLammpsState(BaseLammpsState):
     >>> neb = OptimizeLammpsState(initial, pressure=0, ptype='iso')
     >>> state.run_dynamics(initial, mlip.pair_style, mlip.pair_coeff)
     """
+
     def __init__(self, min_style="cg", etol=0.0, ftol=1e-6, dt=0.5,
                  pressure=None, ptype="iso", vmax=1e-3,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,

@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,7 +10,6 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 
-from ase.atoms import Atoms
 from ase.neighborlist import neighbor_list
 
 from ..core import Manager
@@ -36,8 +35,25 @@ class Descriptor(Manager, ABC):
 
         Manager.__init__(self, prefix=prefix, **kwargs)
 
-        self.elements, self.Z, self.masses, self.charges = \
-            get_elements_Z_and_masses(atoms)
+        if isinstance(atoms, list):
+            self.elements, self.Z, self.masses, self.charges = \
+                    [np.array([]) for _ in range(4)]
+            for at in atoms:
+                el, Z, masses, charges = get_elements_Z_and_masses(at)
+                for i in range(len(el)):
+                    if el[i] not in self.elements:
+                        self.elements = np.append(self.elements, el[i])
+                        self.Z = np.append(self.Z, Z[i])
+                        self.masses = np.append(self.masses, masses[i])
+                        if charges is None:
+                            self.charges = np.append(self.charges, 0.)
+                        else:
+                            self.charges = np.append(self.charges, charges[i])
+            if np.allclose(self.charges, 0.0, atol=1e-8):
+                self.charges = None
+        else:
+            self.elements, self.Z, self.masses, self.charges = \
+              get_elements_Z_and_masses(atoms)
         self.nel = len(self.elements)
         self.rcut = rcut
         self.welems = np.array(self.Z) / np.sum(self.Z)
@@ -48,6 +64,9 @@ class Descriptor(Manager, ABC):
     def compute_descriptors(self, atoms, forces=True, stress=True):
         desc = []
         for at in atoms:
+            # AC : apparently, the at.info for descriptor does not work
+            # RB : Tested this, the fix works fined for Trajectory confs but
+            #      not for Training. I don't know why ?!
             if "descriptor" in at.info:
                 desc.append(at.info['descriptor'])
             else:
@@ -70,30 +89,6 @@ class Descriptor(Manager, ABC):
         iel = np.array([np.where(self.elements == el)[0][0]
                         for el in iel])
         return iat, jat, vdist, iel
-
-# ========================================================================== #
-    @Manager.exec_from_subdir
-    def calculate(self, atoms, forces=True, stress=True):
-        """
-        """
-        if stress and not forces:
-            raise ValueError("You need the forces to compute the stress")
-
-        if isinstance(atoms, Atoms):
-            atoms = [atoms]
-        res = []
-        for at in atoms:
-            # RB : seems this doesn't work.
-            # if "descriptor" in at.info:
-            #     res_iat = at.info['descriptor']
-            # elif self.need_neigh:
-            if self.need_neigh:
-                iat, jat, vdist, iel = self._compute_rij(at)
-                res_iat = self.compute_descriptor(at, iat, jat, vdist, iel)
-            else:
-                res_iat = self.compute_descriptor(at, forces, stress)
-            res.append(res_iat)
-        return res
 
 # ========================================================================== #
     def _regularization_matrix(self):
@@ -131,37 +126,6 @@ class SumDescriptor(Descriptor):
             fcol = icol + d.ncolumns
             d.write_mlip(coefficients[icol:fcol])
             icol = fcol
-
-# ========================================================================== #
-    @Manager.exec_from_subsubdir
-    def calculate(self, atoms, forces=True, stress=True):
-        """
-        """
-        if stress and not forces:
-            raise ValueError("You need the forces to compute the stress")
-
-        if isinstance(atoms, Atoms):
-            atoms = [atoms]
-        res = []
-        for at in atoms:
-            if self.need_neigh:
-                iat, jat, vdist, iel = self._compute_rij(at)
-            desc_e = np.empty((1, 0))
-            desc_f = np.empty((len(at) * 3, 0))
-            desc_s = np.empty((6, 0))
-            for desc in self.desc:
-                if desc.need_neigh:
-                    res_iat_d = desc.compute_descriptor(at, iat, jat,
-                                                        vdist, iel)
-                else:
-                    res_iat_d = desc.compute_descriptor(at, forces, stress)
-                desc_e = np.c_[desc_e, res_iat_d["desc_e"]]
-                desc_f = np.c_[desc_f, res_iat_d["desc_f"]]
-                desc_s = np.c_[desc_s, res_iat_d["desc_s"]]
-            res.append(dict(desc_e=desc_e,
-                            desc_f=desc_f,
-                            desc_s=desc_s))
-        return res
 
 # ========================================================================== #
     def compute_descriptor(self, atoms, forces=True, stress=True):

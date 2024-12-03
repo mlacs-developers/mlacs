@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,6 +12,7 @@ from .state import StateManager
 from ..core import PathAtoms
 from ..core.manager import Manager
 from ..mlip.calculator import MlipCalculator
+from ..utilities import get_elements_Z_and_masses
 
 default_parameters = {}
 
@@ -67,7 +68,7 @@ class BaseMepState(StateManager):
 
     """
     def __init__(self, images, xi=None, nimages=4, mode=None, model=None,
-                 interpolate='linear', parameters={}, print=False, **kwargs):
+                 interpolate='linear', parameters={}, print=True, **kwargs):
 
         super().__init__(**kwargs)
 
@@ -100,13 +101,19 @@ class BaseMepState(StateManager):
                      supercell,
                      pair_style,
                      pair_coeff,
-                     model_post,
+                     model_post=None,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Run state function.
         """
         atoms = supercell.copy()
+        el, _, _, _ = get_elements_Z_and_masses(atoms)
+        if elements is not None and el != elements:
+            # ON : Look at LammpsState run_dynamics to implement
+            # It is a question of having an MLIP fitted on different elements
+            raise NotImplementedError("Need to implement vartypat here")
         initial_charges = atoms.get_initial_charges()
 
         images = self.patoms.images
@@ -165,8 +172,8 @@ class LinearInterpolation(BaseMepState):
                  model=None, interpolate='linear',
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         parameters, print, **kwargs)
 
 # ========================================================================== #
     def run_optimize(self, images):
@@ -174,6 +181,7 @@ class LinearInterpolation(BaseMepState):
         Interpolate images and run the optimization.
         """
 
+        # RB in future ASE version NEB should be imported from ase.mep
         from ase.neb import NEB
         neb = NEB(images, **self.parameters)
 
@@ -220,8 +228,8 @@ class NebAseState(BaseMepState):
                  Kspring=0.1, optimizer=None, ftol=5.0e-2,
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         parameters, print, **kwargs)
 
         self.opt = optimizer
         self.criterions = ftol
@@ -238,6 +246,7 @@ class NebAseState(BaseMepState):
 
         images = self._set_calculator(images)
 
+        # RB in future ASE version NEB should be imported from ase.mep
         from ase.neb import NEB
         neb = NEB(images, k=self.Kspring, **self.parameters)
 
@@ -289,9 +298,9 @@ class CiNebAseState(NebAseState):
                  Kspring=0.1, optimizer=None, ftol=5.0e-2,
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          Kspring, optimizer, ftol,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         Kspring, optimizer, ftol,
+                         parameters, print, **kwargs)
 
         self.parameters.update(dict(climb=True))
 
@@ -320,9 +329,9 @@ class StringMethodAseState(NebAseState):
                  Kspring=0.1, optimizer=None, ftol=5.0e-2,
                  parameters={}, print=False, **kwargs):
 
-        super(). __init__(images, xi, nimages, mode, model, interpolate,
-                          Kspring, optimizer, ftol,
-                          parameters, print, **kwargs)
+        super().__init__(images, xi, nimages, mode, model, interpolate,
+                         Kspring, optimizer, ftol,
+                         parameters, print, **kwargs)
 
         self.parameters.update(dict(method='string'))
 

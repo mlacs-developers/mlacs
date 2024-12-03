@@ -1,12 +1,10 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
-
-import os
 
 import numpy as np
 
@@ -19,11 +17,8 @@ from .lammps_state import BaseLammpsState
 from ..core import PathAtoms
 from ..core.manager import Manager
 from ..utilities.io_lammps import (LammpsBlockInput,
-                                   EmptyLammpsBlockInput)
-
-from ..utilities import get_elements_Z_and_masses
-
-from ..utilities.io_lammps import write_lammps_NEB_ASCIIfile
+                                   EmptyLammpsBlockInput,
+                                   get_lammps_command)
 
 
 # ========================================================================== #
@@ -115,7 +110,7 @@ class NebLammpsState(BaseLammpsState):
 
     def __init__(self, images, xi=None,
                  min_style="quickmin", Kspring=1.0, etol=0.0, ftol=1.0e-3,
-                 dt=1.5, nimages=4, nprocs=None, mode=None,
+                 dt=1.5, nimages=4, nprocs=None, mode=None, interval=None,
                  linear=False, print=False,
                  nsteps=1000, nsteps_eq=100, logfile=None, trajfile=None,
                  loginterval=50, blocks=None, **kwargs):
@@ -126,6 +121,7 @@ class NebLammpsState(BaseLammpsState):
         self.dt = dt
         self.pressure = None
 
+        self._step = 1
         self.style = min_style
         self.criterions = (etol, ftol)
         self.nprocs = nprocs
@@ -135,7 +131,7 @@ class NebLammpsState(BaseLammpsState):
         self.Kspring = Kspring
         self.patoms = images
         if not isinstance(self.patoms, PathAtoms):
-            self.patoms = PathAtoms(self.patoms)
+            self.patoms = PathAtoms(self.patoms, interval=interval)
         if xi is not None:
             self.patoms.xi = xi
         if mode is not None:
@@ -145,7 +141,7 @@ class NebLammpsState(BaseLammpsState):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements=None):
         """
 
         """
@@ -153,17 +149,19 @@ class NebLammpsState(BaseLammpsState):
                           self.patoms.initial,
                           velocities=False,
                           atom_style=atom_style)
-        write_lammps_NEB_ASCIIfile("atoms-1.data",
-                                   self.patoms.final)
+        instr = '# Final coordinates of the NEB calculation.\n'
+        instr += '{0}\n'.format(len(self.patoms.final))
+        for atoms in self.patoms.final:
+            instr += '{} {} {} {}\n'.format(atoms.index+1, *atoms.position)
+        with open("atoms-1.data", "w") as w:
+            w.write(instr)
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("units", "units metal")
@@ -183,7 +181,7 @@ class NebLammpsState(BaseLammpsState):
         return EmptyLammpsBlockInput("empty_thermostat")
 
 # ========================================================================== #
-    def _get_block_lastdump(self, atoms, eq):
+    def _get_block_lastdump(self, el, eq):
         return EmptyLammpsBlockInput("empty_lastdump")
 
 # ========================================================================== #
@@ -196,11 +194,26 @@ class NebLammpsState(BaseLammpsState):
         atoms = self.patoms.splined
         if initial_charges is not None:
             atoms.set_initial_charges(initial_charges)
+        # RB: Usefull for tests, we should move these in the Mlminimizer.
+        i = self._step
         if self.print:
-            write(str(self.subsubdir / 'pos_neb_images.xyz'),
+            if self.patoms._gpi is not None:
+                if 4 < len(self.patoms._gpi.y):
+                    import numpy as np
+                    x = np.linspace(0, 1, 1001)
+                    m, s = self.patoms._gpi.predict(x, True)
+                    err = self.patoms._gp_error
+                    np.savetxt(str(self.subsubdir / f'mean_{i:02d}.dat'), m)
+                    np.savetxt(str(self.subsubdir / f'err_{i:02d}.dat'), err)
+                    np.savetxt(str(self.subsubdir / f'max_{i:02d}.dat'),
+                               np.max(s, axis=0))
+                    np.savetxt(str(self.subsubdir / f'min_{i:02d}.dat'),
+                               np.min(s, axis=0))
+            write(str(self.subsubdir / f'pos_neb_images_{i:02d}.xyz'),
                   self.patoms.images, format='extxyz')
-            write(str(self.subsubdir / 'pos_neb_splined.xyz'),
+            write(str(self.subsubdir / f'pos_neb_splined_{i:02d}.xyz'),
                   self.patoms.splined, format='extxyz')
+        self._step += 1
         return atoms
 
 # ========================================================================== #
@@ -258,10 +271,7 @@ class NebLammpsState(BaseLammpsState):
         '''
         Function to load the batch command to run LAMMPS with replica.
         '''
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp_mpi"
+        cmd = get_lammps_command()
         exe = cmd.split()[-1]
 
         if "-partition" in cmd:

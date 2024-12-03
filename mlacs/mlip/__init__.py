@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,13 +13,13 @@ from .snap_descriptor import SnapDescriptor
 from .mtp_model import MomentTensorPotential
 from .linear_potential import LinearPotential
 from .delta_learning import DeltaLearningPotential
-from .spin_potential import SpinLatticePotential
 from .mbar_manager import MbarManager
 from .ace_descriptor import AceDescriptor
 from .tensorpotential import TensorpotPotential
-from .weights import UniformWeight, EnergyBasedWeight, FixedWeight
-
-from .weighting_policy import UniformWeight, IncreasingWeight
+from .weights import (UniformWeight,
+                      IncreasingWeight,
+                      EnergyBasedWeight,
+                      FixedWeight)
 __all__ = ['MlipManager',
            'Descriptor',
            'SumDescriptor',
@@ -28,7 +28,6 @@ __all__ = ['MlipManager',
            'LinearPotential',
            'MomentTensorPotential',
            'DeltaLearningPotential',
-           'SpinLatticePotential',
            'MbarManager',
            'UniformWeight',
            'EnergyBasedWeight',

@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -16,7 +16,7 @@ from .weighting_policy import WeightingPolicy
 
 def split_dataset(confs, train_ratio=0.5, rng=None):
     """
-
+    Split the dataset into a train set and a test set.
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -41,7 +41,6 @@ def split_dataset(confs, train_ratio=0.5, rng=None):
 def linfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
-    TODO: Implement a weight to this function
     """
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
@@ -63,7 +62,6 @@ def linfit_traj(traj, mlip):
 def mtpfit_traj(traj, mlip):
     """
     Fit an MLIP according to the trajectory
-    TODO: Implement a weight to this function
     """
     if not isinstance(traj[0], Atoms):
         raise ValueError("Traj must be an Ase.Trajectory")
@@ -91,7 +89,6 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
         Useful to reconverge with a better precision on a parameter.
         Can be a filename (str) or a BBasisConfiguration
     """
-    from pyace.basis import BBasisConfiguration
     if isinstance(weights, list):
         weights = np.array(weights)
     if not isinstance(traj[0], Atoms):
@@ -114,12 +111,9 @@ def acefit_traj(traj, mlip, weights=None, initial_potential=None):
         if len(atoms) == len(weights):
             we, wf, ws = WeightingPolicy(database=atoms).build_W_efs(weights)
             weights = np.append(np.append(we, wf), ws)
-
     if initial_potential is not None:
-        if isinstance(initial_potential, str):
-            initial_potential = BBasisConfiguration(initial_potential)
-        mlip.descriptor.bconf.set_all_coeffs(
-                initial_potential.get_all_coeffs())
+        mlip.descriptor.bconf.load(initial_potential)
+        curr_fc = mlip.descriptor.bconf.metadata['_fit_cycles']
+        mlip.descriptor.fitting['fit_cycles'] = int(curr_fc) + 1
     mlip.descriptor.redirect_logger()
-
     mlip.descriptor.fit(weights=weights, atoms=atoms)

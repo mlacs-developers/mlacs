@@ -16,6 +16,9 @@ system_changes = ['positions', 'numbers', 'cell', 'pbc']
 # ========================================================================== #
 class MlipCalculator(Calculator):
     """
+    Ase Caculator object for MLACS generated MLIP that can take atomic
+    configurations from an Atoms object and calculate the energy, forces and
+    also stresses.
     """
     implemented_properties = ['energy', 'forces', 'stress']
 

@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -16,7 +16,7 @@ from ase.units import kB, J, kg, m
 from .lammps_state import LammpsState
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses, save_cwd
+from ..utilities import save_cwd
 from ..utilities import integrate_points as intgpts
 from ..utilities.io_lammps import LammpsBlockInput
 
@@ -108,8 +108,6 @@ class PafiLammpsState(LammpsState):
             raise TypeError('A reaction path must be given!')
         self.mep.print = prt
 
-        self.mep.workdir = self.workdir
-        self.mep.folder = 'TransPath'
         self.print = prt
         self.maxjump = maxjump
 
@@ -123,21 +121,26 @@ class PafiLammpsState(LammpsState):
                      pair_coeff,
                      model_post=None,
                      atom_style="atomic",
-                     eq=False):
+                     eq=False,
+                     elements=None):
         """
         Run state function.
         """
 
         # Run NEB calculation.
+        self.mep.workdir = self.workdir
+        self.mep.folder = self.folder
+        self.mep.subfolder = 'TransPath'
         self.mep.run_dynamics(self.mep.patoms.initial,
-                              pair_style, pair_coeff, model_post, atom_style)
+                              pair_style, pair_coeff,
+                              model_post, atom_style, elements)
         supercell = self.mep.patoms.splined
         self.isrestart = False
 
         # Run Pafi dynamic at xi.
         atoms = LammpsState.run_dynamics(self, supercell,
                                          pair_style, pair_coeff, model_post,
-                                         atom_style, eq)
+                                         atom_style, eq, elements)
         return atoms.copy()
 
 # ========================================================================== #
@@ -152,7 +155,8 @@ class PafiLammpsState(LammpsState):
                               restart=0,
                               xi=None,
                               nsteps=10000,
-                              nthrow=2000):
+                              nthrow=2000,
+                              elements=None):
         """
         Run full Pafi path.
         """
@@ -165,8 +169,11 @@ class PafiLammpsState(LammpsState):
         lfname = self.lammpsfname
 
         # Run NEB calculation.
+        self.mep.workdir = self.folder
+        self.mep.folder = 'TransPath'
         self.mep.run_dynamics(self.mep.patoms.initial,
-                              pair_style, pair_coeff, model_post, atom_style)
+                              pair_style, pair_coeff,
+                              model_post, atom_style, elements)
         self.isrestart = False
 
         # Run Pafi dynamics.
@@ -182,7 +189,7 @@ class PafiLammpsState(LammpsState):
                 atoms.set_pbc([1, 1, 1])
                 executor.submit(LammpsState.run_dynamics,
                                 *(worker, atoms, pair_style, pair_coeff,
-                                  model_post, atom_style, False))
+                                  model_post, atom_style, False, elements))
             executor.shutdown(wait=True)
 
         # Reset some attributes.
@@ -193,7 +200,7 @@ class PafiLammpsState(LammpsState):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_atoms(self, atoms, atom_style):
+    def _write_lammps_atoms(self, atoms, atom_style, elements=None):
         """
 
         """
@@ -230,13 +237,11 @@ class PafiLammpsState(LammpsState):
             w.write(instr)
 
 # ========================================================================== #
-    def _get_block_init(self, atoms, atom_style):
+    def _get_block_init(self, atom_style, pbc, el, masses):
         """
 
         """
-        pbc = atoms.get_pbc()
         pbc = "{0} {1} {2}".format(*tuple("sp"[int(x)] for x in pbc))
-        el, Z, masses, charges = get_elements_Z_and_masses(atoms)
 
         block = LammpsBlockInput("init", "Initialization")
         block("units", "units metal")
@@ -323,7 +328,7 @@ class PafiLammpsState(LammpsState):
         Integrate the MFEP and compute the Free energy barrier.
         """
         temp = self.temperature
-        meff = self.mep.masses
+        meff = self.mep.patoms.masses
 
         self.pafi = []
         for rep in range(len(xi)):

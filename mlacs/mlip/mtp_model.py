@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -200,22 +200,25 @@ class MomentTensorPotential(SelfMlipManager):
 
         # Symlink new MTP in the main folder
         if self.subfolder:
-            src = self.subsubdir / "pot.mtp"
+            # We might need to remove the old symlink before the new one
             if mtpfile.exists():
                 mtpfile.unlink()
-            symlink(src, mtpfile)
+
+            src = self.subsubdir / "pot.mtp"
+            symlink(src, self.subdir / "pot.mtp")
 
         with open(self.subdir / "mlip.ini", "w") as fd:
             fd.write(f"mtp-filename    {mtpfile}\n")
             fd.write("select           FALSE")
 
-        idx_e, idx_f, idx_s = self._get_idx_fit()
         msg = "number of configurations for training: " + \
-              f"{len(self.natoms[idx_e:]):}\n"
+              f"{len(self.natoms):}\n"
         msg += "number of atomic environments for training: " + \
-               f"{self.natoms[idx_e:].sum():}\n"
-        msg += self._compute_test(msg, idx_e)
-        return msg
+               f"{self.natoms.sum():}\n"
+        msg += self._compute_test(msg)
+
+        if self.log:
+            self.log.write(msg)
 
 # ========================================================================== #
     def get_calculator(self):
@@ -246,8 +249,7 @@ class MomentTensorPotential(SelfMlipManager):
     def _write_configurations(self):
         """
         """
-        idx_e, idx_f, idx_s = self._get_idx_fit()
-        confs = self.configurations[idx_e:]
+        confs = self.configurations
         chemmap = self.descriptor.elements
         write_cfg(self.subsubdir / "train.cfg", confs, chemmap)
 
@@ -424,12 +426,12 @@ class MomentTensorPotential(SelfMlipManager):
         return e_mlip, f_mlip, s_mlip
 
 # ========================================================================== #
-    def _compute_test(self, msg, idx_e):
+    def _compute_test(self, msg):
         """
         """
         e_mlip, f_mlip, s_mlip = self._run_test()
 
-        confs = self.configurations[idx_e:]
+        confs = self.configurations
         e_dft = np.array([at.get_potential_energy() / len(at)for at in confs])
         f_dft = []
         s_dft = []

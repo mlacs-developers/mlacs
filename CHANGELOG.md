@@ -42,6 +42,8 @@ CHANGE LOG
 * **Francois** Print the thermodynamic quantities in single file: P, V, T... but also F, G... (using NETI)
 * Give the possibility to the user to set equal masses for all the elements (to accelerate the dynamic).
 * Go continuously from nstep_eq to nstep
+* **Romuald** Create a central Atoms like object
+* **Romuald** We need to remove old lammps io functions
 
 ## MLIP
 * Use relative paths rather than absolute
@@ -65,6 +67,9 @@ CHANGE LOG
 * Database calculators
 * CalcProperty
 * File management system for files and logs (*workdir*, *folder* and *subfolder*)
+* New PathAtom object for transition path sampling.
+* New ASE States for strutural optimization and NEB.
+* New main Mlas object, splitting State sampling into OtfMlacs and geometry optimizisation into MlMinimizer  
 * ...
 
 ## Changed
@@ -77,6 +82,7 @@ CHANGE LOG
 
 ## Removed
 
+* ntrymax, Mlas attribute
 * RdfLammpsState
 * ...
 
@@ -92,6 +98,8 @@ CHANGE LOG
 * Plots *correlation*, *error*, *weights* using **CLI**
 * DeltaLearningPotential
 * PAFI
+* NewWeightingPolicy
+* GroundState with MlMinimizer
 * ...
 
 ## Changed

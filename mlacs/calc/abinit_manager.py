@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,6 +12,7 @@ import shlex
 
 # IMPORTANT : subprocess->Popen doesnt work if we import run, PIPE
 from subprocess import Popen
+from subprocess import check_output
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
@@ -24,8 +25,7 @@ from ase.io.abinit import (write_abinit_in,
 from ..core.manager import Manager
 from .calc_manager import CalcManager
 from ..utilities import save_cwd
-from ..utilities.io_abinit import (AbinitNC,
-                                   set_aseAtoms)
+from ..utilities.io_abinit import AbinitNC
 
 
 # ========================================================================== #
@@ -58,7 +58,7 @@ class AbinitManager(CalcManager):
         If ``None``, no initial magnetization. (Non magnetic calculation)
         Default ``None``.
 
-    workdir: :class:`str` (optional)
+    folder: :class:`str` (optional)
         The root for the directory in which the computation are to be done
         Default 'DFT'
 
@@ -88,6 +88,7 @@ class AbinitManager(CalcManager):
     >>> pseudos = {'Cu': "/path/to/pseudo/Cu.LDA_PW-JTH.xml"}
     >>> calc = AbinitManager(parameters=variables, pseudos=pseudos)
     """
+
     def __init__(self,
                  parameters,
                  pseudos,
@@ -95,12 +96,15 @@ class AbinitManager(CalcManager):
                  mpi_runner="mpirun",
                  magmoms=None,
                  folder='DFT',
+                 logfile="abinit.log",
+                 errfile="abinit.err",
                  nproc=1,
                  nproc_per_task=None,
                  **kwargs):
 
         CalcManager.__init__(self, "dummy", magmoms,
                              folder=folder, **kwargs)
+
         self.parameters = parameters
         if 'IXC' in self.parameters.keys():
             self.parameters['ixc'] = self.parameters['IXC']
@@ -119,15 +123,15 @@ class AbinitManager(CalcManager):
             nproc_per_task = self.nproc
         self.nproc_per_task = nproc_per_task
 
-        self.log_suffix = "abinit.log"
-        self.err_suffix = "abinit.eff"
+        self.log = logfile
+        self.err = errfile
         self.ncfile = AbinitNC()
 
 # ========================================================================== #
     @staticmethod
     def submit_abinit_calc(cmd, logfile, errfile, cdir):
         with open(logfile, 'w') as lfile, \
-             open(errfile, 'w') as efile:
+                open(errfile, 'w') as efile:
             try:
                 process = Popen(cmd,
                                 cwd=cdir,
@@ -146,7 +150,25 @@ class AbinitManager(CalcManager):
                                subfolder: [str],
                                step: [int]):
         """
-        Compute the energy of given configurations with Abinit.
+        Compute the energy/forces/stress of given configurations with Abinit.
+
+        Parameters
+        ----------
+        confs: :class:`list` of :class:`ase.Atoms`
+            The input list of atom objects.
+
+        subfolder: :class:`list` of :class:`str` (optional)
+            Subfolder in which the properties are saved.
+
+        step: :class:`list` of :class:`int`  (optional)
+            The list of configuration indices.
+
+        Returns
+        -------
+        result_confs: :class:`list` of :class:`ase.Atoms`
+            The output list of atom objects, with corresponding
+            SinglePointCalculator resulting from true potential calculation.
+            See also _read_output() where SinglePointCalculator() is called.
         """
         assert len(confs) == len(subfolder) == len(step)
         nparal = self.nproc // self.nproc_per_task
@@ -176,8 +198,8 @@ class AbinitManager(CalcManager):
                 command = self._make_command()
                 executor.submit(self.submit_abinit_calc,
                                 command,
-                                self.get_filepath('abinit.log'),
-                                self.get_filepath('abinit.err'),
+                                self.get_filepath(self.log),
+                                self.get_filepath(self.err),
                                 cdir=str(self.subsubdir))
             executor.shutdown(wait=True)
 
@@ -230,12 +252,17 @@ class AbinitManager(CalcManager):
         original_pseudos = self.pseudos.copy()
         species = sorted(set(atoms.numbers))
         self._copy_pseudos()
+
+        unique_elements = set(atoms.get_chemical_symbols())
+        pseudos = [pseudo for pseudo, el in zip(self.pseudos, self.typat) if
+                   el in unique_elements]
+
         with open(self.get_filepath("abinit.abi"), "w") as fd:
             write_abinit_in(fd,
                             atoms,
                             self.parameters,
                             species,
-                            self.pseudos)
+                            pseudos)
         self.pseudos = original_pseudos
 
 # ========================================================================== #
@@ -274,9 +301,9 @@ class AbinitManager(CalcManager):
         """
         results = {}
         if self.ncfile is not None:
-            dct = self.ncfile.read(self.get_filepath("abinito_GSR.nc"))
-            results.update(dct)
-            atoms = set_aseAtoms(results)
+            ncpath = self.get_filepath("abinito_GSR.nc")
+            self.ncfile.read(filename=ncpath)
+            atoms = self.ncfile.convert_to_atoms()[0]
             atoms.set_velocities(at.get_velocities())
             return atoms
 
@@ -307,12 +334,16 @@ class AbinitManager(CalcManager):
         for ityp in pseudos.keys():
             typat.append(ityp)
             pseudolist.append(pseudos[ityp])
+        typat = np.array(typat)
         pseudolist = np.array(pseudolist)
 
+        self.typat = typat
         znucl = symbols2numbers(typat)
         idx = np.argsort(znucl)
-        pseudolist = pseudolist[idx]
-        self.pseudos = pseudolist
+
+        # Reorder in increasing Z
+        self.typat = typat[idx]
+        self.pseudos = pseudolist[idx]
 
 # ========================================================================== #
     def _remove_previous_run(self, stateprefix):
@@ -323,8 +354,8 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinit.abi")
         if os.path.exists(stateprefix + "abinit.abo"):
             os.remove(stateprefix + "abinit.abo")
-        if os.path.exists(stateprefix + "abinit.log"):
-            os.remove(stateprefix + "abinit.log")
+        if os.path.exists(stateprefix + self.log):
+            os.remove(stateprefix + self.log)
         if os.path.exists(stateprefix + "abinito_GSR.nc"):
             os.remove(stateprefix + "abinito_GSR.nc")
         if os.path.exists(stateprefix + "abinito_OUT.nc"):
@@ -339,3 +370,19 @@ class AbinitManager(CalcManager):
             os.remove(stateprefix + "abinito_EIG")
         if os.path.exists(stateprefix + "abinito_EBANDS.agr"):
             os.remove(stateprefix + "abinito_EBANDS.agr")
+
+# ========================================================================== #
+    def log_recap_state(self):
+        """
+        """
+        cmd = self.abinit_cmd
+        cmd += ' --version'
+        version = check_output(cmd, shell=True).decode('utf-8')
+        msg = "True potential parameters:\n"
+        msg += f"Abinit : {version}\n"
+        dct = self.parameters
+        msg += "parameters :\n"
+        for key in dct.keys():
+            msg += "   " + key + "  {0}\n".format(dct[key])
+        msg += "\n"
+        return msg

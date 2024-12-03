@@ -1,18 +1,18 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (PR, GA, AC)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
+import copy
 
 
 import numpy as np
-from concurrent.futures import ThreadPoolExecutor
 
 from ..core import Manager
 from ..utilities import save_cwd
-from ..utilities.thermolog import ThermoLog
+from ..utilities.log import ThermoLog
 from .thermostate import ThermoState
 
 
@@ -25,11 +25,14 @@ class ThermodynamicIntegration(Manager):
     Parameters
     ----------
     thermostate: :class:`thermostate` or :class:`list` of :class:`thermostate`
-        State for which the thermodynamic integration should be performed
+        State(s) for which the thermodynamic integration should be performed
     ninstance: : class:`int`
-        Numer of forward and backward to be performed, default 1
+        Numer of forward and backward to be performed per state, default 1
     logfile: :class:`str` (optional)
         Name of the logfile. Default ``\"ThermoInt.log\"``
+    workdir: :class:`str`(optional)
+        Name of the root folder in which the simulations will be performed.
+        Default `ThermoInt`
     """
     def __init__(self,
                  thermostate,
@@ -66,99 +69,45 @@ class ThermodynamicIntegration(Manager):
     def run(self):
         """
         Launch the simulation
-        """
-        tasks = (self.ninstance * self.nstate)
-        with save_cwd(), ThreadPoolExecutor(max_workers=tasks) as executor:
-            for istate in range(self.nstate):
-                if self.ninstance > 1:
-                    for i in range(self.ninstance):
-                        executor.submit(self._run_one_state, istate, i)
-                        msg = f"State {istate+1}/{self.nstate} " + \
-                              f"instance_{i+1} launched\n"
 
-                        msg += "Working directory for this instance " + \
-                               f"of state : \n{self.state[istate].path}\n"
-                        self.log.logger_log.info(msg)
-                elif self.ninstance == 1:
-                    executor.submit(self._run_one_state, istate, i=1)
-                    msg = f"State {istate+1}/{self.nstate} launched\n"
-                    msg += "Working directory for this state " + \
-                           f": \n{self.state[istate].path}\n"
+        Returns
+        -------
+
+        fe: :class:`np.ndarray`
+            The free energy of each instance of each state, in an array of
+            shape (nstate, ninstance). In eV/at
+        """
+        values = np.zeros((self.nstate, self.ninstance))
+        with save_cwd():
+            for istate in range(self.nstate):
+                for i in range(self.ninstance):
+                    worker = copy.deepcopy(self.state[istate])
+                    worker.folder += f"/for_back{i+1}"
+                    worker.rng = np.random.default_rng()
+                    worker.run()
+                    msg, fe = worker.postprocess()
+                    values[istate, i] = fe
                     self.log.logger_log.info(msg)
-            executor.shutdown(wait=True)
 
-        if self.ninstance > 1:
-            for istate in range(self.nstate):
-                self.error(istate)
+        for istate in range(self.nstate):
+            femean = values[istate].mean()
+            ferr = values[istate].std()
+            msg = f"Free Energy mean and error for state {istate+1}:\n"
+            msg += f"- Mean: {femean:10.6f}\n"
+            msg += f"- Error: {ferr:10.6f}\n"
+            self.log.logger_log.info(msg)
 
-# ========================================================================== #
-    @Manager.exec_from_subdir
-    def _run_one_state(self, istate, i):
-        """
-        Run the simulation for one state
-        """
-        ii = istate + 1
-        if self.ninstance > 1:
-            self.state[istate].subfolder = f"for_back_{i+1}"
-            self.state[istate].run()
-            msg = f"State {ii} instance_{i+1} : Molecular Dynamics Done\n"
-            msg += "Starting post-process\n"
-            self.log.logger_log.info(msg)
-            msg, _ = self.state[istate].postprocess()
-            self.log.logger_log.info(msg)
-            msg = '=' * 59 + "\n"
-            msg += f"State {ii} instance_{i+1}: Post-process Done\n"
-            msg += "=" * 59 + "\n"
-            self.log.logger_log.info(msg)
-        elif self.ninstance == 1:
-            self.state[istate].subfolder = ''
-            self.state[istate].run()
-            msg = f"State {ii}: Molecular Dynamics Done\n"
-            msg += "Starting post-process\n"
-            self.log.logger_log.info(msg)
-            msg, _ = self.state[istate].postprocess()
-            self.log.logger_log.info(msg)
-            msg = "=" * 59 + "\n"
-            msg += f"State {istate+1}: Post-process Done\n"
-            msg += "=" * 59 + "\n"
-            self.log.logger_log.info(msg)
+        self.log.write_footer()
+        return values
 
 # ========================================================================== #
     def recap_state(self):
         """
         """
-        msg = f"Total number of state : {self.nstate}. "
-        msg += "One state is equivalent to ninstance f/b\n"
+        msg = f"Total number of state : {self.nstate}, "
+        msg += f"each state will be run {self.ninstance} times\n"
         for istate in range(self.nstate):
             msg += f"State {istate+1}/{self.nstate} :\n"
             msg += self.state[istate].log_recap_state()
             msg += "\n\n"
         self.log.logger_log.info(msg)
-
-# ========================================================================== #
-    def error(self, istate):
-        """
-        Error and average in free energy instances for one state
-        Computed if ninstance > 1
-        """
-        fe = []
-        for i in range(self.ninstance):
-            self.state[istate].subfolder = f"for_back_{i+1}"
-            _, tmp_fe = self.state[istate].postprocess()
-            fe.append(tmp_fe)
-        ferr = np.std(fe, axis=0)
-        femean = np.mean(fe, axis=0)
-        msg = f"Free Energy mean and error for state {istate+1}:\n"
-        msg += f"- Mean: {femean:10.6f}\n"
-        msg += f"- Error: {ferr:10.6f}\n"
-        self.log.logger_log.info(msg)
-
-# ========================================================================== #
-    def get_fedir(self):
-        """
-        Get the directory where free energy is.
-        Useful to get free energy for property convergence during sampling
-        """
-        for istate in range(self.nstate):
-            stateworkdir = self.state[istate].path
-        return stateworkdir

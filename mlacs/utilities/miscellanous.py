@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import numpy as np
 
 from scipy import interpolate
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.optimize import minimize
 
 from ase.atoms import Atoms
@@ -64,7 +64,7 @@ def get_elements_Z_and_masses(supercell):
 # ========================================================================== #
 def create_random_structures(atoms, std, nconfs):
     """
-    Create n random structures by displacing atoms around position
+    Create nconfs random structures by displacing atoms around positions.
 
     Parameters
     ----------
@@ -132,17 +132,23 @@ def compute_correlation(data, weight=None):
 
 
 # ========================================================================== #
-def _create_ASE_object(Z, positions, cell, energy):
+def create_ASE_object(atomic_numbers,
+                      positions,
+                      cell,
+                      energy=None,
+                      forces=None,
+                      stresses=None):
     """
     Create ASE Atoms object.
     """
-    atoms = Atoms(numbers=Z,
+    atoms = Atoms(numbers=atomic_numbers,
                   positions=positions,
                   cell=cell,
                   pbc=True)
-    calc = SPC(atoms=atoms,
-               energy=energy)
-    atoms.calc = calc
+    atoms.calc = SPC(atoms=atoms,
+                     energy=energy,
+                     forces=forces,
+                     stress=stresses)
     return atoms
 
 
@@ -173,10 +179,13 @@ def compute_averaged(traj, weights=None):
                            axis=0, weights=weights)
     energy = np.average([at.get_potential_energy() for at in traj],
                         weights=weights)
-    atoms = _create_ASE_object(Z=Z,
-                               positions=positions,
-                               cell=cell,
-                               energy=energy)
+    atoms = Atoms(numbers=Z,
+                  positions=positions,
+                  cell=cell,
+                  pbc=True)
+    calc = SPC(atoms=atoms,
+               energy=energy)
+    atoms.calc = calc
     return atoms.copy()
 
 
@@ -298,7 +307,7 @@ def integrate_points(x, y, xf, order=0, smooth=0, periodic=0, border=None):
 
 
 # ========================================================================== #
-def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
+def normalized_integration(x, y, norm=1.0, scale=True, func=simpson):
     """
     Compute normalized integral of y to `norm`.
 
@@ -312,7 +321,7 @@ def normalized_integration(x, y, norm=1.0, scale=True, func=simps):
         Scale x and y to the same order of magnitude to avoid numerical
         errors.
     func : :class:`scipy.integrate.func`
-        Scipy function for intergration (simps, trapz, ...).
+        Scipy function for intergration (simpson, trapz, ...).
 
     Return
     ------

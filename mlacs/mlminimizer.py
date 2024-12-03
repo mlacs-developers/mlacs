@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,7 +14,7 @@ from .properties import PropertyManager, CalcExecFunction
 # ========================================================================== #
 # ========================================================================== #
 class MlMinimizer(Mlas):
-    """
+    r"""
     Class to perform structure minimization assisted with machine-learning
     potential
 
@@ -57,40 +57,55 @@ class MlMinimizer(Mlas):
     neq: :class:`int` (optional)
         The number of equilibration iteration. Default ``10``.
 
-    prefix_output: :class:`str` (optional)
-        Prefix for the output files of the simulation.
-        If several states are used, this input can be a list of :class:`str`.
-        Default ``\"Trajectory\"``.
-
     confs_init: :class:`int` or :class:`list` of :class:`ase.Atoms` (optional)
         if :class:`int`: Number of configuirations used
         to train a preliminary MLIP
         The configurations are created by rattling the first structure
         if :class:`list` of :class:`ase.Atoms`: The atoms that are to be
         computed in order to create the initial training configurations
-        Default ``1``.
+        Default ``None``.
 
     std_init: :class:`float` (optional)
         Variance (in :math:`\mathring{a}^2`) of the displacement
         when creating initial configurations.
         Default :math:`0.05 \mathring{a}^2`
 
-    keep_tmp_mlip: :class:`bool` (optional)
+    keep_tmp_mlip: :class:`Bool` (optional)
         Keep every generated MLIP. If True and using MBAR, a restart will
         recalculate every previous MLIP.weight using the old coefficients.
         Default ``False``.
 
-    ntrymax: :class:`int` (optional)
-        The maximum number of tentative to retry a step if
-        the reference potential raises an error or didn't converge.
-        Default ``0``.
+    workdir: :class:`str` (optional)
+        The directory in which to run the calculation.
+
+    prefix: :class:`str` (optional)
+        The prefix to prepend the name of the States files.
+
+    ncprefix: :class:`str` (optional)
+        The prefix to prepend the name of the *HIST.nc file.
+        Script name format: ncprefix + scriptname + '_HIST.nc'.
+        Default `''`.
+
+    ncformat: :class:`str` (optional)
+        The format of the *HIST.nc file. One of the five flavors of netCDF
+        files format available in netCDF4 python package: 'NETCDF3_CLASSIC',
+        'NETCDF3_64BIT_OFFSET', 'NETCDF3_64BIT_DATA','NETCDF4_CLASSIC',
+        'NETCDF4'.
+        Default ``NETCDF3_CLASSIC``.
     """
+
     def __init__(self, atoms, state, calc, mlip=None, etol=1e-2, ftol=1e-4,
                  stol=1e-3, neq=10, confs_init=None, std_init=0.05,
-                 keep_tmp_mlip=False, ntrymax=0):
+                 keep_tmp_mlip=False, workdir='', prefix='Trajectory',
+                 ncprefix='', ncformat='NETCDF3_CLASSIC'):
         Mlas.__init__(self, atoms, state, calc, mlip=mlip, prop=None, neq=neq,
                       confs_init=confs_init, std_init=std_init,
-                      ntrymax=ntrymax, keep_tmp_mlip=keep_tmp_mlip)
+                      keep_tmp_mlip=keep_tmp_mlip, workdir=workdir,
+                      prefix=prefix, ncprefix=ncprefix, ncformat=ncformat)
+
+        if set((etol, ftol, stol)) == {None}:
+            msg = "You need to set at least one of etol, ftol or stol"
+            raise ValueError(msg)
 
         prop = []
         if etol is None:
@@ -98,7 +113,7 @@ class MlMinimizer(Mlas):
             etol = 1e8
         prop.append(CalcExecFunction("get_potential_energy",
                                      criterion=etol, frequence=1,
-                                     gradient=True, peratoms=True))
+                                     gradient=True))
         if ftol is None:
             # We set to stupidly high number so that it's still computed
             ftol = 1e8
@@ -109,9 +124,7 @@ class MlMinimizer(Mlas):
             stol = 1e8
         prop.append(CalcExecFunction("get_stress", criterion=stol * GPa,
                                      frequence=1, gradient=True))
-        if etol == 1e8 and ftol == 1e8 and stol == 1e8:
-            msg = "You need to set at least one of etol, ftol or stol"
-            raise ValueError(msg)
+
         self.prop = PropertyManager(prop)
         self._etol = etol
         self._ftol = ftol
@@ -123,17 +136,15 @@ class MlMinimizer(Mlas):
         self.log.logger_log.info(msg)
 
         self.step = 0
-        self.ntrymax = ntrymax
         self.log.logger_log.info("")
 
 # ========================================================================== #
     def _compute_properties(self):
         """
-
+        Main method to compute/save properties of OtfMlacs objects.
         """
         self.prop.calc_initialize(atoms=self.atoms)
-        msg = self.prop.run(self.step,
-                            self.prop.workdir / f"Step{self.step}")
+        msg = self.prop.run(self.step)
         msg = ""
         ediff = self.prop.manager[0].maxf
         msg += f"Energy difference : {ediff:6.5} eV/at\n"

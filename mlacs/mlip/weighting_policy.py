@@ -1,15 +1,17 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, RB, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
-
 from pathlib import Path
+
 import numpy as np
+from ase.atoms import Atoms
+
 from ..core.manager import Manager
-from ase import Atoms
+
 
 # ========================================================================== #
 # ========================================================================== #

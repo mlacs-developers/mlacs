@@ -62,13 +62,13 @@ Loading environment²:
 
 Installing packages using pip:
 
-    $ pip install packages
-    $ pip install packages --find-links /packages_directory --no-index #No internet
+    $ pip install -r requirements.txt 
+    $ pip install -r requirements.txt --find-links /packages_directory --no-index #No internet
 
 On calculator, the `--find-links` allows to specify the directory where the packages are, for that it is necessary to download them beforehand via a `pip download` or directly on `https://pypi.org/!`. The `--no-index` prevents pip from fetching packages from the online repository.
-Finally, you can install MLACS in editable version:
+Finally, you can install MLACS:
 
-    $ pip install -e /path_to/otf_mlacs/ # Path to setup.py
+	$ pip install --upgrade . # In main directory /path_to/mlacs/
 
 At the end, we can check that the package is loaded:
 
@@ -106,10 +106,10 @@ To limit the size of the executable, it is best to install only the packages you
 Several packages are necessary for the proper functioning of MLACS, here is a non-exhaustive list of recommended packages:
 
     ml-snap, ml-iap, manybody, meam, molecule, class2, kspace, replica,
-    extra-fix, extra-pair, extra-compute, extra-dump
+    extra-fix, extra-pair, extra-compute, extra-dump, qtb
     
 > [!WARNING]
-> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommend to use the development versions of ASE.
+> Some versions of LAMMPS are not compatible with certain versions of ASE. Versions prior to 03Aug22 are compatible with ASE versions prior to 3.22. For LAMMPS versions 03Aug22 and beyond, we hardly recommend to use ASE versions up to 3.23.
 
 MLACS will then call LAMMPS through ASE, which relies on environment variables.
 They can be set before running the simulation or by modifying environment variables directly in the python script.
@@ -123,16 +123,16 @@ MLACS provides interfaces with different codes through the ASE python package. B
 
 [aTDEP](https://docs.abinit.org/guide/atdep/) is based on the Temperature Dependent Effective Potential (TDEP) developped by O. Hellman et al. in 2011 and implemented in Abinit by J.Bouchet and F. Bottin in 2015.
 
-It is also recommended to use version 9 for an easier files management in Abinit and to benefit of the newest `atdep` developement. 
+It is also recommended to use the latest versions of Abinit, at least up to version 9, for an easier files management and to benefit of the newest `atdep` developement. 
 
 To compile Abinit, we highly recommend you to follow the instructions provided on the [website](https://docs.abinit.org/installation/).
 
 
 Python Packages
 ===============
-MLACS uses very few external packages (and that is a choice), only ASE and its dependencies in its standard version. The necessary packages are included in the `requirement.txt` file located in the main directory `/otf_mlacs`. They can be downloaded in advance with the pip module.
+MLACS uses very few external packages (and that is a choice), only ASE and its dependencies in its standard version. The necessary packages are included in the `requirement.txt` file located in the main directory `/mlacs`. They can be downloaded in advance with the pip module.
 
-    $ pip download -r /path_to/otf_mlacs/requirements.txt
+    $ pip download -r /path_to/mlacs/requirements.txt
 
 Required Packages
 -----------------
@@ -140,8 +140,7 @@ ASE:
 
 ASE is an atomic simulation environment, interfaced with several codes and written in order to set up, control and analyze atomic simulations. As mentioned previously, the correct version must be used for LAMMPS.
 
-    $ git clone -b 3.22.1 https://gitlab.com/ase/ase.git # If LAMMPS < 03Aug22 
-    $ git clone -b 3.23.0b1 https://gitlab.com/ase/ase.git # If LAMMPS > 03Aug22
+    $ git clone -b 3.23.0 https://gitlab.com/ase/ase.git
 
 Then in the package directory
 
@@ -157,9 +156,14 @@ scikit-learn:
 
 Advanced fitting method provided by the Scikit Learn package can be used instead of an Ordinary Least Squares method. From experience, a simple ``np.linalg.lstsq`` often suffice for fitting a simple linear MLIP. It is only recommended to use these advanced methods when you are using a quadratic MLIP. In this case, the number of coefficients increases exponentially and a simple Least Square method could fail. This package is also used for Gaussian Process. 
 
+netCDF4:
+
+Python package to read netCDF binary format. This package can be really usefull when you are using Abinit as Calculator, since it output a lot of usefull informations in the netCDF outputs. 
+MLACS also outputs thermodynamics properties, trajectories and results of an applied weighting policy using this file format. The files can be visualized using the [qAgate](https://github.com/piti-diablotin/qAgate) visualization software or [AbiPy](http://abinit.github.io/abipy/) an open-source library for analyzing the results produced by ABINIT.
+
 Highly Recomended Packages
 --------------------------
-mlip-3:
+mlip-3 (or mlip-2):
 
 The ``mlp`` software is used by MLACS to fit Moment Tensor Potentials (MTP). It has been developed at Skoltech (Moscow) by Alexander Shapeev, Evgeny Podryabinkin, Konstantin Gubaev, and Ivan Novikov.
 
@@ -169,10 +173,19 @@ To use it you also need to recompile LAMMPS with the specific interface:
 
     $ git clone https://gitlab.com/ivannovikov/interface-lammps-mlip-3.git
 
+pyace:
 
-netCDF4:
+The [pyace](https://pacemaker.readthedocs.io/en/latest/) (aka python-ace) package is used within MLACS to fit interatomic potentials in a general nonlinear Atomic Cluster Expansion (ACE) form. It contains the ``pacemaker`` tools and other Python wrappers and utilities.
 
-Python package to read netCDF binary format. This package can be really usefull when you are using Abinit as Calculator, since it output a lot of usefull informations in the netCDF outputs. 
+    $ git clone https://github.com/ICAMS/python-ace
+
+To use it you also need to recompile LAMMPS with the specific [interface](https://github.com/ICAMS/lammps-user-pace), which can be obtained from the LAMMPS source directory:
+
+	$ cd lammps/src 
+	$ make lib-pace args="-b"
+	$ make yes-ml-pace
+	$ make mpi # or make serial
+
 
 Optional Packages
 -----------------
@@ -191,3 +204,4 @@ I will start making some for what we have currently to give examples
 
 License
 =======
+MLACS is released under the GNU GPL license. For more details see the LICENSE file.

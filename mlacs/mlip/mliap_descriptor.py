@@ -1,23 +1,24 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
+import shutil
 import shlex
 from pathlib import Path
 from subprocess import run, PIPE
 
 import numpy as np
 from ase.io.lammpsdata import write_lammps_data
+from ase.atoms import Atoms
 
 from ..core.manager import Manager
-from ..utilities import get_elements_Z_and_masses
 from .descriptor import Descriptor, combine_reg
-from ..utilities.io_lammps import LammpsInput, LammpsBlockInput
+from ..utilities.io_lammps import (LammpsInput, LammpsBlockInput,
+                                   get_lammps_command)
 
 
 default_snap = {"twojmax": 8,
@@ -123,11 +124,7 @@ class MliapDescriptor(Descriptor):
             self.ndesc += int(self.ndesc * (self.ndesc + 1) / 2)
         self.ncolumns = int(self.nel * (self.ndesc + 1))
 
-        envvar = "ASE_LAMMPSRUN_COMMAND"
-        cmd = os.environ.get(envvar)
-        if cmd is None:
-            cmd = "lmp"
-        self.cmd = cmd
+        self.cmd = get_lammps_command()
 
 # ========================================================================== #
     @Manager.exec_from_path
@@ -135,10 +132,9 @@ class MliapDescriptor(Descriptor):
         """
         """
         nat = len(atoms)
-        el, z, masses, charges = get_elements_Z_and_masses(atoms)
 
         lmp_atfname = "atoms.lmp"
-        self._write_lammps_input(masses, atoms.get_pbc())
+        self._write_lammps_input(atoms.get_pbc())
         self._write_mlip_params()
 
         amat_e = np.zeros((1, self.ncolumns))
@@ -147,12 +143,11 @@ class MliapDescriptor(Descriptor):
         write_lammps_data(lmp_atfname,
                           atoms,
                           specorder=self.elements.tolist())
-
         self._run_lammps(lmp_atfname)
         bispectrum = np.loadtxt("descriptor.out",
                                 skiprows=4)
-        bispectrum[-6:, 1:-1] /= -atoms.get_volume()
 
+        bispectrum[-6:, 1:-1] /= -atoms.get_volume()
         amat_e[0] = bispectrum[0, 1:-1]
         amat_f = bispectrum[1:3*nat+1, 1:-1]
         amat_s = bispectrum[3*nat+1:, 1:-1]
@@ -169,7 +164,118 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def _write_lammps_input(self, masses, pbc):
+    def compute_descriptors(self, atoms, forces=True, stress=True):
+        """
+        Compute the descriptors of multiples structures in one Lammps launch
+        """
+        if isinstance(atoms, Atoms):
+            atoms = [atoms]
+        if len(atoms) == 1:
+            return super().compute_descriptors(atoms,
+                                               forces=forces,
+                                               stress=stress)
+        if Path("Atoms").exists():
+            shutil.rmtree("Atoms")
+        Path("Atoms").mkdir()
+
+        for i, at in enumerate(atoms):
+            if np.any(at.get_pbc() != atoms[0].get_pbc()):
+                raise ValueError("PBC cannot change between states")
+            lmp_atfname = f"Atoms/atoms{i+1}.lmp"
+            write_lammps_data(lmp_atfname,
+                              at,
+                              specorder=self.elements.tolist())
+        self._write_mlip_params()
+        self._write_looping_lammps_input(atoms)
+
+        self._run_lammps(lmp_atfname)
+
+        desc = []
+        for i in range(len(atoms)):
+            nat = len(atoms[i])
+            amat_e = np.zeros((1, self.ncolumns))
+            amat_f = np.zeros((3 * nat, self.ncolumns))
+            amat_s = np.zeros((6, self.ncolumns))
+
+            bispectrum = np.loadtxt(f"descriptor{i+1}.out",
+                                    skiprows=4)
+            bispectrum[-6:, 1:-1] /= -atoms[i].get_volume()
+
+            amat_e[0] = bispectrum[0, 1:-1]
+            amat_f = bispectrum[1:3*nat+1, 1:-1]
+            amat_s = bispectrum[3*nat+1:, 1:-1]
+
+            np.save("amat_e.npy", amat_e)
+            np.save("amat_f.npy", amat_f)
+            np.save("amat_s.npy", amat_s)
+
+            desc.append(dict(desc_e=amat_e,
+                             desc_f=amat_f,
+                             desc_s=amat_s))
+        self.loop_cleanup(len(atoms))
+        return desc
+
+# ========================================================================== #
+    @Manager.exec_from_path
+    def _write_looping_lammps_input(self, atoms):
+        """
+        Write one lammps file for all the config in atoms
+        """
+        # Write the input file
+        txt = "LAMMPS input file for extracting MLIP descriptors"
+        lmp_in = LammpsInput(txt)
+
+        block = LammpsBlockInput("init", "Initialization")
+        block("loop", f"variable a loop {len(atoms)}")
+        block("label", "label loopstart")
+
+        pbc_txt = "{0} {1} {2}".format(
+                *tuple("sp"[int(x)] for x in atoms[0].get_pbc()))
+        block("boundary", f"boundary {pbc_txt}")
+        block("atom_style", "atom_style  atomic")
+        block("units", "units metal")
+        block("read_data", "read_data Atoms/atoms${a}.lmp")
+        for i, m in enumerate(self.masses):
+            block(f"mass{i}", f"mass   {i+1} {m}")
+        lmp_in("init", block)
+
+        block = LammpsBlockInput("interaction", "Interactions")
+        block("pair_style", f"pair_style zero {2*self.rcut}")
+        block("pair_coeff", "pair_coeff  * *")
+        lmp_in("interaction", block)
+
+        block = LammpsBlockInput("fake_dynamic", "Fake dynamic")
+        block("thermo", "thermo 100")
+        block("timestep", "timestep 0.005")
+        block("neighbor", "neighbor 1.0 bin")
+        block("neigh_modify", "neigh_modify once no every 1 delay 0 check yes")
+        lmp_in("fake_dynamic", block)
+
+        block = LammpsBlockInput("compute", "Compute")
+        if self.style == "snap":
+            style = "sna"
+        elif self.style == "so3":
+            style = "so3"
+        txt = f"compute ml all mliap descriptor {style} " + \
+              f"{self.prefix}.descriptor model {self.model}"
+        block("compute", txt)
+        block("fix", "fix ml all ave/time 1 1 1 c_ml[*] " +
+              "file descriptor${a}.out mode vector")
+        block("run", "run 0")
+        lmp_in("compute", block)
+
+        block = LammpsBlockInput("loopback", "Loop Back")
+        block("clear data", "clear")
+        block("iterate", "next a")
+        block("loopend", "jump SELF loopstart")
+        lmp_in("loopback", block)
+
+        with open("lammps_input.in", "w") as fd:
+            fd.write(str(lmp_in))
+
+# ========================================================================== #
+    @Manager.exec_from_path
+    def _write_lammps_input(self, pbc):
         """
         """
         txt = "LAMMPS input file for extracting MLIP descriptors"
@@ -182,7 +288,7 @@ class MliapDescriptor(Descriptor):
         block("atom_style", "atom_style  atomic")
         block("units", "units metal")
         block("read_data", "read_data atoms.lmp")
-        for i, m in enumerate(masses):
+        for i, m in enumerate(self.masses):
             block(f"mass{i}", f"mass   {i+1} {m}")
         lmp_in("init", block)
 
@@ -247,6 +353,19 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     @Manager.exec_from_path
+    def loop_cleanup(self, nconf):
+        '''
+        Function to cleanup the LAMMPS files used
+        to extract the descriptor and gradient values
+        '''
+        Path("lmp.out").unlink(missing_ok=True)
+        Path("lammps_input.in").unlink(missing_ok=True)
+        shutil.rmtree("Atoms")
+        for i in range(nconf):
+            Path(f"descriptor{i+1}.out").unlink(missing_ok=True)
+
+# ========================================================================== #
+    @Manager.exec_from_path
     def _write_mlip_params(self):
         """
         Function to write the mliap.descriptor parameter files of the MLIP
@@ -256,10 +375,12 @@ class MliapDescriptor(Descriptor):
 
 # ========================================================================== #
     def get_mlip_params(self):
+        elements = self.elements
+
         s = ("# ")
         # Adding a commment line to know what elements are fitted here
-        for elements in self.elements:
-            s += ("{:} ".format(elements))
+        for el in elements:
+            s += ("{:} ".format(el))
         s += ("MLIP parameters\n")
         s += (f"# Descriptor:  {self.style}\n")
         s += (f"# Model:       {self.model}\n")
@@ -268,17 +389,17 @@ class MliapDescriptor(Descriptor):
         for key in self.params.keys():
             s += (f"{key:12}    {self.params[key]}\n")
         s += ("\n\n\n")
-        s += (f"nelems      {self.nel}\n")
+        s += (f"nelems      {len(elements)}\n")
         s += ("elems       ")
-        for n in range(len(self.elements)):
-            s += (self.elements[n] + " ")
+        for n in range(len(elements)):
+            s += (elements[n] + " ")
         s += ("\n")
         s += ("radelems   ")
-        for n in range(len(self.elements)):
+        for n in range(len(elements)):
             s += (f" {self.radelems[n]}")
         s += ("\n")
         s += ("welems    ")
-        for n in range(len(self.elements)):
+        for n in range(len(elements)):
             s += (f"  {self.welems[n]}")
         s += ("\n")
 
@@ -322,7 +443,7 @@ class MliapDescriptor(Descriptor):
             filename = Path(self.get_filepath('.model'))
 
         if not filename.is_file():
-            filename = filename.absoluse()
+            filename = filename.absolute()
             raise FileNotFoundError(f"File {filename} does not exist")
 
         with open(filename, "r") as fd:

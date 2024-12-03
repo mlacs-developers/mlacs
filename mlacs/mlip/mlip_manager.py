@@ -1,5 +1,5 @@
 """
-// Copyright (C) 2022-2024 MLACS group (AC)
+// Copyright (C) 2022-2024 MLACS group (AC, ON)
 // This file is distributed under the terms of the
 // GNU General Public License, see LICENSE.md
 // or http://www.gnu.org/copyleft/gpl.txt .
@@ -67,6 +67,38 @@ class MlipManager(Manager, ABC):
 # ========================================================================== #
     def update_matrices(self, atoms):
         """
+        Update database, feature matrix and label vector with new configs.
+
+        Parameters
+        -----
+
+        atoms: :class:`ase.Atoms` or :class:`list` of :class:`ase.Atoms`
+            New configuration(s) to be added to the database.
+
+        Notes
+        -----
+
+        Feature matrix `amat_i` and label vector `ymat_i` are separated into
+        blocks i=e,f,s, representing energy, forces and stresses, respectively.
+
+        Attribute dimensions after update
+            - `self.amat_e`: ndarray of shape (N, K)
+                Block matrix representing the descriptors
+            - `self.amat_f`: ndarray of shape (3*Nat*N, K)
+                Block matrix representing the gradient of descr. wrt positions
+            - `self.amat_s`: ndarray of shape (6*N, K)
+                Block matrix representing the gradient of descr. wrt strains
+            - `self.ymat_e`: ndarray of shape (N,)
+                Label vector representing the energies
+            - `self.ymat_f`: ndarray of shape (3*Nat*N,)
+                Label vector representing the forces
+            - `self.ymat_s`: ndarray of shape (6*N,)
+                Label vector representing the stresses
+
+        Where:
+            - `K` is the number of descriptor components (features)
+            - `N` is the number of configurations in database (after update)
+            - `Nat` is the number of atoms in each cell
         """
         if isinstance(atoms, Atoms):
             atoms = [atoms]
@@ -74,13 +106,10 @@ class MlipManager(Manager, ABC):
 
         self.descriptor.workdir = self.workdir
         self.descriptor.folder = self.folder
-        amat_all = self.descriptor.calculate(atoms)
+        amat_all = self.descriptor.compute_descriptors(atoms)
 
         energy = np.array([at.get_potential_energy() for at in atoms])
-        forces = []
-        for at in atoms:
-            forces.extend(at.get_forces().flatten())
-        forces = np.array(forces)
+        forces = np.array([at.get_forces() for at in atoms]).flatten()
         stress = np.array([at.get_stress() for at in atoms]).flatten()
         nat = np.array([len(at) for at in atoms])
 
@@ -104,6 +133,7 @@ class MlipManager(Manager, ABC):
             self.ymat_f = np.r_[self.ymat_f, forces]
             self.ymat_s = np.r_[self.ymat_s, stress]
             self.natoms = np.append(self.natoms, [nat])
+
         self.nconfs += len(atoms)
 
 # ========================================================================== #
@@ -159,7 +189,7 @@ class MlipManager(Manager, ABC):
                         #    However, one might want to restart a calculation
                         #    on a different machine than the one it started on.
                         #    TODO: Get directories by inspection instead.
-                        #
+                        # ON: I agree
                         err = "Some parent MLIP are missing. "
                         err += "Rerun MLACS with DatabaseCalculator and "
                         err += "OtfMlacs.keep_tmp_files=True on your traj"
@@ -184,11 +214,15 @@ class MlipManager(Manager, ABC):
 
         # GA: Passing names like this is a bit shady. TODO: clean up.
         mlip_fn = self.descriptor.write_mlip(mlip_coef)
-        _, weight_fn = self.weight.compute_weight(mlip_coef, self.predict)
+        _, __ = self.weight.compute_weight(mlip_coef,
+                                           self.predict,
+                                           docalc=False)
         prefix = self.descriptor.prefix
+        desc_fn = self.subdir/f"{prefix}.descriptor"
+        if not Path(desc_fn).exists():
+            self.descriptor._write_mlip_params()
 
         # GA: Not sure why we need to create a link here.
-        create_link(self.subsubdir/weight_fn, self.subdir/"MLIP.weight")
         create_link(self.subsubdir/mlip_fn, self.subdir/f"{prefix}.model")
 
 # ========================================================================== #
@@ -270,14 +304,6 @@ class MlipManager(Manager, ABC):
         return msg
 
 # ========================================================================== #
-    def _get_idx_fit(self):
-        """
-        """
-        idx_e = 0
-        idx_f = 3 * self.natoms[:idx_e].sum()
-        idx_s = idx_e * 6
-        return idx_e, idx_f, idx_s
-
     @property
     def pair_style(self):
         return self._get_pair_style()
@@ -295,6 +321,10 @@ class MlipManager(Manager, ABC):
     def _get_pair_coeff(self):
         self.descriptor.folder = self.folder
         return self.descriptor.get_pair_coeff()
+
+# ========================================================================== #
+    def get_elements(self):
+        return self.descriptor.elements
 
 
 # ========================================================================== #
