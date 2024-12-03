@@ -76,7 +76,6 @@ def_fitting = {'maxiter': 100, 'fit_cycles': 1, 'repulsion': 'auto',
 def_backend = {'evaluator': 'tensorpot', 'parallel_mode': 'serial',
                'batch_size': 100, 'display_step': 50}
 
-
 # ========================================================================== #
 # ========================================================================== #
 class AceDescriptor(Descriptor):
@@ -291,7 +290,6 @@ class AceDescriptor(Descriptor):
 
         # Dataframe preparation
         df = self.get_df()
-
         df = make_dataframe(
              df=df, name=name, atoms=atoms, atomic_env=atomic_env,
              energy=energy, forces=forces, we=we, wf=wf)
@@ -400,7 +398,6 @@ class AceDescriptor(Descriptor):
 
         self.callback = lambda val: check_conv(val)
         self.data = dict(filename=str(self.db_fn))
-
         self.acefit = GeneralACEFit(potential_config=self.bconf,
                                     fit_config=self.fitting,
                                     data_config=self.data,

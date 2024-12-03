@@ -21,6 +21,7 @@ code.
 
    background
    installation
+   contributing
    tutorials/index
 
 .. toctree::

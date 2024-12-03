@@ -56,9 +56,16 @@ class ReversibleScalingState(ThermoState):
     fe_init: :class:`float` (optional)
         Free energy of the initial temperature, in eV/at. Default ``None``.
 
+    phase: :class:`str`
+        The phase of the system for which the free energy is computed.
+        This input is used to compute the reference free energy at the
+        starting pressure using a EinsteinSolidState object for solids
+        and a UFLiquidState object for liquids. Can be either 'solid'
+        or 'liquid'
+
     ninstance: :class:`int` (optional)
-        If Free energy calculation has to be done before temperature sweep
-        Settles the number of forward and backward runs. Default ``1``.
+        If Free energy calculation has to be done before temperature sweep,
+        settles the number of forward and backward runs. Default ``1``.
 
     dt: :class:`int` (optional)
         Timestep for the simulations, in fs. Default ``1.5``
@@ -82,9 +89,16 @@ class ReversibleScalingState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
 
+    gjf: :class:`bool`
+        Whether to use the GJF integrator, if the Langevin thermostat is used.
+        Default `True`
+
     rng: :class:`RNG object`
         Rng object to be used with the Langevin thermostat.
         Default correspond to :class:`numpy.random.default_rng()`
+
+    langevin: :class:`bool`
+        Whether to use a langevin thermostat. Default `True`
 
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
@@ -179,8 +193,10 @@ class ReversibleScalingState(ThermoState):
         """
         """
 
-        if self.fe_init is None:
+        if self.fe_init is None and self.phase is not None:
             self.run_single_ti()
+        else:
+            self.fe_init = 0.0
 
         self.run_dynamics(self.atoms, self.pair_style, self.pair_coeff)
 
@@ -192,6 +208,7 @@ class ReversibleScalingState(ThermoState):
         """
         Free energy calculation before sweep
         """
+        folder = self.folder + "/Fe_ref"
         if self.phase == 'solid':
             self.state = EinsteinSolidState(self.atoms,
                                             self.pair_style,
@@ -203,8 +220,7 @@ class ReversibleScalingState(ThermoState):
                                             k=None,
                                             dt=self.dt,
                                             workdir=self.workdir,
-                                            folder=self.folder,
-                                            subfolder=self.subfolder)
+                                            folder=folder)
         elif self.phase == 'liquid':
             self.state = UFLiquidState(self.atoms,
                                        self.pair_style,
@@ -215,8 +231,7 @@ class ReversibleScalingState(ThermoState):
                                        fcorr2=self.fcorr2,
                                        dt=self.dt,
                                        workdir=self.workdir,
-                                       folder=self.folder,
-                                       subfolder=self.subfolder)
+                                       folder=folder)
 
         self.ti = ThermodynamicIntegration(self.state,
                                            ninstance=self.ninstance,
@@ -224,17 +239,7 @@ class ReversibleScalingState(ThermoState):
                                            folder=self.folder,
                                            subfolder=self.subfolder,
                                            logfile='FreeEnergy.log')
-        self.ti.run()
-        # Get Fe
-        if self.ninstance == 1:
-            _, self.fe_init = self.state.postprocess()
-        elif self.ninstance > 1:
-            tmp = []
-            for i in range(self.ninstance):
-                _, tmp_fe_init = self.state.postprocess()
-                tmp.append(tmp_fe_init)
-            self.fe_init = np.mean(tmp)
-
+        self.fe_init = self.ti.run().mean(axis=1)[0]
         return self.fe_init
 
 # ========================================================================== #

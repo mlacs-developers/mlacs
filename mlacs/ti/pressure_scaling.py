@@ -6,10 +6,9 @@
 // For the initials of contributors, see CONTRIBUTORS.md
 """
 
-import os
 import numpy as np
 from scipy.integrate import cumtrapz
-from ase.units import kB
+from ase.units import GPa
 
 from ..core.manager import Manager
 from ..utilities.io_lammps import LammpsBlockInput
@@ -57,8 +56,16 @@ class PressureScalingState(ThermoState):
     g_init: :class:`float` (optional)
         Free energy of the initial temperature, in eV/at. Default ``None``.
 
+    phase: :class:`str`
+        The phase of the system for which the free energy is computed.
+        This input is used to compute the reference free energy at the
+        starting pressure using a EinsteinSolidState object for solids
+        and a UFLiquidState object for liquids. Can be either 'solid'
+        or 'liquid'
+
     ninstance: :class:`int` (optional)
-        If Free energy calculation has to be done before temperature sweep
+        If a reference Free energy calculation has to be done before
+        the temperature sweep
         Settles the number of forward and backward runs. Default ``1``.
 
     dt: :class:`int` (optional)
@@ -82,10 +89,20 @@ class PressureScalingState(ThermoState):
     nsteps_eq: :class:`int` (optional)
         Number of equilibration steps. Default ``5000``.
 
-    suffixdir: :class:`str`
-        Suffix for the directory in which the computation will be run.
-        If ``None``, a directory ``\"Solid_TXK\"`` is created,
-        where X is the temperature. Default ``None``.
+    nsteps_averaging: :class:`int` (optional)
+        Number of steps done to equilibrate the system at the start pressure.
+        Default `10000`
+
+    gjf: :class:`bool`
+        Whether to use the GJF integrator, if the Langevin thermostat is used.
+        Default `True`
+
+    rng: :class:`RNG object`
+        Rng object to be used with the Langevin thermostat.
+        Default correspond to :class:`numpy.random.default_rng()`
+
+    langevin: :class:`bool`
+        Whether to use a langevin thermostat. Default `True`
 
     logfile : :class:`str` (optional)
         Name of the file for logging the MLMD trajectory.
@@ -119,17 +136,34 @@ class PressureScalingState(ThermoState):
                  pdamp=None,
                  nsteps=10000,
                  nsteps_eq=5000,
+                 nsteps_averaging=10000,
                  gjf=True,
                  rng=None,
-                 suffixdir=None,
+                 langevin=True,
                  logfile=True,
                  trajfile=True,
                  interval=500,
-                 loginterval=50):
+                 loginterval=50,
+                 **kwargs):
+
+        fname = f"PressureScaling_P{p_start}_P{p_end}GPa_T{temperature}K"
+        kwargs.setdefault('folder', fname)
+
+        super().__init__(atoms,
+                         pair_style,
+                         pair_coeff,
+                         dt=dt,
+                         nsteps=nsteps,
+                         nsteps_eq=nsteps_eq,
+                         nsteps_averaging=nsteps_averaging,
+                         rng=rng,
+                         langevin=langevin,
+                         logfile=logfile,
+                         trajfile=trajfile,
+                         interval=interval,
+                         **kwargs)
 
         self.atoms = atoms
-        self.pair_style = pair_style
-        self.pair_coeff = pair_coeff
         self.fcorr1 = fcorr1
         self.fcorr2 = fcorr2
         self.p_start = p_start
@@ -147,52 +181,23 @@ class PressureScalingState(ThermoState):
         self.rng = rng
         if self.rng is None:
             self.rng = np.random.default_rng()
-        
-        # reversible scaling
-        ThermoState.__init__(self,
-                             atoms,
-                             pair_style,
-                             pair_coeff,
-                             dt,
-                             nsteps,
-                             nsteps_eq,
-                             rng=rng,
-                             logfile=logfile,
-                             trajfile=trajfile,
-                             interval=interval,
-                             loginterval=loginterval)
-
-        self.suffixdir = f"PressureScaling_P{self.p_start}GPa_P{self.p_end}GPa"
-        self.suffixdir += "_{0}K".format(self.temperature)
-        self.suffixdir += "/"
-        if suffixdir is not None:
-            self.suffixdir = suffixdir
-        if self.suffixdir[-1] != "/":
-            self.suffixdir += "/"
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def run(self, wdir):
+    def run(self):
         """
         """
-        if not os.path.exists(wdir):
-            os.makedirs(wdir)
-
-        self.workdir = wdir #to be transmitted by the BaseLammpsState class
-        
         if self.g_init is None:
             self.run_single_ti()
 
         self.run_dynamics(self.atoms, self.pair_style, self.pair_coeff)
-
-        with open(wdir + "MLMD.done", "w") as f:
-            f.write("Done")
 
 # ========================================================================== #
     def run_single_ti(self):
         """
         Free energy calculation before sweep
         """
+        folder = "Fe_ref"
         if self.phase == 'solid':
             self.state = EinsteinSolidState(self.atoms,
                                             self.pair_style,
@@ -202,7 +207,8 @@ class PressureScalingState(ThermoState):
                                             self.fcorr1,
                                             self.fcorr2,
                                             k=None,
-                                            dt=self.dt)
+                                            dt=self.dt,
+                                            folder=folder)
         elif self.phase == 'liquid':
             self.state = UFLiquidState(self.atoms,
                                        self.pair_style,
@@ -211,24 +217,13 @@ class PressureScalingState(ThermoState):
                                        self.p_start,
                                        self.fcorr1,
                                        self.fcorr2,
-                                       dt=self.dt)
-            
+                                       dt=self.dt,
+                                       folder=folder)
+
         self.ti = ThermodynamicIntegration(self.state,
                                            ninstance=self.ninstance,
                                            logfile='FreeEnergy.log')
-        self.ti.run()
-        
-        # Get G
-        if self.ninstance == 1:
-            _, self.g_init = self.state.postprocess(self.ti.get_fedir())
-        elif self.ninstance > 1:
-            tmp = []
-            for i in range(self.ninstance):
-                _, tmp_g_init = self.state.postprocess(
-                    self.ti.get_fedir() + f"for_back_{i+1}/")
-                tmp.append(tmp_g_init)
-            self.g_init = np.mean(tmp)
-
+        self.g_init = self.ti.run().mean(axis=1)[0]
         return self.g_init
 
 # ========================================================================== #
@@ -244,22 +239,21 @@ class PressureScalingState(ThermoState):
         temp = self.temperature
         self.info_dynamics["temperature"] = temp
         langevinseed = self.rng.integers(1, 9999999)
-        
+
         block = LammpsBlockInput("thermostat", "Integrators")
         block("timestep", f"timestep {self.dt / 1000}")
-        block("momenta", f"velocity all create " +\
+        block("momenta", "velocity all create " +
               f"{temp} {langevinseed} dist gaussian")
         return block
 
 # ========================================================================== #
-    def _get_block_traj(self, atoms):
+    def _get_block_traj(self, el):
         """
         """
         if self.trajfile:
-            el, Z, masses, charges = get_elements_Z_and_masses(atoms)
             block = LammpsBlockInput("dump", "Dumping")
-            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} " + \
-                  "id type xu yu zu vx vy vz fx fy fz "
+            txt = f"dump dum1 all custom {self.loginterval} {self.trajfile} "
+            txt += "id type xu yu zu vx vy vz fx fy fz "
             txt += "element"
             block("dump", txt)
             block("dump_modify1", "dump_modify dum1 append yes")
@@ -276,77 +270,72 @@ class PressureScalingState(ThermoState):
         li = 1
         lf = self.p_end
         temp = self.temperature
-        
+
         blocks = []
-        pair_style = self.pair_style.split()
-        if len(self.pair_coeff) == 1:
-            pair_coeff = self.pair_coeff[0].split()
-            hybrid_pair_coeff = " ".join([*pair_coeff[:2],
-                                          pair_style[0],
-                                          *pair_coeff[2:]])
-        else:
-            hybrid_pair_coeff = []
-            for pc in self.pair_coeff:
-                pc_ = pc.split()
-                hpc_ = " ".join([*pc_[:2], *pc_[2:]])
-                hybrid_pair_coeff.append(hpc_)
 
         block0 = LammpsBlockInput("eq fwd", "Equilibration before fwd rs")
-        block0("eq fwd npt", f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
-              f"iso {self.p_start*10000} {self.p_start*10000} {self.pdamp}")
+        line = f"fix f1 all npt temp {temp} {temp} {self.damp} "
+        line += f"iso {self.p_start*10000} {self.p_start*10000} {self.pdamp}"
+        block0("eq fwd npt", line)
         block0("run eq fwd", f"run {self.nsteps_eq}")
-        block0("unfix eq fwd", f"unfix f1")
+        block0("unfix eq fwd", "unfix f1")
         blocks.append(block0)
 
         block1 = LammpsBlockInput("fwd", "Forward Integration")
-        block1("lambda fwd", f"variable lambda equal ramp({li*10000},{lf*10000})")
-        block1("pp", f"variable pp equal ramp({self.p_start*10000},{self.p_end*10000})")
-        block1("fwd npt", f"fix f2 all npt temp {temp} {temp} {self.damp} " + \
-              f"iso {self.p_start*10000} {self.p_end*10000} {self.pdamp}")
-        block1("write fwd", "fix f3 all print 1 " + \
-               "\"$(pe/atoms) ${pp} ${vol} ${lambda}\" screen no " + \
-               "append forward.dat title \"# de                   pressure  vol         lambda\"\n")
+        block1("lambda fwd", "variable lambda equal " +
+               f"ramp({li*10000},{lf*10000})")
+        block1("pp", "variable pp equal " +
+               f"ramp({self.p_start*10000},{self.p_end*10000})")
+        block1("fwd npt", f"fix f2 all npt temp {temp} {temp} {self.damp} " +
+               f"iso {self.p_start*10000} {self.p_end*10000} {self.pdamp}")
+        block1("write fwd", "fix f3 all print 1 " +
+               "\"$(pe/atoms) ${pp} ${vol} ${lambda}\" screen no " +
+               "append forward.dat title \"# de                  " +
+               " pressure  vol         lambda\"\n")
         block1("run fwd", f"run {self.nsteps}")
-        block1("unfix fwd npt", f"unfix f2")
+        block1("unfix fwd npt", "unfix f2")
         block1("unfix f3", "unfix f3 ")
         blocks.append(block1)
 
         block2 = LammpsBlockInput("eq bwd", "Equilibration before bwd rs")
-        block2("eq bwd npt", f"fix f1 all npt temp {temp} {temp} {self.damp} " + \
-              f"iso {self.p_end*10000} {self.p_end*10000} {self.pdamp}")
+        block2("eqbwd npt", f"fix f1 all npt temp {temp} {temp} {self.damp} " +
+               f"iso {self.p_end*10000} {self.p_end*10000} {self.pdamp}")
         block2("run eq bwd", f"run {self.nsteps_eq}")
-        block2("unfix eq bwd", f"unfix f1")
+        block2("unfix eq bwd", "unfix f1")
         blocks.append(block2)
 
         block3 = LammpsBlockInput("bwd", "Backward Integration")
-        block3("lambda bwd", f"variable lambda equal ramp({lf*10000},{li*10000})")
-        block3("pp", f"variable pp equal ramp({self.p_end*10000},{self.p_start*10000})")
-        block3("bwd npt", f"fix f2 all npt temp {temp} {temp} {self.damp} " + \
-              f"iso {self.p_end*10000} {self.p_start*10000} {self.pdamp}")
-        block3("write bwd", "fix f3 all print 1 " + \
-               "\"$(pe/atoms) ${pp} ${vol} ${lambda}\" screen no " + \
-               "append backward.dat title \"# de                  pressure  vol         lambda\"\n")
+        block3("lambda bwd", "variable lambda equal " +
+               f"ramp({lf*10000},{li*10000})")
+        block3("pp", "variable pp equal " +
+               f"ramp({self.p_end*10000},{self.p_start*10000})")
+        block3("bwd npt", f"fix f2 all npt temp {temp} {temp} {self.damp} " +
+               f"iso {self.p_end*10000} {self.p_start*10000} {self.pdamp}")
+        block3("write bwd", "fix f3 all print 1 " +
+               "\"$(pe/atoms) ${pp} ${vol} ${lambda}\" screen no " +
+               "append backward.dat title \"# de                 " +
+               " pressure  vol         lambda\"\n")
         blocks.append(block3)
         return blocks
 
 # ========================================================================== #
     @Manager.exec_from_path
-    def postprocess(self, wdir):
+    def postprocess(self):
         """
         Compute the free energy from the simulation
         """
         natoms = len(self.atoms)
-        
+
         # Get data
-        _, fp, fvol, _ = np.loadtxt(wdir+"forward.dat", unpack=True)
-        _, bp, bvol, _ = np.loadtxt(wdir+"backward.dat", unpack=True)
+        _, fp, fvol, _ = np.loadtxt("forward.dat", unpack=True)
+        _, bp, bvol, _ = np.loadtxt("backward.dat", unpack=True)
 
         # pressure contribution
         fvol = fvol / natoms
         bvol = bvol / natoms
 
-        fp = fp / (10000*160.21766208)
-        bp = bp / (10000*160.21766208)
+        fp = fp / 10000 * GPa
+        bp = bp / 10000 * GPa
 
         # Integrate the forward and backward data
         wf = cumtrapz(fvol, fp, initial=0)
@@ -361,8 +350,7 @@ class PressureScalingState(ThermoState):
         results = np.array([pressure, free_energy]).T
         header = "p [GPa]    G [eV/at]"
         fmt = "%10.6f    %10.6f"
-        np.savetxt(wdir + "free_energy.dat", results, header=header, fmt=fmt)
-        return 
+        np.savetxt("free_energy.dat", results, header=header, fmt=fmt)
 
 # ========================================================================== #
     def log_recap_state(self):

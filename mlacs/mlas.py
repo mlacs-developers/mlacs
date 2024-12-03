@@ -650,8 +650,8 @@ class Mlas(Manager):
         """
         train_traj, prev_traj = self.read_traj()
 
-        for i in range(self._nmax):
-            self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
+        #for i in range(self._nmax):
+        #    self.state[i].subsubdir.mkdir(exist_ok=True, parents=True)
 
         # Add the Configuration without a MLIP generating them
         if train_traj is not None:

@@ -389,7 +389,6 @@ def reconstruct_mlmd_trajectory(trajfile, logfile):
         traj.append(newat)
     return traj
 
-
 # RB: msdfile variable probably not needed.
 # ========================================================================== #
 def get_msd_input(self, msdfile):

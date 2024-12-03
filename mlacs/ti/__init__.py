@@ -10,10 +10,10 @@ from .thermoint import ThermodynamicIntegration
 from .solids import EinsteinSolidState
 from .liquids import UFLiquidState
 from .reversible_scaling import ReversibleScalingState
-from .helpers import prepare_ti
+from .pressure_scaling import PressureScalingState
 
 __all__ = ["ThermodynamicIntegration",
            "EinsteinSolidState",
            "UFLiquidState",
            "ReversibleScalingState",
-           "prepare_ti"]
+           "PressureScalingState"]
