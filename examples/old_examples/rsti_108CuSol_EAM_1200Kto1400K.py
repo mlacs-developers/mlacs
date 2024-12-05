@@ -3,6 +3,7 @@ Performing a Reversible Scaling Thermodynamic Integration
 for fcc Cu
 A simple EAM force field is used.
 """
+# FIXME: Seems like directories are not working properly.
 
 import os
 
