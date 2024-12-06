@@ -301,11 +301,10 @@ def test_gsr_out():
     prefix = 'abinit'
 
     gsr = AbinitNC(workdir=workdir, prefix=prefix, suffix='GSR')
-    gsr.ncfile = '/home/duvalc/Documents/squaric_acid/pseudopot/sqao_GSR.nc'
     gsr_atoms = gsr.convert_to_atoms()
 
     out = AbinitNC(workdir=workdir, prefix=prefix, suffix='OUT')
-    out.ncfile = '/home/duvalc/Documents/squaric_acid/pseudopot/sqao_OUT.nc'
+
     out_atoms = out.convert_to_atoms()
 
     assert len(gsr_atoms) == 1

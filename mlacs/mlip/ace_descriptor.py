@@ -170,6 +170,7 @@ class AceDescriptor(Descriptor):
         self.desc_name = "ACE"
         self.n_fit_attempt = 3
         self.db_fn = "ACE.pckl.gzip"
+        self.pot_fn = "ACE.yace"
         self.tol_e = tol_e
         self.tol_f = tol_f
         self.free_at_e = free_at_e
@@ -235,8 +236,6 @@ class AceDescriptor(Descriptor):
 # ========================================================================== #
     def get_mlip_params(self):
         """
-        Returns a string containing the ACE.yace file which uniquely defines
-        a ACE.yace file
         """
         raise NotImplementedError
 
@@ -246,7 +245,7 @@ class AceDescriptor(Descriptor):
         """
         Read MLIP coefficients from a file.
         """
-        filename = Path(folder) / "ACE.yace"
+        filename = Path(folder) / self.pot_fn
 
         if not filename.is_file():
             filename = filename.absolute()
@@ -320,11 +319,11 @@ class AceDescriptor(Descriptor):
         self.fitting['maxiter'] = real_maxiter
 
         fn_yaml = "interim_potential_best_cycle.yaml"
-        yace_cmd = f"pace_yaml2yace {fn_yaml} -o ACE.yace"
-        self.mlip_model = Path.cwd() / "ACE.yace"
+        yace_cmd = f"pace_yaml2yace {fn_yaml} -o {self.pot_fn}"
+        self.mlip_model = Path.cwd() / self.pot_fn
         run(shlex.split(yace_cmd), stdout=sys.stdout, stderr=sys.stdout)
 
-        if not Path("ACE.yace").exists():
+        if not Path(self.pot_fn).exists():
             msg = "The ACE fitting wasn't successful\n"
             msg += "If interim_potential_best_cycle.yaml doesn't exist "
             msg += f"in {Path().cwd()} then the ACEfit went wrong.\n"
@@ -332,7 +331,7 @@ class AceDescriptor(Descriptor):
             msg += f"{Path().cwd()}"
             raise RuntimeError(msg)
 
-        return "ACE.yace"
+        return self.pot_fn
 
 # ========================================================================== #
     def actual_fit(self):
@@ -352,7 +351,7 @@ class AceDescriptor(Descriptor):
     def set_restart_coefficient(self, mlip_subfolder):
         """
         Restart the calculation with the coefficient from this folder.
-        This is because we cannot get back the coefficients from ACE.yace
+        This is because we cannot get back the coefficients from yace
         """
         if str(mlip_subfolder).endswith(".yace"):
             path = Path(mlip_subfolder).with_suffix(".yaml")
