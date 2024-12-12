@@ -300,7 +300,7 @@ class AbinitManager(CalcManager):
         """
         """
         results = {}
-        if self.ncfile is not None:
+        if 'None' not in str(self.ncfile):
             ncpath = self.get_filepath("abinito_GSR.nc")
             self.ncfile.read(filename=ncpath)
             atoms = self.ncfile.convert_to_atoms()[0]
