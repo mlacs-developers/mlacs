@@ -7,12 +7,10 @@
 """
 
 import numpy as np
-
 try:  # Scipy >= 1.6.0
     from scipy.integrate import cumulative_trapezoid as cumtrapz
 except ImportError:  # Scipy < 1.6.0
     from scipy.integrate import cumtrapz
-
 from ase.units import GPa
 
 from ..core.manager import Manager

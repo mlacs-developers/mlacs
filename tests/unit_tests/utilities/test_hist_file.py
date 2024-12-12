@@ -304,6 +304,7 @@ def test_gsr_out():
     gsr_atoms = gsr.convert_to_atoms()
 
     out = AbinitNC(workdir=workdir, prefix=prefix, suffix='OUT')
+
     out_atoms = out.convert_to_atoms()
 
     assert len(gsr_atoms) == 1
