@@ -248,7 +248,7 @@ class Mlas(Manager):
         # TODO GA: Might be better to do the threading at this level,
         #          up from calc.compute_true_potential.
         subfolder_l = [s.subfolder for s in self.state]
-        step_l = [self.step] * self.nstate
+        step_l = [max(self.nconfs)] * self.nstate
         atoms_true = self.calc.compute_true_potential(atoms_mlip,
                                                       subfolder_l,
                                                       step=step_l)
