@@ -543,6 +543,7 @@ class AbinitNC:
         """
 
         if filename is not None:
+            self.ncfile = filename
             self.dataset = Dataset(filename)
         elif filename is None and hasattr(self, 'ncfile'):
             self.dataset = Dataset(self.ncfile)
