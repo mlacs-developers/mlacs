@@ -9,10 +9,10 @@ import sys
 import re
 import os
 
-sys.path.insert(0, os.path.abspath("../mlacs"))
-sys.path.insert(0, os.path.abspath("../mlacs/mlip"))
-sys.path.insert(0, os.path.abspath("../mlacs/state"))
-sys.path.insert(0, os.path.abspath("../mlacs/ti"))
+sys.path.insert(0, os.path.abspath("../../mlacs"))
+sys.path.insert(0, os.path.abspath("../../mlacs/mlip"))
+sys.path.insert(0, os.path.abspath("../../mlacs/state"))
+sys.path.insert(0, os.path.abspath("../../mlacs/ti"))
 
 
 # Configuration file for the Sphinx documentation builder.
