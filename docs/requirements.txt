@@ -1,4 +1,4 @@
-sphinx
+sphinx<7
 nbsphinx
 nbsphinx-link
 renku-sphinx-theme
