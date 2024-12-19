@@ -4,3 +4,8 @@ nbsphinx-link
 renku-sphinx-theme
 recommonmark
 pandoc
+numpy
+ase
+pymbar
+scikit-learn
+netCDF4
