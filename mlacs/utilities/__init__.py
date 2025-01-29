@@ -19,7 +19,7 @@ from .miscellanous import (get_elements_Z_and_masses,
                            create_link,
                            )
 
-from .io_abinit import (AbinitNC)
+from .io_abinit import (AbinitNC, MlacsHist, OtfMlacsHist)
 
 from .io_pandas import (make_dataframe)
 

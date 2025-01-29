@@ -147,7 +147,7 @@ class MlacsHist:
                     'one': 1,
                     'two': 2,
                     'xyz': 3,
-                    'npsp': 3,
+                    'npsp': ntypat,
                     'six': 6,
                     'ntypat': ntypat,
                     'natom': natom,
