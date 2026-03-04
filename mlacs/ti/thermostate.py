@@ -100,7 +100,7 @@ class ThermoState(BaseLammpsState):
         self.atoms = atoms
         self.pair_style = pair_style
         self.pair_coeff = pair_coeff
-        self.nsteps = nsteps_averaging
+        self.nsteps_averaging = nsteps_averaging
         self.elem, self.Z, self.masses, self.charges = (
             get_elements_Z_and_masses(self.atoms))
         self.dt = dt
@@ -113,12 +113,13 @@ class ThermoState(BaseLammpsState):
         """
         eq_state = LammpsState(self.temperature,
                                self.pressure,
-                               nsteps=self.nsteps,
+                               nsteps=self.nsteps_averaging,
                                nsteps_eq=self.nsteps_eq,
                                workdir=self.workdir,
                                folder=self.folder,
                                subfolder='Equilibration')
 
+        eq_state.initialize_momenta(self.atoms)
         self.atoms = eq_state.run_dynamics(self.atoms,
                                            self.pair_style,
                                            self.pair_coeff)
